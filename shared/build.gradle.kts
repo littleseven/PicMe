@@ -63,3 +63,49 @@ kotlin {
         // iosMain 暂无额外依赖（Phase 6.2 chat 链路仅用 commonMain 传递依赖 + K/N 平台 API）
     }
 }
+
+// ── ADR-013 §3 守卫：commonMain 纯度 ─────────────────────────────────────────────
+// 业务逻辑下沉 commonMain，平台实现各端自理（androidMain/iosMain）。本任务在编译 common
+// 元数据前校验：禁 @Composable / 禁平台 import（android.*·java.*·androidx.compose.*）/ 禁
+// actual 声明。违任一即 fail，防住单次坏提交把平台依赖漏进 commonMain 静默搞挂 iOS 编译。
+// 注：expect 声明允许（contract §2.4 按需扁平 expect）；actual 才禁。
+tasks.register("checkCommonMainPurity") {
+    group = "verification"
+    description = "ADR-013: commonMain 不得含 @Composable / 平台 import / actual 声明"
+    val srcDir = file("src/commonMain/kotlin")
+    inputs.dir(srcDir).withPropertyName("commonMainSources")
+    val patterns: List<Pair<Any, String>> = listOf(
+        "@Composable" to "Compose UI 注解（UI 不得入 commonMain）",
+        Regex("^import\\s+(android|java)\\.") to "平台 import android.*/java.*（iOS K/N 不可用）",
+        Regex("^import\\s+androidx\\.compose") to "Compose 依赖（UI 不得入 commonMain）",
+        Regex("\\bactual\\s+(fun|class|interface|val|var|object|typealias|property|annotation)\\b")
+            to "actual 声明（平台实现属 androidMain/iosMain，不入 commonMain）"
+    )
+    doLast {
+        val violations = mutableListOf<String>()
+        fileTree("src/commonMain/kotlin") { include("**/*.kt") }.forEach { f ->
+            f.readLines().forEachIndexed { i, raw ->
+                val trimmed = raw.trimStart()
+                if (trimmed.startsWith("//") || trimmed.startsWith("*")) return@forEachIndexed
+                patterns.forEach { (pat, msg) ->
+                    val hit = when (pat) {
+                        is String -> pat in raw
+                        is Regex -> pat.containsMatchIn(raw)
+                        else -> false
+                    }
+                    if (hit) violations += "${f.relativeTo(srcDir)}:${i + 1}: $msg"
+                }
+            }
+        }
+        if (violations.isNotEmpty()) {
+            violations.sorted().forEach { logger.error(it) }
+            throw org.gradle.api.GradleException(
+                "commonMain 纯度校验失败（ADR-013 §2.1/§2.3）：见上 ${violations.size} 处违规"
+            )
+        }
+    }
+}
+// 绑定 common 元数据编译与 check 生命周期：androidApp 构建经此链路，保证每次构建都校验
+tasks.matching { it.name in setOf("compileKotlinMetadata", "check") }.configureEach {
+    dependsOn("checkCommonMainPurity")
+}

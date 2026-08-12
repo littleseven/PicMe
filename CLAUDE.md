@@ -160,6 +160,7 @@ CameraX → SurfaceTexture → OpenGL ES Shader → SurfaceView
 
 ### Hard Rules (Enforced)
 - **No fully-qualified names** for `com.mamba.picme.*` in source (custom Gradle task `checkNoFullyQualifiedName`); use imports.
+- **commonMain purity**: `:shared/commonMain` must contain no `@Composable`, no platform imports (`android.*` / `java.*` / `androidx.compose.*`), and no `actual` declarations — business logic only; platform impls belong in `androidMain` / `iosMain` (custom Gradle task `checkCommonMainPurity`, bound to `compileKotlinMetadata`; ADR-013). `expect` declarations are allowed.
 - **No wildcard imports** (`*`).
 - **Lambda parameters must be explicitly named**; implicit `it` is prohibited.
 - **Log tags** must follow `PoLang:[ModuleName]` (e.g., `PoLang:Camera`, `PoLang:BeautyEngine`).
@@ -178,6 +179,7 @@ CameraX → SurfaceTexture → OpenGL ES Shader → SurfaceView
 
 - **ktlint** (v1.3.1) — Kotlin code style
 - **detekt** (v1.23.6, config: `detekt-config.yml`) — Static analysis
+- **commonMain purity check** (`checkCommonMainPurity`, ADR-013) — Fails the build if `:shared/commonMain` contains `@Composable`, platform imports, or `actual` declarations; runs on every build via `compileKotlinMetadata`.
 - **Unit tests** — Pure JVM tests covering coordinate algorithms, state machines, converters, end-to-end flows. ~50 test files across `androidApp/src/test/`, `beauty-engine/src/test/`, and `shared/src/commonTest` + `shared/src/jvmTest`.
 - **Instrumentation tests** — Require connected device/emulator.
 
@@ -196,6 +198,7 @@ Key technical specs:
 - `docs/03-TECHNICAL-SPECS/FACE_DETECTION_ENGINE_ARCHITECTURE.md` — MediaPipe + MNN dual-engine architecture
 - `docs/02-ARCHITECTURE/ADR/ADR-001-beauty-engine-architecture.md` — Layered module architecture decision
 - `docs/02-ARCHITECTURE/ADR/ADR-002-opengl-offscreen-unified-pipeline.md` — GPU off-screen rendering for photo processing
+- `docs/02-ARCHITECTURE/ADR/ADR-013-kmp-architecture-contract.md` — KMP architecture contract (AI-friendly / no-CMP / commonMain purity / flat Swift seam / engines asymmetry)
 - `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` — Agent runtime architecture design
 
 ## Build Configuration
