@@ -11,6 +11,12 @@ struct SettingsScreen: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var settings: AppSettings
 
+    /// 开发者选项解锁态（连点版本号 7 次解锁，持久化；对标 Android developer_options_unlocked）
+    @AppStorage("developer_options_unlocked") private var developerUnlocked: Bool = false
+    @State private var unlockTapCount: Int = 0
+    @State private var lastUnlockTap: Date = .distantPast
+    @State private var unlockHint: String?
+
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
@@ -18,6 +24,7 @@ struct SettingsScreen: View {
                 themeCard
                 languageCard
                 categoryGrid
+                versionFooter
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -31,6 +38,54 @@ struct SettingsScreen: View {
                     MatIcon(name: "chevron.left", size: 20)
                 }
             }
+        }
+    }
+
+    // MARK: - Version footer + 开发者选项连点解锁
+
+    private var appVersionText: String {
+        let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        return "PoLang v\(v)"
+    }
+
+    private var versionFooter: some View {
+        VStack(spacing: 4) {
+            Text(appVersionText)
+                .font(.system(size: 12))
+                .foregroundColor(.secondary.opacity(0.6))
+                .contentShape(Rectangle())
+                .onTapGesture { handleVersionTap() }
+            if let hint = unlockHint {
+                Text(hint)
+                    .font(.system(size: 12))
+                    .foregroundColor(.accentColor)
+                    .transition(.opacity)
+            }
+        }
+        .padding(.top, 16)
+        .padding(.bottom, 8)
+        .animation(.easeInOut(duration: 0.2), value: unlockHint)
+    }
+
+    private func handleVersionTap() {
+        let now = Date()
+        // 距上次点击超 4 秒则归零（防误触累积）
+        if now.timeIntervalSince(lastUnlockTap) > 4 {
+            unlockTapCount = 0
+        }
+        unlockTapCount += 1
+        lastUnlockTap = now
+        if unlockTapCount >= 7 {
+            unlockTapCount = 0
+            developerUnlocked = true
+            unlockHint = L("Developer options enabled.")
+        } else {
+            unlockHint = String(format: NSLocalizedString("Tap %d more times to enable developer options.", comment: ""), 7 - unlockTapCount)
+        }
+        // 2 秒后清空提示
+        let hint = unlockHint
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            if unlockHint == hint { withAnimation { unlockHint = nil } }
         }
     }
 
@@ -169,16 +224,16 @@ struct SettingsScreen: View {
 
         Group {
             switch cat.target {
-            case .aiAgent:
-                NavigationLink { AiAgentSettingsView() } label: { cardContent }
-            case .apiModels:
-                NavigationLink { ModelCenterView().environmentObject(ModelConfigStore.shared) } label: { cardContent }
             case .modelCenter:
                 NavigationLink { ModelDownloadCenterView() } label: { cardContent }
+            case .remoteModels:
+                NavigationLink { ModelCenterView().environmentObject(ModelConfigStore.shared) } label: { cardContent }
+            case .localModels:
+                NavigationLink { LocalModelsSettingsView() } label: { cardContent }
+            case .sandbox:
+                NavigationLink { SandboxSettingsView() } label: { cardContent }
             case .dataPrivacy:
                 NavigationLink { DataPrivacyView() } label: { cardContent }
-            case .about:
-                NavigationLink { AboutView() } label: { cardContent }
             case .memoryFacts:
                 NavigationLink { MemoryFactsView() } label: { cardContent }
             case .channels:
@@ -189,9 +244,7 @@ struct SettingsScreen: View {
                 } label: { cardContent }
             case .developer:
                 NavigationLink { DeveloperSettingsView() } label: { cardContent }
-            case .cameraBeauty:
-                NavigationLink { CameraBeautySettingsView() } label: { cardContent }
-            default:
+            case .gallery:
                 cardContent.opacity(0.5)
             }
         }
@@ -199,23 +252,27 @@ struct SettingsScreen: View {
     }
 
     private var categories: [SettingsCategoryItem] {
-        [
+        var items: [SettingsCategoryItem] = [
             // Row 1
-            .init(icon: "smart_toy", title: L("AI Assistant"), desc: L("Remote AI inference, voice control"), target: .aiAgent, isPlaceholder: false),
             .init(icon: "psychology", title: L("AI Memory"), desc: L("View, edit, delete AI remembered facts"), target: .memoryFacts, isPlaceholder: false),
-            // Row 2
             .init(icon: "account_circle", title: L("People"), desc: L("Manage people and relationships"), target: .people, isPlaceholder: false),
+            // Row 2
             .init(icon: "forum", title: L("Channels"), desc: L("Configure Feishu / Telegram remote control"), target: .channels, isPlaceholder: false),
+            .init(icon: "photo_library", title: L("Gallery Settings"), desc: L("Tag scanning, people clustering, tags & duplicates"), target: .gallery, isPlaceholder: true),
             // Row 3
-            .init(icon: "photo_library", title: L("Gallery"), desc: L("Tag scanning, face clustering, model management"), target: .gallery, isPlaceholder: true),
-            .init(icon: "camera_alt", title: L("Camera & Beauty"), desc: L("Face detection, beauty engine, camera behavior"), target: .cameraBeauty, isPlaceholder: false),
+            .init(icon: "cloud", title: L("Remote Models"), desc: L("Remote model providers, API keys, and the active model."), target: .remoteModels, isPlaceholder: false),
+            .init(icon: "memory", title: L("Local Models"), desc: L("Pick on-device face-detection, tagging and voice models."), target: .localModels, isPlaceholder: false),
             // Row 4
             .init(icon: "cloud_download", title: L("Model Center"), desc: L("Download and manage all local models"), target: .modelCenter, isPlaceholder: false),
-            .init(icon: "terminal", title: L("Developer"), desc: L("Debug overlay and advanced diagnostics"), target: .developer, isPlaceholder: false),
+            .init(icon: "verified_user", title: L("Sandbox & Permissions"), desc: L("Auto-execute, JS engine, device access."), target: .sandbox, isPlaceholder: false),
             // Row 5
-            .init(icon: "storage", title: L("Backup & Restore"), desc: L("Export or import TAG, face clusters, OCR, settings"), target: .backup, isPlaceholder: true),
             .init(icon: "privacy_tip", title: L("Data & Privacy"), desc: L("Privacy policy, data retention, deletion"), target: .dataPrivacy, isPlaceholder: false),
         ]
+        // 开发者选项仅在连点解锁后出现（对标 Android developer_options_unlocked 门控）
+        if developerUnlocked {
+            items.append(.init(icon: "terminal", title: L("Developer Options"), desc: L("Debug overlays and advanced diagnostics."), target: .developer, isPlaceholder: false))
+        }
+        return items
     }
 }
 
@@ -229,8 +286,9 @@ struct SettingsCategoryItem {
     let isPlaceholder: Bool
 
     enum Target {
-        case aiAgent, memoryFacts, people, channels, gallery, cameraBeauty
-        case modelCenter, apiModels, developer, backup, dataPrivacy, about
+        case memoryFacts, people, channels, gallery
+        case modelCenter, remoteModels, localModels, sandbox
+        case developer, dataPrivacy
     }
 }
 
@@ -389,6 +447,68 @@ struct AboutView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
+    }
+}
+
+// MARK: - 本地模型设置（占位·P3 填充：人脸检测/照片打标/语音）
+
+struct LocalModelsSettingsView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            Image(matIcon: "memory")
+                .font(.system(size: 56))
+                .foregroundColor(.secondary.opacity(0.3))
+            Text(L("Local Models"))
+                .font(.system(size: 16, weight: .medium))
+            Text(L("Face detection, photo tagging and voice model selection will be available here."))
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+            Spacer()
+        }
+        .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .navigationTitle(L("Local Models"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button { dismiss() } label: { MatIcon(name: "chevron.left", size: 20) }
+            }
+        }
+    }
+}
+
+// MARK: - 沙盒与权限（占位·P4 填充：执行/设备访问）
+
+struct SandboxSettingsView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            Image(matIcon: "verified_user")
+                .font(.system(size: 56))
+                .foregroundColor(.secondary.opacity(0.3))
+            Text(L("Sandbox & Permissions"))
+                .font(.system(size: 16, weight: .medium))
+            Text(L("Auto-execute, JS engine, and device access controls will be available here."))
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+            Spacer()
+        }
+        .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .navigationTitle(L("Sandbox & Permissions"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button { dismiss() } label: { MatIcon(name: "chevron.left", size: 20) }
+            }
+        }
     }
 }
 
