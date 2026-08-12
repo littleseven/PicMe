@@ -450,25 +450,31 @@ struct AboutView: View {
     }
 }
 
-// MARK: - 本地模型设置（占位·P3 填充：人脸检测/照片打标/语音）
+// MARK: - 本地模型设置（P3：人脸检测/照片打标/语音）
 
 struct LocalModelsSettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
+    // 人脸检测——引擎二选一（真接，对标 Android face detection engine）
+    @AppStorage("camera_use_mnn") private var useMnn: Bool = true
+    // 人脸细分（iOS 不支持，持久化占位）
+    @AppStorage("face_landmark_mode") private var landmarkMode: Bool = true
+    @AppStorage("adaptive_face_detection_interval") private var adaptiveInterval: Bool = true
+    @AppStorage("face_detect_interval_profile") private var intervalProfile: String = "BALANCED"
+    // 照片打标模型（Florence 真接；Qwen iOS 不可用）
+    @AppStorage("tagger_model_key") private var taggerModelKey: String = "auto"
+    // 语音（iOS 无引擎，持久化占位）
+    @AppStorage("voice_command_mode") private var voiceMode: String = "DISABLED"
+
     var body: some View {
-        VStack(spacing: 16) {
-            Spacer()
-            Image(matIcon: "memory")
-                .font(.system(size: 56))
-                .foregroundColor(.secondary.opacity(0.3))
-            Text(L("Local Models"))
-                .font(.system(size: 16, weight: .medium))
-            Text(L("Face detection, photo tagging and voice model selection will be available here."))
-                .font(.system(size: 13))
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
-            Spacer()
+        ScrollView {
+            VStack(spacing: 14) {
+                faceDetectionCard
+                photoTaggingCard
+                voiceCard
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationTitle(L("Local Models"))
@@ -476,6 +482,99 @@ struct LocalModelsSettingsView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button { dismiss() } label: { MatIcon(name: "chevron.left", size: 20) }
+            }
+        }
+    }
+
+    private func sectionCard<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title).font(.system(size: 14, weight: .semibold))
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func chip(_ label: String, isSelected: Bool, isDisabled: Bool = false, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+                .foregroundColor(isSelected ? .white : (isDisabled ? .secondary : .primary))
+                .padding(.horizontal, 14).padding(.vertical, 7)
+                .background(isSelected ? Color.accentColor : Color(.tertiarySystemBackground))
+                .clipShape(Capsule())
+        }
+        .disabled(isDisabled)
+    }
+
+    private func iosUnsupportedNote(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 11))
+            .foregroundColor(.secondary.opacity(0.7))
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: 人脸检测
+    private var faceDetectionCard: some View {
+        sectionCard(title: L("Face Detection")) {
+            Text(L("Choose face detection models and device; tune landmarks and cadence."))
+                .font(.system(size: 12)).foregroundColor(.secondary)
+            // 引擎二选一（真接 camera_use_mnn）
+            Text(L("Detection engine"))
+                .font(.system(size: 13, weight: .medium)).foregroundColor(.secondary)
+                .padding(.top, 4)
+            HStack(spacing: 8) {
+                chip("MNN", isSelected: useMnn) { useMnn = true }
+                chip("MediaPipe", isSelected: !useMnn) { useMnn = false }
+            }
+            // 细分项（iOS 不支持，占位灰显）
+            Divider().padding(.vertical, 2)
+            HStack {
+                Text(L("Face landmark mode")).font(.system(size: 14))
+                Spacer()
+                Toggle("", isOn: $landmarkMode).labelsHidden().disabled(true)
+            }.foregroundColor(.secondary)
+            HStack {
+                Text(L("Adaptive detection interval")).font(.system(size: 14))
+                Spacer()
+                Toggle("", isOn: $adaptiveInterval).labelsHidden().disabled(true)
+            }.foregroundColor(.secondary)
+            iosUnsupportedNote(L("iOS uses a single fixed pipeline (CPU only). Per-stage models, GPU and interval profiles are not configurable on iOS."))
+        }
+    }
+
+    // MARK: 照片打标
+    private var photoTaggingCard: some View {
+        sectionCard(title: L("Photo Tagging")) {
+            Text(L("Auto-detect photo content into tags (scene, objects, people, activity, aesthetic) for search and grouping."))
+                .font(.system(size: 12)).foregroundColor(.secondary)
+            Text(L("Tagging model"))
+                .font(.system(size: 13, weight: .medium)).foregroundColor(.secondary)
+                .padding(.top, 4)
+            HStack(spacing: 8) {
+                chip(L("Auto"), isSelected: taggerModelKey == "auto") { taggerModelKey = "auto" }
+                chip("Florence-2", isSelected: taggerModelKey == "florence2_base") { taggerModelKey = "florence2_base" }
+                chip("Qwen3-VL", isSelected: taggerModelKey == "qwen3_vl_2b", isDisabled: true) {
+                    taggerModelKey = "qwen3_vl_2b"
+                }
+            }
+            iosUnsupportedNote(L("iOS supports Florence-2 only. Qwen3-VL tagging is unavailable on iOS; selecting it falls back to Florence-2."))
+        }
+    }
+
+    // MARK: 语音
+    private var voiceCard: some View {
+        sectionCard(title: L("Voice")) {
+            iosUnsupportedNote(L("On-device voice recognition (ASR) and wake word (KWS) are not yet implemented on iOS. Settings below are placeholders for future versions."))
+            Text(L("Voice interaction mode"))
+                .font(.system(size: 13, weight: .medium)).foregroundColor(.secondary)
+                .padding(.top, 4)
+            HStack(spacing: 8) {
+                chip(L("Disabled"), isSelected: voiceMode == "DISABLED", isDisabled: true) { }
+                chip(L("Push to talk"), isSelected: voiceMode == "PUSH_TO_TALK", isDisabled: true) { }
+                chip(L("Wake word"), isSelected: voiceMode == "WAKE_WORD", isDisabled: true) { }
             }
         }
     }
