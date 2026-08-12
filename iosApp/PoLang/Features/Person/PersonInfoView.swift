@@ -29,15 +29,16 @@ struct PersonInfoView: View {
 
     private var customActive: Bool { !customLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
-    // 黑底 shell（MainTabView 锁黑）——语义色固定暗色档，防浅色主题下深文字压黑底
-    private var s: SchemeColors { AppColorScheme.dark }
+    // 随 app 主题（PoLangApp 全局 preferredColorScheme 驱动）
+    @Environment(\.colorScheme) private var cs
+    private var s: SchemeColors { appScheme(cs) }
 
     private var family: [RelationOptionItem] { RelationOptions.all().filter { $0.isFamily } }
     private var social: [RelationOptionItem] { RelationOptions.all().filter { !$0.isFamily } }
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            s.background.ignoresSafeArea()
             VStack(spacing: 0) {
                 topBar
                 ScrollView {
@@ -99,24 +100,24 @@ struct PersonInfoView: View {
             Button { close() } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(s.onBackground)
                     .frame(width: 36, height: 36)
             }
             Text(String(format: L("Cluster #%1$d"), Int(personId)))
                 .font(.system(size: CGFloat(TopBarTokens.titleFontSize), weight: .medium))
-                .foregroundColor(.white)
+                .foregroundColor(s.onBackground)
             Spacer()
             Button { resetRelation() } label: {
                 Image(systemName: "arrow.uturn.backward")
                     .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(.white)
+                    .foregroundColor(s.onBackground)
                     .frame(width: 36, height: 36)
             }
             .accessibilityLabel(Text(L("Reset")))
             Button { doSave() } label: {
                 Image(systemName: "checkmark")
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(s.onBackground)
                     .frame(width: 36, height: 36)
             }
             .accessibilityLabel(Text(L("Save")))
@@ -160,14 +161,14 @@ struct PersonInfoView: View {
 
     private var coverPlaceholder: some View {
         ZStack {
-            Color.white.opacity(0.06)
+            s.surfaceContainer
             VStack(spacing: 8) {
                 Image(systemName: "person.crop.square")
                     .font(.system(size: 40))
-                    .foregroundColor(.white.opacity(0.45))
+                    .foregroundColor(s.onSurfaceVariant.opacity(0.45))
                 Text(L("Tap to set cover"))
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(s.onBackground.opacity(0.6))
             }
         }
     }

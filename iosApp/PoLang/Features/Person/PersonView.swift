@@ -10,6 +10,8 @@ struct PersonView: View {
     var onBack: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var cs
+    private var s: SchemeColors { appScheme(cs) }
     @StateObject private var vm = PersonViewModel()
     @State private var detailRoute: DetailRoute?
 
@@ -20,7 +22,7 @@ struct PersonView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            s.background.ignoresSafeArea()
             VStack(spacing: 0) {
                 topBar
                 content
@@ -55,12 +57,12 @@ struct PersonView: View {
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(s.onBackground)
                     .frame(width: 36, height: 36)
             }
             Text(String(format: L("People (%1$d/%2$d)"), visibleCount, vm.totalCount))
                 .font(.system(size: CGFloat(TopBarTokens.titleFontSize), weight: .medium))
-                .foregroundColor(.white)
+                .foregroundColor(s.onBackground)
                 .lineLimit(1)
             Spacer()
             // 筛选切换
@@ -69,7 +71,7 @@ struct PersonView: View {
             } label: {
                 Image(systemName: vm.showAll ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease")
                     .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(.white)
+                    .foregroundColor(s.onBackground)
                     .frame(width: 36, height: 36)
             }
             .accessibilityLabel(Text(vm.showAll ? L("Hide unnamed single-face groups") : L("Show all people")))
@@ -79,7 +81,7 @@ struct PersonView: View {
             } label: {
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(.white)
+                    .foregroundColor(s.onBackground)
                     .frame(width: 36, height: 36)
             }
             .accessibilityLabel(Text(L("Re-cluster faces")))
@@ -93,7 +95,7 @@ struct PersonView: View {
     @ViewBuilder
     private var content: some View {
         if vm.items.isEmpty {
-            Color.black
+            s.background
         } else {
             ScrollView {
                 LazyVGrid(columns: columns, spacing: PersonTokens.gridSpacing) {
@@ -126,10 +128,10 @@ struct PersonView: View {
             Spacer()
             Text(message)
                 .font(.system(size: 13))
-                .foregroundColor(.white)
+                .foregroundColor(s.onBackground)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .background(Capsule().fill(Color.black.opacity(0.8)))
+                .background(Capsule().fill(s.surfaceContainerHigh.opacity(0.95)))
                 .padding(.bottom, 140)
         }
         .transition(.opacity)
@@ -144,8 +146,9 @@ private struct DetailRoute: Identifiable {
 // MARK: - 人物卡片（对标 Android PersonListItem）
 
 private struct PersonCardView: View {
-    // 黑底 shell（MainTabView 锁黑）——语义色固定暗色档，防浅色主题下深文字压黑底
-    private var s: SchemeColors { AppColorScheme.dark }
+    // 随 app 主题（PoLangApp 全局 preferredColorScheme 驱动）
+    @Environment(\.colorScheme) private var cs
+    private var s: SchemeColors { appScheme(cs) }
 
     let person: PersonDisplayItem
     let isEditing: Bool
@@ -161,7 +164,7 @@ private struct PersonCardView: View {
             infoColumn
         }
         .background(RoundedRectangle(cornerRadius: PersonTokens.cardRadius, style: .continuous)
-            .fill(Color.white.opacity(0.06)))
+            .fill(s.surfaceContainerHigh))
         .clipShape(RoundedRectangle(cornerRadius: PersonTokens.cardRadius, style: .continuous))
         .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
     }
@@ -169,11 +172,11 @@ private struct PersonCardView: View {
     private var cover: some View {
         Button(action: onCoverTap) {
             ZStack {
-                Color.white.opacity(0.04)
+                s.surfaceContainer
                 if let lid = person.coverLocalIdentifier {
                     ThumbnailView(localIdentifier: lid, faceFocusY: person.coverFaceFocusY, cornerRadius: 0)
                 } else {
-                    Color(white: 0.16)
+                    s.surfaceContainerHigh
                 }
             }
         }
