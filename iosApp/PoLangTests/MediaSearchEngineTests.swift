@@ -88,6 +88,19 @@ final class MediaSearchEngineTests: XCTestCase {
             langProvider: { lang })
     }
 
+    // MARK: - 回归:labelsEn 命中(修 iOS searchByLabel 漏 labelsEn)
+
+    /// iOS Florence-2 写 labelsEn(英文标签),labels/labelsZh NULL。
+    /// 主搜索 searchCandidateIds 须查 labelsEn(searchByLabelAllFields),
+    /// 不能只查 labels(原 bug:searchByLabel 只查 labels → iOS 召回恒 0)。
+    func testSearchHitsLabelsEnWhenLabelsNull() async {
+        let db = makeDb()
+        let engine = makeEngine(db: db, lang: "en")
+        let id = makeMedia(db, lid: "L1", captureDateMs: 100, labelsEn: #"["woman","dress"]"#)
+        let rows = await engine.search(query: "woman", lang: "en")
+        XCTAssertTrue(rows.contains { $0.id == id }, "搜 woman 应命中 labelsEn(Florence-2 英文标签)")
+    }
+
     // MARK: - §2.4 mergeAndRank 权重合成
 
     func testMergeAndRankWeightFormula() {

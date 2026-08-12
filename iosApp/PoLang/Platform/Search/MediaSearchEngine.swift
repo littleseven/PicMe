@@ -545,11 +545,11 @@ final class MediaSearchEngine {
 
         if let candidateIds {
             let ids = Array(candidateIds)
-            matched.formUnion(db.searchLabelsInIds(ids, keyword: candidate).map(\.id))
+            matched.formUnion(db.searchLabelsAllFieldsInIds(ids, keyword: candidate).map(\.id))
             matched.formUnion(db.searchFileNameInIds(ids, keyword: candidate).map(\.id))
             return matched.intersection(candidateIds)
         } else {
-            matched.formUnion(db.searchByLabel(candidate).map(\.id))
+            matched.formUnion(db.searchByLabelAllFields(candidate).map(\.id))
             matched.formUnion(db.searchByFileName(candidate).map(\.id))
             return matched
         }
