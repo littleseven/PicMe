@@ -249,12 +249,12 @@ private struct PersonCardView: View {
     private var relationChip: some View {
         Text(relationChipLabel)
             .font(.system(size: 12))
-            .foregroundColor(person.isSelf ? s.onPrimaryContainer : s.onSurfaceVariant)
+            .foregroundColor(s.onPrimaryContainer)
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
             .background(
                 RoundedRectangle(cornerRadius: PersonTokens.relationChipRadius, style: .continuous)
-                    .fill(person.isSelf ? s.primaryContainer : s.surfaceContainerHighest))
+                    .fill(s.primaryContainer))
             .onTapGesture { onInfoTap() }
     }
 }
@@ -262,8 +262,9 @@ private struct PersonCardView: View {
 // MARK: - 行内改名编辑器（对标 Android NameEditor）
 
 private struct NameEditor: View {
-    // 黑底 shell（MainTabView 锁黑）——语义色固定暗色档，防浅色主题下深文字压黑底
-    private var s: SchemeColors { AppColorScheme.dark }
+    // 随 app 主题（与 PersonCardView 一致）
+    @Environment(\.colorScheme) private var cs
+    private var s: SchemeColors { appScheme(cs) }
 
     let initial: String
     let onSave: (String) -> Void
