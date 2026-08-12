@@ -97,6 +97,9 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
 
         // 自动执行计划开关
         val AUTO_EXECUTE_PLANS = booleanPreferencesKey("auto_execute_plans")
+        val JS_ENGINE_ENABLED = booleanPreferencesKey("js_engine_enabled")
+        val AGENT_CAMERA_ACCESS_ENABLED = booleanPreferencesKey("agent_camera_access_enabled")
+        val AGENT_GALLERY_ACCESS_ENABLED = booleanPreferencesKey("agent_gallery_access_enabled")
 
         // Cloudflare AI Gateway Token
         val CLOUDFLARE_GATEWAY_TOKEN = stringPreferencesKey("cloudflare_gateway_token")
@@ -770,6 +773,60 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
     override suspend fun updateAutoExecutePlansEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.AUTO_EXECUTE_PLANS] = enabled
+        }
+    }
+
+    override val jsEngineEnabledFlow: Flow<Boolean> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.JS_ENGINE_ENABLED] ?: false
+        }
+
+    override suspend fun updateJsEngineEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.JS_ENGINE_ENABLED] = enabled
+        }
+    }
+
+    override val agentCameraAccessEnabledFlow: Flow<Boolean> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.AGENT_CAMERA_ACCESS_ENABLED] ?: true
+        }
+
+    override suspend fun updateAgentCameraAccessEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AGENT_CAMERA_ACCESS_ENABLED] = enabled
+        }
+    }
+
+    override val agentGalleryAccessEnabledFlow: Flow<Boolean> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.AGENT_GALLERY_ACCESS_ENABLED] ?: true
+        }
+
+    override suspend fun updateAgentGalleryAccessEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AGENT_GALLERY_ACCESS_ENABLED] = enabled
         }
     }
 

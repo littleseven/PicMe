@@ -26,7 +26,6 @@ import androidx.compose.material.icons.rounded.Accessibility
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Cloud
-import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.Person
@@ -102,7 +101,6 @@ enum class SettingsCategory {
     SYSTEM,         // 系统与权限
     REMOTE_MODEL,   // 远程模型（用户侧一级入口）
     LOCAL_MODEL,    // 本地模型（用户侧一级入口）
-    VOICE_CONTROL,  // 语音控制（用户侧一级入口）
     SANDBOX,        // 沙盒与权限（用户侧一级入口）
     DEVELOPER       // 开发者选项
 }
@@ -388,7 +386,6 @@ private fun SettingsContent(
         SettingsCategory.SYSTEM -> R.string.system_and_permissions
         SettingsCategory.REMOTE_MODEL -> R.string.remote_models
         SettingsCategory.LOCAL_MODEL -> R.string.local_models
-        SettingsCategory.VOICE_CONTROL -> R.string.voice_control
         SettingsCategory.SANDBOX -> R.string.sandbox_settings
         SettingsCategory.DEVELOPER -> R.string.developer_options
     }
@@ -479,25 +476,78 @@ private fun SettingsContent(
                         onNavigateToModelCenter = onNavigateToModelCenter
                     )
                 }
-            }
 
-            // ── 4. 语音控制（用户侧一级入口）────────────────────────
-            if (category == SettingsCategory.VOICE_CONTROL) {
+                // ── 引擎与模型：人脸检测阶段配置 + 打标模型选择 ──
                 SettingsSection(
-                    title = stringResource(R.string.voice_control),
-                    description = stringResource(R.string.voice_control_desc)
+                    title = stringResource(R.string.engines_and_models),
+                    description = stringResource(R.string.engines_and_models_desc)
                 ) {
-                    VoiceCommandModeSelection(
-                        currentMode = voiceCommandMode,
-                        onModeSelected = onVoiceCommandModeChange
+                    StageConfigSection(
+                        stage = DetectionStage.ROI,
+                        config = roiStageConfig,
+                        onModelTypeSelected = onRoiModelTypeSelected,
+                        onDevicePreferenceSelected = onRoiDevicePreferenceSelected,
+                        onNavigateToModelManager = onNavigateToModelCenter,
+                        isModelDownloaded = isModelDownloaded,
+                        getModelId = getModelId,
+                        downloadModel = downloadModel,
+                        downloadStates = downloadStates,
+                        allModels = allModels
+                    )
+
+                    StageConfigSection(
+                        stage = DetectionStage.LANDMARK,
+                        config = landmarkStageConfig,
+                        onModelTypeSelected = onLandmarkModelTypeSelected,
+                        onDevicePreferenceSelected = onLandmarkDevicePreferenceSelected,
+                        onNavigateToModelManager = onNavigateToModelCenter,
+                        isModelDownloaded = isModelDownloaded,
+                        getModelId = getModelId,
+                        downloadModel = downloadModel,
+                        downloadStates = downloadStates,
+                        allModels = allModels
+                    )
+
+                    DebugOptionRow(
+                        title = stringResource(R.string.face_landmark_mode),
+                        checked = faceDetectionLandmarkModeEnabled,
+                        onCheckedChange = onFaceDetectionLandmarkModeEnabledChange
                     )
                     DebugOptionRow(
-                        title = stringResource(R.string.voice_entry_enabled),
-                        checked = voiceEntryEnabled,
-                        onCheckedChange = onVoiceEntryEnabledChange
+                        title = stringResource(R.string.adaptive_face_detect_interval),
+                        checked = adaptiveFaceDetectionIntervalEnabled,
+                        onCheckedChange = onAdaptiveFaceDetectionIntervalEnabledChange
+                    )
+                    if (adaptiveFaceDetectionIntervalEnabled) {
+                        FaceDetectProfileSelection(
+                            currentProfile = faceDetectIntervalProfile,
+                            onProfileSelected = onFaceDetectIntervalProfileSelected
+                        )
+                    }
+
+                    val taggerAutoLabel = stringResource(R.string.tag_model_auto)
+                    SettingsClickableRow(
+                        title = stringResource(R.string.tag_model_selector_title),
+                        subtitle = when (taggerModelKey) {
+                            "florence2_base" -> "Florence-2-Base"
+                            "qwen3_vl_2b" -> "Qwen3-VL-2B"
+                            else -> taggerAutoLabel
+                        },
+                        leadingIcon = Icons.AutoMirrored.Rounded.Label,
+                        onClick = {
+                            val next = when (taggerModelKey) {
+                                TaggerModelSelector.AUTO -> "florence2_base"
+                                "florence2_base" -> "qwen3_vl_2b"
+                                else -> TaggerModelSelector.AUTO
+                            }
+                            onTaggerModelKeyChange(next)
+                        }
                     )
                 }
             }
+
+            // ── 4. 语音控制（用户侧一级入口）────────────────────────
+            // 语音控制已并入「沙盒与权限」页的设备访问模块（麦克风访问）
 
             // ── 5. 沙盒与权限（用户侧一级入口）────────────────────
             if (category == SettingsCategory.SANDBOX) {
@@ -563,6 +613,23 @@ private fun SettingsContent(
                         subtitle = stringResource(R.string.permission_system_subtitle),
                         valueText = stringResource(R.string.permission_system_value),
                         onClick = openAppSystemSettings
+                    )
+
+                    // 语音交互（麦克风访问）
+                    Text(
+                        text = stringResource(R.string.voice_control),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 12.dp, top = 8.dp)
+                    )
+                    VoiceCommandModeSelection(
+                        currentMode = voiceCommandMode,
+                        onModeSelected = onVoiceCommandModeChange
+                    )
+                    DebugOptionRow(
+                        title = stringResource(R.string.voice_entry_enabled),
+                        checked = voiceEntryEnabled,
+                        onCheckedChange = onVoiceEntryEnabledChange
                     )
                 }
             }
@@ -729,9 +796,9 @@ private fun SettingsContent(
 
             // ── 6. 开发者选项 ─────────────────────────────────────
             if (category == SettingsCategory.DEVELOPER) {
-                // ── 6.1 调试浮层：相机预览上的可视化叠加层 ──────────────
+                // ── 1. 相机预览调试：预览可视化叠加层 ──────────────
                 SettingsSection(
-                    title = stringResource(R.string.debug_tools),
+                    title = stringResource(R.string.dev_preview_debug),
                     description = stringResource(R.string.settings_debug_tools_desc)
                 ) {
                     DebugOptionRow(
@@ -762,85 +829,11 @@ private fun SettingsContent(
                     }
                 }
 
-                // ── 6.2 人脸检测引擎（收口）：阶段配置 + 关键点 + 自适应间隔 ──
+                // 引擎与模型（人脸检测阶段配置 + 打标模型）已移至「本地模型」一级入口
+
+                // ── 2. 诊断与日志（LLM 调用日志 + 按模块日志开关）──────────
                 SettingsSection(
-                    title = stringResource(R.string.face_detection_advanced),
-                    description = stringResource(R.string.settings_face_detection_advanced_desc)
-                ) {
-                    StageConfigSection(
-                        stage = DetectionStage.ROI,
-                        config = roiStageConfig,
-                        onModelTypeSelected = onRoiModelTypeSelected,
-                        onDevicePreferenceSelected = onRoiDevicePreferenceSelected,
-                        onNavigateToModelManager = onNavigateToModelCenter,
-                        isModelDownloaded = isModelDownloaded,
-                        getModelId = getModelId,
-                        downloadModel = downloadModel,
-                        downloadStates = downloadStates,
-                        allModels = allModels
-                    )
-
-                    StageConfigSection(
-                        stage = DetectionStage.LANDMARK,
-                        config = landmarkStageConfig,
-                        onModelTypeSelected = onLandmarkModelTypeSelected,
-                        onDevicePreferenceSelected = onLandmarkDevicePreferenceSelected,
-                        onNavigateToModelManager = onNavigateToModelCenter,
-                        isModelDownloaded = isModelDownloaded,
-                        getModelId = getModelId,
-                        downloadModel = downloadModel,
-                        downloadStates = downloadStates,
-                        allModels = allModels
-                    )
-
-                    DebugOptionRow(
-                        title = stringResource(R.string.face_landmark_mode),
-                        checked = faceDetectionLandmarkModeEnabled,
-                        onCheckedChange = onFaceDetectionLandmarkModeEnabledChange
-                    )
-                    DebugOptionRow(
-                        title = stringResource(R.string.adaptive_face_detect_interval),
-                        checked = adaptiveFaceDetectionIntervalEnabled,
-                        onCheckedChange = onAdaptiveFaceDetectionIntervalEnabledChange
-                    )
-                    if (adaptiveFaceDetectionIntervalEnabled) {
-                        FaceDetectProfileSelection(
-                            currentProfile = faceDetectIntervalProfile,
-                            onProfileSelected = onFaceDetectIntervalProfileSelected
-                        )
-                    }
-                }
-
-                // 远程模型原始配置（API key/baseUrl/protocol）已上提为用户侧「远程模型」一级入口
-
-                // ── 6.3 相册打标·高级（收口）：打标模型选择 ─────────────
-                SettingsSection(
-                    title = stringResource(R.string.gallery_advanced)
-                ) {
-                    val taggerAutoLabel = stringResource(R.string.tag_model_auto)
-                    SettingsClickableRow(
-                        title = stringResource(R.string.tag_model_selector_title),
-                        subtitle = when (taggerModelKey) {
-                            "florence2_base" -> "Florence-2-Base"
-                            "qwen3_vl_2b" -> "Qwen3-VL-2B"
-                            else -> taggerAutoLabel
-                        },
-                        leadingIcon = Icons.AutoMirrored.Rounded.Label,
-                        onClick = {
-                            // 三态循环：自动(→Florence-2 首选) → Florence-2 → Qwen3-VL-2B(备选) → 自动
-                            val next = when (taggerModelKey) {
-                                TaggerModelSelector.AUTO -> "florence2_base"
-                                "florence2_base" -> "qwen3_vl_2b"
-                                else -> TaggerModelSelector.AUTO
-                            }
-                            onTaggerModelKeyChange(next)
-                        }
-                    )
-                }
-
-                // ── 6.4 诊断（全构建可见；release 仅展示纯指标） ──────────
-                SettingsSection(
-                    title = stringResource(R.string.diagnostics_entries)
+                    title = stringResource(R.string.dev_diagnostics_log)
                 ) {
                     SettingsClickableRow(
                         title = stringResource(R.string.llm_call_log),
@@ -848,14 +841,25 @@ private fun SettingsContent(
                         valueText = stringResource(R.string.enter),
                         onClick = onNavigateToLlmLog
                     )
+
+                    Text(
+                        text = stringResource(R.string.log_management),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 12.dp, top = 8.dp)
+                    )
+                    LogModuleConfigSection(
+                        config = logModuleConfig,
+                        onConfigChange = onLogModuleConfigChange
+                    )
                 }
 
-                // ── 6.5 测试工具与服务（仅 debug 构建） ────────────────
+                // ── 3. 开发测试工具（仅 DEBUG 构建） ────────────────
                 if (BuildConfig.DEBUG) {
                     val context = LocalContext.current
 
                     SettingsSection(
-                        title = stringResource(R.string.developer_debug_entries)
+                        title = stringResource(R.string.dev_test_tools)
                     ) {
                         SettingsClickableRow(
                             title = stringResource(R.string.debug_image_download),
@@ -905,17 +909,6 @@ private fun SettingsContent(
                             }
                         )
                     }
-                }
-
-                // ── 6.6 日志配置：按模块控制日志输出 ──────────────────
-                SettingsSection(
-                    title = stringResource(R.string.log_management),
-                    description = stringResource(R.string.log_management_desc)
-                ) {
-                    LogModuleConfigSection(
-                        config = logModuleConfig,
-                        onConfigChange = onLogModuleConfigChange
-                    )
                 }
             }
         }
@@ -1137,9 +1130,6 @@ private fun SettingsCategoryGrid(
         },
         CategoryGridItem(R.string.local_models, R.string.local_models_desc, Icons.Rounded.CloudDownload) {
             onNavigateToCategory(SettingsCategory.LOCAL_MODEL)
-        },
-        CategoryGridItem(R.string.voice_control, R.string.voice_control_desc, Icons.Rounded.Mic) {
-            onNavigateToCategory(SettingsCategory.VOICE_CONTROL)
         },
         CategoryGridItem(R.string.sandbox_settings, R.string.sandbox_settings_desc, Icons.Rounded.VerifiedUser) {
             onNavigateToCategory(SettingsCategory.SANDBOX)

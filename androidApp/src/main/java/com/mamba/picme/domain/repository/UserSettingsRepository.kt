@@ -117,6 +117,19 @@ interface UserSettingsRepository {
     val autoExecutePlansEnabledFlow: Flow<Boolean>
     suspend fun updateAutoExecutePlansEnabled(enabled: Boolean)
 
+    // ── 沙盒与权限开关（仅持久化，Agent/能力层消费待接入） ──────
+    /** 允许 Agent 执行 JS 沙盒脚本（默认关）。 */
+    val jsEngineEnabledFlow: Flow<Boolean>
+    suspend fun updateJsEngineEnabled(enabled: Boolean)
+
+    /** 允许 Agent 访问相机能力（默认开）。 */
+    val agentCameraAccessEnabledFlow: Flow<Boolean>
+    suspend fun updateAgentCameraAccessEnabled(enabled: Boolean)
+
+    /** 允许 Agent 访问相册能力（默认开）。 */
+    val agentGalleryAccessEnabledFlow: Flow<Boolean>
+    suspend fun updateAgentGalleryAccessEnabled(enabled: Boolean)
+
     // ── 端侧文本 LLM 残留清理（一次性迁移标志） ─────────────
     /** qwen3_5_2b 模型目录是否已一次性清理（true 后不再重复执行） */
     val localTextLlmCleanedFlow: Flow<Boolean>

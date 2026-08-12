@@ -757,6 +757,11 @@
     <string name="dev_options_unlock_countdown">Tap %1$d more times to enable developer options.</string>
     <string name="dev_options_unlocked_toast">Developer options enabled.</string>
     <string name="sandbox_settings">Sandbox &amp; Permissions</string>
+    <string name="dev_preview_debug">Camera Preview Debug</string>
+    <string name="dev_diagnostics_log">Diagnostics &amp; Logs</string>
+    <string name="dev_test_tools">Developer Tools</string>
+    <string name="engines_and_models">Engines &amp; Models</string>
+    <string name="engines_and_models_desc">Face detection stages and the tagging model.</string>
     <string name="sandbox_settings_desc">Auto-execute, JS engine, device access.</string>
     <string name="sandbox_execution">Execution</string>
     <string name="sandbox_execution_desc">Control what the Agent can run autonomously.</string>

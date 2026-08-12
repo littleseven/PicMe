@@ -751,6 +751,11 @@
     <string name="dev_options_unlock_countdown">再点击 %1$d 次进入开发者选项。</string>
     <string name="dev_options_unlocked_toast">已开启开发者选项。</string>
     <string name="sandbox_settings">沙盒与权限</string>
+    <string name="dev_preview_debug">相机预览调试</string>
+    <string name="dev_diagnostics_log">诊断与日志</string>
+    <string name="dev_test_tools">开发测试工具</string>
+    <string name="engines_and_models">引擎与模型</string>
+    <string name="engines_and_models_desc">人脸检测阶段配置与打标模型选择。</string>
     <string name="sandbox_settings_desc">自动执行、JS 引擎、设备访问。</string>
     <string name="sandbox_execution">执行</string>
     <string name="sandbox_execution_desc">控制 Agent 可自主执行的内容。</string>
