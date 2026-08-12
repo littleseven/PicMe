@@ -196,12 +196,6 @@ fun TagGenerationControlScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // ── 相册设置附属入口（标签查看/重复图/OpenCL 加速）──
-            header?.invoke()
-
-            // ── 后台保活缺失项提示(非阻断,点击跳设置) ────────
-            BackgroundScanGuardBanner()
-
             // ── 当前任务进度卡片（统一槽位）─────────────────────
             // 活跃任务优先：美学评分运行时显示打分进度，否则显示扫描会话进度。
             // 美学评分非会话制（不进 TagScanOrchestrator），会话卡片只反映扫描本身。
@@ -666,6 +660,12 @@ fun TagGenerationControlScreen(
                     }
                 }
             }
+
+            // ── 标签与重复图管理（相册工具）──
+            header?.invoke()
+
+            // ── 后台保活缺失项提示(非阻断,点击跳设置) ────────
+            BackgroundScanGuardBanner()
         }
 
         Spacer(Modifier.height(16.dp))
