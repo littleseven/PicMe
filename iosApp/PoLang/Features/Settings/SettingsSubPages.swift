@@ -65,11 +65,6 @@ struct AiAgentSettingsView: View {
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationTitle(L("AI Assistant"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button { dismiss() } label: { MatIcon(name: "chevron.left", size: 20) }
-            }
-        }
     }
 
     private func chip(_ label: String, isSelected: Bool) -> some View {
@@ -220,11 +215,6 @@ struct CommunicationChannelView: View {
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationTitle(L("Channels"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button { dismiss() } label: { MatIcon(name: "chevron.left", size: 20) }
-            }
-        }
     }
 
     private func channelChip(_ value: String, label: String) -> some View {
@@ -352,11 +342,6 @@ struct DeveloperSettingsView: View {
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationTitle(L("Developer Options"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button { dismiss() } label: { MatIcon(name: "chevron.left", size: 20) }
-            }
-        }
     }
 }
 
@@ -452,11 +437,6 @@ struct CameraBeautySettingsView: View {
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationTitle(L("Camera & Beauty"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button { dismiss() } label: { MatIcon(name: "chevron.left", size: 20) }
-            }
-        }
     }
 
     private func engineChip(mnn: Bool, label: String) -> some View {

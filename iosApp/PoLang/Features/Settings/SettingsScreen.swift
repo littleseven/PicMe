@@ -326,11 +326,6 @@ struct AccountSettingsView: View {
         .background(s.background.ignoresSafeArea())
         .navigationTitle(L("Account"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button { dismiss() } label: { MatIcon(name: "chevron.left", size: 20) }
-            }
-        }
     }
 }
 
@@ -387,11 +382,7 @@ struct DataPrivacyView: View {
         .background(s.background.ignoresSafeArea())
         .navigationTitle(L("Data & Privacy"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button { dismiss() } label: { MatIcon(name: "chevron.left", size: 20) }
-            }
-        }
+        // back 由 NavigationStack 系统提供，无需手动 toolbar
     }
 }
 
@@ -449,11 +440,7 @@ struct AboutView: View {
         .background(s.background.ignoresSafeArea())
         .navigationTitle(L("About"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button { dismiss() } label: { MatIcon(name: "chevron.left", size: 20) }
-            }
-        }
+        // back 由 NavigationStack 系统提供，无需手动 toolbar
     }
 
     private func infoRow(label: String, value: String, showArrow: Bool = false) -> some View {
@@ -506,11 +493,7 @@ struct LocalModelsSettingsView: View {
         .background(s.background.ignoresSafeArea())
         .navigationTitle(L("Local Models"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button { dismiss() } label: { MatIcon(name: "chevron.left", size: 20) }
-            }
-        }
+        // back 由 NavigationStack 系统提供，无需手动 toolbar
     }
 
     private func sectionCard<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
@@ -636,11 +619,7 @@ struct SandboxSettingsView: View {
         .background(s.background.ignoresSafeArea())
         .navigationTitle(L("Sandbox & Permissions"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button { dismiss() } label: { MatIcon(name: "chevron.left", size: 20) }
-            }
-        }
+        // back 由 NavigationStack 系统提供，无需手动 toolbar
     }
 
     private func sectionCard<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
