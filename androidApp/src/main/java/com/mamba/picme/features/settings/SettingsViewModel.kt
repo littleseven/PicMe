@@ -93,6 +93,14 @@ class SettingsViewModel(
             initialValue = false
         )
 
+    /** 开发者选项入口是否已解锁（版本号连点解锁后持久化）。 */
+    val developerOptionsUnlocked: StateFlow<Boolean> = repository.developerOptionsUnlockedFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+
     val faceDetectionEngineMode: StateFlow<FaceDetectionEngineMode> = repository.faceDetectionEngineModeFlow
         .stateIn(
             scope = viewModelScope,
@@ -780,6 +788,12 @@ class SettingsViewModel(
                 repository.updateShowFaceDebugOverlay(false)
                 repository.updateShowLogOverlay(false)
             }
+        }
+    }
+
+    fun setDeveloperOptionsUnlocked(unlocked: Boolean) {
+        viewModelScope.launch {
+            repository.updateDeveloperOptionsUnlocked(unlocked)
         }
     }
 
