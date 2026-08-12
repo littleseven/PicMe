@@ -54,6 +54,7 @@ import com.mamba.picme.features.gallery.components.TagGenerationControlScreen
 import com.mamba.picme.features.translation.SentencePieceTestScreen
 import com.mamba.picme.features.tagviewer.TagViewerTestScreen
 import com.mamba.picme.features.settings.DataPrivacyScreen
+import com.mamba.picme.features.settings.GallerySettingsHeader
 import com.mamba.picme.features.settings.MemoryFactsScreen
 import com.mamba.picme.features.main.MAIN_PAGE_CAMERA
 import com.mamba.picme.features.main.MAIN_PAGE_COUNT
@@ -318,7 +319,26 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                                 TagGenerationControlScreen(
-                                    onNavigateBack = { navController.popBackStack() }
+                                    onNavigateBack = { navController.popBackStack() },
+                                    header = {
+                                        val useOpencl by settingsViewModel.tagGenerationUseOpencl.collectAsState()
+                                        GallerySettingsHeader(
+                                            onNavigateToTagViewer = {
+                                                navController.navigate(
+                                                    Screen.TagViewer.route,
+                                                    navOptions { launchSingleTop = true }
+                                                )
+                                            },
+                                            onNavigateToDuplicateManager = {
+                                                navController.navigate(
+                                                    Screen.DuplicateManager.route,
+                                                    navOptions { launchSingleTop = true }
+                                                )
+                                            },
+                                            useOpencl = useOpencl,
+                                            onUseOpenclChange = { settingsViewModel.setTagGenerationUseOpencl(it) }
+                                        )
+                                    }
                                 )
                             }
                             composable(Screen.TagViewer.route) {

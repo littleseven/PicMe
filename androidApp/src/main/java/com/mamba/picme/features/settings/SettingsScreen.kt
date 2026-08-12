@@ -421,7 +421,8 @@ private fun SettingsContent(
                     onNavigateToDataPrivacy = onNavigateToDataPrivacy,
                     onNavigateToCommunicationChannel = onNavigateToCommunicationChannel,
                     onNavigateToMemoryFacts = onNavigateToMemoryFacts,
-                    onNavigateToPeople = onNavigateToPeople
+                    onNavigateToPeople = onNavigateToPeople,
+                    onNavigateToTagControl = onNavigateToTagControl
                 )
                 return@Column
             }
@@ -566,7 +567,10 @@ private fun SettingsContent(
                 }
             }
 
-            // ── 3. 相册功能 ───────────────────────────────────────
+            // ── 3. 相册功能（已废弃·dormant）─────────────────────
+            // 相册设置已改为直接进入 TagGenerationControlScreen（扫描控制台为主体，
+            // 顶部注入 GallerySettingsHeader：标签查看/重复图/OpenCL）。此 GALLERY
+            // 分类不再被网格导航触达，保留仅供后续清理；勿在此新增内容。
             if (category == SettingsCategory.GALLERY) {
                 SettingsSection(
                     title = stringResource(R.string.gallery_features),
@@ -932,7 +936,8 @@ private fun SettingsMainMenu(
     onNavigateToDataPrivacy: () -> Unit,
     onNavigateToCommunicationChannel: () -> Unit,
     onNavigateToMemoryFacts: () -> Unit,
-    onNavigateToPeople: () -> Unit
+    onNavigateToPeople: () -> Unit,
+    onNavigateToTagControl: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -999,6 +1004,7 @@ private fun SettingsMainMenu(
             onNavigateToCommunicationChannel = onNavigateToCommunicationChannel,
             onNavigateToMemoryFacts = onNavigateToMemoryFacts,
             onNavigateToPeople = onNavigateToPeople,
+            onNavigateToTagControl = onNavigateToTagControl,
             developerOptionsUnlocked = developerOptionsUnlocked,
         )
 
@@ -1114,6 +1120,7 @@ private fun SettingsCategoryGrid(
     onNavigateToCommunicationChannel: () -> Unit,
     onNavigateToMemoryFacts: () -> Unit,
     onNavigateToPeople: () -> Unit,
+    onNavigateToTagControl: () -> Unit,
     developerOptionsUnlocked: Boolean,
 ) {
     val baseItems = listOf(
@@ -1122,8 +1129,8 @@ private fun SettingsCategoryGrid(
         CategoryGridItem(R.string.communication_channel, R.string.communication_channel_desc, Icons.Rounded.Forum) {
             onNavigateToCommunicationChannel()
         },
-        CategoryGridItem(R.string.gallery_features, R.string.gallery_features_desc, Icons.Rounded.PhotoLibrary) {
-            onNavigateToCategory(SettingsCategory.GALLERY)
+        CategoryGridItem(R.string.gallery_settings, R.string.gallery_settings_desc, Icons.Rounded.PhotoLibrary) {
+            onNavigateToTagControl()
         },
         CategoryGridItem(R.string.remote_models, R.string.remote_models_desc, Icons.Rounded.Cloud) {
             onNavigateToCategory(SettingsCategory.REMOTE_MODEL)
@@ -1248,6 +1255,46 @@ private fun SettingsVersionFooter(onUnlock: () -> Unit) {
                     }
                 }
             }
+        )
+    }
+}
+
+/**
+ * 「相册设置」页头部（注入 TagGenerationControlScreen 顶部）：标签查看 / 重复图管理 / TAG 生成 OpenCL 加速。
+ * 取消原 GALLERY 二级页 → TAG生成 的中间跳转，这些条目平铺到扫描控制台页顶部。
+ */
+@Composable
+internal fun GallerySettingsHeader(
+    onNavigateToTagViewer: () -> Unit,
+    onNavigateToDuplicateManager: () -> Unit,
+    useOpencl: Boolean,
+    onUseOpenclChange: (Boolean) -> Unit
+) {
+    SettingsSection(
+        title = stringResource(R.string.gallery_features)
+    ) {
+        SettingsClickableRow(
+            title = stringResource(R.string.tag_viewer_title),
+            subtitle = stringResource(R.string.tag_viewer_open_entry),
+            leadingIcon = Icons.Rounded.Search,
+            onClick = onNavigateToTagViewer
+        )
+        SettingsClickableRow(
+            title = stringResource(R.string.manage_duplicates),
+            subtitle = stringResource(R.string.duplicate_manager_desc),
+            leadingIcon = Icons.Rounded.PhotoLibrary,
+            onClick = onNavigateToDuplicateManager
+        )
+        OpenClBackendSelection(
+            useOpencl = useOpencl,
+            onToggle = onUseOpenclChange,
+            title = stringResource(R.string.tag_gen_use_opencl_title)
+        )
+        Text(
+            text = stringResource(R.string.tag_gen_use_opencl_desc),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
         )
     }
 }

@@ -47,7 +47,8 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TagGenerationControlScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    header: @Composable (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as PoLangApplication
@@ -182,7 +183,7 @@ fun TagGenerationControlScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             AppTopBar(
-                title = { Text(stringResource(R.string.tag_control_title)) },
+                title = { Text(stringResource(R.string.gallery_settings)) },
                 navigationIcon = { AppTopBarNavBack(onClick = onNavigateBack) }
             )
         }
@@ -195,6 +196,9 @@ fun TagGenerationControlScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // ── 相册设置附属入口（标签查看/重复图/OpenCL 加速）──
+            header?.invoke()
+
             // ── 后台保活缺失项提示(非阻断,点击跳设置) ────────
             BackgroundScanGuardBanner()
 
