@@ -1,6 +1,7 @@
 package com.mamba.picme.features.settings
 
 import android.content.Intent
+import android.net.Uri
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -34,8 +35,8 @@ import androidx.compose.material.icons.rounded.PrivacyTip
 import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SmartToy
-import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.Terminal
+import androidx.compose.material.icons.rounded.VerifiedUser
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -85,7 +86,6 @@ import com.mamba.picme.domain.model.VoiceCommandMode
 import com.mamba.picme.features.common.chat.rememberAgentChatConfig
 import com.mamba.picme.features.common.topbar.AppTopBar
 import com.mamba.picme.features.common.topbar.AppTopBarNavBack
-import com.mamba.picme.features.backuprestore.BackupRestoreActivity
 import com.mamba.picme.features.settings.capability.SettingsCapability
 import com.mamba.picme.service.chat.FloatingChatBubbleService
 import com.mamba.picme.util.permission.BatteryOptimizationUtils
@@ -103,6 +103,7 @@ enum class SettingsCategory {
     REMOTE_MODEL,   // 远程模型（用户侧一级入口）
     LOCAL_MODEL,    // 本地模型（用户侧一级入口）
     VOICE_CONTROL,  // 语音控制（用户侧一级入口）
+    SANDBOX,        // 沙盒与权限（用户侧一级入口）
     DEVELOPER       // 开发者选项
 }
 
@@ -143,10 +144,12 @@ fun SettingsScreen(
     val debugShaderMode by viewModel.debugShaderMode.collectAsState()
     val roiStageConfig by viewModel.roiStageConfig.collectAsState()
     val landmarkStageConfig by viewModel.landmarkStageConfig.collectAsState()
-    val aiAgentMode by viewModel.aiAgentMode.collectAsState()
     val aiAgentRemoteModelConfigs by viewModel.aiAgentRemoteModelConfigs.collectAsState()
     val aiAgentSelectedRemoteModel by viewModel.aiAgentSelectedRemoteModel.collectAsState()
     val autoExecutePlans by viewModel.autoExecutePlansEnabled.collectAsState()
+    val jsEngineEnabled by viewModel.jsEngineEnabled.collectAsState()
+    val agentCameraAccessEnabled by viewModel.agentCameraAccessEnabled.collectAsState()
+    val agentGalleryAccessEnabled by viewModel.agentGalleryAccessEnabled.collectAsState()
     val tagGenerationUseOpencl by viewModel.tagGenerationUseOpencl.collectAsState()
     val taggerModelKey by viewModel.taggerModelKey.collectAsState()
     val voiceCommandMode by viewModel.voiceCommandMode.collectAsState()
@@ -250,14 +253,18 @@ fun SettingsScreen(
             onRoiDevicePreferenceSelected = { viewModel.setRoiDevicePreference(it) },
             onLandmarkModelTypeSelected = { viewModel.setLandmarkModelType(it) },
             onLandmarkDevicePreferenceSelected = { viewModel.setLandmarkDevicePreference(it) },
-            aiAgentMode = aiAgentMode,
-            onAiAgentModeChange = { viewModel.setAiAgentMode(it) },
             aiAgentRemoteModelConfigs = aiAgentRemoteModelConfigs,
             onAiAgentRemoteModelConfigsChange = { viewModel.setAiAgentRemoteModelConfigs(it) },
             aiAgentSelectedRemoteModel = aiAgentSelectedRemoteModel,
             onAiAgentSelectedRemoteModelChange = { viewModel.setAiAgentSelectedRemoteModel(it) },
             autoExecutePlans = autoExecutePlans,
             onAutoExecutePlansChange = { viewModel.setAutoExecutePlansEnabled(it) },
+            jsEngineEnabled = jsEngineEnabled,
+            onJsEngineEnabledChange = { viewModel.setJsEngineEnabled(it) },
+            agentCameraAccessEnabled = agentCameraAccessEnabled,
+            onAgentCameraAccessChange = { viewModel.setAgentCameraAccessEnabled(it) },
+            agentGalleryAccessEnabled = agentGalleryAccessEnabled,
+            onAgentGalleryAccessChange = { viewModel.setAgentGalleryAccessEnabled(it) },
             tagGenerationUseOpencl = tagGenerationUseOpencl,
             onTagGenerationUseOpenclChange = { viewModel.setTagGenerationUseOpencl(it) },
             taggerModelKey = taggerModelKey,
@@ -314,14 +321,18 @@ private fun SettingsContent(
     debugShaderMode: Int,
     roiStageConfig: StageConfig,
     landmarkStageConfig: StageConfig,
-    aiAgentMode: AiAgentMode,
-    onAiAgentModeChange: (AiAgentMode) -> Unit,
     aiAgentRemoteModelConfigs: String,
     onAiAgentRemoteModelConfigsChange: (String) -> Unit,
     aiAgentSelectedRemoteModel: String,
     onAiAgentSelectedRemoteModelChange: (String) -> Unit,
     autoExecutePlans: Boolean,
     onAutoExecutePlansChange: (Boolean) -> Unit,
+    jsEngineEnabled: Boolean,
+    onJsEngineEnabledChange: (Boolean) -> Unit,
+    agentCameraAccessEnabled: Boolean,
+    onAgentCameraAccessChange: (Boolean) -> Unit,
+    agentGalleryAccessEnabled: Boolean,
+    onAgentGalleryAccessChange: (Boolean) -> Unit,
     tagGenerationUseOpencl: Boolean,
     onTagGenerationUseOpenclChange: (Boolean) -> Unit,
     taggerModelKey: String,
@@ -378,6 +389,7 @@ private fun SettingsContent(
         SettingsCategory.REMOTE_MODEL -> R.string.remote_models
         SettingsCategory.LOCAL_MODEL -> R.string.local_models
         SettingsCategory.VOICE_CONTROL -> R.string.voice_control
+        SettingsCategory.SANDBOX -> R.string.sandbox_settings
         SettingsCategory.DEVELOPER -> R.string.developer_options
     }
 
@@ -438,27 +450,7 @@ private fun SettingsContent(
                         onSelectedModelChange = onAiAgentSelectedRemoteModelChange
                     )
                 }
-
-                SettingsSection(
-                    title = stringResource(R.string.ai_agent),
-                    description = stringResource(R.string.ai_agent_desc)
-                ) {
-                    DebugOptionRow(
-                        title = stringResource(R.string.ai_agent_auto_execute_plans),
-                        checked = autoExecutePlans,
-                        onCheckedChange = onAutoExecutePlansChange
-                    )
-                    Text(
-                        text = stringResource(R.string.ai_agent_auto_execute_plans_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
-                    )
-                    AiAgentModeSelection(
-                        currentMode = aiAgentMode,
-                        onModeSelected = onAiAgentModeChange
-                    )
-                }
+                // 自动执行多步骤计划已迁入「沙盒与权限」一级入口
             }
 
             // ── 3. 本地模型（用户侧一级入口）────────────────────────
@@ -502,6 +494,74 @@ private fun SettingsContent(
                         title = stringResource(R.string.voice_entry_enabled),
                         checked = voiceEntryEnabled,
                         onCheckedChange = onVoiceEntryEnabledChange
+                    )
+                }
+            }
+
+            // ── 5. 沙盒与权限（用户侧一级入口）────────────────────
+            if (category == SettingsCategory.SANDBOX) {
+                val context = LocalContext.current
+                val openAppSystemSettings: () -> Unit = {
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    runCatching { context.startActivity(intent) }
+                }
+
+                SettingsSection(
+                    title = stringResource(R.string.sandbox_execution),
+                    description = stringResource(R.string.sandbox_execution_desc)
+                ) {
+                    DebugOptionRow(
+                        title = stringResource(R.string.ai_agent_auto_execute_plans),
+                        checked = autoExecutePlans,
+                        onCheckedChange = onAutoExecutePlansChange
+                    )
+                    Text(
+                        text = stringResource(R.string.ai_agent_auto_execute_plans_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
+                    )
+                    DebugOptionRow(
+                        title = stringResource(R.string.js_engine_execution),
+                        checked = jsEngineEnabled,
+                        onCheckedChange = onJsEngineEnabledChange
+                    )
+                    Text(
+                        text = stringResource(R.string.js_engine_execution_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
+                    )
+                }
+
+                SettingsSection(
+                    title = stringResource(R.string.sandbox_device_access),
+                    description = stringResource(R.string.sandbox_device_access_desc)
+                ) {
+                    DebugOptionRow(
+                        title = stringResource(R.string.agent_camera_access),
+                        checked = agentCameraAccessEnabled,
+                        onCheckedChange = onAgentCameraAccessChange
+                    )
+                    SettingsClickableRow(
+                        title = stringResource(R.string.camera_permission_system),
+                        subtitle = stringResource(R.string.permission_system_subtitle),
+                        valueText = stringResource(R.string.permission_system_value),
+                        onClick = openAppSystemSettings
+                    )
+                    DebugOptionRow(
+                        title = stringResource(R.string.agent_gallery_access),
+                        checked = agentGalleryAccessEnabled,
+                        onCheckedChange = onAgentGalleryAccessChange
+                    )
+                    SettingsClickableRow(
+                        title = stringResource(R.string.gallery_permission_system),
+                        subtitle = stringResource(R.string.permission_system_subtitle),
+                        valueText = stringResource(R.string.permission_system_value),
+                        onClick = openAppSystemSettings
                     )
                 }
             }
@@ -1056,7 +1116,6 @@ private fun SettingsCategoryGrid(
     onNavigateToPeople: () -> Unit,
     developerOptionsUnlocked: Boolean,
 ) {
-    val context = LocalContext.current
     val baseItems = listOf(
         CategoryGridItem(R.string.settings_ai_memory, R.string.settings_ai_memory_desc, Icons.Rounded.Psychology, onNavigateToMemoryFacts),
         CategoryGridItem(R.string.people_entry, R.string.people_entry_desc, Icons.Rounded.AccountCircle, onNavigateToPeople),
@@ -1075,9 +1134,10 @@ private fun SettingsCategoryGrid(
         CategoryGridItem(R.string.voice_control, R.string.voice_control_desc, Icons.Rounded.Mic) {
             onNavigateToCategory(SettingsCategory.VOICE_CONTROL)
         },
-        CategoryGridItem(R.string.backup_and_restore, R.string.backup_and_restore_desc, Icons.Rounded.Storage) {
-            context.startActivity(BackupRestoreActivity.intent(context))
+        CategoryGridItem(R.string.sandbox_settings, R.string.sandbox_settings_desc, Icons.Rounded.VerifiedUser) {
+            onNavigateToCategory(SettingsCategory.SANDBOX)
         },
+        // 备份与恢复已并入「数据与隐私」页
         CategoryGridItem(R.string.data_privacy_entry, R.string.data_privacy_desc, Icons.Rounded.PrivacyTip, onNavigateToDataPrivacy),
     )
     val devItem = CategoryGridItem(R.string.developer_options, R.string.developer_options_desc, Icons.Rounded.Terminal) {
@@ -1365,14 +1425,18 @@ fun SettingsScreenPreview() {
             onRoiDevicePreferenceSelected = {},
             onLandmarkModelTypeSelected = {},
             onLandmarkDevicePreferenceSelected = {},
-            aiAgentMode = AiAgentMode.REMOTE,
-            onAiAgentModeChange = {},
             aiAgentRemoteModelConfigs = "",
             onAiAgentRemoteModelConfigsChange = {},
             aiAgentSelectedRemoteModel = "deepseek-v4-flash",
             onAiAgentSelectedRemoteModelChange = {},
             autoExecutePlans = true,
             onAutoExecutePlansChange = {},
+            jsEngineEnabled = false,
+            onJsEngineEnabledChange = {},
+            agentCameraAccessEnabled = true,
+            onAgentCameraAccessChange = {},
+            agentGalleryAccessEnabled = true,
+            onAgentGalleryAccessChange = {},
             tagGenerationUseOpencl = false,
             onTagGenerationUseOpenclChange = {},
             taggerModelKey = TaggerModelSelector.AUTO,

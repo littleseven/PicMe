@@ -190,6 +190,30 @@ class SettingsViewModel(
             initialValue = true
         )
 
+    /** 允许 Agent 执行 JS 沙盒脚本（默认关）。仅持久化，能力层消费待接入。 */
+    val jsEngineEnabled: StateFlow<Boolean> = repository.jsEngineEnabledFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+
+    /** 允许 Agent 访问相机能力（默认开）。仅持久化，能力层消费待接入。 */
+    val agentCameraAccessEnabled: StateFlow<Boolean> = repository.agentCameraAccessEnabledFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = true
+        )
+
+    /** 允许 Agent 访问相册能力（默认开）。仅持久化，能力层消费待接入。 */
+    val agentGalleryAccessEnabled: StateFlow<Boolean> = repository.agentGalleryAccessEnabledFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = true
+        )
+
     val aiAgentMode: StateFlow<AiAgentMode> = repository.aiAgentModeFlow
         .stateIn(
             scope = viewModelScope,
@@ -965,6 +989,27 @@ class SettingsViewModel(
         viewModelScope.launch {
             Logger.d("UX", "Auto execute plans changed: $enabled")
             repository.updateAutoExecutePlansEnabled(enabled)
+        }
+    }
+
+    fun setJsEngineEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            Logger.d("UX", "JS engine enabled changed: $enabled")
+            repository.updateJsEngineEnabled(enabled)
+        }
+    }
+
+    fun setAgentCameraAccessEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            Logger.d("UX", "Agent camera access changed: $enabled")
+            repository.updateAgentCameraAccessEnabled(enabled)
+        }
+    }
+
+    fun setAgentGalleryAccessEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            Logger.d("UX", "Agent gallery access changed: $enabled")
+            repository.updateAgentGalleryAccessEnabled(enabled)
         }
     }
 

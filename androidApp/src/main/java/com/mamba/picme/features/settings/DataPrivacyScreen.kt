@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mamba.picme.R
+import com.mamba.picme.features.backuprestore.BackupRestoreActivity
 import com.mamba.picme.features.common.topbar.AppTopBar
 import com.mamba.picme.features.common.topbar.AppTopBarNavBack
 
@@ -50,6 +51,13 @@ fun DataPrivacyScreen(onNavigateBack: () -> Unit) {
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            TextButton(
+                onClick = { context.startActivity(BackupRestoreActivity.intent(context)) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.backup_and_restore))
+            }
+
             PrivacySection(R.string.data_privacy_account_title, R.string.data_privacy_account_body)
             PrivacySection(R.string.data_privacy_device_title, R.string.data_privacy_device_body)
             PrivacySection(R.string.data_privacy_retention_title, R.string.data_privacy_retention_body)
