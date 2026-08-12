@@ -449,17 +449,7 @@ private fun SettingsContent(
                     )
                 }
 
-                // 2.2 远程链路（常驻可见）
-                SettingsSection(
-                    title = stringResource(R.string.ai_settings_remote_section)
-                ) {
-                    AiAgentRemoteModelsSection(
-                        configsJson = aiAgentRemoteModelConfigs,
-                        onConfigsChange = onAiAgentRemoteModelConfigsChange,
-                        selectedModelId = aiAgentSelectedRemoteModel,
-                        onSelectedModelChange = onAiAgentSelectedRemoteModelChange
-                    )
-                }
+                // 2.2 远程模型原始配置（API key/baseUrl/protocol）已收口至「开发者选项」
 
                 // 2.4 语音控制（独立第三区）
                 SettingsSection(
@@ -511,25 +501,7 @@ private fun SettingsContent(
                         leadingIcon = Icons.Rounded.PhotoLibrary,
                         onClick = onNavigateToDuplicateManager
                     )
-                    val taggerAutoLabel = stringResource(R.string.tag_model_auto)
-                    SettingsClickableRow(
-                        title = stringResource(R.string.tag_model_selector_title),
-                        subtitle = when (taggerModelKey) {
-                            "florence2_base" -> "Florence-2-Base"
-                            "qwen3_vl_2b" -> "Qwen3-VL-2B"
-                            else -> taggerAutoLabel
-                        },
-                        leadingIcon = Icons.AutoMirrored.Rounded.Label,
-                        onClick = {
-                            // 三态循环：自动(→Florence-2 首选) → Florence-2 → Qwen3-VL-2B(备选) → 自动
-                            val next = when (taggerModelKey) {
-                                TaggerModelSelector.AUTO -> "florence2_base"
-                                "florence2_base" -> "qwen3_vl_2b"
-                                else -> TaggerModelSelector.AUTO
-                            }
-                            onTaggerModelKeyChange(next)
-                        }
-                    )
+                    // 打标模型选择（Florence-2/Qwen3-VL）已收口至「开发者选项」
                 }
 
                 // TAG 生成 GPU 加速是真实性能配置（非调试项），作为相册常规配置项展示
@@ -563,53 +535,7 @@ private fun SettingsContent(
                     )
                 }
 
-                StageConfigSection(
-                    stage = DetectionStage.ROI,
-                    config = roiStageConfig,
-                    onModelTypeSelected = onRoiModelTypeSelected,
-                    onDevicePreferenceSelected = onRoiDevicePreferenceSelected,
-                    onNavigateToModelManager = onNavigateToModelCenter,
-                    isModelDownloaded = isModelDownloaded,
-                    getModelId = getModelId,
-                    downloadModel = downloadModel,
-                    downloadStates = downloadStates,
-                    allModels = allModels
-                )
-
-                StageConfigSection(
-                    stage = DetectionStage.LANDMARK,
-                    config = landmarkStageConfig,
-                    onModelTypeSelected = onLandmarkModelTypeSelected,
-                    onDevicePreferenceSelected = onLandmarkDevicePreferenceSelected,
-                    onNavigateToModelManager = onNavigateToModelCenter,
-                    isModelDownloaded = isModelDownloaded,
-                    getModelId = getModelId,
-                    downloadModel = downloadModel,
-                    downloadStates = downloadStates,
-                    allModels = allModels
-                )
-
-                SettingsSection(
-                    title = stringResource(R.string.face_detection_advanced),
-                    description = stringResource(R.string.settings_face_detection_advanced_desc)
-                ) {
-                    DebugOptionRow(
-                        title = stringResource(R.string.face_landmark_mode),
-                        checked = faceDetectionLandmarkModeEnabled,
-                        onCheckedChange = onFaceDetectionLandmarkModeEnabledChange
-                    )
-                    DebugOptionRow(
-                        title = stringResource(R.string.adaptive_face_detect_interval),
-                        checked = adaptiveFaceDetectionIntervalEnabled,
-                        onCheckedChange = onAdaptiveFaceDetectionIntervalEnabledChange
-                    )
-                    if (adaptiveFaceDetectionIntervalEnabled) {
-                        FaceDetectProfileSelection(
-                            currentProfile = faceDetectIntervalProfile,
-                            onProfileSelected = onFaceDetectIntervalProfileSelected
-                        )
-                    }
-                }
+                // 人脸检测阶段配置（ROI/Landmark 模型与推理设备）+ 自适应间隔已收口至「开发者选项」
             }
 
             // ── 5. 系统与权限 ─────────────────────────────────────
@@ -756,7 +682,93 @@ private fun SettingsContent(
                     }
                 }
 
-                // ── 6.2 诊断（全构建可见；release 仅展示纯指标） ──────────
+                // ── 6.2 人脸检测引擎（收口）：阶段配置 + 关键点 + 自适应间隔 ──
+                SettingsSection(
+                    title = stringResource(R.string.face_detection_advanced),
+                    description = stringResource(R.string.settings_face_detection_advanced_desc)
+                ) {
+                    StageConfigSection(
+                        stage = DetectionStage.ROI,
+                        config = roiStageConfig,
+                        onModelTypeSelected = onRoiModelTypeSelected,
+                        onDevicePreferenceSelected = onRoiDevicePreferenceSelected,
+                        onNavigateToModelManager = onNavigateToModelCenter,
+                        isModelDownloaded = isModelDownloaded,
+                        getModelId = getModelId,
+                        downloadModel = downloadModel,
+                        downloadStates = downloadStates,
+                        allModels = allModels
+                    )
+
+                    StageConfigSection(
+                        stage = DetectionStage.LANDMARK,
+                        config = landmarkStageConfig,
+                        onModelTypeSelected = onLandmarkModelTypeSelected,
+                        onDevicePreferenceSelected = onLandmarkDevicePreferenceSelected,
+                        onNavigateToModelManager = onNavigateToModelCenter,
+                        isModelDownloaded = isModelDownloaded,
+                        getModelId = getModelId,
+                        downloadModel = downloadModel,
+                        downloadStates = downloadStates,
+                        allModels = allModels
+                    )
+
+                    DebugOptionRow(
+                        title = stringResource(R.string.face_landmark_mode),
+                        checked = faceDetectionLandmarkModeEnabled,
+                        onCheckedChange = onFaceDetectionLandmarkModeEnabledChange
+                    )
+                    DebugOptionRow(
+                        title = stringResource(R.string.adaptive_face_detect_interval),
+                        checked = adaptiveFaceDetectionIntervalEnabled,
+                        onCheckedChange = onAdaptiveFaceDetectionIntervalEnabledChange
+                    )
+                    if (adaptiveFaceDetectionIntervalEnabled) {
+                        FaceDetectProfileSelection(
+                            currentProfile = faceDetectIntervalProfile,
+                            onProfileSelected = onFaceDetectIntervalProfileSelected
+                        )
+                    }
+                }
+
+                // ── 6.3 AI 推理链路·高级（收口）：远程模型原始配置 ────────
+                SettingsSection(
+                    title = stringResource(R.string.ai_settings_remote_section)
+                ) {
+                    AiAgentRemoteModelsSection(
+                        configsJson = aiAgentRemoteModelConfigs,
+                        onConfigsChange = onAiAgentRemoteModelConfigsChange,
+                        selectedModelId = aiAgentSelectedRemoteModel,
+                        onSelectedModelChange = onAiAgentSelectedRemoteModelChange
+                    )
+                }
+
+                // ── 6.4 相册打标·高级（收口）：打标模型选择 ─────────────
+                SettingsSection(
+                    title = stringResource(R.string.gallery_advanced)
+                ) {
+                    val taggerAutoLabel = stringResource(R.string.tag_model_auto)
+                    SettingsClickableRow(
+                        title = stringResource(R.string.tag_model_selector_title),
+                        subtitle = when (taggerModelKey) {
+                            "florence2_base" -> "Florence-2-Base"
+                            "qwen3_vl_2b" -> "Qwen3-VL-2B"
+                            else -> taggerAutoLabel
+                        },
+                        leadingIcon = Icons.AutoMirrored.Rounded.Label,
+                        onClick = {
+                            // 三态循环：自动(→Florence-2 首选) → Florence-2 → Qwen3-VL-2B(备选) → 自动
+                            val next = when (taggerModelKey) {
+                                TaggerModelSelector.AUTO -> "florence2_base"
+                                "florence2_base" -> "qwen3_vl_2b"
+                                else -> TaggerModelSelector.AUTO
+                            }
+                            onTaggerModelKeyChange(next)
+                        }
+                    )
+                }
+
+                // ── 6.5 诊断（全构建可见；release 仅展示纯指标） ──────────
                 SettingsSection(
                     title = stringResource(R.string.diagnostics_entries)
                 ) {
@@ -768,7 +780,7 @@ private fun SettingsContent(
                     )
                 }
 
-                // ── 6.3 测试工具与服务（仅 debug 构建） ────────────────
+                // ── 6.6 测试工具与服务（仅 debug 构建） ────────────────
                 if (BuildConfig.DEBUG) {
                     val context = LocalContext.current
 
@@ -825,7 +837,7 @@ private fun SettingsContent(
                     }
                 }
 
-                // ── 6.4 日志配置：按模块控制日志输出 ──────────────────
+                // ── 6.7 日志配置：按模块控制日志输出 ──────────────────
                 SettingsSection(
                     title = stringResource(R.string.log_management),
                     description = stringResource(R.string.log_management_desc)
