@@ -2,6 +2,7 @@ package com.mamba.picme.features.settings
 
 import android.content.Intent
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -129,6 +130,7 @@ fun SettingsScreen(
 
     val themeMode by viewModel.themeMode.collectAsState()
     val appLanguage by viewModel.appLanguage.collectAsState()
+    val developerOptionsUnlocked by viewModel.developerOptionsUnlocked.collectAsState()
     val debugUiEnabled by viewModel.debugUiEnabled.collectAsState()
     val showCameraInfoInPreview by viewModel.showCameraInfoInPreview.collectAsState()
     val showFaceDebugOverlay by viewModel.showFaceDebugOverlay.collectAsState()
@@ -220,6 +222,8 @@ fun SettingsScreen(
             category = category,
             themeMode = themeMode,
             appLanguage = appLanguage,
+            developerOptionsUnlocked = developerOptionsUnlocked,
+            onUnlockDeveloperOptions = { viewModel.setDeveloperOptionsUnlocked(true) },
             debugUiEnabled = debugUiEnabled,
             showCameraInfoInPreview = showCameraInfoInPreview,
             showFaceDebugOverlay = showFaceDebugOverlay,
@@ -296,6 +300,8 @@ private fun SettingsContent(
     category: SettingsCategory,
     themeMode: ThemeMode,
     appLanguage: AppLanguage,
+    developerOptionsUnlocked: Boolean,
+    onUnlockDeveloperOptions: () -> Unit,
     debugUiEnabled: Boolean,
     showCameraInfoInPreview: Boolean,
     showFaceDebugOverlay: Boolean,
@@ -394,6 +400,8 @@ private fun SettingsContent(
                     onThemeModeSelected = onThemeModeSelected,
                     appLanguage = appLanguage,
                     onAppLanguageSelected = onAppLanguageSelected,
+                    developerOptionsUnlocked = developerOptionsUnlocked,
+                    onUnlockDeveloperOptions = onUnlockDeveloperOptions,
                     onNavigateToCategory = onNavigateToCategory,
                     onNavigateToModelCenter = { onNavigateToModelCenter("") },
                     onNavigateToDataPrivacy = onNavigateToDataPrivacy,
@@ -838,6 +846,8 @@ private fun SettingsMainMenu(
     onThemeModeSelected: (ThemeMode) -> Unit,
     appLanguage: AppLanguage,
     onAppLanguageSelected: (AppLanguage) -> Unit,
+    developerOptionsUnlocked: Boolean,
+    onUnlockDeveloperOptions: () -> Unit,
     onNavigateToCategory: (SettingsCategory) -> Unit,
     onNavigateToModelCenter: () -> Unit,
     onNavigateToDataPrivacy: () -> Unit,
@@ -910,7 +920,11 @@ private fun SettingsMainMenu(
             onNavigateToCommunicationChannel = onNavigateToCommunicationChannel,
             onNavigateToMemoryFacts = onNavigateToMemoryFacts,
             onNavigateToPeople = onNavigateToPeople,
+            developerOptionsUnlocked = developerOptionsUnlocked,
         )
+
+        // ── 版本页脚（连点 7 次解锁开发者选项）──
+        SettingsVersionFooter(onUnlock = onUnlockDeveloperOptions)
     }
 }
 
@@ -1021,9 +1035,10 @@ private fun SettingsCategoryGrid(
     onNavigateToCommunicationChannel: () -> Unit,
     onNavigateToMemoryFacts: () -> Unit,
     onNavigateToPeople: () -> Unit,
+    developerOptionsUnlocked: Boolean,
 ) {
     val context = LocalContext.current
-    val items = listOf(
+    val baseItems = listOf(
         CategoryGridItem(R.string.ai_assistant, R.string.ai_assistant_desc, Icons.Rounded.SmartToy) {
             onNavigateToCategory(SettingsCategory.AI_AGENT)
         },
@@ -1039,14 +1054,15 @@ private fun SettingsCategoryGrid(
             onNavigateToCategory(SettingsCategory.CAMERA_BEAUTY)
         },
         CategoryGridItem(R.string.model_center, R.string.model_center_desc, Icons.Rounded.CloudDownload, onNavigateToModelCenter),
-        CategoryGridItem(R.string.developer_options, R.string.developer_options_desc, Icons.Rounded.Terminal) {
-            onNavigateToCategory(SettingsCategory.DEVELOPER)
-        },
         CategoryGridItem(R.string.backup_and_restore, R.string.backup_and_restore_desc, Icons.Rounded.Storage) {
             context.startActivity(BackupRestoreActivity.intent(context))
         },
         CategoryGridItem(R.string.data_privacy_entry, R.string.data_privacy_desc, Icons.Rounded.PrivacyTip, onNavigateToDataPrivacy),
     )
+    val devItem = CategoryGridItem(R.string.developer_options, R.string.developer_options_desc, Icons.Rounded.Terminal) {
+        onNavigateToCategory(SettingsCategory.DEVELOPER)
+    }
+    val items = if (developerOptionsUnlocked) baseItems + devItem else baseItems
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         items.chunked(2).forEach { pair ->
@@ -1108,6 +1124,50 @@ private fun SettingsCategoryCard(
                 maxLines = 2
             )
         }
+    }
+}
+
+/**
+ * 设置主页底部版本页脚：连点 [DeveloperOptionsUnlockCounter.REQUIRED_TAPS] 次解锁开发者选项。
+ * 解锁前对普通用户仅显示版本号（良性信息），不构成开发项泄漏。
+ */
+@Composable
+private fun SettingsVersionFooter(onUnlock: () -> Unit) {
+    val context = LocalContext.current
+    val counter = remember { DeveloperOptionsUnlockCounter() }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp, bottom = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = stringResource(
+                R.string.app_version_footer,
+                stringResource(R.string.app_name),
+                BuildConfig.VERSION_NAME
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            modifier = Modifier.clickable {
+                when (val result = counter.tap()) {
+                    is UnlockTapResult.Countdown -> Toast.makeText(
+                        context,
+                        context.getString(R.string.dev_options_unlock_countdown, result.remaining),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    UnlockTapResult.Unlocked -> {
+                        onUnlock()
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.dev_options_unlocked_toast),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            }
+        )
     }
 }
 
@@ -1258,6 +1318,8 @@ fun SettingsScreenPreview() {
             category = SettingsCategory.MAIN,
             themeMode = ThemeMode.SYSTEM,
             appLanguage = AppLanguage.ENGLISH,
+            developerOptionsUnlocked = false,
+            onUnlockDeveloperOptions = {},
             debugUiEnabled = true,
             showCameraInfoInPreview = false,
             showFaceDebugOverlay = false,
