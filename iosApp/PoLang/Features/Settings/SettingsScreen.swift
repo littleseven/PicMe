@@ -21,6 +21,13 @@ struct SettingsScreen: View {
     @State private var unlockHint: String?
     /// 相册设置（扫描控制台）以 fullScreenCover 呈现（TagScanScreen 既有模式）
     @State private var showGalleryConsole = false
+    /// 账号登录态 + hero 额度（对齐 Android AccountHeroCard 外显登录态）
+    @AppStorage("server_auth_token") private var authToken = ""
+    @AppStorage("server_auth_email") private var authEmail = ""
+    @State private var heroQuotaUsed = 0
+    @State private var heroQuotaLimit = 0
+    @State private var heroQuotaLoaded = false
+    private var loggedIn: Bool { !authToken.isEmpty }
 
     var body: some View {
         ScrollView {
@@ -46,6 +53,13 @@ struct SettingsScreen: View {
         }
         .fullScreenCover(isPresented: $showGalleryConsole) {
             TagScanScreen(onDismiss: { showGalleryConsole = false })
+        }
+        .task {
+            guard loggedIn else { return }
+            // hero 额度查询失败静默（详情页会重试）
+            if let q = try? await PoLangAuthClient.shared.getQuota(token: authToken) {
+                heroQuotaUsed = q.llmCallsUsed; heroQuotaLimit = q.llmCallsLimit; heroQuotaLoaded = true
+            }
         }
     }
 
@@ -114,9 +128,13 @@ struct SettingsScreen: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(L("Account"))
+                    Text(loggedIn ? authEmail : L("Account"))
                         .font(.system(size: 16, weight: .medium))
-                    Text(L("Sign in for more quota and features"))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Text(loggedIn
+                         ? (heroQuotaLoaded ? "\(heroQuotaUsed) / \(heroQuotaLimit)" : L("Account"))
+                         : L("Sign in for more quota and features"))
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
