@@ -302,30 +302,173 @@ struct SettingsCategoryItem {
 
 // MARK: - Account Settings
 
+// MARK: - PoLang Auth Client（对齐 Android PoLangAuthClient，URLSession 实现）
+
+struct AuthResult { let token: String; let llmCallsUsed: Int; let llmCallsLimit: Int }
+struct QuotaInfo { let email: String; let llmCallsUsed: Int; let llmCallsLimit: Int }
+struct AuthError: LocalizedError { let code: Int; let message: String; var errorDescription: String? { "HTTP \(code): \(message)" } }
+
+final class PoLangAuthClient {
+    static let shared = PoLangAuthClient()
+    private let base = "https://api.polang.net"
+
+    private func request(_ path: String, method: String, token: String? = nil, body: [String: Any]? = nil) -> URLRequest {
+        var req = URLRequest(url: URL(string: "\(base)\(path)")!)
+        req.httpMethod = method
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("ios", forHTTPHeaderField: "X-Platform")
+        if let token { req.setValue(token, forHTTPHeaderField: "X-App-Token") }
+        if let body { req.httpBody = try? JSONSerialization.data(withJSONObject: body) }
+        return req
+    }
+    private func errMsg(_ data: Data) -> String {
+        (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String ?? "unknown_error"
+    }
+    private func statusCode(_ resp: URLResponse) -> Int { (resp as? HTTPURLResponse)?.statusCode ?? -1 }
+
+    func sendCode(email: String) async throws {
+        let (data, resp) = try await URLSession.shared.data(for:request("/auth/email/send", method: "POST", body: ["email": email]))
+        if !(200..<300).contains(statusCode(resp)) { throw AuthError(code: statusCode(resp), message: errMsg(data)) }
+    }
+    func verify(email: String, code: String) async throws -> AuthResult {
+        let (data, resp) = try await URLSession.shared.data(for:request("/auth/email/verify", method: "POST", body: ["email": email, "code": code]))
+        let sc = statusCode(resp); guard (200..<300).contains(sc) else { throw AuthError(code: sc, message: errMsg(data)) }
+        let j = (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
+        return AuthResult(token: j["token"] as? String ?? "",
+                          llmCallsUsed: j["llmCallsUsed"] as? Int ?? 0,
+                          llmCallsLimit: j["llmCallsLimit"] as? Int ?? 100)
+    }
+    func getQuota(token: String) async throws -> QuotaInfo {
+        let (data, resp) = try await URLSession.shared.data(for:request("/auth/quota", method: "GET", token: token))
+        let sc = statusCode(resp); guard (200..<300).contains(sc) else { throw AuthError(code: sc, message: errMsg(data)) }
+        let j = (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
+        return QuotaInfo(email: j["email"] as? String ?? "",
+                         llmCallsUsed: j["llmCallsUsed"] as? Int ?? 0,
+                         llmCallsLimit: j["llmCallsLimit"] as? Int ?? 100)
+    }
+    func deleteAccount(token: String) async throws {
+        let (data, resp) = try await URLSession.shared.data(for:request("/auth/account", method: "DELETE", token: token))
+        if !(200..<300).contains(statusCode(resp)) { throw AuthError(code: statusCode(resp), message: errMsg(data)) }
+    }
+}
+
+// MARK: - Account Settings（邮箱验证码注册/登录 + 额度，对齐 Android ServerAuthSection）
+
 struct AccountSettingsView: View {
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var cs
     private var s: SchemeColors { appScheme(cs) }
+    @AppStorage("server_auth_token") private var token = ""
+    @AppStorage("server_auth_email") private var storedEmail = ""
+
+    @State private var emailInput = ""
+    @State private var codeInput = ""
+    @State private var codeSent = false
+    @State private var sending = false
+    @State private var verifying = false
+    @State private var errorMsg: String?
+    @State private var quota: QuotaInfo?
+    @State private var loadingQuota = false
+    @State private var showDeleteConfirm = false
+
+    private var loggedIn: Bool { !token.isEmpty }
+    private let client = PoLangAuthClient.shared
 
     var body: some View {
-        VStack(spacing: 16) {
-            Spacer()
-            Image(matIcon: "person")
-                .font(.system(size: 64))
-                .foregroundColor(.secondary.opacity(0.3))
-            Text(L("Account registration coming in a future version."))
-                .font(.system(size: 14))
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
-            Text(L("You are currently using guest mode with limited quota."))
-                .font(.system(size: 13))
-                .foregroundColor(.secondary.opacity(0.7))
-            Spacer()
+        ScrollView {
+            VStack(spacing: 16) {
+                if loggedIn { accountDetail } else { registerForm }
+            }
+            .padding(20)
         }
         .background(s.background.ignoresSafeArea())
         .navigationTitle(L("Account"))
         .navigationBarTitleDisplayMode(.inline)
+        .task { if loggedIn { await refreshQuota() } }
+        .confirmationDialog(L("Delete account? This cannot be undone."), isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button(L("Delete Account"), role: .destructive) { Task { await deleteAccount() } }
+            Button(L("Cancel"), role: .cancel) {}
+        }
+        .alert(L("Error"), isPresented: Binding(get: { errorMsg != nil }, set: { _ in errorMsg = nil })) {
+            Button("OK", role: .cancel) {}
+        } message: { Text(errorMsg ?? "") }
+    }
+
+    // MARK: 注册/登录表单
+    private var registerForm: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(L("Account")).font(AppTypography.titleMedium.font).foregroundColor(s.onSurface)
+            Text(L("Sign in for more quota and features")).font(AppTypography.bodySmall.font).foregroundColor(s.onSurfaceVariant)
+            TextField(L("Email"), text: $emailInput)
+                .textInputAutocapitalization(.never).autocorrectionDisabled()
+                .keyboardType(.emailAddress)
+                .padding(12).background(s.surfaceContainerHigh).clipShape(AppShapes.small)
+            if codeSent {
+                TextField(L("Verification Code"), text: $codeInput)
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.numberPad)
+                    .padding(12).background(s.surfaceContainerHigh).clipShape(AppShapes.small)
+            }
+            Button { Task { await sendCode() } } label: {
+                Text(sending ? L("Sending…") : L("Send Code")).frame(maxWidth: .infinity)
+            }.buttonStyle(.borderedProminent).disabled(emailInput.isEmpty || sending)
+            if codeSent {
+                Button { Task { await verify() } } label: {
+                    Text(verifying ? L("Verifying…") : L("Verify & Sign In")).frame(maxWidth: .infinity)
+                }.buttonStyle(.bordered).disabled(codeInput.isEmpty || verifying)
+            }
+        }
+        .padding(16).frame(maxWidth: .infinity, alignment: .leading)
+        .background(s.surfaceContainerHighest).clipShape(AppShapes.card)
+    }
+
+    // MARK: 已登录详情
+    private var accountDetail: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                Image(matIcon: "person").font(.system(size: 24)).foregroundColor(s.primary)
+                Text(storedEmail).font(AppTypography.titleSmall.font).foregroundColor(s.onSurface)
+            }
+            Divider()
+            if let quota {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(L("LLM Quota")).font(AppTypography.bodySmall.font).foregroundColor(s.onSurfaceVariant)
+                    HStack { Spacer(); Text("\(quota.llmCallsUsed) / \(quota.llmCallsLimit)").font(AppTypography.titleSmall.font).foregroundColor(s.primary) }
+                    ProgressView(value: Double(quota.llmCallsUsed), total: Double(max(quota.llmCallsLimit, 1)))
+                        .tint(quota.llmCallsUsed >= quota.llmCallsLimit ? s.error : s.primary)
+                }
+            } else if loadingQuota {
+                ProgressView()
+            }
+            Button { Task { await refreshQuota() } } label: { Text(L("Refresh")).frame(maxWidth: .infinity) }.buttonStyle(.bordered)
+            Button { logout() } label: { Text(L("Logout")).frame(maxWidth: .infinity) }.buttonStyle(.bordered).foregroundColor(s.error)
+            Button { showDeleteConfirm = true } label: { Text(L("Delete Account")).frame(maxWidth: .infinity) }.buttonStyle(.bordered).foregroundColor(s.error)
+        }
+        .padding(16).frame(maxWidth: .infinity, alignment: .leading)
+        .background(s.surfaceContainerHighest).clipShape(AppShapes.card)
+    }
+
+    // MARK: Actions
+    private func sendCode() async {
+        sending = true; defer { sending = false }
+        do { try await client.sendCode(email: emailInput); codeSent = true } catch { errorMsg = (error as? AuthError)?.message ?? L("Network error") }
+    }
+    private func verify() async {
+        verifying = true; defer { verifying = false }
+        do {
+            let r = try await client.verify(email: emailInput, code: codeInput)
+            token = r.token; storedEmail = emailInput; quota = QuotaInfo(email: emailInput, llmCallsUsed: r.llmCallsUsed, llmCallsLimit: r.llmCallsLimit)
+            codeSent = false; codeInput = ""
+        } catch { errorMsg = (error as? AuthError)?.message ?? L("Network error") }
+    }
+    private func refreshQuota() async {
+        loadingQuota = true; defer { loadingQuota = false }
+        do { quota = try await client.getQuota(token: token) } catch { errorMsg = (error as? AuthError)?.message ?? L("Network error") }
+    }
+    private func logout() { token = ""; storedEmail = ""; quota = nil }
+    private func deleteAccount() async {
+        do {
+            try await client.deleteAccount(token: token); logout()
+        } catch { errorMsg = (error as? AuthError)?.message ?? L("Network error") }
     }
 }
 
