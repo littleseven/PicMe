@@ -241,20 +241,22 @@ private struct PersonCardView: View {
     private var relationChipLabel: String {
         if person.isSelf { return L("This is me") }
         if let rel = person.relation {
-            return rel.customLabel ?? RelationOptions.label(predicateId: rel.predicate)
+            // customLabel 为空字符串(非 nil)时也要 fallback 到 predicate 标签
+            let custom = rel.customLabel ?? ""
+            return custom.isEmpty ? RelationOptions.label(predicateId: rel.predicate) : custom
         }
         return L("Not set")
     }
 
     private var relationChip: some View {
         Text(relationChipLabel)
-            .font(.system(size: 12, weight: .medium))
-            .foregroundColor(.white)
+            .font(.system(size: 12))
+            .foregroundColor(person.isSelf ? s.onPrimaryContainer : s.onSurfaceVariant)
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
             .background(
-                Capsule()
-                    .fill(Color.accentColor))
+                RoundedRectangle(cornerRadius: PersonTokens.relationChipRadius, style: .continuous)
+                    .fill(person.isSelf ? s.primaryContainer : s.surfaceContainerHighest))
             .onTapGesture { onInfoTap() }
     }
 }
