@@ -301,7 +301,8 @@ struct DeveloperSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 12) {
-                settingsSection(L("Debug Tools"), L("Recommended for debugging only.")) {
+                // ── 1. 相机预览调试 ──
+                settingsSection(L("Camera Preview Debug"), L("Recommended for debugging only.")) {
                     VStack(spacing: 0) {
                         toggleRow(L("Debug"), isOn: $debugEnabled)
                         if debugEnabled {
@@ -314,33 +315,42 @@ struct DeveloperSettingsView: View {
                         }
                     }
                 }
-                #if DEBUG
-                NavigationLink {
-                    DebugScreenView()
-                } label: {
-                    HStack {
-                        Text(L("Image Download"))
-                            .foregroundColor(.primary)
-                        Spacer()
-                        Text(L("Enter"))
-                            .font(.system(size: 13))
-                            .foregroundColor(.secondary)
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 13))
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemGroupedBackground)))
+
+                // ── 2. 诊断与日志（iOS 占位）──
+                settingsSection(L("Diagnostics & Logs")) {
+                    Text(L("LLM call log and per-module log switches are not yet available on iOS."))
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .buttonStyle(.plain)
+
+                // ── 3. 开发测试工具（仅 DEBUG）──
+                #if DEBUG
+                settingsSection(L("Developer Tools")) {
+                    NavigationLink {
+                        DebugScreenView()
+                    } label: {
+                        HStack {
+                            Text(L("Image Download")).foregroundColor(.primary)
+                            Spacer()
+                            Text(L("Enter")).font(.system(size: 13)).foregroundColor(.secondary)
+                            Image(systemName: "chevron.right").font(.system(size: 13)).foregroundColor(.secondary)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    Divider()
+                    Text(L("Search test, JSBridge and accessibility tools are Android-only."))
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
                 #endif
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
-        .navigationTitle(L("Developer"))
+        .navigationTitle(L("Developer Options"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
