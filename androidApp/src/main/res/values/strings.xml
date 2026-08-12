@@ -748,6 +748,9 @@
     <string name="developer_options">Developer Options</string>
     <string name="developer_options_desc">Debug overlays and advanced diagnostics.</string>
     <string name="developer_debug_entries">Debug Tool Entries</string>
+    <string name="app_version_footer">%1$s v%2$s</string>
+    <string name="dev_options_unlock_countdown">Tap %1$d more times to enable developer options.</string>
+    <string name="dev_options_unlocked_toast">Developer options enabled.</string>
     <string name="gallery_advanced">Advanced</string>
     <string name="gallery_debug_features">Gallery Debug Features</string>
     <string name="gallery_debug_features_desc">Testing tools and backend mode switches for gallery tagging.</string>

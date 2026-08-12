@@ -720,6 +720,9 @@
     <string name="developer_options">開發者選項</string>
     <string name="developer_options_desc">調試浮層與進階診斷。</string>
     <string name="developer_debug_entries">除錯工具入口</string>
+    <string name="app_version_footer">%1$s v%2$s</string>
+    <string name="dev_options_unlock_countdown">再點擊 %1$d 次進入開發者選項。</string>
+    <string name="dev_options_unlocked_toast">已開啟開發者選項。</string>
     <string name="gallery_advanced">進階</string>
     <string name="gallery_debug_features">相簿除錯功能</string>
     <string name="gallery_debug_features_desc">相簿打標的測試工具與後端模式切換。</string>

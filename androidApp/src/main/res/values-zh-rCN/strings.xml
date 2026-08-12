@@ -742,6 +742,9 @@
     <string name="developer_options">开发者选项</string>
     <string name="developer_options_desc">调试浮层与高级诊断。</string>
     <string name="developer_debug_entries">调试工具入口</string>
+    <string name="app_version_footer">%1$s v%2$s</string>
+    <string name="dev_options_unlock_countdown">再点击 %1$d 次进入开发者选项。</string>
+    <string name="dev_options_unlocked_toast">已开启开发者选项。</string>
     <string name="gallery_advanced">高级</string>
     <string name="gallery_debug_features">相册调试功能</string>
     <string name="gallery_debug_features_desc">相册打标的测试工具与后端模式切换。</string>
