@@ -95,53 +95,53 @@ struct ChatView: View {
     // MARK: - Top Bar (48dp, 无标题，spec §2)
 
     private var chatTopBar: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: TopBarTokens.spacing) {
             // 返回（pager 场景回相册页）
             Button { onBack?() } label: {
-                MatIcon(name: "mat_arrow_back", size: 22)
+                MatIcon(name: "mat_arrow_back", size: TopBarTokens.iconSize)
                     .foregroundColor(Color(.label))
             }
-            .frame(width: 36, height: 36)
+            .frame(width: TopBarTokens.buttonSize, height: TopBarTokens.buttonSize)
             .accessibilityIdentifier("chat_back")
 
             // 菜单（打开会话历史侧栏，spec §2.5）
             Button { withAnimation { isSidebarOpen = true } } label: {
-                MatIcon(name: "mat_menu", size: 22)
+                MatIcon(name: "mat_menu", size: TopBarTokens.iconSize)
                     .foregroundColor(Color(.label))
             }
-            .frame(width: 36, height: 36)
+            .frame(width: TopBarTokens.buttonSize, height: TopBarTokens.buttonSize)
             .accessibilityIdentifier("chat_menu")
 
             Spacer()
 
             // 上报问题（Android 走 /v1/report-issue 建 GitHub issue，iOS 通道未接）
             Button { comingSoonFeature = String(localized: "Issue reporting is not available in this version.") } label: {
-                MatIcon(name: "mat_bug_report", size: 22)
+                MatIcon(name: "mat_bug_report", size: TopBarTokens.iconSize)
                     .foregroundColor(Color(.label))
             }
-            .frame(width: 36, height: 36)
+            .frame(width: TopBarTokens.buttonSize, height: TopBarTokens.buttonSize)
             .accessibilityIdentifier("chat_report")
 
             // 新对话（= 新建会话并切换，对齐 Android onNewChat；非清空当前会话）
             Button { viewModel.newSession() } label: {
-                MatIcon(name: "mat_add_comment", size: 22)
+                MatIcon(name: "mat_add_comment", size: TopBarTokens.iconSize)
                     .foregroundColor(Color(.label))
             }
-            .frame(width: 36, height: 36)
+            .frame(width: TopBarTokens.buttonSize, height: TopBarTokens.buttonSize)
             .accessibilityIdentifier("chat_new")
 
             // 清空对话（仅有消息时显示）
             if !viewModel.messages.isEmpty {
                 Button { showClearConfirm = true } label: {
-                    MatIcon(name: "mat_delete_sweep", size: 22)
+                    MatIcon(name: "mat_delete_sweep", size: TopBarTokens.iconSize)
                         .foregroundColor(Color(.label))
                 }
-                .frame(width: 36, height: 36)
+                .frame(width: TopBarTokens.buttonSize, height: TopBarTokens.buttonSize)
                 .accessibilityIdentifier("chat_clear")
             }
         }
-        .padding(.horizontal, 8)
-        .frame(height: 48)
+        .padding(.horizontal, TopBarTokens.horizontalPadding)
+        .frame(height: TopBarTokens.height)
         .background(Color(.systemBackground))
     }
 
@@ -177,7 +177,7 @@ struct ChatView: View {
 
     private var inputBar: some View {
         VStack(spacing: 0) {
-            VStack(spacing: 8) {
+            VStack(spacing: TopBarTokens.spacing) {
                 // 行 1：文本输入（通栏；处理中仍可编辑）
                 TextField(String(localized: "Ask AI Agent..."), text: $inputText, axis: .vertical)
                     .font(.system(size: 16))
@@ -191,7 +191,7 @@ struct ChatView: View {
                     .accessibilityIdentifier("chat_input")
 
                 // 行 2：按钮栏（SpaceBetween）
-                HStack(spacing: 8) {
+                HStack(spacing: TopBarTokens.spacing) {
                     // 相册胶囊（spec gallery_capsule：Android 打开图片选择器；
                     // iOS chat v1 无图片消息，诚实占位）
                     Button {
@@ -205,41 +205,41 @@ struct ChatView: View {
                         .foregroundColor(Color(.label).opacity(0.7))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .background(Color(.secondarySystemBackground).opacity(0.5))
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .background(Color(.secondarySystemBackground).opacity(ChatBubbleTokens.capsuleInactiveAlpha))
+                        .clipShape(RoundedRectangle(cornerRadius: ChatBubbleTokens.capsuleCornerRadius))
                     }
                     .disabled(viewModel.isProcessing)
                     .accessibilityIdentifier("chat_gallery_capsule")
 
                     Spacer()
 
-                    // 语音切换按钮（常驻，36dp 圆形；对齐 Android voice_button。
+                    // 语音切换按钮（常驻，圆形；对齐 Android voice_button。
                     // iOS chat v1 无语音输入模式，诚实占位）
                     Button {
                         comingSoonFeature = String(localized: "Voice input is not available in this version.")
                     } label: {
-                        MatIcon(name: "mat_keyboard_voice", size: 22)
+                        MatIcon(name: "mat_keyboard_voice", size: ChatBubbleTokens.circularButtonIconSize)
                             .foregroundColor(Color(.label).opacity(0.7))
                     }
-                    .frame(width: 36, height: 36)
+                    .frame(width: ChatBubbleTokens.circularButtonSize, height: ChatBubbleTokens.circularButtonSize)
                     .accessibilityIdentifier("chat_voice")
 
-                    // 发送按钮（36dp 圆形，primary tint；仅有内容 && 非处理中时显示）
+                    // 发送按钮（圆形，primary tint；仅有内容 && 非处理中时显示）
                     if canSend {
                         Button(action: send) {
-                            MatIcon(name: "mat_send", size: 22)
+                            MatIcon(name: "mat_send", size: ChatBubbleTokens.circularButtonIconSize)
                                 .foregroundColor(.accentColor)
                         }
-                        .frame(width: 36, height: 36)
+                        .frame(width: ChatBubbleTokens.circularButtonSize, height: ChatBubbleTokens.circularButtonSize)
                         .accessibilityIdentifier("chat_send")
                     }
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, ChatBubbleTokens.paddingH)
+            .padding(.vertical, ChatBubbleTokens.paddingV)
             .background(Color(.systemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 24))
-            .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+            .clipShape(RoundedRectangle(cornerRadius: ChatBubbleTokens.inputCornerRadius))
+            .shadow(color: .black.opacity(0.08), radius: ChatBubbleTokens.inputShadowElevation, y: 2)
         }
         .padding(.horizontal, 12)
         .padding(.bottom, 8)
@@ -274,17 +274,17 @@ private struct MessageBubble: View {
                 } else if message.isToolCalling {
                     // 工具调用态：状态文案
                     Text(message.text)
-                        .font(.system(size: 14))
+                        .font(.system(size: ChatBubbleTokens.textSize))
                         .foregroundColor(Color(.secondaryLabel))
                 } else if !message.text.isEmpty || !message.mediaIds.isEmpty {
                     // 正常文本
                     if !message.text.isEmpty {
                         Text(message.text)
-                            .font(.system(size: 14))
-                            .lineSpacing(6)
+                            .font(.system(size: ChatBubbleTokens.textSize))
+                            .lineSpacing(ChatBubbleTokens.textLineHeight - ChatBubbleTokens.textSize)
                             .foregroundColor(message.role == .user ? .white : Color(.label))
                             .fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: 360, alignment: .leading)
+                            .frame(maxWidth: ChatBubbleTokens.bubbleMaxWidth, alignment: .leading)
                             .accessibilityIdentifier(message.role == .user ? "chat_user_bubble" : "chat_ai_bubble")
                     }
 
@@ -303,8 +303,8 @@ private struct MessageBubble: View {
                     }
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, ChatBubbleTokens.paddingH)
+            .padding(.vertical, ChatBubbleTokens.paddingV)
             .background(bubbleBackground)
             .clipShape(bubbleShape)
             .contentShape(Rectangle())
@@ -318,7 +318,7 @@ private struct MessageBubble: View {
     }
 
     private var bubbleShape: UnevenRoundedRectangle {
-        let r: CGFloat = 20, sharp: CGFloat = 4
+        let r = ChatBubbleTokens.cornerRadius, sharp = ChatBubbleTokens.tailCornerRadius
         if message.role == .user {
             return UnevenRoundedRectangle(
                 topLeadingRadius: r, bottomLeadingRadius: r,
@@ -383,30 +383,39 @@ private struct BlinkCursor: View {
     }
 }
 
-// MARK: - Media Card Row (120×150)
+// MARK: - Media Card Row (spec §9：120×150 卡片 + 日期标签)
 
 private struct MediaCardRow: View {
     let mediaIds: [Int64]
     @State private var idToIdentifier: [Int64: String] = [:]
+    @State private var idToDate: [Int64: Date] = [:]
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: ChatCarouselTokens.cardSpacing) {
                 ForEach(mediaIds, id: \.self) { id in
-                    MediaThumbnail(localIdentifier: idToIdentifier[id])
-                        .frame(width: 120, height: 150)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    MediaThumbnail(
+                        localIdentifier: idToIdentifier[id],
+                        date: idToDate[id]
+                    )
+                    .frame(width: ChatCarouselTokens.cardWidth, height: ChatCarouselTokens.cardHeight)
+                    .clipShape(RoundedRectangle(cornerRadius: ChatCarouselTokens.cardCornerRadius))
                 }
             }
             .padding(.vertical, 4)
         }
         .task(id: mediaIds) {
-            var map: [Int64: String] = [:]
+            guard !mediaIds.isEmpty else { return }
+            var idMap: [Int64: String] = [:]
+            var dateMap: [Int64: Date] = [:]
             let result = PHAsset.fetchAssets(with: nil)
             result.enumerateObjects { asset, _, _ in
-                map[Self.javaHashCode(asset.localIdentifier)] = asset.localIdentifier
+                let key = Self.javaHashCode(asset.localIdentifier)
+                idMap[key] = asset.localIdentifier
+                dateMap[key] = asset.creationDate
             }
-            idToIdentifier = map
+            idToIdentifier = idMap
+            idToDate = dateMap
         }
     }
 
@@ -419,10 +428,18 @@ private struct MediaCardRow: View {
 
 private struct MediaThumbnail: View {
     let localIdentifier: String?
+    let date: Date?
     @State private var image: UIImage?
 
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
+
     var body: some View {
-        ZStack {
+        ZStack(alignment: .bottomLeading) {
             Color(.tertiarySystemBackground)
             if let image {
                 Image(uiImage: image)
@@ -432,6 +449,21 @@ private struct MediaThumbnail: View {
                 Image(matIcon: "photo")
                     .font(.system(size: 20))
                     .foregroundColor(.secondary.opacity(0.3))
+            }
+            // 日期标签（对齐 spec §9 card_date_label：yyyy-MM-dd，底部渐变 scrim 上白字）
+            if let date, let label = Self.dateFormatter.string(for: date) {
+                Text(label)
+                    .font(.system(size: 11))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        LinearGradient(
+                            colors: [.clear, .black.opacity(0.5)],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
             }
         }
         .task(id: localIdentifier) {

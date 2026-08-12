@@ -441,6 +441,11 @@ colors:
 # ============================================================================
 # 11. 允许的平台差异
 # ============================================================================
+# ⚠️ 2026-08-12 决策撤回（/ios-follow chat，用户签）：
+#   原「AI 工程师模式（chisel 隧道，iOS Phase 6.3 未实现）」
+#   原「Claude Agent Steps（iOS 无 AI 工程师模式）」
+#   两条豁免**撤回**——AI 工程师模式纳入 iOS 对齐范围，规格见 §14。
+#   撤回依据：tmp/ios-follow/chat/follow-plan.md §5 契约冲突裁决。
 allowed_differences:
   - "Markdown 渲染引擎差异（Android MarkDown lib vs iOS AttributedString）"
   - "图标具体形状（Material Icons vs SF Symbols）"
@@ -448,10 +453,169 @@ allowed_differences:
   - "阴影渲染（elevation vs shadow）"
   - "键盘交互（Android imePadding vs iOS focused state）"
   - "语音输入（sherpa-onnx Android vs iOS Phase 6 未实现）"
-  - "AI 工程师模式（chisel 隧道，iOS Phase 6.3 未实现）"
   - "代码块折叠/复制 UI 细节"
   - "表格渲染（Android Compose Grid vs iOS LazyVGrid）"
   - "性能指标行（Android LlmPerformance 展示，iOS v1 省略）"
-  - "Claude Agent Steps（iOS 无 AI 工程师模式）"
   - "侧栏溢出菜单图标（Android MoreVert vs iOS mat_more_horiz）"
   - "侧栏会话列表无 feishu 远程控制会话行（iOS 无飞书通道）"
+# ⚠️ 仍属实现差异但**不再豁免**（需对齐，规格见下文 §12-§15）：
+#   - 上下文附件（photo picker + 意图 chip）→ §12
+#   - JS 工具调用（run_gallery_script / draw_chart / 写确认 / chart 卡 / 沙箱徽章）→ §13
+#   - AI 工程师模式（claude 胶囊 + 步骤列表 + 截断继续 + 交付按钮）→ §14
+#   - 媒体轮播反馈按钮（👍👎🔄）+ 查看全部尾卡 → §9（已规格，iOS 须实现）+ §15
+
+# ============================================================================
+# 12. 上下文附件（Context Attachment）— 2026-08-12 新增（B1 对齐）
+# ============================================================================
+# 基准端：Android ChatPhotoPickerSheet.kt / ChatScreen.kt stageImage 区
+# iOS 现状：Coming Soon 桩；bridge.sendMessage 只收 text。本节定义对齐目标。
+context_attachment:
+  entry: input_bar.gallery_capsule          # 点 Gallery 胶囊（非 Coming Soon）
+  picker:
+    type: photo_picker                       # iOS = PHPickerViewController (AddOnly 配置)
+    selection: single                        # 单选
+    layout: bottom_sheet                     # 560dp / iOS sheet
+    search_field: true                       # 内嵌搜索（浏览/搜索两态）
+  # 选图后在输入栏上方展示的"暂存区"
+  staging:
+    visible_when: "pendingImageUri != null"
+    layout: row
+    thumbnail:
+      size: chatContext.thumbSize            # 72dp
+      corner_radius: chatContext.thumbRadius # 8dp
+      face_aware: true                       # 按 faceFocusY 顶对齐裁切
+    remove_button:
+      position: top_end
+      icon: close
+    intent_chips:                            # 三意图 FilterChip（单选）
+      layout: row
+      spacing: 8
+      items:
+        - { id: UNDERSTAND,  label: "Understand",  icon: visibility }     # 理解
+        - { id: FIND_SIMILAR, label: "Find similar", icon: image_search } # 找相似
+        - { id: EDIT,         label: "Edit",        icon: edit }          # 编辑
+      default: UNDERSTAND
+  # 意图分发（隐私红线：图片文件不上传远程）
+  intent_dispatch:
+    UNDERSTAND:
+      action: on_device_vlm                  # 端侧 Qwen3-VL-2B 图像理解
+      privacy: "图片不离开设备；仅文本结论走远程"
+    FIND_SIMILAR:
+      action: on_device_image_search         # 端侧以图搜图 → MediaResultsCarousel
+      privacy: "纯端侧"
+    EDIT:
+      action: navigate_photo_editor          # 直跳编辑器，不发推理
+      privacy: "无推理"
+    with_text:
+      rule: "文本非空 → sendMessage(text, imageUri)，图片作为上下文提示（仅 URI 文本注入，像素不上传）"
+  bridge_contract:                           # 见 contracts.md C-B1
+    change: "ChatAgentBridge.sendMessage 增可选 attachment + intent 参数（向后兼容默认）"
+
+# ============================================================================
+# 13. JS 工具调用渲染（JS Toolcalls）— 2026-08-12 新增（B2 对齐）
+# ============================================================================
+# 基准端：Android ChatRunScriptCapability / QuickJsEngine / CapabilityDispatchHandler
+# iOS 现状：仅 "Calling tools…" 文本；无 JS 引擎。本节定义对齐目标。
+js_toolcalls:
+  capability_exposure:
+    manifest_add:                            # iOS ChatToolManifest 须新增
+      - run_gallery_script                   # 委托 ChatToolService.runGalleryScript
+      - draw_chart                           # 委托 ChatToolService.drawChart
+  engine:
+    # 设计决策（contracts.md C-B2-1）：选 quickjs-kt(KMP 同源) 或 JavaScriptCore(iOS 原生)
+    # 推荐 quickjs-kt 以保持与 Android 引擎一致；若 iOS 切片不可用退 JavaScriptCore。
+    selection: quickjs_kt_preferred_jsc_fallback
+    contract: "复用 commonMain JsEngine/JsRuntime/JsBridge；iOS 写 actual + 注册 gallery.*/media.*/capability.dispatch handlers"
+  rendering:                                 # 正常推理路径（非 AI 工程师）
+    tool_indicator:
+      text: "Calling tools…"                 # 正在调用工具（ChatStreamEvent.ToolCallStarted 触发）
+      cursor_hidden: true
+    chart_result:                            # draw_chart 产出
+      message_kind: CHART                    # 独立全宽消息项（非嵌入文本气泡）
+      ui: ChartSvgCard                       # SVG 卡片，tap 进横屏 pinch-zoom 预览
+      bridge_kind: "ChatUiActionDto 须加 chart kind（携 svg+summary）"  # 见 contracts.md C-B2-2
+    sandbox_badge:
+      show_when: "replyUsedSandbox == true"
+      icon: terminal
+  write_confirmation:                        # capability.dispatch 写操作须用户确认
+    trigger: "CommandRisk != READ_ONLY（delete/favorite/select/remember_*/forget_*）"
+    dialog:
+      title: "Confirm AI action"             # 确认 AI 操作
+      body: "operation 描述"
+      thumbnail_row: { size: 44, corner_radius: 6 }
+      risk_line: "DESTRUCTIVE → 红；REVERSIBLE → 普通"
+      buttons: [confirm, cancel]
+    serialization: "单弹窗 Mutex，超时 120s → reject"
+
+# ============================================================================
+# 14. AI 工程师模式（AI Engineer / claude）— 2026-08-12 新增（B3 对齐，撤回 §11 豁免）
+# ============================================================================
+# 基准端：Android ClaudeChatClient / ClaudeAgentRenderer / ClaudeAgentSteps
+# iOS 现状：完全不存在。本节定义对齐目标。
+ai_engineer:
+  toggle:
+    ui: input_bar.ai_engineer_capsule        # smart_toy 图标胶囊
+    icon: smart_toy
+    active_bg: "primary.opacity(0.12)"
+    two_state: true
+  behavior_when_active:
+    session_isolation: "新建独立会话（claude 隧道上下文与普通会话分离）；持久化 sid 经 ClaudeSidStore，支持 --resume"
+    inference_path: "ClaudeChatClient SSE（自建后端 api.polang.net/picme），非 orchestrator.remoteChatEngine"
+    photo_picker: hidden                     # claude 模式下隐藏选图胶囊（隐私）
+  bridge_contract:                           # 见 contracts.md C-B3
+    new: "iOS 新增 ClaudeEngine 桥（URLSession SSE）+ ClaudeEvent(KMP 下沉或 Swift enum)"
+  event_model:                               # SSE 事件（对齐 Android ClaudeEvent）
+    events: [session, assistant_text, tool_use, tool_result, file_change, cost, app_tool_request, done, error]
+  bubble_rendering:
+    streaming_text: "SegmentedAgentText + BlinkCursor（终端 > 光标）"
+    thinking: TypingIndicator                # 首 token 前
+    step_list:                               # ClaudeAgentSteps（本模式独有）
+      layout: column
+      per_step:
+        glyph: "RUNNING=⏳ | SUCCESS=✓ | FAILED=✗"
+        label: "tool 名（file_change → 本地化为「改文件」）"
+        detail: "可选单行"
+        font: { size: 13, family: monospace }
+    truncation:
+      banner: "ⓘ 已截断…"
+      continue_button: "Continue"            # 继续按钮 → 发送 "继续"
+    deliver:                                 # file_change 且 canDeliver（白名单）
+      gate: ai_engineer_whitelist
+      buttons: [push, pr, auto]              # 三 OutlinedButton
+
+# ============================================================================
+# 15. 媒体轮播补全（§9 已规格，本节登记 iOS 须实现的缺口）
+# ============================================================================
+media_results_ios_gaps:
+  - "计数头文案：找到 N 张「query」的照片 / 细化：query（N 张）/ 无结果提示"
+  - "卡片反馈按钮：👍 thumb_up / 👎 thumb_down / 🔄 refresh（卡片右侧竖排叠层，白字黑底 40%）"
+  - "查看全部尾卡：totalCount > 显示数时，同尺寸 ViewAllCard → 跳相册"
+  - "manifest 须暴露 record_feedback（+ more_like_this）以支撑反馈回路"
+  - "全屏预览 HorizontalPager：tap 卡 → pinch-zoom 预览（iOS 缺整层）"
+
+# ============================================================================
+# 16. 平台差异台账（platform_differences）— 契约层
+# ============================================================================
+platform_differences:
+  permission:
+    photo_library:
+      android: "READ_MEDIA_IMAGES（单次/运行时）；MediaStore 直读"
+      ios: "PHPhotoLibrary：Limited / AddOnly / Full / Denied 四态；附件 picker 用 PHPicker（AddOnly 免授权读）"
+      shared_semantic: "业务侧只表达「选一张图」；权限四态映射由 iOS actual 处理，失败回退提示"
+    ai_engineer_whitelist:
+      both: "账号 token → 自建后端 engineerAvailability；canDeliver 决定交付按钮可见"
+  capabilities:
+    matrix:
+      - { feature: "相册搜索",        android: supported, ios: supported }
+      - { feature: "相册摘要",        android: supported, ios: supported }
+      - { feature: "媒体写(删/藏/选)", android: supported, ios: "supported(经 IosChatGalleryCapability)" }
+      - { feature: "图反馈/找相似",    android: supported, ios: "TODO(A2) manifest 暴露" }
+      - { feature: "上下文选图",      android: supported, ios: "TODO(B1) 新建" }
+      - { feature: "端侧 VLM 理解",   android: supported, ios: "TODO(B1) MNN.framework 已有" }
+      - { feature: "JS 沙箱脚本",     android: supported, ios: "TODO(B2) 引擎选型+handler 移植" }
+      - { feature: "draw_chart 图表", android: supported, ios: "TODO(B2) ChartSvgCard + chart kind" }
+      - { feature: "AI 工程师(claude)", android: supported, ios: "TODO(B3) SSE 客户端+渲染" }
+      - { feature: "记忆/人物关系",    android: supported, ios: "未纳入本轮（留技术债）" }
+  privacy_disclosure:
+    android: "Manifest 权限 + Play Data Safety；chat 推理 STRICT（图不上传）"
+    ios: "purpose string + PrivacyInfo.xcprivacy；附件用 PHPicker(AddOnly)；VLM 端侧"

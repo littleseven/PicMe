@@ -395,6 +395,29 @@ enum ChatBubbleTokens {
     static let overlayPanelCornerRadius: CGFloat = 20
     static let typingMs: Double = 400
     static let blinkMs: Double = 500
+    static let circularButtonSize: CGFloat = 36
+    static let circularButtonIconSize: CGFloat = 22
+}
+
+// MARK: - Chat Carousel（媒体结果横滑卡 · design-tokens.json chatCarousel）
+
+enum ChatCarouselTokens {
+    static let cardWidth: CGFloat = 120
+    static let cardHeight: CGFloat = 150
+    static let cardCornerRadius: CGFloat = 12
+    static let cardSpacing: CGFloat = 8
+    static let feedbackButtonSize: CGFloat = 24
+    static let feedbackIconColor = Color.white
+    static let feedbackBgColor = Color.black.opacity(0.4)
+    static let viewAllCornerRadius: CGFloat = 12
+}
+
+// MARK: - Chat Context（上下文附件暂存区 · design-tokens.json chatContext）
+
+enum ChatContextTokens {
+    static let thumbSize: CGFloat = 72
+    static let thumbCornerRadius: CGFloat = 8
+    static let intentChipSpacing: CGFloat = 8
 }
 
 // MARK: - Settings

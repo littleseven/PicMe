@@ -374,7 +374,28 @@
     "overlayPanelColor": "black",
     "overlayPanelCornerRadius": 20,
     "typingMs": 400,
-    "blinkMs": 500
+    "blinkMs": 500,
+    "circularButtonSize": 36,
+    "circularButtonIconSize": 22
+  },
+
+  "chatCarousel": {
+    "_comment": "聊天媒体结果轮播（MediaResultsCarousel）。ios-follow chat 2026-08-12 自 Android MediaResultsCarousel.kt 反向提取。卡片右侧竖排反馈按钮叠层。",
+    "cardWidth": 120,
+    "cardHeight": 150,
+    "cardCornerRadius": 12,
+    "cardSpacing": 8,
+    "feedbackButtonSize": 24,
+    "feedbackIconColor": "#FFFFFFFF",
+    "feedbackBgColor": "#66000000",
+    "viewAllCornerRadius": 12
+  },
+
+  "chatContext": {
+    "_comment": "聊天上下文附件暂存区（选图后输入栏上方）。ios-follow chat 2026-08-12 新增（B1）。72dp 缩略图 + 三意图 chip。",
+    "thumbSize": 72,
+    "thumbCornerRadius": 8,
+    "intentChipSpacing": 8
   },
 
   "settings": {

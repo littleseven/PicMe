@@ -209,6 +209,23 @@ final class ChatViewModel: ObservableObject {
             ))
             touchThread(preview: header)
             persist()
+        case "text_reply":
+            // 工具产出的文本回复：作为独立 agent 消息（对齐 Android handleAgentAction TextReply）
+            guard !dto.message.isEmpty else { return }
+            messages.append(ChatMessage(role: .assistant, text: dto.message))
+            touchThread(preview: dto.message)
+            persist()
+        case "error":
+            // 工具执行错误：同 agent 正常气泡渲染（spec：错误无特殊色），不再静默丢弃
+            let text = dto.message.isEmpty
+                ? String(localized: "Operation failed.")
+                : dto.message
+            messages.append(ChatMessage(role: .assistant, text: text, error: dto.message))
+            touchThread(preview: text)
+            persist()
+        case "success":
+            // 命令成功：无用户可见文本载荷，静默（对齐 Android Success 不追加气泡）
+            break
         default:
             break
         }
@@ -243,10 +260,14 @@ final class ChatViewModel: ObservableObject {
         threads = ChatHistoryStore.shared.loadThreads()
     }
 
-    /// 默认标题判定（对齐 Android isDefaultTitle：空 / "New Chat" / "Chat" / 本地化"新建聊天"）
+    /// 默认标题判定（对齐 Android isDefaultTitle：空 / "New Chat" / "Chat" 及其本地化形式）
     private static func isDefaultTitle(_ title: String) -> Bool {
-        if title.isEmpty || title == "New Chat" || title == "Chat" { return true }
-        return title == String(localized: "New Chat")
+        if title.isEmpty { return true }
+        // 英文常量 fallback（历史数据）+ 当前语言本地化形式，避免非英文下漏判
+        let newChatEn = "New Chat"
+        let chatEn = "Chat"
+        if title == newChatEn || title == chatEn { return true }
+        return title == String(localized: "New Chat") || title == String(localized: "Chat")
     }
 
     /// 标题清洗（对齐 Android ChatTitleGenerator.sanitizeTitle：
