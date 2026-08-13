@@ -29,13 +29,21 @@ struct ChatView: View {
                 chatTopBar
 
                 if viewModel.messages.isEmpty {
-                    ChatEmptyState { prompt in
-                        viewModel.send(prompt)  // 直接发送，不填充输入框
+                    // 包 ScrollView：系统键盘避让对 ScrollView 生效（greedy VStack 不生效→输入栏被遮）。
+                    // GeometryReader 给 ChatEmptyState 明确全高，保内部 Spacer 居中布局不被 ScrollView 破坏。
+                    GeometryReader { geo in
+                        ScrollView {
+                            ChatEmptyState { prompt in
+                                viewModel.send(prompt)  // 直接发送，不填充输入框
+                            }
+                            .frame(width: geo.size.width, height: geo.size.height)
+                        }
+                        .scrollDismissesKeyboard(.interactively)
                     }
-                    .contentShape(Rectangle())  // 空态整片可点测（含空白 Spacer）
+                    .contentShape(Rectangle())
                     .onTapGesture { inputFocused = false }  // 点空白收键盘
                 } else {
-                    messageList  // 内含 .scrollDismissesKeyboard：下滑收键盘（不加 contentShape 以免吃掉下滑手势）
+                    messageList  // 内含 .scrollDismissesKeyboard：下滑收键盘
                 }
 
                 inputBar
@@ -189,6 +197,7 @@ struct ChatView: View {
                 .padding(.bottom, 8)
             }
             .scrollDismissesKeyboard(.interactively)  // 下滑消息列表收起键盘
+            .onTapGesture { inputFocused = false }  // 点消息/空白收键盘（tap 与 scroll 手势不冲突）
             .onChange(of: viewModel.messages.count) { _ in scrollToBottom(proxy) }
             .onChange(of: viewModel.messages.last?.text) { _ in scrollToBottom(proxy) }
         }

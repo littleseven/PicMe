@@ -96,16 +96,17 @@ final class ChatSmokeUITests: XCTestCase {
         add(attachment)
     }
 
-    /// 键盘避让自动化测量：点输入框 → 读输入框 frame.maxY 与 keyboard frame.minY，
-    /// 断言输入框底部不超过键盘顶（否则被遮）。全程自动，免手动点击。
+    /// 键盘避让自动化测量：点输入框 → 读【整个输入栏底部】(相册胶囊=最低元素) vs 键盘顶，
+    /// 断言输入栏底部不超过键盘顶（否则按钮行被遮）。全程自动，免手动点击。
     func testKeyboardAvoidance() {
-        // setUp 已 launch 到相册页；导航到 chat
         let gallery = app.descendants(matching: .any)["gallery_grid"].firstMatch
         _ = gallery.waitForExistence(timeout: 12)
         app.buttons["tab_chat"].tap()
         sleep(1)
+        // 新建会话 → 空态（复现"新建会话首次输入被遮"）
+        let newChat = app.buttons["chat_new"]
+        if newChat.waitForExistence(timeout: 5) { newChat.tap(); sleep(1) }
 
-        // chat_input（多行 TextField 在 XCUI 多为 textField）
         let input = app.textFields["chat_input"].exists
             ? app.textFields["chat_input"]
             : app.textViews["chat_input"]
@@ -114,19 +115,45 @@ final class ChatSmokeUITests: XCTestCase {
 
         let keyboard = app.keyboards.firstMatch
         XCTAssertTrue(keyboard.waitForExistence(timeout: 8), "点输入框后键盘未弹出")
-        sleep(1)  // 等键盘动画 + 布局稳定
+        // 输入字符触发预测/候选栏（键盘变高，更接近用户真实打字场景）
+        input.typeText("a")
+        sleep(2)  // 等键盘 + 预测栏动画稳定
 
-        let inputBottom = input.frame.maxY
+        let bar = app.buttons["chat_gallery_capsule"]
+        let barBottom = bar.frame.maxY
         let keyboardTop = keyboard.frame.minY
-        let screenH = app.frame.height
-        let covered = inputBottom > keyboardTop
-        let msg = "inputBottom=\(Int(inputBottom)) keyboardTop=\(Int(keyboardTop)) screenH=\(Int(screenH)) gap=\(Int(keyboardTop - inputBottom)) covered=\(covered)"
+        let barHittable = bar.isHittable  // 权威：被键盘遮挡时为 false
+        let msg = "barBottom=\(Int(barBottom)) keyboardTop=\(Int(keyboardTop)) kbH=\(Int(app.frame.height - keyboardTop)) barHittable=\(barHittable)"
         print("=== KBDUITEST \(msg) ===")
         let attach = XCTAttachment(string: msg)
         attach.name = "kbd-measure"; attach.lifetime = .keepAlways
         add(attach)
+        // 全屏截图（含键盘）供宿主查看空态布局
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "empty_kb"; shot.lifetime = .keepAlways
+        add(shot)
+        XCTAssertTrue(barHittable, "❌ 输入栏被键盘遮挡 (isHittable=false): \(msg)")
+    }
 
-        XCTAssertLessThanOrEqual(inputBottom, keyboardTop, "❌ 输入框被键盘遮挡: \(msg)")
+    /// 点空白/消息收键盘：tap 输入框弹键盘 → 点消息区 → 键盘应收起。全程自动。
+    func testTapToDismissKeyboard() {
+        let gallery = app.descendants(matching: .any)["gallery_grid"].firstMatch
+        _ = gallery.waitForExistence(timeout: 12)
+        app.buttons["tab_chat"].tap()
+        sleep(1)
+
+        let input = app.textFields["chat_input"].exists
+            ? app.textFields["chat_input"]
+            : app.textViews["chat_input"]
+        XCTAssertTrue(input.waitForExistence(timeout: 12), "chat_input 未找到")
+        input.tap()
+        let keyboard = app.keyboards.firstMatch
+        XCTAssertTrue(keyboard.waitForExistence(timeout: 8), "键盘未弹出")
+
+        // 点消息区（屏幕中上）→ 触发 onTapGesture 收键盘
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4)).tap()
+        sleep(1)
+        XCTAssertFalse(keyboard.exists, "❌ 点空白后键盘未收起（有历史消息时点空白无效）")
     }
 
     // MARK: - Helpers
