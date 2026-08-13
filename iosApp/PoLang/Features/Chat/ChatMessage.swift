@@ -17,6 +17,14 @@ struct ChatMessage: Identifiable, Codable {
     var error: String?          // 错误文案（同 agent 气泡渲染，无特殊色）
     var mediaQuery: String?     // 媒体结果搜索词（ViewAll 导航回相册用；Optional 保 Codable 向后兼容）
     var mediaTotalCount: Int?   // 媒体结果全量命中数（> mediaIds.count 时显示「查看全部」）
+    /// 流式光标可见性（commonMain StreamingPacingController 驱动；不持久化——CodingKeys 排除，老数据兼容）
+    var showCursor: Bool = false
+
+    enum CodingKeys: String, CodingKey {
+        case id, role, text, timestamp, isStreaming, isThinking, isToolCalling
+        case mediaIds, error, mediaQuery, mediaTotalCount
+        // showCursor 不参与编解码（仅流式内存态）
+    }
 
     enum Role: String, Codable {
         case user, assistant

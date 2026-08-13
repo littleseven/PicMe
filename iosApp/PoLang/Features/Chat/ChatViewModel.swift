@@ -60,6 +60,8 @@ final class ChatViewModel: ObservableObject {
     func unstageImage() { stagedImage = nil }
 
     private var bridge: ChatAgentBridge?
+    /// 流式吐字节奏器（commonMain StreamingPacingController，经 SharedKit 工厂创建）
+    private var pacing: StreamingPacingController?
     private var actionWatcher: FlowWatcher?
 
     /// 侧栏列表：标题或预览模糊过滤（对齐 Android filteredThreads）
@@ -123,23 +125,36 @@ final class ChatViewModel: ObservableObject {
         ))
         isProcessing = true
 
+        // 节奏器（豆包风逐字吐）：onPaced 在 main 回调，按 50ms/字推进文本 + 光标可见性
+        pacing = createStreamingPacingController(onPaced: { [weak self] text, cursor in
+            guard let self else { return }
+            guard let idx = self.messages.firstIndex(where: { $0.id == placeholderId }) else { return }
+            self.messages[idx].isThinking = false
+            self.messages[idx].isToolCalling = false
+            self.messages[idx].text = text
+            self.messages[idx].showCursor = cursor.boolValue
+        })
+        pacing?.start()
+
         // 3. 启动推理（bridge 已指向当前 sessionId，LLM 记忆按会话隔离）
         bridge.sendMessage(
             input: trimmed,
             onText: { [weak self] snapshot in
                 Task { @MainActor in
-                    // 首 token 到达：退出 thinking，进入 streaming
-                    self?.streamingUpdate(id: placeholderId, text: snapshot)
+                    // 首 token 到达：喂给节奏器（不直接写 UI，节奏器按字符时间轴推进）
+                    self?.pacing?.onTextSnapshot(fullText: snapshot)
                 }
             },
             onToolCall: { [weak self] in
                 Task { @MainActor in
-                    // 工具调用：替换为状态文案，清空文本（下一轮从空重新累计）
+                    // 工具调用：清节奏器缓冲（避免用旧全文覆盖状态文案）
+                    self?.pacing?.reset()
                     self?.toolCallingUpdate(id: placeholderId)
                 }
             },
             onComplete: { [weak self] summary, errorMessage in
                 Task { @MainActor in
+                    self?.pacing?.finish()
                     self?.completeMessage(id: placeholderId, summary: summary, errorMessage: errorMessage)
                     self?.isProcessing = false
                 }
@@ -211,13 +226,7 @@ final class ChatViewModel: ObservableObject {
 
     // MARK: - Streaming State Updates
 
-    /// 首 token 到达或后续 token：退出 thinking/toolCalling，显示流式文本
-    private func streamingUpdate(id: UUID, text: String) {
-        guard let idx = messages.firstIndex(where: { $0.id == id }) else { return }
-        messages[idx].isThinking = false
-        messages[idx].isToolCalling = false
-        messages[idx].text = text
-    }
+    // streamingUpdate 已由节奏器 onPaced 内联替代（见 send() 中 pacing 创建）
 
     /// 工具调用开始：显示状态文案
     private func toolCallingUpdate(id: UUID) {

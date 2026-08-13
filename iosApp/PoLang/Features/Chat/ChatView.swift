@@ -398,28 +398,28 @@ private struct MessageBubble: View {
                         .font(.system(size: ChatBubbleTokens.textSize))
                         .foregroundColor(Color(.secondaryLabel))
                 } else if !message.text.isEmpty || !message.mediaIds.isEmpty {
-                    // 正常文本（agent → Markdown 渲染；user → 纯文本，对齐 Android）
+                    // 正常文本（agent → Markdown 渲染；user → 纯文本；流式光标内联右侧，对齐 Android）
                     if !message.text.isEmpty {
-                        Group {
-                            if message.role == .user {
-                                Text(message.text)
-                            } else {
-                                MarkdownText(text: message.text)
+                        HStack(alignment: .bottom, spacing: 2) {
+                            Group {
+                                if message.role == .user {
+                                    Text(message.text)
+                                } else {
+                                    MarkdownText(text: message.text)
+                                }
                             }
-                        }
-                        .font(.system(size: ChatBubbleTokens.textSize))
-                        .lineSpacing(ChatBubbleTokens.textLineHeight - ChatBubbleTokens.textSize)
-                        .foregroundColor(message.role == .user ? .white : Color(.label))
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: ChatBubbleTokens.bubbleMaxWidth, alignment: .leading)
-                        .accessibilityIdentifier(message.role == .user ? "chat_user_bubble" : "chat_ai_bubble")
-                    }
+                            .font(.system(size: ChatBubbleTokens.textSize))
+                            .lineSpacing(ChatBubbleTokens.textLineHeight - ChatBubbleTokens.textSize)
+                            .foregroundColor(message.role == .user ? .white : Color(.label))
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: ChatBubbleTokens.bubbleMaxWidth, alignment: .leading)
+                            .accessibilityIdentifier(message.role == .user ? "chat_user_bubble" : "chat_ai_bubble")
 
-                    // 流式光标（有文本且仍在流式）
-                    if message.isStreaming && !message.text.isEmpty {
-                        HStack(spacing: 2) {
-                            Text(message.text.isEmpty ? "" : "")
-                            BlinkCursor()
+                            // 流式光标（内联右侧，由节奏器 showCursor 驱动：吐字中可见 / 完成隐藏）
+                            if message.showCursor {
+                                BlinkCursor()
+                                    .padding(.bottom, 3)
+                            }
                         }
                     }
 
