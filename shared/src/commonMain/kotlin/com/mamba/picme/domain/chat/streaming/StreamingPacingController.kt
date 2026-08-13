@@ -34,9 +34,12 @@ class StreamingPacingController(
         private val PUNCT_CHARS = setOf('，', '。', '？', '！', '：', '；', ',', '?', '!', ':', ';')
     }
 
-    @Volatile private var latestFullText: String = ""
-    @Volatile private var shownLength: Int = 0
-    @Volatile private var finished: Boolean = false
+    // 注：原 Android 用 @Volatile（JVM 注解）。commonMain 跨平台不支持 @Volatile；
+    // 本类设计为单线程使用（scope=MainScope，onTextSnapshot/onPaced 均在 main 调用），
+    // 无跨线程可见性需求，故移除。调用方须保证 onTextSnapshot/reset 与 scope 同线程（main）。
+    private var latestFullText: String = ""
+    private var shownLength: Int = 0
+    private var finished: Boolean = false
     private var loopJob: Job? = null
 
     /** 流式开始：重置缓冲并启动节奏循环。 */
