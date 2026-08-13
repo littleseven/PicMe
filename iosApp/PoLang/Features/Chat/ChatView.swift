@@ -345,6 +345,32 @@ struct ChatView: View {
     }
 }
 
+// MARK: - Markdown 文本（spec §5 agent.text: markdown=true；§11 allowed: iOS AttributedString）
+// 用 Apple AttributedString(markdown:) 解析 CommonMark（粗体/斜体/链接/行内代码/标题/列表/引用）。
+// 代码块折叠·复制、表格渲染属 §11 允许差异，本版不做。用户气泡保持纯文本（对齐 Android）。
+
+private struct MarkdownText: View {
+    let text: String
+
+    var body: some View {
+        Text(parsed)
+    }
+
+    private var parsed: AttributedString {
+        // 流式期间文本可能不完整（未闭合 ** / ``），用 returnPartiallyParsedIfPossible 容错；
+        // 整体解析失败回退纯文本。
+        if let attr = try? AttributedString(markdown: text, options: Self.opts) {
+            return attr
+        }
+        return AttributedString(text)
+    }
+
+    private static let opts = AttributedString.MarkdownParsingOptions(
+        interpretedSyntax: .full,
+        failurePolicy: .returnPartiallyParsedIfPossible
+    )
+}
+
 // MARK: - Message Bubble
 
 private struct MessageBubble: View {
@@ -365,15 +391,21 @@ private struct MessageBubble: View {
                         .font(.system(size: ChatBubbleTokens.textSize))
                         .foregroundColor(Color(.secondaryLabel))
                 } else if !message.text.isEmpty || !message.mediaIds.isEmpty {
-                    // 正常文本
+                    // 正常文本（agent → Markdown 渲染；user → 纯文本，对齐 Android）
                     if !message.text.isEmpty {
-                        Text(message.text)
-                            .font(.system(size: ChatBubbleTokens.textSize))
-                            .lineSpacing(ChatBubbleTokens.textLineHeight - ChatBubbleTokens.textSize)
-                            .foregroundColor(message.role == .user ? .white : Color(.label))
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: ChatBubbleTokens.bubbleMaxWidth, alignment: .leading)
-                            .accessibilityIdentifier(message.role == .user ? "chat_user_bubble" : "chat_ai_bubble")
+                        Group {
+                            if message.role == .user {
+                                Text(message.text)
+                            } else {
+                                MarkdownText(text: message.text)
+                            }
+                        }
+                        .font(.system(size: ChatBubbleTokens.textSize))
+                        .lineSpacing(ChatBubbleTokens.textLineHeight - ChatBubbleTokens.textSize)
+                        .foregroundColor(message.role == .user ? .white : Color(.label))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: ChatBubbleTokens.bubbleMaxWidth, alignment: .leading)
+                        .accessibilityIdentifier(message.role == .user ? "chat_user_bubble" : "chat_ai_bubble")
                     }
 
                     // 流式光标（有文本且仍在流式）
