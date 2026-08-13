@@ -32,13 +32,12 @@ struct ChatView: View {
                     ChatEmptyState { prompt in
                         viewModel.send(prompt)  // 直接发送，不填充输入框
                     }
+                    .contentShape(Rectangle())  // 空态整片可点测（含空白 Spacer）
+                    .onTapGesture { inputFocused = false }  // 点空白收键盘
                 } else {
-                    messageList
+                    messageList  // 内含 .scrollDismissesKeyboard：下滑收键盘（不加 contentShape 以免吃掉下滑手势）
                 }
-            }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                // 经 safeAreaInset 钉底：键盘弹起时输入栏自动上浮，空态/消息态一致；
-                // 不再作为 greedy 内容（ChatEmptyState）的兄弟节点（会破坏系统键盘避让）。
+
                 inputBar
             }
 
@@ -219,8 +218,7 @@ struct ChatView: View {
                     .foregroundColor(Color(.label))
                     .focused($inputFocused)
                     .lineLimit(1...5)
-                    .submitLabel(.send)
-                    .onSubmit(send)
+                    // 多行输入：Return=换行（发送走发送按钮）；不配 submitLabel(.send)/onSubmit（多行下不触发，反直觉）
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityIdentifier("chat_input")
                     .toolbar {

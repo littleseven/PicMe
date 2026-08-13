@@ -96,6 +96,39 @@ final class ChatSmokeUITests: XCTestCase {
         add(attachment)
     }
 
+    /// 键盘避让自动化测量：点输入框 → 读输入框 frame.maxY 与 keyboard frame.minY，
+    /// 断言输入框底部不超过键盘顶（否则被遮）。全程自动，免手动点击。
+    func testKeyboardAvoidance() {
+        // setUp 已 launch 到相册页；导航到 chat
+        let gallery = app.descendants(matching: .any)["gallery_grid"].firstMatch
+        _ = gallery.waitForExistence(timeout: 12)
+        app.buttons["tab_chat"].tap()
+        sleep(1)
+
+        // chat_input（多行 TextField 在 XCUI 多为 textField）
+        let input = app.textFields["chat_input"].exists
+            ? app.textFields["chat_input"]
+            : app.textViews["chat_input"]
+        XCTAssertTrue(input.waitForExistence(timeout: 12), "chat_input 未找到")
+        input.tap()
+
+        let keyboard = app.keyboards.firstMatch
+        XCTAssertTrue(keyboard.waitForExistence(timeout: 8), "点输入框后键盘未弹出")
+        sleep(1)  // 等键盘动画 + 布局稳定
+
+        let inputBottom = input.frame.maxY
+        let keyboardTop = keyboard.frame.minY
+        let screenH = app.frame.height
+        let covered = inputBottom > keyboardTop
+        let msg = "inputBottom=\(Int(inputBottom)) keyboardTop=\(Int(keyboardTop)) screenH=\(Int(screenH)) gap=\(Int(keyboardTop - inputBottom)) covered=\(covered)"
+        print("=== KBDUITEST \(msg) ===")
+        let attach = XCTAttachment(string: msg)
+        attach.name = "kbd-measure"; attach.lifetime = .keepAlways
+        add(attach)
+
+        XCTAssertLessThanOrEqual(inputBottom, keyboardTop, "❌ 输入框被键盘遮挡: \(msg)")
+    }
+
     // MARK: - Helpers
 
     private func navigateToChat() {

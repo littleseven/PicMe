@@ -94,6 +94,29 @@ enum DebugBypass {
         }
     }
 
+    /// dump 视图层级（类 iOS Layout Inspector / Android Layout Inspector）：
+    /// 递归 key window 所有 UIView，写 frame + 类名 + accessibilityIdentifier 到日志。
+    /// 用于精确定位输入框/键盘区坐标，免图片分析歧义。
+    static func dumpViewHierarchy() {
+        guard let window = keyWindow else { log("Hierarchy", "no key window"); return }
+        let h = window.bounds.height
+        log("Hierarchy", "=== dump start window \(Int(window.bounds.width))x\(Int(h)) ===")
+        func walk(_ v: UIView, _ depth: Int) {
+            let f = v.frame
+            guard f.width > 1 && f.height > 1 else { return }  // 降噪：跳过 0 尺寸
+            let pad = String(repeating: " ", count: min(depth, 8) * 2)
+            let cls = String(describing: type(of: v))
+            let topPct = h > 0 ? Int(f.minY / h * 100) : 0
+            let botPct = h > 0 ? Int(f.maxY / h * 100) : 0
+            let id = v.accessibilityIdentifier
+            let idPart = (id?.isEmpty ?? true) ? "" : " id=\"\(id!)\""
+            log("Hierarchy", "\(pad)\(cls) y=\(Int(f.minY)) h=\(Int(f.height)) [top\(topPct)%..bot\(botPct)%]\(idPart)")
+            for sub in v.subviews { walk(sub, depth + 1) }
+        }
+        walk(window, 0)
+        log("Hierarchy", "=== dump end ===")
+    }
+
     private static var keyWindow: UIWindow? {
         let windows = UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
