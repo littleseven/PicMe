@@ -89,23 +89,30 @@ class TagGenerationScheduler(
 ) {
 
     /**
-     * 当前打标模型 key：首选 SmolVLM-500M（恒英文打标，英文原生 + 省电），未下载回退 Qwen；
-     * 手动指定覆盖首选。详见 [TaggerModelSelector]。Florence-2 不走 MNN，单独检查文件存在。
+     * 当前打标模型 key：首选 Florence-2（ORT，恒英文打标），未下载回退 Qwen3-VL-2B（MNN）；
+     * 手动指定覆盖首选。详见 [TaggerModelSelector]。
+     *
+     * Florence-2 走 ORT 不经 MNN，故其可用性按模型目录存在性校验（与 MNN 缓存无关）。
+     * **关键**：AUTO/默认路径同样要认 Florence-2 —— [TaggerModelSelector.resolve] 的 isAvailable
+     * 必须对 florence2_base 走目录检查，否则 MNN 的 [isModelAvailable][LocalLlmEngine.isModelAvailable]
+     * 不识别 ORT 模型会误判为不可用，进而把首选 Florence-2 降级到 Qwen（若 Qwen native load
+     * 失败 → 每张 Pass3 任务抛 "Model not loaded" → Pass 3 全量失败）。
      */
     private val taggerModelKey: String
         get() {
             val raw = userSettingsRepository.getTaggerModelKeyBlocking()
-            // Florence-2 不走 MNN，用文件存在性检查
-            if (raw?.trim() == "florence2_base") {
-                val dir = ModelPathConfig.getModelDir(context, ModelPathConfig.MODEL_ID_FLORENCE2)
-                if (dir.exists() && (dir.listFiles()?.size ?: 0) >= 10) {
-                    return "florence2_base"
-                }
-            }
             val engine = AndroidAgentComposition.localLlmEngine
             return TaggerModelSelector.resolve(
                 raw = raw,
-                isAvailable = { key -> engine.isModelAvailable(key) }
+                isAvailable = { key ->
+                    if (key == TaggerModelSelector.defaultKey) {
+                        // Florence-2 走 ORT：按模型目录 + 文件数校验，不能用 MNN 缓存判定可用性
+                        val dir = ModelPathConfig.getModelDir(context, ModelPathConfig.MODEL_ID_FLORENCE2)
+                        dir.exists() && (dir.listFiles()?.size ?: 0) >= 10
+                    } else {
+                        engine.isModelAvailable(key)
+                    }
+                }
             )
         }
 
