@@ -356,7 +356,7 @@ struct ChatView: View {
 // 用 Apple AttributedString(markdown:) 解析 CommonMark（粗体/斜体/链接/行内代码/标题/列表/引用）。
 // 代码块折叠·复制、表格渲染属 §11 允许差异，本版不做。用户气泡保持纯文本（对齐 Android）。
 
-private struct MarkdownText: View {
+struct MarkdownText: View {
     let text: String
 
     var body: some View {
@@ -405,7 +405,7 @@ private struct MessageBubble: View {
                                 if message.role == .user {
                                     Text(message.text)
                                 } else {
-                                    MarkdownText(text: message.text)
+                                    AgentTextView(content: message.text)
                                 }
                             }
                             .font(.system(size: ChatBubbleTokens.textSize))
