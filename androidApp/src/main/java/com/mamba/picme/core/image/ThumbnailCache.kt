@@ -2,7 +2,6 @@ package com.mamba.picme.core.image
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
@@ -89,7 +88,8 @@ class ThumbnailCache(
         val diskFile = diskFile(uriString)
         if (diskFile.exists()) {
             val bitmap = withContext(Dispatchers.IO) {
-                BitmapFactory.decodeFile(diskFile.absolutePath)
+                // 磁盘缓存即已生成的 360px 缩略图；按缩略图尺寸降采样解码（防御异常大文件）。
+                BitmapSampling.decodeFile(diskFile.absolutePath, THUMBNAIL_SIZE_PX)
             }
             if (bitmap != null) {
                 synchronized(memoryCache) { memoryCache[uriString] = bitmap }

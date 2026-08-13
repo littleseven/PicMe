@@ -13,6 +13,7 @@ import com.mamba.picme.beauty.api.PhotoProcessor
 import com.mamba.picme.beauty.api.facedetect.DetectionPipelineConfig
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.core.common.Logger
+import com.mamba.picme.core.image.BitmapSampling
 import com.mamba.picme.data.repository.PhotoEditRecipeRepository
 import com.mamba.picme.domain.agent.capability.optimize.analyzer.Scene
 import com.mamba.picme.domain.agent.capability.optimize.gacha.GachaResult
@@ -47,6 +48,7 @@ import java.util.concurrent.Executors
 
 private const val TAG = "PhotoEditorViewModel"
 private const val PREVIEW_MAX_DIM = 2048
+private const val EXPORT_MAX_DIM = 4096
 
 @Suppress("TooManyFunctions") // 待重构：编辑器 ViewModel，按工具组拆 delegate
 @OptIn(FlowPreview::class)
@@ -581,9 +583,12 @@ class PhotoEditorViewModel(
     }
 
     private fun decodeFullBitmap(context: Context, uri: Uri): Bitmap? {
-        return context.contentResolver.openInputStream(uri)?.use {
-            BitmapFactory.decodeStream(it)
-        }
+        // 导出路径：降采样到 GPU 最大纹理尺寸（4096），避免超大原图全分辨率解码 OOM；
+        // GPU 管线本身受 GL_MAX_TEXTURE_SIZE 限制，超过该尺寸无意义。
+        return BitmapSampling.decodeStream(
+            { context.contentResolver.openInputStream(uri) },
+            EXPORT_MAX_DIM
+        )
     }
 
     private fun saveBitmapToMediaStore(context: Context, bitmap: Bitmap, transparent: Boolean): String? {

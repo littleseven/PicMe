@@ -1,6 +1,5 @@
 package com.mamba.picme.features.editor.components
 
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -38,6 +37,10 @@ import androidx.compose.ui.unit.sp
 import com.mamba.picme.beauty.api.FilterType
 import com.mamba.picme.beauty.api.StyleFilter
 import com.mamba.picme.beauty.api.displayNameRes
+import com.mamba.picme.core.image.BitmapSampling
+
+/** 滤镜缩略图降采样最长边（原图 512px，圆角缩略图 ~64dp，2x 清晰度足够）。 */
+private const val FILTER_THUMB_MAX_PX = 256
 
 /**
  * 编辑页滤镜面板。
@@ -129,11 +132,7 @@ private fun FilterChip(
         is FilterListItem.Style -> styleAssetPath(item.style)
     }
     val thumbnail = remember(assetPath) {
-        try {
-            context.assets.open(assetPath).use { BitmapFactory.decodeStream(it) }
-        } catch (_: Exception) {
-            null
-        }
+        BitmapSampling.decodeAsset(context.assets, assetPath, FILTER_THUMB_MAX_PX)
     }
 
     Column(

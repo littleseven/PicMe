@@ -86,7 +86,7 @@ import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.domain.agent.capability.SystemCapability
-import com.mamba.picme.features.chat.ChatMessageType
+import com.mamba.picme.domain.chat.ChatMessageType
 import com.mamba.picme.features.chat.ChatMessageUi
 import com.mamba.picme.features.chat.ChatModelOption
 import com.mamba.picme.features.chat.ChatViewModel

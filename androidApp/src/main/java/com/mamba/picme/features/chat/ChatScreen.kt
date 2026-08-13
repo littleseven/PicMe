@@ -3,6 +3,14 @@
 
 package com.mamba.picme.features.chat
 
+import com.mamba.picme.domain.chat.ChatMessageType
+import com.mamba.picme.domain.chat.markdown.MarkdownTable
+import com.mamba.picme.domain.chat.markdown.SegmentType
+import com.mamba.picme.domain.chat.markdown.codeLineCount
+import com.mamba.picme.domain.chat.markdown.extractCodeBody
+import com.mamba.picme.domain.chat.markdown.parseMarkdownTable
+import com.mamba.picme.domain.chat.markdown.previewCode
+import com.mamba.picme.domain.chat.markdown.segmentMarkdown
 import android.app.Activity
 import android.net.Uri
 import android.os.Build
@@ -1043,14 +1051,14 @@ private fun CodeBlock(raw: String) {
 private fun SegmentedAgentText(displayText: String, onTableClick: (MarkdownTable) -> Unit) {
     segmentMarkdown(displayText).forEach { segment ->
         when (segment.type) {
-            AgentSegmentType.TABLE -> AgentTable(raw = segment.text, onTableClick = onTableClick)
-            AgentSegmentType.MARKDOWN -> MarkdownText(
+            SegmentType.TABLE -> AgentTable(raw = segment.text, onTableClick = onTableClick)
+            SegmentType.MARKDOWN -> MarkdownText(
                 markdown = segment.text,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
             )
-            AgentSegmentType.CODE -> CodeBlock(raw = segment.text)
+            SegmentType.CODE -> CodeBlock(raw = segment.text)
         }
     }
 }
@@ -2377,19 +2385,7 @@ data class ChatMessageUi(
     val gachaInteractive: Boolean = false,
 )
 
-enum class ChatMessageType {
-    USER_TEXT,
-    AGENT_TEXT,
-    USER_IMAGE,
-    USER_IMAGE_TEXT,
-    AGENT_IMAGE,
-    AGENT_EDIT_RESULT,
-    COMMAND,
-    PLAN_PREVIEW,
-    MEDIA_RESULTS,
-    CHART,
-    OPTIMIZE_CANDIDATES
-}
+// ChatMessageType 已下沉 commonMain（com.mamba.picme.domain.chat.ChatMessageType），本文件顶部 import 引用。
 
 /**
  * 相册搜索结果 carousel 的 UI 数据。

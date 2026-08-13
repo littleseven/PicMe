@@ -3,12 +3,12 @@ package com.mamba.picme.domain.usecase
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import com.mamba.picme.beauty.api.PhotoProcessor
 import com.mamba.picme.beauty.api.facedetect.DetectionPipelineConfig
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.core.common.Logger
+import com.mamba.picme.core.image.BitmapSampling
 import com.mamba.picme.domain.repository.ChatImageStore
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.features.camera.toDevicePreference
@@ -26,6 +26,7 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.Executors
 
 private const val TAG = "ChatEditProcessor"
+private const val CHAT_EDIT_MAX_PX = 2048
 
 class ChatEditProcessor(
     private val photoProcessor: PhotoProcessor,
@@ -96,14 +97,11 @@ class ChatEditProcessor(
     }
 
     private fun decodeFullBitmap(context: Context, uri: Uri): Bitmap? {
-        return try {
-            context.contentResolver.openInputStream(uri)?.use {
-                BitmapFactory.decodeStream(it)
-            }
-        } catch (e: Exception) {
-            Logger.e(TAG, "Decode full bitmap failed", e)
-            null
-        }
+        // 聊天修图结果发送至会话（非全分辨率导出）；降采样到 2048 足够且避免 OOM。
+        return BitmapSampling.decodeStream(
+            { context.contentResolver.openInputStream(uri) },
+            CHAT_EDIT_MAX_PX
+        )
     }
 
     /**

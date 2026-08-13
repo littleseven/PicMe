@@ -1,7 +1,6 @@
 package com.mamba.picme.features.chat
 
 import android.content.Context
-import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ViewModel
@@ -31,6 +30,7 @@ import com.mamba.picme.core.agenttools.AppToolExecutor
 import com.mamba.picme.core.agenttools.RuntimeStateProvider
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.core.diag.CrashTraceStore
+import com.mamba.picme.core.image.BitmapSampling
 import com.mamba.picme.BuildConfig
 import android.os.Build
 import com.mamba.picme.data.local.ChatMessageDao
@@ -63,7 +63,8 @@ import com.mamba.picme.features.chat.js.CapabilityDispatchHandler
 import com.mamba.picme.features.chat.js.loadChartBootstrapJs
 import com.mamba.picme.features.chat.js.QuickJsEngine
 import com.mamba.picme.features.chat.js.registerGalleryHandlers
-import com.mamba.picme.features.chat.streaming.StreamingPacingController
+import com.mamba.picme.domain.chat.ChatMessageType
+import com.mamba.picme.domain.chat.streaming.StreamingPacingController
 import com.mamba.picme.features.gallery.MediaViewModel
 import org.json.JSONArray
 import org.json.JSONObject
@@ -89,6 +90,7 @@ private const val TAG = "ChatViewModel"
 private const val MAX_MESSAGES = 500
 private const val MAX_PREVIEW_LENGTH = 60
 private const val MAX_CARDS = 20
+private const val CHAT_IMAGE_MAX_PX = 1024
 
 /** 网关 sid 格式：uuid4().hex[:12]（12 位小写 hex）；claude init 的 session_id 是带连字符 UUID，不匹配。 */
 private val GATEWAY_SID_PATTERN = Regex("[0-9a-f]{12}")
@@ -2339,9 +2341,7 @@ class ChatViewModel(
                     !text.isNullOrBlank() -> sendMessage(text, uri)
                     intent == ImageIntent.FIND_SIMILAR -> {
                         _isProcessing.value = true
-                        val bitmap = runCatching {
-                            android.graphics.BitmapFactory.decodeFile(uri)
-                        }.getOrNull()
+                        val bitmap = BitmapSampling.decodeFile(uri, CHAT_IMAGE_MAX_PX)
                         val assets = if (bitmap != null) {
                             mediaSearchEngine.searchByImage(bitmap)
                         } else {
@@ -2432,9 +2432,10 @@ class ChatViewModel(
                 )
 
                 // 3. 加载 Bitmap
-                val bitmap = context.contentResolver.openInputStream(imageUri)?.use {
-                    BitmapFactory.decodeStream(it)
-                }
+                val bitmap = BitmapSampling.decodeStream(
+                    { context.contentResolver.openInputStream(imageUri) },
+                    CHAT_IMAGE_MAX_PX
+                )
                 if (bitmap == null) {
                     _streamingMessage.value = null
                     insertAgentMessage(sessionId, "无法加载图片", "error")
