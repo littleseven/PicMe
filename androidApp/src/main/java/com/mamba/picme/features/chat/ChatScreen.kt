@@ -112,6 +112,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.ui.geometry.Offset
@@ -1916,10 +1917,14 @@ private fun ChatTextInputMode(
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // 左侧：胶囊形按钮组
+            // 左侧：胶囊形按钮组（占满右侧按钮之外的剩余宽度；胶囊过多或模型名过长时可横向滚动，绝不重叠/溢出卡片）
             Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .clipToBounds()
+                    .horizontalScroll(rememberScrollState()),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -2074,13 +2079,10 @@ private fun ModelCapsuleButton(
         Text(
             text = selectedModel?.displayName ?: "官方LLM",
             fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-        )
-        Icon(
-            imageVector = Icons.Rounded.KeyboardVoice,
-            contentDescription = "切换",
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-            modifier = Modifier.size(12.dp)
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.widthIn(max = 120.dp)
         )
     }
 }
