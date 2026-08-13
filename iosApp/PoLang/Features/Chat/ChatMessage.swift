@@ -15,6 +15,8 @@ struct ChatMessage: Identifiable, Codable {
     var isToolCalling: Bool     // 工具调用中（「正在调用工具…」）
     var mediaIds: [Int64]       // 媒体卡片（MEDIA_RESULTS 独立消息）
     var error: String?          // 错误文案（同 agent 气泡渲染，无特殊色）
+    var mediaQuery: String?     // 媒体结果搜索词（ViewAll 导航回相册用；Optional 保 Codable 向后兼容）
+    var mediaTotalCount: Int?   // 媒体结果全量命中数（> mediaIds.count 时显示「查看全部」）
 
     enum Role: String, Codable {
         case user, assistant
@@ -22,7 +24,8 @@ struct ChatMessage: Identifiable, Codable {
 
     init(id: UUID = UUID(), role: Role, text: String, timestamp: Date = Date(),
          isStreaming: Bool = false, isThinking: Bool = false, isToolCalling: Bool = false,
-         mediaIds: [Int64] = [], error: String? = nil) {
+         mediaIds: [Int64] = [], error: String? = nil,
+         mediaQuery: String? = nil, mediaTotalCount: Int? = nil) {
         self.id = id
         self.role = role
         self.text = text
@@ -32,5 +35,7 @@ struct ChatMessage: Identifiable, Codable {
         self.isToolCalling = isToolCalling
         self.mediaIds = mediaIds
         self.error = error
+        self.mediaQuery = mediaQuery
+        self.mediaTotalCount = mediaTotalCount
     }
 }

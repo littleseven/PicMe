@@ -1,5 +1,6 @@
 import SwiftUI
 import Photos
+import PhotosUI
 import SharedKit
 
 /// Chat 主视图（1:1 对标 Android ChatScreen.kt）。
@@ -7,6 +8,10 @@ import SharedKit
 struct ChatView: View {
     /// 返回动作（pager 场景 = 回相册页）；nil 时返回键占位
     var onBack: (() -> Void)? = nil
+    /// 媒体结果「查看全部」回相册并带入搜索词（MainTabView 接线：切 tab 1 + 注入 query）
+    var onNavigateToGallery: ((String) -> Void)? = nil
+    /// EDIT 意图：跳 PhotoEditorScreen(localIdentifier:)（MainTabView 接线）
+    var onEditImage: ((String) -> Void)? = nil
 
     @StateObject private var viewModel = ChatViewModel()
     @EnvironmentObject private var container: AppContainer
@@ -14,6 +19,7 @@ struct ChatView: View {
     @FocusState private var inputFocused: Bool
     @State private var showClearConfirm = false
     @State private var isSidebarOpen = false
+    @State private var showPhotoPicker = false
     /// 诚实占位：功能未实现时的说明（spec §11 允许差异外的项后续补齐）
     @State private var comingSoonFeature: String? = nil
 
@@ -71,6 +77,7 @@ struct ChatView: View {
             if let bridge = container.chatBridge {
                 viewModel.configure(bridge: bridge)
             }
+            viewModel.onEditImage = { lid in self.onEditImage?(lid) }
         }
         .confirmationDialog(
             String(localized: "Clear conversation?"),
@@ -92,6 +99,25 @@ struct ChatView: View {
             Button(String(localized: "OK"), role: .cancel) {}
         } message: {
             Text(comingSoonFeature ?? "")
+        }
+        .alert(
+            String(localized: "Unavailable"),
+            isPresented: Binding(
+                get: { viewModel.unavailableNotice != nil },
+                set: { if !$0 { viewModel.unavailableNotice = nil } }
+            )
+        ) {
+            Button(String(localized: "OK"), role: .cancel) {}
+        } message: {
+            Text(viewModel.unavailableNotice ?? "")
+        }
+        .sheet(isPresented: $showPhotoPicker) {
+            // 相册单选 picker（PHPicker，取 assetIdentifier = PHAsset.localIdentifier）
+            ChatPhotoPicker { localIdentifier in
+                viewModel.stageImage(localIdentifier)
+                showPhotoPicker = false
+            }
+            .ignoresSafeArea()
         }
     }
 
@@ -155,7 +181,7 @@ struct ChatView: View {
             ScrollView {
                 LazyVStack(spacing: 8) {
                     ForEach(viewModel.messages) { msg in
-                        MessageBubble(message: msg)
+                        MessageBubble(message: msg, onNavigateToGallery: onNavigateToGallery)
                             .id(msg.id)
                     }
                 }
@@ -182,6 +208,10 @@ struct ChatView: View {
     private var inputBar: some View {
         VStack(spacing: 0) {
             VStack(spacing: TopBarTokens.spacing) {
+                // 暂存图（选图后）：72dp 缩略图 + ✕ 移除 + 3 意图 chip（理解/找相似/编辑）
+                if let staged = viewModel.stagedImage {
+                    stagingRow(staged)
+                }
                 // 行 1：文本输入（通栏；处理中仍可编辑）
                 TextField(String(localized: "Ask AI Agent..."), text: $inputText, axis: .vertical)
                     .font(.system(size: 16))
@@ -203,10 +233,9 @@ struct ChatView: View {
 
                 // 行 2：按钮栏（SpaceBetween）
                 HStack(spacing: TopBarTokens.spacing) {
-                    // 相册胶囊（spec gallery_capsule：Android 打开图片选择器；
-                    // iOS chat v1 无图片消息，诚实占位）
+                    // 相册胶囊（spec gallery_capsule）：打开图片选择器（B1）
                     Button {
-                        comingSoonFeature = String(localized: "Attaching photos in chat is not available in this version.")
+                        showPhotoPicker = true
                     } label: {
                         HStack(spacing: 6) {
                             MatIcon(name: "mat_photo_library", size: 16)
@@ -256,9 +285,11 @@ struct ChatView: View {
         .padding(.bottom, 8)
     }
 
-    /// 对齐 Android：发送按钮仅在 text 非空 && !isProcessing 时出现
+    /// 对齐 Android：发送按钮仅在 text 非空 && !isProcessing 时出现；
+    /// EDIT 意图 + 有暂存图时也可发（点=跳编辑器）。
     private var canSend: Bool {
-        !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !viewModel.isProcessing
+        if viewModel.stagedImage != nil, viewModel.stagedIntent == .edit { return !viewModel.isProcessing }
+        return !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !viewModel.isProcessing
     }
 
     private func send() {
@@ -267,12 +298,58 @@ struct ChatView: View {
         inputText = ""
         viewModel.send(text)
     }
+
+    // MARK: - 上下文附件暂存区（B1）：72dp 缩略图 + ✕ + 3 意图 chip
+
+    private func stagingRow(_ staged: ChatViewModel.StagedImage) -> some View {
+        HStack(spacing: ChatContextTokens.intentChipSpacing) {
+            ZStack(alignment: .topTrailing) {
+                if let img = staged.thumbnail {
+                    Image(uiImage: img).resizable().scaledToFill()
+                } else {
+                    Color(.tertiarySystemBackground).overlay(ProgressView())
+                }
+                Button { viewModel.unstageImage() } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(.white)
+                        .background(Circle().fill(Color.black.opacity(0.45)))
+                }
+                .padding(2)
+            }
+            .frame(width: ChatContextTokens.thumbSize, height: ChatContextTokens.thumbSize)
+            .clipShape(RoundedRectangle(cornerRadius: ChatContextTokens.thumbCornerRadius))
+
+            HStack(spacing: 6) {
+                ForEach(ChatViewModel.ImageIntent.allCases, id: \.self) { intent in
+                    intentChip(intent)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    private func intentChip(_ intent: ChatViewModel.ImageIntent) -> some View {
+        let selected = viewModel.stagedIntent == intent
+        return Button { viewModel.stagedIntent = intent } label: {
+            Text(intent.label)
+                .font(.system(size: 12))
+                .foregroundColor(selected ? .white : Color(.label).opacity(0.7))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(selected ? Color.accentColor : Color(.secondarySystemBackground).opacity(ChatBubbleTokens.capsuleInactiveAlpha))
+                .clipShape(RoundedRectangle(cornerRadius: ChatBubbleTokens.capsuleCornerRadius))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("chat_intent_\(intent.rawValue)")
+    }
 }
 
 // MARK: - Message Bubble
 
 private struct MessageBubble: View {
     let message: ChatMessage
+    var onNavigateToGallery: ((String) -> Void)? = nil
 
     var body: some View {
         HStack {
@@ -309,8 +386,12 @@ private struct MessageBubble: View {
 
                     // 媒体卡片（独立消息项）
                     if !message.mediaIds.isEmpty {
-                        MediaCardRow(mediaIds: message.mediaIds)
-                            .padding(.top, 6)
+                        MediaCardRow(
+                            mediaIds: message.mediaIds,
+                            totalCount: message.mediaTotalCount ?? message.mediaIds.count,
+                            onViewAll: { onNavigateToGallery?(message.mediaQuery ?? "") }
+                        )
+                        .padding(.top, 6)
                     }
                 }
             }
@@ -398,6 +479,8 @@ private struct BlinkCursor: View {
 
 private struct MediaCardRow: View {
     let mediaIds: [Int64]
+    var totalCount: Int = 0
+    var onViewAll: () -> Void = {}
     @State private var idToIdentifier: [Int64: String] = [:]
     @State private var idToDate: [Int64: Date] = [:]
 
@@ -411,6 +494,12 @@ private struct MediaCardRow: View {
                     )
                     .frame(width: ChatCarouselTokens.cardWidth, height: ChatCarouselTokens.cardHeight)
                     .clipShape(RoundedRectangle(cornerRadius: ChatCarouselTokens.cardCornerRadius))
+                }
+                // 「查看全部」尾卡：全量命中数 > 显示数时附在末尾（对齐 Android ViewAllCard）
+                if totalCount > mediaIds.count {
+                    ViewAllCard(onTap: onViewAll)
+                        .frame(width: ChatCarouselTokens.cardWidth, height: ChatCarouselTokens.cardHeight)
+                        .clipShape(RoundedRectangle(cornerRadius: ChatCarouselTokens.viewAllCornerRadius))
                 }
             }
             .padding(.vertical, 4)
@@ -444,6 +533,26 @@ private struct MediaCardRow: View {
             h = 31 &* h &+ Int32(u)
         }
         return Int64(h)
+    }
+}
+
+/// 「查看全部」尾卡（对齐 Android ViewAllCard）：与媒体卡同尺寸，tap → onViewAll（跳相册带搜索词）。
+private struct ViewAllCard: View {
+    let onTap: () -> Void
+    var body: some View {
+        Button(action: onTap) {
+            VStack(spacing: 6) {
+                MatIcon(name: "mat_photo_library", size: 22)
+                    .foregroundColor(.accentColor)
+                Text(String(localized: "View All"))
+                    .font(.system(size: 12))
+                    .foregroundColor(Color(.label).opacity(0.6))
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(.secondarySystemBackground))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("chat_media_view_all")
     }
 }
 
@@ -597,6 +706,32 @@ struct FlowLayout: Layout {
             }
             subview.place(at: CGPoint(x: x, y: y), proposal: .init(size))
             x += size.width + spacing; rowHeight = max(rowHeight, size.height)
+        }
+    }
+}
+
+// MARK: - Photo Picker（PHPicker 单选；config 带 photoLibrary → assetIdentifier = PHAsset.localIdentifier）
+
+struct ChatPhotoPicker: UIViewControllerRepresentable {
+    let onPicked: (String) -> Void
+
+    func makeUIViewController(context: Context) -> PHPickerViewController {
+        var config = PHPickerConfiguration(photoLibrary: PHPhotoLibrary.shared())
+        config.filter = .images
+        config.selectionLimit = 1
+        let picker = PHPickerViewController(configuration: config)
+        picker.delegate = context.coordinator
+        return picker
+    }
+    func updateUIViewController(_ vc: PHPickerViewController, context: Context) {}
+    func makeCoordinator() -> Coordinator { Coordinator(onPicked: onPicked) }
+
+    final class Coordinator: NSObject, PHPickerViewControllerDelegate {
+        let onPicked: (String) -> Void
+        init(onPicked: @escaping (String) -> Void) { self.onPicked = onPicked }
+        func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+            picker.dismiss(animated: true)
+            if let lid = results.first?.assetIdentifier { onPicked(lid) }
         }
     }
 }

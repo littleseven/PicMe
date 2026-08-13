@@ -16,6 +16,10 @@ struct MainTabView: View {
     @EnvironmentObject private var container: AppContainer
     @Environment(\.scenePhase) private var scenePhase
     @State private var showPlaceholder: String?
+    /// chat「查看全部」回相册时带入的搜索词（消费后清 nil）
+    @State private var pendingGalleryQuery: String? = nil
+    /// chat EDIT 意图：跳 PhotoEditorScreen 的目标 localIdentifier
+    @State private var editingImage: String? = nil
 
     var body: some View {
         ZStack {
@@ -26,12 +30,19 @@ struct MainTabView: View {
                 CameraPreviewView(isActive: currentPage == 0)
                     .environmentObject(container)
                     .tag(0)
-                GalleryGridView(repository: container.mediaRepository)
+                GalleryGridView(repository: container.mediaRepository, pendingQuery: $pendingGalleryQuery)
                     .environmentObject(container)
                     .tag(1)
-                ChatView(onBack: { currentPage = 1 })
-                    .environmentObject(container)
-                    .tag(2)
+                ChatView(
+                    onBack: { currentPage = 1 },
+                    onNavigateToGallery: { query in
+                        pendingGalleryQuery = query
+                        currentPage = 1
+                    },
+                    onEditImage: { lid in editingImage = lid }
+                )
+                .environmentObject(container)
+                .tag(2)
                 PersonView(onBack: { currentPage = 1 })
                     .environmentObject(container)
                     .tag(3)
@@ -94,6 +105,15 @@ struct MainTabView: View {
                 .padding(.trailing, 8)
         }
         #endif
+        // chat EDIT 意图：跳 PhotoEditorScreen
+        .fullScreenCover(isPresented: Binding(
+            get: { editingImage != nil },
+            set: { if !$0 { editingImage = nil } }
+        )) {
+            if let lid = editingImage {
+                PhotoEditorScreen(localIdentifier: lid)
+            }
+        }
     }
 }
 

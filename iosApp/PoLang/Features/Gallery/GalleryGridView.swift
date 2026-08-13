@@ -30,15 +30,19 @@ struct GalleryGridView: View {
 
     /// Preview 专用：注入权限态与跳过系统权限查询（Preview 环境无授权上下文）
     private let permissionOverride: GalleryAccessState?
+    /// 外部注入的待搜索词（chat「查看全部」回相册用）；消费后置 nil
+    @Binding var pendingQuery: String?
 
     /// 固定 3 列（dump：1200px 屏宽 3×391px 列 + 7px 间距/边距 ≈ 2dp）
     private let columns = [GridItem(.flexible(), spacing: 2),
                            GridItem(.flexible(), spacing: 2),
                            GridItem(.flexible(), spacing: 2)]
 
-    init(repository: IosMediaRepository, permissionOverride: GalleryAccessState? = nil) {
+    init(repository: IosMediaRepository, permissionOverride: GalleryAccessState? = nil,
+         pendingQuery: Binding<String?> = .constant(nil)) {
         _vm = StateObject(wrappedValue: GalleryViewModel(repository: repository))
         self.permissionOverride = permissionOverride
+        self._pendingQuery = pendingQuery
     }
 
     private var accessState: GalleryAccessState { permissionOverride ?? permission.state }
@@ -99,6 +103,14 @@ struct GalleryGridView: View {
             vm.start()
         }
         .onDisappear { vm.stop() }
+        .onChange(of: pendingQuery) { query in
+            // chat「查看全部」注入搜索词：激活搜索态 + 填框 + 防抖触发检索，然后置 nil 消费
+            guard let query, !query.isEmpty else { return }
+            vm.enterSearch()
+            vm.searchQuery = query
+            vm.handleQueryChange(query)
+            pendingQuery = nil
+        }
     }
 
     // MARK: - 顶栏（常态 / 选择态 morph，对齐 gallery_grid / gallery_longpress dump）

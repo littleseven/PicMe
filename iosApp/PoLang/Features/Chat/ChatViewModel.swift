@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import SharedKit
+import UIKit
 
 /// Chat ViewModel（MV 模式，对齐 Android ChatViewModel 多会话语义，spec chat.yaml §9.1 session_model）。
 ///
@@ -22,6 +23,41 @@ final class ChatViewModel: ObservableObject {
     @Published private(set) var threads: [ChatThread] = []
     @Published private(set) var currentSessionId: String = ChatHistoryStore.defaultSessionId
     @Published var searchQuery = ""
+
+    // MARK: 上下文附件（B1-feasible）
+    /// 选中的图片意图（对齐 Android ChatViewModel.ImageIntent）：理解 / 找相似 / 编辑
+    enum ImageIntent: String, CaseIterable {
+        case understand, findSimilar, edit
+        var label: String {
+            switch self {
+            case .understand: return String(localized: "Understand")
+            case .findSimilar: return String(localized: "Find similar")
+            case .edit: return String(localized: "Edit")
+            }
+        }
+    }
+    struct StagedImage: Equatable {
+        let localIdentifier: String
+        var thumbnail: UIImage?
+    }
+    @Published var stagedImage: StagedImage?
+    @Published var stagedIntent: ImageIntent = .understand
+    /// 端侧能力不可用的提示（UNDERSTAND/FIND_SIMILAR 引擎本版未实现）
+    @Published var unavailableNotice: String? = nil
+    /// EDIT 意图回调（ChatView 注入 → PhotoEditorScreen）
+    var onEditImage: ((String) -> Void)?
+
+    func stageImage(_ localIdentifier: String) {
+        stagedImage = StagedImage(localIdentifier: localIdentifier)
+        let lid = localIdentifier
+        Task { @MainActor [weak self] in
+            let img = await ThumbnailLoader.shared.thumbnail(for: lid, size: CGSize(width: 240, height: 240))
+            guard var s = self?.stagedImage, s.localIdentifier == lid else { return }
+            s.thumbnail = img
+            self?.stagedImage = s
+        }
+    }
+    func unstageImage() { stagedImage = nil }
 
     private var bridge: ChatAgentBridge?
     private var actionWatcher: FlowWatcher?
@@ -55,6 +91,19 @@ final class ChatViewModel: ObservableObject {
 
     func send(_ input: String) {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // EDIT 意图：有暂存图 → 跳编辑器（对齐 Android EDIT，不发推理）
+        if let staged = stagedImage, stagedIntent == .edit {
+            onEditImage?(staged.localIdentifier)
+            stagedImage = nil
+            return
+        }
+        // 有暂存图 + 无文本 + 非 EDIT：UNDERSTAND/FIND_SIMILAR 端侧引擎本版不可用
+        if trimmed.isEmpty, stagedImage != nil {
+            unavailableNotice = String(localized: "On-device image understanding and search-by-image are not available in this version.")
+            return
+        }
+
         guard !trimmed.isEmpty, !isProcessing else { return }
         guard let bridge else { return }
 
@@ -63,6 +112,8 @@ final class ChatViewModel: ObservableObject {
         autoTitleIfNeeded(firstUserText: trimmed)
         touchThread(preview: trimmed)
         persist()
+        // 带图发文本：远程只收文本（图片像素不上传，隐私红线）；暂存图消费掉
+        stagedImage = nil
 
         // 2. assistant 占位：thinking 态（首 token 前显示 3 点动画）
         let placeholderId = UUID()
@@ -205,7 +256,9 @@ final class ChatViewModel: ObservableObject {
             messages.append(ChatMessage(
                 role: .assistant,
                 text: header,
-                mediaIds: ids
+                mediaIds: ids,
+                mediaQuery: dto.query,
+                mediaTotalCount: Int(truncatingIfNeeded: dto.totalCount)
             ))
             touchThread(preview: header)
             persist()
