@@ -29,7 +29,10 @@ struct ChatView: View {
                 } else {
                     messageList
                 }
-
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                // 经 safeAreaInset 钉底：键盘弹起时输入栏自动上浮，空态/消息态一致；
+                // 不再作为 greedy 内容（ChatEmptyState）的兄弟节点（会破坏系统键盘避让）。
                 inputBar
             }
 
@@ -160,6 +163,7 @@ struct ChatView: View {
                 .padding(.top, 12)
                 .padding(.bottom, 8)
             }
+            .scrollDismissesKeyboard(.interactively)  // 下滑消息列表收起键盘
             .onChange(of: viewModel.messages.count) { _ in scrollToBottom(proxy) }
             .onChange(of: viewModel.messages.last?.text) { _ in scrollToBottom(proxy) }
         }
@@ -189,6 +193,13 @@ struct ChatView: View {
                     .onSubmit(send)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityIdentifier("chat_input")
+                    .toolbar {
+                        // 键盘上方「完成」按钮收起键盘（多行 TextField 的 Return=换行，无法收起）
+                        ToolbarItemGroup(placement: .keyboard) {
+                            Spacer()
+                            Button(String(localized: "Done")) { inputFocused = false }
+                        }
+                    }
 
                 // 行 2：按钮栏（SpaceBetween）
                 HStack(spacing: TopBarTokens.spacing) {
@@ -405,24 +416,34 @@ private struct MediaCardRow: View {
             .padding(.vertical, 4)
         }
         .task(id: mediaIds) {
+            // mediaIds = localIdentifier.hashCode().toLong()（Kotlin String.hashCode，见
+            // IosChatGalleryCapability.toDomain id 口径）。反查须用同一 32-bit Java hash。
             guard !mediaIds.isEmpty else { return }
             var idMap: [Int64: String] = [:]
             var dateMap: [Int64: Date] = [:]
-            let result = PHAsset.fetchAssets(with: nil)
-            result.enumerateObjects { asset, _, _ in
+            PHAsset.fetchAssets(with: nil).enumerateObjects { asset, _, _ in
                 let key = Self.javaHashCode(asset.localIdentifier)
                 idMap[key] = asset.localIdentifier
                 dateMap[key] = asset.creationDate
             }
+            let resolved = mediaIds.filter { idMap[$0] != nil }.count
+            #if DEBUG
+            DebugBypass.log("Chat", "carousel mediaIds=[\(mediaIds.map(String.init).joined(separator: ","))] resolved=\(resolved)/\(mediaIds.count)")
+            #endif
             idToIdentifier = idMap
             idToDate = dateMap
         }
     }
 
+    /// Kotlin `String.hashCode().toLong()` 等价：**Int32** 溢出运算（31 &* / &+ 在 Int32 上 wrap，
+    /// 对齐 Kotlin Int 的 32-bit 回绕），再符号扩展到 Int64。早期用 Int64 累加 → wrap 模 2^63 ≠
+    /// Kotlin 的模 2^32 → 永远匹配不上 → 卡片空白。
     static func javaHashCode(_ s: String) -> Int64 {
-        var h: Int64 = 0
-        for u in s.utf16 { h = 31 &* h &+ Int64(u) }
-        return h
+        var h: Int32 = 0
+        for u in s.utf16 {
+            h = 31 &* h &+ Int32(u)
+        }
+        return Int64(h)
     }
 }
 

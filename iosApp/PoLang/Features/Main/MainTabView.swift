@@ -37,7 +37,9 @@ struct MainTabView: View {
                     .tag(3)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))  // 去页码点（Android 无指示器）
-            .ignoresSafeArea()  // 容器全出血；各页自理 safe area（相机页已 ignoresSafeArea）
+            // 仅忽略顶部容器（状态栏全出血，保持现状）；底部 home 指示条 + 键盘安全区须尊重——
+            // 否则 chat 输入框既不避开键盘也不避开 home 指示条（原 .ignoresSafeArea() 默认 .all 含 keyboard）。
+            .ignoresSafeArea(.container, edges: .top)
 
             // 打标页 push（覆盖在 pager 之上）：TAG tab → TagScanScreen（SP-B）；其余占位 Coming Soon
             if let ph = showPlaceholder {
@@ -84,6 +86,14 @@ struct MainTabView: View {
                     .padding(.top, 116)
             }
         }
+        #if DEBUG
+        .overlay(alignment: .topTrailing) {
+            // 调试旁路：点此抓当前画面到 Documents，宿主 devicectl copy 拉取（仅 DEBUG）
+            DebugCaptureButton()
+                .padding(.top, 60)
+                .padding(.trailing, 8)
+        }
+        #endif
     }
 }
 
