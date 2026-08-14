@@ -35,6 +35,52 @@ final class CompletenessDumpUITests: XCTestCase {
         XCTAssertTrue(nodes.count > 0, "未采集到任何 a11y 节点")
     }
 
+    /// dump 美颜面板态(点 mat_autofix 开美颜面板 → FACE tab)
+    func testDumpCameraBeautyFace() throws {
+        let cameraTab = app.buttons["tab_camera"]
+        if cameraTab.waitForExistence(timeout: 10) { cameraTab.tap() }
+        XCTAssertTrue(
+            app.descendants(matching: .any)["camera_preview"].firstMatch.waitForExistence(timeout: 15),
+            "相机预览未出现"
+        )
+        sleep(1)
+        let beauty = app.buttons["mat_autofix"].firstMatch
+        if beauty.waitForExistence(timeout: 5) { beauty.tap() }
+        sleep(2)  // 等美颜面板展开
+        let nodes = collectNodes()
+        let payload: [String: Any] = ["state": "panel_beauty_face", "nodes": nodes]
+        let json = try JSONSerialization.data(withJSONObject: payload, options: [])
+        print("DUMP_JSON:::\(String(data: json, encoding: .utf8) ?? "{}"):::END")
+        XCTAssertTrue(nodes.count > 0, "美颜面板未采集到节点")
+    }
+
+    /// 一次跑完其余 5 面板 dump:每面板经 -openPanel 启动参数重启(确定性,无面板间点击切换的 flaky)
+    func testDumpAllPanels() throws {
+        let panels: [(String, String)] = [
+            ("pro", "panel_pro"),
+            ("ratio", "panel_ratio"),
+            ("grid", "panel_grid"),
+            ("scene", "panel_scene"),
+            ("filter", "panel_filter"),
+        ]
+        for (arg, state) in panels {
+            app.terminate()
+            app.launchArguments = ["-openPanel", arg]
+            app.launch()
+            let cameraTab = app.buttons["tab_camera"]
+            if cameraTab.waitForExistence(timeout: 10) { cameraTab.tap() }
+            XCTAssertTrue(
+                app.descendants(matching: .any)["camera_preview"].firstMatch.waitForExistence(timeout: 15),
+                "相机预览未出现(\(state))"
+            )
+            sleep(2)
+            let nodes = collectNodes()
+            let payload: [String: Any] = ["state": state, "nodes": nodes]
+            let json = try JSONSerialization.data(withJSONObject: payload, options: [])
+            print("DUMP_JSON:::\(state):::\(String(data: json, encoding: .utf8) ?? "{}"):::END")
+        }
+    }
+
     /// 遍历 a11y 树,收集有 label 或 identifier 的元素。
     private func collectNodes() -> [[String: Any]] {
         var seen = Set<String>()

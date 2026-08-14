@@ -24,6 +24,8 @@ ALIAS = {
     "场景": ["mat_landscape"],
     "滤镜": ["mat_filter_b_and_w"],
     "专业": ["mat_tune"],
+    "无": ["不启用", "none"],  # grid/scene 关闭项:iOS"不启用" ↔ Android"无"
+    "色温(k)": ["色温", "色温（K）", "色温(K)"],  # 全/半角括号变体
 }
 # 反查:iOS id/标签 → canonical 中文
 _REVERSE = {v: k for k, vals in ALIAS.items() for v in vals}
@@ -64,8 +66,11 @@ def _canonical(label: str):
     # 滑杆数值是状态相关的(36/-- 随参数变),非结构完整性 → 不作匹配判据
     if re.fullmatch(r"\d+", s) or s == "--":
         return None
-    if s in _REVERSE:           # iOS id/标签 → canonical 中文
-        return _REVERSE[s]
+    # 状态胶囊(Beauty: ...fps/engine)是运行时文案 → 双侧归一为同一 canonical
+    if s.startswith("Beauty:"):
+        return "beauty_status"
+    if s in _REVERSE:           # iOS id/标签 → canonical 中文(小写归一)
+        return _REVERSE[s].lower()
     return s.lower()
 
 

@@ -6514,7 +6514,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "冷调"
+            "value": "冷色"
           }
         },
         "en": {
@@ -6537,19 +6537,19 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "富士"
+            "value": "富士胶片"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fuji"
+            "value": "Film Fuji"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "富士膠捲"
+            "value": "富士膠片"
           }
         }
       }
@@ -6560,19 +6560,19 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "金调"
+            "value": "胶片金"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gold"
+            "value": "Film Gold"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "膠捲金"
+            "value": "膠片金"
           }
         }
       }
@@ -6583,13 +6583,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "黑白"
+            "value": "徕卡黑白"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "B&W"
+            "value": "Leica B&W"
           }
         },
         "zh-Hant": {
@@ -6606,13 +6606,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "经典"
+            "value": "徕卡经典"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Classic"
+            "value": "Leica Classic"
           }
         },
         "zh-Hant": {
@@ -6629,13 +6629,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "鲜艳"
+            "value": "徕卡生动"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vibrant"
+            "value": "Leica Vibrant"
           }
         },
         "zh-Hant": {
@@ -6698,7 +6698,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "暖调"
+            "value": "暖色"
           }
         },
         "en": {
@@ -10951,6 +10951,292 @@
           "stringUnit": {
             "state": "translated",
             "value": "妝容調節"
+          }
+        }
+      }
+    },
+    "Thirds": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thirds"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "三分"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "三分"
+          }
+        }
+      }
+    },
+    "Golden Ratio": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Golden Ratio"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "黄金"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "黃金"
+          }
+        }
+      }
+    },
+    "Night": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Night"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "夜景"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "夜景"
+          }
+        }
+      }
+    },
+    "Moon": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moon"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "月亮"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "月亮"
+          }
+        }
+      }
+    },
+    "White Balance": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "White Balance"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "白平衡"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "白平衡"
+          }
+        }
+      }
+    },
+    "Exposure": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exposure"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "曝光"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "曝光"
+          }
+        }
+      }
+    },
+    "Contrast": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contrast"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对比度"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "對比度"
+          }
+        }
+      }
+    },
+    "Saturation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saturation"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "饱和度"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "飽和度"
+          }
+        }
+      }
+    },
+    "Color Temperature": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Color Temperature"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "色温"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "色溫"
+          }
+        }
+      }
+    },
+    "Sunny": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sunny"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "晴天"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "晴天"
+          }
+        }
+      }
+    },
+    "Cloudy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cloudy"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "多云"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "多雲"
+          }
+        }
+      }
+    },
+    "Incandescent": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incandescent"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "白炽灯"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "白熾燈"
+          }
+        }
+      }
+    },
+    "Fluorescent": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fluorescent"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "荧光灯"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "螢光燈"
           }
         }
       }

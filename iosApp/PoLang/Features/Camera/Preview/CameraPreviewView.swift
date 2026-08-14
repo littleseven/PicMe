@@ -58,6 +58,22 @@ struct CameraPreviewView: View {
         return .full
     }
 
+    /// 面板启动覆盖（自动化验收用）：-openPanel beauty|filter|grid|scene|ratio|pro，
+    /// 启动即开该面板（XCUITest 逐面板 dump 用，替代面板间点击切换的 flaky 导航）。
+    private static func resolveInitialPanel() -> (ActivePanel?, Bool) {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-openPanel"), args.count > i + 1 else { return (nil, false) }
+        switch args[i + 1] {
+        case "beauty": return (.beauty, false)
+        case "filter": return (.filter, false)
+        case "grid": return (.grid, false)
+        case "scene": return (.scene, false)
+        case "ratio": return (.ratio, false)
+        case "pro": return (nil, true)
+        default: return (nil, false)
+        }
+    }
+
     /// 🔴 逐点关键点调试 overlay（对标 Android FaceDebugOverlayBigBeauty）。
     /// `-showLandmarks` 开启：把 BeautyRenderer 消费的 106 点 + 9 对瘦脸/2 对大眼控制点画到预览，
     /// 肉眼裁决「形变区域不对/偏转」= 点云错位还是 warp 感知问题。
@@ -67,7 +83,7 @@ struct CameraPreviewView: View {
     @State private var showLandmarks = Self.resolveShowLandmarks()
     @AppStorage("camera_show_landmarks") private var settingsShowLandmarks = false
 
-    @State private var activePanel: ActivePanel? = nil
+    @State private var activePanel: ActivePanel? = Self.resolveInitialPanel().0
     // 🔴 renderer 提到视图层直持：快门链路不再依赖 representable 回调往返（nil 则拍照静默失败）
     @State private var sharedRenderer: BeautyRenderer? = CameraPreviewView.makeRenderer()
     @State private var zoomPreset: CGFloat = 1.0
@@ -79,7 +95,7 @@ struct CameraPreviewView: View {
     @State private var currentScene: ScenePreset = .off
     @State private var currentRatio: AspectMode = Self.resolveRatio()
     // ProMode 独立轨道（对标 Android showProPanel；与 primary 组互斥渲染，可与 beauty 并存）
-    @State private var showProPanel = false
+    @State private var showProPanel = Self.resolveInitialPanel().1
     @State private var exposureComp: Double = 0      // EV -2..2（AVCapture setExposureBias）
     @State private var whiteBalanceMode = 0          // 0=auto/1=sunny/2=cloudy/3=incandescent/4=fluorescent
 
@@ -397,9 +413,9 @@ struct CameraPreviewView: View {
                     case .ratio:
                         ControlPanel {
                             HStack(spacing: 16) {
-                                OptionButton(titleKey: "Ratio 4:3", isSelected: currentRatio == .ratio43) { currentRatio = .ratio43; closePanel() }
-                                OptionButton(titleKey: "Ratio 16:9", isSelected: currentRatio == .ratio169) { currentRatio = .ratio169; closePanel() }
-                                OptionButton(titleKey: "Full Screen", isSelected: currentRatio == .full) { currentRatio = .full; closePanel() }
+                                OptionButton(titleKey: "4:3", isSelected: currentRatio == .ratio43) { currentRatio = .ratio43; closePanel() }
+                                OptionButton(titleKey: "16:9", isSelected: currentRatio == .ratio169) { currentRatio = .ratio169; closePanel() }
+                                OptionButton(titleKey: "FULL", isSelected: currentRatio == .full) { currentRatio = .full; closePanel() }
                             }
                         }
                         .transition(.move(edge: .bottom).combined(with: .opacity))
