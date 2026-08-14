@@ -92,6 +92,10 @@ final class ChatViewModel: ObservableObject {
         ChartRendererBridge.onChart = { [weak self] svg, summary in
             Task { @MainActor in self?.appendChartMessage(svg: svg, summary: summary) }
         }
+        // 编辑结果回链：chat EDIT → PhotoEditorScreen 保存 → 落盘路径回此追加 AGENT_EDIT_RESULT
+        ChatEditResultBridge.onEditResult = { [weak self] path in
+            Task { @MainActor in self?.appendEditResultMessage(imagePath: path) }
+        }
     }
 
     // MARK: - Send (对齐 Android sendMessage 流程)
@@ -114,6 +118,12 @@ final class ChatViewModel: ObservableObject {
         // IosRunScriptCapability → RunScriptBridge → JsRuntime+JsCoreEngine → gallery handler）
         if trimmed.lowercased() == "/runscript" {
             emitRunScriptDemo()
+            return
+        }
+
+        // AGENT_EDIT_RESULT 渲染 demo：生成图落盘 → 追加编辑结果消息（确定性验证，/chart 同款）
+        if trimmed.lowercased() == "/editdemo" {
+            emitEditResultDemo()
             return
         }
 
@@ -444,6 +454,44 @@ final class ChatViewModel: ObservableObject {
                 }
                 self.persist()
             }
+        }
+    }
+
+    // MARK: - AGENT_EDIT_RESULT（chat EDIT → 编辑器 → 结果图回链）
+
+    /// 追加编辑结果消息（图=Documents/chat_edits 文件路径；文案标注已存相册——iOS 编辑器
+    /// 保存时已入库，与 Android「chat 内保存按钮」为有意分歧，见 plan 范围裁决）。
+    private func appendEditResultMessage(imagePath: String) {
+        let caption = String(localized: "Edit complete. Result saved to Photos.")
+        messages.append(ChatMessage(role: .assistant, text: caption, type: .agentEditResult, imageUri: imagePath))
+        touchThread(preview: caption)
+        persist()
+    }
+
+    /// /editdemo：生成一张渐变图落盘并追加编辑结果消息（确定性验证渲染链，不经编辑器）。
+    private func emitEditResultDemo() {
+        let size = CGSize(width: 600, height: 400)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let image = renderer.image { ctx in
+            let colors = [UIColor.systemBlue.cgColor, UIColor.systemTeal.cgColor]
+            let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                                      colors: colors as CFArray, locations: [0, 1])!
+            ctx.cgContext.drawLinearGradient(
+                gradient, start: .zero,
+                end: CGPoint(x: size.width, y: size.height), options: []
+            )
+        }
+        guard let data = image.jpegData(compressionQuality: 0.9),
+              let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        let dir = docs.appendingPathComponent("chat_edits", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let url = dir.appendingPathComponent("demo-\(UUID().uuidString).jpg")
+        do {
+            try data.write(to: url)
+            appendEditResultMessage(imagePath: url.path)
+        } catch {
+            messages.append(ChatMessage(role: .assistant, text: "demo 图片写入失败：\(error.localizedDescription)", error: error.localizedDescription))
+            persist()
         }
     }
 

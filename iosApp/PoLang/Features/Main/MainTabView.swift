@@ -111,7 +111,12 @@ struct MainTabView: View {
             set: { if !$0 { editingImage = nil } }
         )) {
             if let lid = editingImage {
-                PhotoEditorScreen(localIdentifier: lid)
+                PhotoEditorScreen(
+                    localIdentifier: lid,
+                    onEditResult: { path in
+                        ChatEditResultBridge.onEditResult?(path)
+                    }
+                )
             }
         }
     }

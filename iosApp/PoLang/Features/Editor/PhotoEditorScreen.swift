@@ -7,6 +7,8 @@ import UIKit
 struct PhotoEditorScreen: View {
     let localIdentifier: String
     var onSaved: (String?) -> Void = { _ in }
+    /// chat 回链：编辑结果文件路径（与 onSaved 并存；chat EDIT 意图由 MainTabView 接收）
+    var onEditResult: (String) -> Void = { _ in }
 
     @StateObject private var vm = PhotoEditorViewModel()
     @StateObject private var markupTool = MarkupToolState()
@@ -57,6 +59,7 @@ struct PhotoEditorScreen: View {
                 onSaved(id)
                 dismiss()
             }
+            vm.onEditResult = { path in onEditResult(path) }
             if ready == nil { vm.load(localIdentifier: localIdentifier) }
         }
         .onChange(of: ready?.previewUIImage) { _ in
