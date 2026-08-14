@@ -132,8 +132,14 @@ final class ChatViewModel: ObservableObject {
         guard !trimmed.isEmpty, !isProcessing else { return }
         guard let bridge else { return }
 
-        // 1. user 消息即追加
-        messages.append(ChatMessage(role: .user, text: trimmed))
+        // 1. user 消息即追加（带暂存图 → userImageText 上图下文；图引用 localIdentifier，
+        //    远程只发文本——图片像素不上传，隐私红线）
+        messages.append(ChatMessage(
+            role: .user,
+            text: trimmed,
+            type: stagedImage != nil ? .userImageText : .userText,
+            imageUri: stagedImage?.localIdentifier
+        ))
         autoTitleIfNeeded(firstUserText: trimmed)
         touchThread(preview: trimmed)
         persist()
@@ -288,6 +294,7 @@ final class ChatViewModel: ObservableObject {
             messages.append(ChatMessage(
                 role: .assistant,
                 text: header,
+                type: .mediaResults,
                 mediaIds: ids,
                 mediaQuery: dto.query,
                 mediaTotalCount: Int(truncatingIfNeeded: dto.totalCount)
@@ -379,7 +386,7 @@ final class ChatViewModel: ObservableObject {
     /// 追加一条 CHART 消息（图卡）。LLM draw_chart（经 IosChartCapability → ChartRendererBridge.onChart）
     /// 与 /chart 手动 demo 共用此落点。
     private func appendChartMessage(svg: String, summary: String) {
-        var msg = ChatMessage(role: .assistant, text: summary)
+        var msg = ChatMessage(role: .assistant, text: summary, type: .chart)
         msg.chartSvg = svg
         messages.append(msg)
         touchThread(preview: summary)
