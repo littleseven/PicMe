@@ -358,6 +358,29 @@ struct CameraPreviewView: View {
             .first { $0.isKeyWindow }?.safeAreaInsets.top ?? 0
     }
 
+    /// Android RatioItem 风格选择器 chip 行(底部矮行,非面板壳)。
+    /// 几何锚 Android a11y 实测:chip 高 156px≈46pt、胶囊、间距 16pt、底距 12pt、前导 24pt。
+    private func selectorChipRow(_ chips: [(String, Bool, () -> Void)]) -> some View {
+        HStack(spacing: 16) {
+            ForEach(chips.indices, id: \.self) { i in
+                Button(action: chips[i].2) {
+                    Text(LocalizedStringKey(chips[i].0))
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(chips[i].1 ? AppColorScheme.dark.onPrimaryContainer : .white)
+                        .padding(.horizontal, 20)
+                        .frame(height: 46)
+                        .background(
+                            Capsule().fill(chips[i].1 ? AppColorScheme.dark.primaryContainer : Color.black.opacity(0.5))
+                        )
+                }
+                .accessibilityLabel(Text(LocalizedStringKey(chips[i].0)))
+            }
+        }
+        .padding(.leading, 24)
+        .padding(.bottom, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private func cameraOverlay(screenHeight: CGFloat, safeTop: CGFloat) -> some View {
         ZStack {
             // 手势层
@@ -393,31 +416,26 @@ struct CameraPreviewView: View {
                         }
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     case .grid:
-                        ControlPanel {
-                            HStack(spacing: 12) {
-                                OptionButton(titleKey: "None", isSelected: currentGrid == .off) { currentGrid = .off; closePanel() }
-                                OptionButton(titleKey: "Thirds", isSelected: currentGrid == .thirds) { currentGrid = .thirds; closePanel() }
-                                OptionButton(titleKey: "Golden Ratio", isSelected: currentGrid == .golden) { currentGrid = .golden; closePanel() }
-                            }
-                        }
+                        // Android 实测:底部矮 chip 行(非面板壳);文案 关闭/九宫格/黄金比例
+                        selectorChipRow([
+                            ("Off Grid", currentGrid == .off, { currentGrid = .off; closePanel() }),
+                            ("Nine Grid", currentGrid == .thirds, { currentGrid = .thirds; closePanel() }),
+                            ("Golden Ratio", currentGrid == .golden, { currentGrid = .golden; closePanel() }),
+                        ])
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     case .scene:
-                        ControlPanel {
-                            HStack(spacing: 12) {
-                                OptionButton(titleKey: "None", isSelected: currentScene == .off) { currentScene = .off; closePanel() }
-                                OptionButton(titleKey: "Night", isSelected: currentScene == .night) { currentScene = .night; closePanel() }
-                                OptionButton(titleKey: "Moon", isSelected: currentScene == .moon) { currentScene = .moon; closePanel() }
-                            }
-                        }
+                        selectorChipRow([
+                            ("Scene Off", currentScene == .off, { currentScene = .off; closePanel() }),
+                            ("Night", currentScene == .night, { currentScene = .night; closePanel() }),
+                            ("Moon Shot", currentScene == .moon, { currentScene = .moon; closePanel() }),
+                        ])
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     case .ratio:
-                        ControlPanel {
-                            HStack(spacing: 16) {
-                                OptionButton(titleKey: "4:3", isSelected: currentRatio == .ratio43) { currentRatio = .ratio43; closePanel() }
-                                OptionButton(titleKey: "16:9", isSelected: currentRatio == .ratio169) { currentRatio = .ratio169; closePanel() }
-                                OptionButton(titleKey: "FULL", isSelected: currentRatio == .full) { currentRatio = .full; closePanel() }
-                            }
-                        }
+                        selectorChipRow([
+                            ("4:3", currentRatio == .ratio43, { currentRatio = .ratio43; closePanel() }),
+                            ("16:9", currentRatio == .ratio169, { currentRatio = .ratio169; closePanel() }),
+                            ("Fullscreen", currentRatio == .full, { currentRatio = .full; closePanel() }),
+                        ])
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
@@ -514,27 +532,32 @@ struct CameraPreviewView: View {
     // MARK: - 底部三行控件
 
     private var bottomControls: some View {
-        VStack(spacing: 20) {
-            // 变焦条（纯文本行无 pill）
-            HStack(spacing: 12) {
-                ForEach([(0.6, "0.6x"), (1.0, "1x"), (2.0, "2x"), (3.2, "3.2x")], id: \.0) { val, label in
-                    Button {
-                        zoomPreset = val
-                        controller.setZoom(val)
-                    } label: {
-                        Text(label)
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(abs(zoomPreset - val) < 0.01 ? .black : .white)
-                            .frame(width: 32, height: 32)
-                            .background(
-                                Circle().fill(abs(zoomPreset - val) < 0.01 ? Color.white : Color.clear)
-                            )
+        // selector chip 行打开时:模式 tab 上移让位(锚 Android 实测:模式 tab 距底 ~109pt,chip 行距底 12pt)
+        let selectorOpen = activePanel == .grid || activePanel == .scene || activePanel == .ratio
+        let panelOpen = activePanel != nil || showProPanel
+        return VStack(spacing: 20) {
+            // 变焦条（纯文本行无 pill）；面板开时隐藏（对标 Android visible_when "!isAnyPanelOpen"）
+            if !panelOpen {
+                HStack(spacing: 12) {
+                    ForEach([(0.6, "0.6x"), (1.0, "1x"), (2.0, "2x"), (3.2, "3.2x")], id: \.0) { val, label in
+                        Button {
+                            zoomPreset = val
+                            controller.setZoom(val)
+                        } label: {
+                            Text(label)
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(abs(zoomPreset - val) < 0.01 ? .black : .white)
+                                .frame(width: 32, height: 32)
+                                .background(
+                                    Circle().fill(abs(zoomPreset - val) < 0.01 ? Color.white : Color.clear)
+                                )
+                        }
                     }
                 }
+                .accessibilityIdentifier("camera_zoom_bar")
             }
-            .accessibilityIdentifier("camera_zoom_bar")
 
-            // 模式选择器（白 Bold / 灰）
+            // 模式选择器（白 Bold / 灰）—— selector 态仍显示（Android 实测）
             HStack(spacing: 16) {
                 ForEach(CameraMode.allCases, id: \.self) { mode in
                     Text(mode.rawValue)
@@ -545,56 +568,58 @@ struct CameraPreviewView: View {
                 }
             }
 
-            // 缩略图 | 快门 | 翻转
-            HStack {
-                Circle()
-                    .fill(Color(red: 0.25, green: 0.25, blue: 0.25))
-                    .frame(width: 48, height: 48)
-                    .overlay(
-                        Group {
-                            if let lastThumb {
-                                Image(uiImage: lastThumb)
-                                    .resizable()
-                                    .scaledToFill()
-                            } else {
-                                MatIcon(name: "photo.fill", size: 18)
-                                    .foregroundColor(.white.opacity(0.5))
+            // 缩略图 | 快门 | 翻转 —— selector chip 行态让位给 chip 行（Android 实测:此行隐藏）
+            if !panelOpen {
+                HStack {
+                    Circle()
+                        .fill(Color(red: 0.25, green: 0.25, blue: 0.25))
+                        .frame(width: 48, height: 48)
+                        .overlay(
+                            Group {
+                                if let lastThumb {
+                                    Image(uiImage: lastThumb)
+                                        .resizable()
+                                        .scaledToFill()
+                                } else {
+                                    MatIcon(name: "photo.fill", size: 18)
+                                        .foregroundColor(.white.opacity(0.5))
+                                }
                             }
+                        )
+                        .clipShape(Circle())
+                        .accessibilityIdentifier("camera_gallery_thumb")
+                        .contentShape(Circle())
+                        .onTapGesture { onGalleryTap() }
+
+                    Spacer()
+
+                    ShutterButton {
+                        // 白闪反馈（确认点击注册，对标 Android 拍照闪屏）
+                        shutterFlash = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { shutterFlash = false }
+                        guard let renderer = sharedRenderer else {
+                            print("[PoLang] shutter.FAIL: sharedRenderer nil")
+                            DebugOverlayState.shared.set("camera.shutter", "error: renderer nil")
+                            return
                         }
-                    )
-                    .clipShape(Circle())
-                    .accessibilityIdentifier("camera_gallery_thumb")
-                    .contentShape(Circle())
-                    .onTapGesture { onGalleryTap() }
-
-                Spacer()
-
-                ShutterButton {
-                    // 白闪反馈（确认点击注册，对标 Android 拍照闪屏）
-                    shutterFlash = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { shutterFlash = false }
-                    guard let renderer = sharedRenderer else {
-                        print("[PoLang] shutter.FAIL: sharedRenderer nil")
-                        DebugOverlayState.shared.set("camera.shutter", "error: renderer nil")
-                        return
+                        let flow = CaptureFlow(photoController: photoController, renderer: renderer, cropHPerW: captureCropHPerW)
+                        flow.onSaved = { refreshLatestThumb() }
+                        flow.captureAndSave()
                     }
-                    let flow = CaptureFlow(photoController: photoController, renderer: renderer, cropHPerW: captureCropHPerW)
-                    flow.onSaved = { refreshLatestThumb() }
-                    flow.captureAndSave()
+
+                    Spacer()
+
+                    Circle()
+                        .fill(Color.white.opacity(0.2))
+                        .frame(width: 48, height: 48)
+                        .overlay(MatIcon(name: "camera.rotate", size: 18).foregroundColor(.white))
+                        .accessibilityIdentifier("camera_flip")
+                        .onTapGesture { controller.flipCamera() }
                 }
-
-                Spacer()
-
-                Circle()
-                    .fill(Color.white.opacity(0.2))
-                    .frame(width: 48, height: 48)
-                    .overlay(MatIcon(name: "camera.rotate", size: 18).foregroundColor(.white))
-                    .accessibilityIdentifier("camera_flip")
-                    .onTapGesture { controller.flipCamera() }
+                .padding(.horizontal, 40)
             }
-            .padding(.horizontal, 40)
         }
-        .padding(.bottom, 33)
+        .padding(.bottom, selectorOpen ? 108 : 33)
     }
 }
 

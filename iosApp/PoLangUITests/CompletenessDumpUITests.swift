@@ -59,10 +59,10 @@ final class CompletenessDumpUITests: XCTestCase {
     func testDumpAllPanels() throws {
         let panels: [(String, String)] = [
             ("beauty", "panel_beauty_face"),
+            ("scene", "panel_scene"),   // 诊断:连续两轮挂在原第5位,前移验证是否位置相关
             ("pro", "panel_pro"),
             ("ratio", "panel_ratio"),
             ("grid", "panel_grid"),
-            ("scene", "panel_scene"),
             ("filter", "panel_filter"),
         ]
         for (arg, state) in panels {
