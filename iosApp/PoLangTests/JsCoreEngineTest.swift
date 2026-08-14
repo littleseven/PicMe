@@ -96,6 +96,55 @@ final class JsCoreEngineTest: XCTestCase {
     func testMediaMetaMissing() {
         XCTAssertNil(TagDatabase.shared.mediaRow(id: -1), "id=-1 不应命中任何媒体")
     }
+
+    // MARK: - Tier 3：intersect（纯计算，确定性） / face.cluster（形状）
+
+    /// gallery.intersect：集合交/并/差（纯端侧计算，不依赖相册数据）。
+    func testIntersectComputation() {
+        let numList: ([Int]) -> JsValue = { ids in
+            JsValue.Arr(items: ids.map { JsValue.Num(value: Double($0)) })
+        }
+        func idsOf(_ result: JsValue) -> [Int] {
+            guard let obj = result as? JsValue.Obj,
+                  let arr = obj.entries["ids"] as? JsValue.Arr else { return [] }
+            return arr.items.compactMap { ($0 as? JsValue.Num).map { Int($0.value) } }
+        }
+        // intersect
+        let inter = GalleryScriptHandlers.buildIntersect(args: JsValue.Obj(entries: [
+            "idsA": numList([1, 2, 3]),
+            "idsB": numList([2, 3, 4]),
+            "op": JsValue.Str(value: "intersect"),
+        ]))
+        XCTAssertEqual(idsOf(inter), [2, 3], "intersect 应为 [2,3]")
+        // union
+        let union = GalleryScriptHandlers.buildIntersect(args: JsValue.Obj(entries: [
+            "idsA": numList([1, 2]),
+            "idsB": numList([2, 3]),
+            "op": JsValue.Str(value: "union"),
+        ]))
+        XCTAssertEqual(idsOf(union), [1, 2, 3], "union 应为 [1,2,3]（保序去重）")
+        // diff
+        let diff = GalleryScriptHandlers.buildIntersect(args: JsValue.Obj(entries: [
+            "idsA": numList([1, 2, 3]),
+            "idsB": numList([2]),
+            "op": JsValue.Str(value: "diff"),
+        ]))
+        XCTAssertEqual(idsOf(diff), [1, 3], "diff 应为 [1,3]")
+    }
+
+    /// face.cluster 结果形状：关键字段齐（计数值随相册，不硬断言）。
+    func testFaceClusterShape() {
+        let value = GalleryScriptHandlers.buildFaceCluster(args: JsValue.Obj(entries: [:]))
+        guard let object = value as? JsValue.Obj else {
+            XCTFail("face.cluster 应返回 Obj，got \(type(of: value))")
+            return
+        }
+        let keys = Set(object.entries.keys)
+        XCTAssertTrue(keys.contains("clusterCount"))
+        XCTAssertTrue(keys.contains("namedCount"))
+        XCTAssertTrue(keys.contains("totalEmbeddings"))
+        XCTAssertTrue(keys.contains("topPersons"))
+    }
 }
 
 /// 测试用 echo handler：原样回传 args（验证 bridge 通路，不依赖相册数据）。

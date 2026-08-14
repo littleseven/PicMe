@@ -260,6 +260,93 @@ extension TagDatabase {
         }
     }
 
+    // MARK: - Tier 3：timeline / city / face.cluster / tag.audit 数据源
+
+    /// 时间分桶统计（gallery.timeline）。读 [fromMs,toMs] 内媒体 captureDate，按 bucketMs 整除分桶。
+    /// 返回桶起始时间戳→计数（时间升序）。对齐 Android QueryGalleryMediaUseCase.timeline。
+    func timelineCounts(fromMs: Int64?, toMs: Int64?, bucketMs: Int64) -> [(bucketMs: Int64, count: Int)] {
+        let start = fromMs ?? 0
+        let end = toMs ?? Int64.max
+        return queue.sync {
+            guard let db = db else { return [(bucketMs: Int64, count: Int)]() }
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, "SELECT captureDate FROM media_assets WHERE captureDate BETWEEN ? AND ?;", -1, &stmt, nil)
+            sqlite3_bind_int64(stmt, 1, start)
+            sqlite3_bind_int64(stmt, 2, end)
+            defer { sqlite3_finalize(stmt) }
+            var buckets: [Int64: Int] = [:]
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                let capture = sqlite3_column_int64(stmt, 0)
+                let key = bucketMs > 0 ? (capture / bucketMs) * bucketMs : capture
+                buckets[key, default: 0] += 1
+            }
+            return buckets.sorted { $0.key < $1.key }.map { (bucketMs: $0.key, count: $0.value) }
+        }
+    }
+
+    /// 城市分组媒体计数（gallery.stats_by_city，DB 层 GROUP BY）。
+    func cityCounts(limit: Int = 50) -> [(city: String, count: Int)] {
+        queue.sync {
+            guard let db = db else { return [(city: String, count: Int)]() }
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, """
+                SELECT city, COUNT(*) AS cnt FROM media_assets
+                WHERE city IS NOT NULL AND city != ''
+                GROUP BY city ORDER BY cnt DESC LIMIT ?;
+                """, -1, &stmt, nil)
+            sqlite3_bind_int(stmt, 1, Int32(limit))
+            defer { sqlite3_finalize(stmt) }
+            var out: [(city: String, count: Int)] = []
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                if let raw = sqlite3_column_text(stmt, 0) {
+                    out.append((city: String(cString: raw), count: Int(sqlite3_column_int(stmt, 1))))
+                }
+            }
+            return out
+        }
+    }
+
+    /// face_embeddings 计数（total + 未归属 person_id IS NULL）。
+    func embeddingCounts() -> (total: Int, unassigned: Int) {
+        queue.sync {
+            guard let db = db else { return (total: 0, unassigned: 0) }
+            func countInt(_ sql: String) -> Int {
+                var stmt: OpaquePointer?
+                sqlite3_prepare_v2(db, sql, -1, &stmt, nil)
+                defer { sqlite3_finalize(stmt) }
+                return sqlite3_step(stmt) == SQLITE_ROW ? Int(sqlite3_column_int(stmt, 0)) : 0
+            }
+            return (
+                total: countInt("SELECT COUNT(*) FROM face_embeddings;"),
+                unassigned: countInt("SELECT COUNT(*) FROM face_embeddings WHERE person_id IS NULL;")
+            )
+        }
+    }
+
+    /// tag.audit 计数聚合（IMAGE 口径，与 gallery.summary 一致）。
+    func tagAuditCounts() -> (totalMedia: Int, unlabeled: Int, neverScanned: Int, lastScanAt: Int64?) {
+        queue.sync {
+            guard let db = db else { return (0, 0, 0, nil) }
+            func countInt(_ sql: String) -> Int {
+                var stmt: OpaquePointer?
+                sqlite3_prepare_v2(db, sql, -1, &stmt, nil)
+                defer { sqlite3_finalize(stmt) }
+                return sqlite3_step(stmt) == SQLITE_ROW ? Int(sqlite3_column_int(stmt, 0)) : 0
+            }
+            let totalMedia = countInt("SELECT COUNT(*) FROM media_assets WHERE type='IMAGE';")
+            let unlabeled = countInt("SELECT COUNT(*) FROM media_assets WHERE type='IMAGE' AND labelsEn IS NULL;")
+            let neverScanned = countInt("SELECT COUNT(*) FROM media_assets WHERE lastTagScanAt IS NULL;")
+            var lastScanAt: Int64?
+            var s: OpaquePointer?
+            sqlite3_prepare_v2(db, "SELECT MAX(lastTagScanAt) FROM media_assets;", -1, &s, nil)
+            if sqlite3_step(s) == SQLITE_ROW, sqlite3_column_type(s, 0) != SQLITE_NULL {
+                lastScanAt = sqlite3_column_int64(s, 0)
+            }
+            sqlite3_finalize(s)
+            return (totalMedia, unlabeled, neverScanned, lastScanAt)
+        }
+    }
+
     // MARK: - 行读取 / 标签解析辅助
 
     /// 从 stmt 当前行读 MediaDbRow（列顺序须与 SELECT 一致）。
