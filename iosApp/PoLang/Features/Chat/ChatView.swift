@@ -415,6 +415,7 @@ struct MarkdownText: View {
 private struct MessageBubble: View {
     let message: ChatMessage
     var onNavigateToGallery: ((String) -> Void)? = nil
+    var onImageTap: ((UIImage?) -> Void)? = nil
 
     var body: some View {
         HStack {
@@ -429,7 +430,19 @@ private struct MessageBubble: View {
                     Text(message.text)
                         .font(.system(size: ChatBubbleTokens.textSize))
                         .foregroundColor(Color(.secondaryLabel))
-                } else if !message.text.isEmpty || !message.mediaIds.isEmpty {
+                } else if !message.text.isEmpty || !message.mediaIds.isEmpty || message.imageUri != nil {
+                    // USER_IMAGE_TEXT：上图下文（图在文本上方，对齐 Android）
+                    if message.type == .userImageText, let uri = message.imageUri {
+                        UserImageAttachment(localIdentifier: uri, onTap: { onImageTap?($0) })
+                            .padding(.bottom, 6)
+                    }
+
+                    // AGENT_EDIT_RESULT：编辑结果图卡（文件路径 + 失效占位），说明文字走下方文本渲染
+                    if message.type == .agentEditResult, let path = message.imageUri {
+                        ChatEditImageCard(imagePath: path, onTap: { onImageTap?($0) })
+                            .padding(.bottom, 6)
+                    }
+
                     // 正常文本（agent → Markdown 渲染；user → 纯文本；流式光标内联右侧，对齐 Android）
                     if !message.text.isEmpty {
                         HStack(alignment: .bottom, spacing: 2) {
