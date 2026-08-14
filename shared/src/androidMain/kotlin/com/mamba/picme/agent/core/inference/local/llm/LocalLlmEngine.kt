@@ -20,6 +20,18 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
 
+/** 端侧 VLM 图像输入降采样最长边（模型内部会再 resize 到视觉编码器尺寸）。 */
+private const val VLM_IMAGE_MAX_PX = 1024
+
+/** 按「最长边 ≤ maxDim」计算 inSampleSize（2 的幂）。 */
+private fun vlmInSampleSizeFor(outWidth: Int, outHeight: Int, maxDim: Int): Int {
+    if (maxDim <= 0 || outWidth <= 0 || outHeight <= 0) return 1
+    var sample = 1
+    val longest = maxOf(outWidth, outHeight)
+    while (longest / (sample * 2) >= maxDim) sample *= 2
+    return sample
+}
+
 /**
  * 本地 LLM 推理引擎（**VLM 打标专用**）
  *
@@ -471,7 +483,14 @@ class LocalLlmEngine(
      * 将编码后的图片字节（JPEG/PNG 等）解码为 Bitmap；失败时记日志并返回 null。
      */
     private fun decodeImageBytes(imageBytes: ByteArray): Bitmap? {
-        val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+        // 端侧 VLM 输入：先量界再按最长边降采样，避免大图全分辨率解码占内存；
+        // 模型内部还会 resize 到视觉编码器输入尺寸。
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size, bounds)
+        val opts = BitmapFactory.Options().apply {
+            inSampleSize = vlmInSampleSizeFor(bounds.outWidth, bounds.outHeight, VLM_IMAGE_MAX_PX)
+        }
+        val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size, opts)
         if (bitmap == null) {
             Logger.e(tag, "Failed to decode image bytes (${imageBytes.size} bytes)")
         }

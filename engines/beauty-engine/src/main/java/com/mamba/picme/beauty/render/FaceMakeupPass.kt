@@ -296,7 +296,9 @@ class FaceMakeupPass(private val context: Context) {
     private fun loadTextureFromAssets(assetPath: String): Int {
         return try {
             val bitmap = context.assets.open(assetPath).use { stream ->
-                BitmapFactory.decodeStream(stream)
+                // 妆容纹理按原始分辨率加载（资产 ≤540×960，降采样损失贴图细节）
+                val opts = BitmapFactory.Options().apply { inSampleSize = 1 }
+                BitmapFactory.decodeStream(stream, null, opts)
             } ?: run {
                 Logger.w(TAG, "Failed to decode bitmap: $assetPath")
                 return 0

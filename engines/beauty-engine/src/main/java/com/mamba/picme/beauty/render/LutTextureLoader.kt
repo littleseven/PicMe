@@ -93,7 +93,9 @@ class LutTextureLoader(private val context: Context) {
     private fun loadTextureFromAssets(ctx: Context, assetPath: String): Int {
         return try {
             val bitmap = ctx.assets.open(assetPath).use { stream ->
-                BitmapFactory.decodeStream(stream)
+                // LUT 为色彩查找表，必须 1:1 原始分辨率加载（降采样会破坏色彩映射）；资产已限 ≤512px
+                val opts = BitmapFactory.Options().apply { inSampleSize = 1 }
+                BitmapFactory.decodeStream(stream, null, opts)
             }
             if (bitmap == null) {
                 Logger.w(TAG, "Failed to decode bitmap: $assetPath")
