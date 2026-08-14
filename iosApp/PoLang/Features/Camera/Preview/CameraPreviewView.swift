@@ -440,8 +440,9 @@ struct CameraPreviewView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
-                // ProMode 独立面板（与 beauty 可并存；被 filter/grid/scene primary 面板抑制渲染）
-                if showProPanel && activePanel != .filter && activePanel != .grid && activePanel != .scene {
+                // ProMode 独立面板（与 beauty 可并存；被 filter/grid/scene/ratio primary 面板抑制渲染
+                // —— 对标 Android isAnyPanelOpen 含 showRatioSelector;此前漏 .ratio 致 Pro+比例chips 双面板）
+                if showProPanel && activePanel != .filter && activePanel != .grid && activePanel != .scene && activePanel != .ratio {
                     ProModePanel(
                         exposure: $exposureComp,
                         whiteBalance: $whiteBalanceMode,
@@ -453,7 +454,7 @@ struct CameraPreviewView: View {
                                              set: { container.beautyParams.temperature = Float($0) }),
                         onDismiss: { withAnimation { showProPanel = false } }
                     )
-                    .padding(.horizontal, 24)
+                    // 注:不加 .padding(.horizontal, 24)——Pro 面板须满屏宽,同 beauty/filter(ControlPanel 内容自带 padding)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
@@ -664,19 +665,22 @@ private struct ControlPanel<Content: View>: View {
     }
 }
 
-// 选项按钮（对标 Android RatioItem：selected=primary/onPrimary，unselected=DarkGray/onSurface，12sp）
+// 选项 chip(Pro 面板白平衡用;与 selector chip 同款——Android 实测两处 chip 同尺寸:高≈47pt 胶囊)
 private struct OptionButton: View {
     let titleKey: LocalizedStringKey
     let isSelected: Bool
     let action: () -> Void
     var body: some View {
         Button(action: action) {
-            Text(titleKey).font(.system(size: 12))
+            Text(titleKey).font(.system(size: 15, weight: .medium))
                 .foregroundColor(isSelected ? AppColorScheme.dark.onPrimaryContainer : .white)
-                .padding(.horizontal, 12).padding(.vertical, 8)
-                .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(isSelected ? AppColorScheme.dark.primaryContainer : Color(white: 0.25)))
+                .padding(.horizontal, 20)
+                .frame(height: 46)
+                .background(
+                    Capsule().fill(isSelected ? AppColorScheme.dark.primaryContainer : Color.black.opacity(0.5))
+                )
         }
+        .accessibilityLabel(Text(titleKey))
     }
 }
 
