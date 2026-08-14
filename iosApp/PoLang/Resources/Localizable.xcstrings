@@ -9110,6 +9110,29 @@
         }
       }
     },
+    "Image no longer available" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image no longer available"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图片已失效或被清理"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "圖片已失效或被清理"
+          }
+        }
+      }
+    },
     "Image preview": {
       "localizations": {
         "en": {
@@ -10475,6 +10498,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "搜尋測試、JSBridge 與無障礙工具僅 Android 提供。"
+          }
+        }
+      }
+    },
+    "Edit complete. Result saved to Photos." : {
+      "extractionState": "manual",
+      "localizations": {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit complete. Result saved to Photos."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑完成，结果已保存到相册"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "編輯完成，結果已儲存到相簿"
           }
         }
       }

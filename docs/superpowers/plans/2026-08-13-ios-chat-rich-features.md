@@ -49,8 +49,7 @@
   - **Tier 3 只读（timeline/intersect/stats_by_city/face.cluster/tag.audit 5 handler）✅**：TagDatabase 加 timelineCounts（时间分桶）/cityCounts（GROUP BY city）/embeddingCounts（face_embeddings total+unassigned）/tagAuditCounts（COUNT 聚合）；intersect 纯端侧集合运算（保序去重 LinkedOrderSet）；outOfVocabTags 从 controlled_vocab.json 加载词表全集（懒缓存）过滤。**12/12 只读 handler 齐备**。纯 Swift，JsCoreEngineTest 9/9 通过。
   - **剩余（写操作，子系统级）**：capability.dispatch 写操作（delete_media/favorite_media/select_media/remember_fact/forget_fact/recall_memory/remember_person_relation/forget_person_relation/query_person_relation）需用户确认弹窗 UI。CHART 已不需 JS 沙盒。
 - ~~**Task 1b ChatMessage 全字段下沉**~~ **✅ 完成（commit 64d3b70a）**：全字段 + 子类型下沉 commonMain `domain.chat`；org.json 序列化剥离到 androidApp 扩展（ChatModelCommonMainShim）；timestamp 用 expect/actual `nowEpochMillis()`（androidMain/iosMain）；androidApp typealias ChatMessageUi + 直接 import 子类型零语义改动。Android 编译+chat 单测+ktlint+我的文件 detekt 零违规 + commonMain 纯度门 + iosArm64 编译全过。iOS 暂未消费（Swift 原生 ChatMessage）。
-- **Task 3** iOS 模型接入 commonMain（1b 已完成，可做；但 iOS 暂未消费 commonMain 消息模型，价值待 iOS 迁移消费时兑现）
-- **Task 3** iOS 模型接入 commonMain（1b 已完成，可做；但 iOS 暂未消费 commonMain 消息模型，价值待 iOS 迁移消费时兑现）
+- ~~**Task 3** iOS 模型接入 commonMain~~ **✅ 以字段对齐方式完成（批次② `2026-08-14-ios-chat-image-messages.md` Task 1）**：iOS `ChatMessage` 保持 Swift struct（KMP Codable 踩坑，Task 3 既定方案），加 `MessageType`（对齐 commonMain ChatMessageType 子集）+ `imageUri` + Codable 老数据推断（ChatMessageTypeTests 5 用例锁定）。type 字段成为图片消息渲染地基（上图下文/编辑结果/全屏预览，批次②全交付）。
 
 ---
 

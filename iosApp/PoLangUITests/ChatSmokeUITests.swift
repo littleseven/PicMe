@@ -245,6 +245,27 @@ final class ChatSmokeUITests: XCTestCase {
         )
     }
 
+    /// AGENT_EDIT_RESULT 渲染 E2E（确定性）：/editdemo → 生成图落盘 → 编辑结果图卡出现。
+    func testEditResultDemo() throws {
+        navigateToChat()
+        let input = app.textFields["chat_input"].exists
+            ? app.textFields["chat_input"]
+            : app.textViews["chat_input"]
+        XCTAssertTrue(input.waitForExistence(timeout: 12), "chat_input 未找到")
+        input.tap()
+        input.typeText("/editdemo")
+        tapSend()
+
+        let card = app.descendants(matching: .any)["chat_edit_image"].firstMatch
+        let appeared = card.waitForExistence(timeout: 15)
+
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        attachment.name = appeared ? "editdemo_PASS" : "editdemo_FAIL"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        XCTAssertTrue(appeared, "❌ /editdemo 未渲染编辑结果图卡（ChatEditImageCard/ChatMessage type 接线断）")
+    }
+
     // MARK: - Helpers
 
     private func navigateToChat() {
