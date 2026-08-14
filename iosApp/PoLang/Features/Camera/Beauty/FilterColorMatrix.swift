@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import simd
 
 /// FilterType 色彩滤镜 ColorMatrix 定义（逐值照抄 Android FilterTypeExt.kt）
@@ -136,4 +137,23 @@ enum FilterType: Int, CaseIterable, Identifiable, Equatable {
             ), SIMD4(0.03 * 255, 0, -0.03 * 255, 0))
         }
     }
+}
+
+// MARK: - 滤镜缩略图加载（复用 Android 端同名 JPG）
+
+/// 缩略图缓存（按 thumbnailName 复用，主线程访问）。
+private var filterThumbnailImageCache: [String: UIImage] = [:]
+
+/// 按 thumbnailName 加载 bundle 内滤镜缩略图 JPG（assets/filters/*.jpg）。
+///
+/// 与 Android 端 `assets/filters/*.jpg` **同名、同图**（已 byte-identical 复制）。
+/// pbxproj 以 group 引用（非 folder reference），构建时打平到 bundle root，故首查 root；
+/// 保留 "Assets" 子目录回退以防打包方式变更。结果缓存。
+func filterThumbnailImage(named name: String) -> UIImage? {
+    if let cached = filterThumbnailImageCache[name] { return cached }
+    let url = Bundle.main.url(forResource: name, withExtension: "jpg")
+        ?? Bundle.main.url(forResource: name, withExtension: "jpg", subdirectory: "Assets")
+    guard let url, let image = UIImage(contentsOfFile: url.path) else { return nil }
+    filterThumbnailImageCache[name] = image
+    return image
 }

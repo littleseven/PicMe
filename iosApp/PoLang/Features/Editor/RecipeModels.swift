@@ -246,6 +246,19 @@ enum StyleFilter: Int, CaseIterable, Identifiable, Equatable {
         case .crosshatch: return String(localized: "style_crosshatch")
         }
     }
+
+    /// 缩略图 asset 名（与 Android assets/filters/*.jpg 同名）。
+    /// `.none` 不在面板展示，返回原值仅作占位。
+    var thumbnailName: String {
+        switch self {
+        case .none:       return "filter_none"
+        case .toon:       return "style_toon"
+        case .sketch:     return "style_sketch"
+        case .posterize:  return "style_posterize"
+        case .emboss:     return "style_emboss"
+        case .crosshatch: return "style_crosshatch"
+        }
+    }
 }
 
 // MARK: - EditRecipe（配方根；colorFilter 复用 FilterColorMatrix.FilterType）

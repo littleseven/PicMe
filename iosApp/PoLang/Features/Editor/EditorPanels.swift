@@ -137,7 +137,7 @@ struct FilterPanel: View {
                 ForEach(FilterType.allCases) { f in
                     filterItem(
                         label: f.displayName,
-                        gradient: Self.placeholderGradient(color: f),
+                        thumbnail: filterThumbnailImage(named: f.thumbnailName),
                         isSelected: f == .none
                             ? (colorFilter == .none && styleFilter == .none)
                             : colorFilter == f,
@@ -151,7 +151,7 @@ struct FilterPanel: View {
                 ForEach(StyleFilter.allCases.filter { $0 != .none }) { sf in
                     filterItem(
                         label: sf.displayName,
-                        gradient: Self.placeholderGradient(style: sf),
+                        thumbnail: filterThumbnailImage(named: sf.thumbnailName),
                         isSelected: styleFilter == sf,
                         scheme: s
                     ) {
@@ -169,17 +169,26 @@ struct FilterPanel: View {
     // MARK: 单个滤镜条目
 
     @ViewBuilder
-    private func filterItem(label: String, gradient: [Color],
+    private func filterItem(label: String, thumbnail: UIImage?,
                             isSelected: Bool, scheme s: SchemeColors,
                             onTap: @escaping () -> Void) -> some View {
         VStack(spacing: 4) {
             ZStack(alignment: .bottom) {
-                // TODO: 真实缩略图（assets filters/*.jpg 圆裁剪）；当前用语义占位渐变
+                // 真实缩略图（assets filters/*.jpg 圆裁剪，与 Android 同图）；无图时回退语义灰底
                 Circle()
-                    .fill(LinearGradient(colors: gradient,
-                                         startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .fill(s.surfaceVariant.opacity(0.5))
                     .frame(width: EditorTokens.filterThumbSize,
                            height: EditorTokens.filterThumbSize)
+                    .overlay {
+                        if let thumbnail {
+                            Image(uiImage: thumbnail)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: EditorTokens.filterThumbSize,
+                                       height: EditorTokens.filterThumbSize)
+                                .clipShape(Circle())
+                        }
+                    }
                 // 选中底部横条 overlay（spec selected_overlay）
                 if isSelected {
                     Capsule()
@@ -208,34 +217,6 @@ struct FilterPanel: View {
         .frame(width: EditorTokens.filterItemWidth)
         .contentShape(Rectangle())
         .onTapGesture(perform: onTap)
-    }
-
-    // MARK: 占位渐变（spec 允许缩略图或占位渐变）
-
-    // TODO: 替换为真实滤镜缩略图
-    private static func placeholderGradient(color f: FilterType) -> [Color] {
-        switch f {
-        case .none:         return [.gray.opacity(0.5), .gray.opacity(0.25)]
-        case .leicaClassic: return [.orange.opacity(0.7), .brown.opacity(0.5)]
-        case .leicaVibrant: return [.yellow, .orange]
-        case .leicaBW:      return [.white.opacity(0.9), .black.opacity(0.7)]
-        case .filmGold:     return [.yellow.opacity(0.85), .orange.opacity(0.6)]
-        case .filmFuji:     return [.green.opacity(0.6), .teal.opacity(0.4)]
-        case .vintage:      return [.brown.opacity(0.6), .orange.opacity(0.3)]
-        case .cool:         return [.cyan.opacity(0.5), .blue.opacity(0.5)]
-        case .warm:         return [.orange.opacity(0.6), .red.opacity(0.4)]
-        }
-    }
-
-    private static func placeholderGradient(style sf: StyleFilter) -> [Color] {
-        switch sf {
-        case .none:       return [.gray.opacity(0.3)]
-        case .toon:       return [.purple.opacity(0.6), .pink.opacity(0.4)]
-        case .sketch:     return [.gray.opacity(0.7), .gray.opacity(0.3)]
-        case .posterize:  return [.purple, .orange]
-        case .emboss:     return [.brown.opacity(0.5), .gray.opacity(0.6)]
-        case .crosshatch: return [.gray.opacity(0.6), .black.opacity(0.5)]
-        }
     }
 }
 
