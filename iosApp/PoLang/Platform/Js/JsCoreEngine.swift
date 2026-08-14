@@ -29,12 +29,17 @@ final class JsCoreEngine: NSObject, JsEngine, JsClosable {
     private let tag = "PoLang:JsCore"
     private let virtualMachine = JSVirtualMachine()
     private let context: JSContext
+    /// 最近一次 JS 异常描述。装了 exceptionHandler 后 JSCore **不会**再写 context.exception
+    /// （异常只交给 handler）——须自存，evalAsync 结尾读它上送脚本错误（否则异常被吞成 null）。
+    private var lastException: String?
 
     override init() {
         self.context = JSContext(virtualMachine: virtualMachine)
         super.init()
-        context.exceptionHandler = { [tag] _, exception in
-            NSLog("[%@] JS error: %@", tag, exception?.description ?? "unknown")
+        context.exceptionHandler = { [weak self] _, exception in
+            let desc = exception?.description ?? "unknown"
+            NSLog("[PoLang:JsCore] JS error: %@", desc)
+            self?.lastException = desc
         }
     }
 
@@ -50,16 +55,19 @@ final class JsCoreEngine: NSObject, JsEngine, JsClosable {
     }
 
     func evalAsync(code: String, timeoutMs: Int64) -> JsValue {
+        // 清掉历史异常（防上次 eval 的残留误报本次）。
+        lastException = nil
         // 第一段：包 async IIFE，.then 把 resolved/rejection 写入全局变量。
         context.evaluateScript(Self.asyncWrapperHead + code + Self.asyncWrapperTail)
         // 第二段：同步读回；rejection 转为 throw（暴露真实 JS 错误）。
         let settled = context.evaluateScript(Self.readAsyncResultJs)
-        // 脚本异常（含 rejection 转 throw、语法错误）被 JSCore 捕为 context.exception，
-        // evaluateScript 返回 nil。转可读错误串返回——与 Android「错误抛出→capability 捕获→
-        // 回传 LLM 文案」终态等价（iOS 桥不跨边界抛，故错误经结果字符串上送）。
-        if let exception = context.exception {
-            context.exception = nil
-            return JsValue.Str(value: "[脚本错误] \(exception.description ?? "unknown")")
+        // 脚本异常（含 rejection 转 throw、语法错误、ReferenceError）由 exceptionHandler 捕获
+        // 到 lastException（装了 handler 后 context.exception 恒空）。转可读错误串返回——
+        // 与 Android「错误抛出→capability 捕获→回传 LLM 文案」终态等价（iOS 桥不跨边界抛，
+        // 故错误经结果字符串上送）。
+        if let exception = lastException {
+            lastException = nil
+            return JsValue.Str(value: "[脚本错误] \(exception)")
         }
         return JsValueConverter.toJsValue(settled)
     }

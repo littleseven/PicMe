@@ -145,6 +145,40 @@ final class JsCoreEngineTest: XCTestCase {
         XCTAssertTrue(keys.contains("totalEmbeddings"))
         XCTAssertTrue(keys.contains("topPersons"))
     }
+
+    // MARK: - run_gallery_script 脚本产图（相册健康度报告场景）
+
+    /// 「相册健康度报告」形态脚本（多 handler await + return Chart.timeline）经 chat 沙盒：
+    /// Chart 全局须可用（chat_bootstrap 注入），SVG 经 ChartRendererBridge.onChart 渲染图卡，
+    /// summary（非 SVG/非报错）回传 LLM。对齐 Android onRunScript 图表拦截。
+    func testRunScriptChartReturn() {
+        let origOnChart = ChartRendererBridge.onChart
+        defer { ChartRendererBridge.onChart = origOnChart }
+        let chartExpectation = XCTestExpectation(description: "onChart called")
+        let resultExpectation = XCTestExpectation(description: "onResult called")
+        var gotSvg: String?
+        var gotResult = ""
+        ChartRendererBridge.onChart = { svg, _ in
+            gotSvg = svg
+            chartExpectation.fulfill()
+        }
+        RunScriptBridge.shared.runScript(code: """
+        const s = await bridge.callAsync('gallery.summary', {});
+        const t = await bridge.callAsync('tag.scan_status', {});
+        return Chart.timeline({
+          title: '相册健康度',
+          labels: ['已打标', '未打标'],
+          values: [s.labeledCount, s.unlabeledCount],
+        });
+        """) { result in
+            gotResult = result
+            resultExpectation.fulfill()
+        }
+        wait(for: [chartExpectation, resultExpectation], timeout: 10)
+        XCTAssertTrue(gotSvg?.contains("<svg") ?? false, "SVG 未经 onChart 渲染；result=\(gotResult)")
+        XCTAssertFalse(gotResult.contains("[脚本错误]"), "脚本报错（Chart 未注入？）：\(gotResult)")
+        XCTAssertFalse(gotResult.contains("<svg"), "应回传 summary 而非 SVG 本体：\(gotResult)")
+    }
 }
 
 /// 测试用 echo handler：原样回传 args（验证 bridge 通路，不依赖相册数据）。
