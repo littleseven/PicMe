@@ -499,24 +499,26 @@ struct CameraPreviewView: View {
             .position(x: 16 + halfButton, y: safeTop + 8 + 52)
 
             // 右列：6 按钮按 dump y% 绝对定位
+            // 面板互斥(用户判定:两面板同显=错;此前 Pro+美颜 会垂直堆叠 85% 屏高):
+            // 开任一面板关 Pro,开 Pro 关其他
             rightColumnButton("wand.and.stars", y: yWand, isActive: activePanel == .beauty,
                               hasIndicator: container.beautyParams.whitening > 0 || container.beautyParams.smoothing > 0) {
-                withAnimation { activePanel = activePanel == .beauty ? nil : .beauty }
+                withAnimation { showProPanel = false; activePanel = activePanel == .beauty ? nil : .beauty }
             }
             rightColumnButton("aspectratio", y: yRatio, isActive: activePanel == .ratio) {
-                withAnimation { activePanel = activePanel == .ratio ? nil : .ratio }
+                withAnimation { showProPanel = false; activePanel = activePanel == .ratio ? nil : .ratio }
             }
             rightColumnButton("square.grid.3x3", y: yGrid, isActive: activePanel == .grid) {
-                withAnimation { activePanel = activePanel == .grid ? nil : .grid }
+                withAnimation { showProPanel = false; activePanel = activePanel == .grid ? nil : .grid }
             }
             rightColumnButton("mountain.2", y: yScene, isActive: activePanel == .scene) {
-                withAnimation { activePanel = activePanel == .scene ? nil : .scene }
+                withAnimation { showProPanel = false; activePanel = activePanel == .scene ? nil : .scene }
             }
             rightColumnButton("circle.lefthalf.filled", y: yFilter, isActive: activePanel == .filter) {
-                withAnimation { activePanel = activePanel == .filter ? nil : .filter }
+                withAnimation { showProPanel = false; activePanel = activePanel == .filter ? nil : .filter }
             }
             rightColumnButton("slider.horizontal.3", y: yTune, isActive: showProPanel) {
-                withAnimation { showProPanel.toggle() }
+                withAnimation { activePanel = nil; showProPanel.toggle() }
             }
         }
         .frame(width: UIScreen.main.bounds.width, height: screenHeight, alignment: .topLeading)
