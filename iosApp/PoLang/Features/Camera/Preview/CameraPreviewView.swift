@@ -411,7 +411,8 @@ struct CameraPreviewView: View {
                         BeautyPanelView(params: $container.beautyParams)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     case .filter:
-                        ControlPanel {
+                        // 高度锚 Android 实测 ~38% ≈ filterSelectorHeight token(280)
+                        ControlPanel(maxHeight: CameraTokens.filterSelectorHeight) {
                             FilterSelectorView(selectedFilter: $container.beautyParams.colorFilter)
                         }
                         .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -627,7 +628,11 @@ struct CameraPreviewView: View {
 
 private struct ControlPanel<Content: View>: View {
     var onDismiss: (() -> Void)? = nil
+    // 高度上限:默认半屏 50%;filter 传 CameraTokens.filterSelectorHeight(280,Android 实测≈38%)
+    var maxHeight: CGFloat? = nil
     @ViewBuilder let content: () -> Content
+
+    private var cap: CGFloat { maxHeight ?? UIScreen.main.bounds.height * 0.5 }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -635,7 +640,7 @@ private struct ControlPanel<Content: View>: View {
             LinearGradient(colors: [.clear, .black.opacity(0.55), .black.opacity(0.82)],
                            startPoint: .top, endPoint: .bottom)
                 .frame(maxWidth: .infinity)
-                .frame(height: UIScreen.main.bounds.height * 0.5 + 24)
+                .frame(height: cap + 24)
                 .allowsHitTesting(false)
             VStack(spacing: 0) {
                 // 拖拽手柄 36×4（onSurface alpha 0.2）；可点关闭
@@ -643,13 +648,13 @@ private struct ControlPanel<Content: View>: View {
                     .frame(width: 36, height: 4)
                     .padding(.top, 10).padding(.bottom, 4)
                     .onTapGesture { onDismiss?() }
-                // 内容自适应高度（maxHeight 上限 50%，非 ScrollView 强制占满；对标 Android heightIn(max)）
+                // 内容自适应高度（maxHeight 上限，非 ScrollView 强制占满；对标 Android heightIn(max)）
                 content()
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 24).padding(.vertical, 12)
             }
             .frame(maxWidth: .infinity)
-            .frame(maxHeight: UIScreen.main.bounds.height * 0.5, alignment: .top)
+            .frame(maxHeight: cap, alignment: .top)
             .background(RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(Color(red: 0.11, green: 0.10, blue: 0.12).opacity(0.95)))
             .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous)
