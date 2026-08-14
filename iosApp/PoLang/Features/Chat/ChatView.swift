@@ -258,6 +258,38 @@ struct ChatView: View {
                     .disabled(viewModel.isProcessing)
                     .accessibilityIdentifier("chat_gallery_capsule")
 
+                    // 模型胶囊（对齐 Android ModelSelector）：有用户配置(BYOK)时显示，下拉切模型
+                    if !ModelConfigStore.shared.configs.isEmpty {
+                        Menu {
+                            ForEach(ModelConfigStore.shared.configs, id: \.uniqueKey) { config in
+                                Button {
+                                    ModelConfigStore.shared.select(modelId: config.modelId)
+                                } label: {
+                                    HStack {
+                                        Text(config.modelId)
+                                        if config.modelId == ModelConfigStore.shared.selectedModelId {
+                                            Image(systemName: "checkmark")
+                                        }
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Circle().fill(Color.accentColor).frame(width: 8, height: 8)
+                                Text(ModelConfigStore.shared.selectedDisplayName)
+                                    .font(.system(size: 12))
+                                    .lineLimit(1)
+                                Image(systemName: "chevron.down").font(.system(size: 10))
+                            }
+                            .foregroundColor(Color(.label).opacity(0.7))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color(.secondarySystemBackground).opacity(ChatBubbleTokens.capsuleInactiveAlpha))
+                            .clipShape(RoundedRectangle(cornerRadius: ChatBubbleTokens.capsuleCornerRadius))
+                        }
+                        .accessibilityIdentifier("chat_model_capsule")
+                    }
+
                     Spacer()
 
                     // 语音切换按钮（常驻，圆形；对齐 Android voice_button。
@@ -599,6 +631,9 @@ private struct MediaThumbnail: View {
     let localIdentifier: String?
     let date: Date?
     @State private var image: UIImage?
+    /// 媒体反馈（对齐 Android FeedbackIconButton 👍👎🔄；本批本地态选中，上报/持久留后续）
+    enum FeedbackType: Hashable { case thumbUp, thumbDown, refresh }
+    @State private var feedback: FeedbackType?
 
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -635,10 +670,36 @@ private struct MediaThumbnail: View {
                     )
             }
         }
+        .overlay(alignment: .topTrailing) { mediaFeedbackButtons }
         .task(id: localIdentifier) {
             guard let localIdentifier, image == nil else { return }
             image = await ThumbnailLoader.shared.thumbnail(
                 for: localIdentifier, size: CGSize(width: 360, height: 450))
+        }
+    }
+
+    private var mediaFeedbackButtons: some View {
+        HStack(spacing: 6) {
+            ForEach([FeedbackType.thumbUp, .thumbDown, .refresh], id: \.self) { t in
+                Button { feedback = (feedback == t ? nil : t) } label: {
+                    Image(systemName: Self.iconName(t))
+                        .font(.system(size: 11))
+                        .foregroundColor(feedback == t ? .accentColor : .white)
+                }
+                .accessibilityIdentifier("chat_media_feedback_\(t == .thumbUp ? "up" : t == .thumbDown ? "down" : "refresh")")
+            }
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(Capsule().fill(Color.black.opacity(0.45)))
+        .padding(4)
+    }
+
+    private static func iconName(_ t: FeedbackType) -> String {
+        switch t {
+        case .thumbUp: return "hand.thumbsup.fill"
+        case .thumbDown: return "hand.thumbsdown.fill"
+        case .refresh: return "arrow.clockwise"
         }
     }
 }
