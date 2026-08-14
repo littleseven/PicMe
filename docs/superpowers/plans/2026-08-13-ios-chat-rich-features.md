@@ -12,6 +12,24 @@
 
 ---
 
+## 执行进展（2026-08-14，分支 `feat/ios-chat-rich-features`）
+
+**已完成（7 commit，全程编译绿）**：
+- Task 1a commonMain 下沉（ChatMessageType + StreamingPacingController + MarkdownSegmenter + commonTest 19 用例 + 纯度门）
+- Task 2a Android 改引用（删本地重复 + import/`AgentSegmentType`→`SegmentType` 同步 + chat 单测绿）
+- shared-fix：`@Volatile` 移除（commonMain 跨平台）+ iosMain `createStreamingPacingController` 工厂
+- Task 5 iOS 流式节奏器接入（逐字吐 50ms/字 + 光标内联右侧 + showCursor 驱动）
+- Task 6 iOS Markdown 富渲染（AgentTextView 分段：表格网格 + 代码块折叠/复制）
+- Task 8 媒体反馈 👍👎🔄（MediaThumbnail 本地态）+ 模型胶囊（inputBar Menu 读 ModelConfigStore）
+- Task 9 键盘避让（已 done `d56fb3f3`）
+
+**留下一单元（高复杂度 / 需决策）**：
+- **Task 1b ChatMessage 全字段下沉**：子类型 `OptimizeCandidateGroup`/`ClaudeAgentState` 含 `org.json`，需剥离 toJson（移平台层）才能进 commonMain——剥离范围待定。当前 Android `ChatMessageUi` 保留本地强类型未动（避免渲染断链）。
+- **Task 4/7 CHART + JS 沙盒**：`JsCoreEngine`（Kotlin iosMain interop JavaScriptCore）+ `JsValueConverter` + gallery native handlers + `ChartSvgCard`（WKWebView）+ ChatRunScriptCapability iOS 接入。难点：`installBridge` 的 ObjC block 桥接（`__bridgeCall`/`__bridgeCallAsync`）、Promise 两段式、JSValue 递归转换。eval-only 半成品无法跑 CHART（必须完整 bridge）。
+- **Task 3** iOS 模型接入 commonMain（依赖 1b）
+
+---
+
 ## File Structure（文件职责映射）
 
 ### commonMain 新增（`shared/src/commonMain/kotlin/com/mamba/picme/domain/chat/`）
