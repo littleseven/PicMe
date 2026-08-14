@@ -37,14 +37,16 @@
 
 **留下一单元（高复杂度 / 需决策）**：
 - ~~**Task 1b ChatMessage 全字段下沉**~~ **✅ 完成（commit 64d3b70a）**：全字段 + 子类型下沉 commonMain `domain.chat`；org.json 序列化剥离到 androidApp 扩展（ChatModelCommonMainShim）；timestamp 用 expect/actual `nowEpochMillis()`（androidMain/iosMain）；androidApp typealias ChatMessageUi + 直接 import 子类型零语义改动。Android 编译+chat 单测+ktlint+我的文件 detekt 零违规 + commonMain 纯度门 + iosArm64 编译全过。iOS 暂未消费（Swift 原生 ChatMessage）。
-- **Task 4 run_gallery_script（JS 沙盒）—— Tier 1（沙盒基建 + 3 盘点 handler）✅ 实现（编译绿 + 真机单测 4/4 通过）**：CHART 渲染已端侧化，故 Task 4 聚焦 `run_gallery_script`。Tier 1 交付：
+- **Task 4 run_gallery_script（JS 沙盒）—— Tier 1+2 ✅ 实现（编译绿 + 真机单测 7/7 通过）**：CHART 渲染已端侧化，故 Task 4 聚焦 `run_gallery_script`。
+  - **Tier 1（沙盒基建 + 3 盘点 handler）✅**（commit 27c3d58a）：
   - **Swift 基建**：`Platform/Js/JsValueConverter.swift`（JSValue↔commonMain `JsValue`；CFBoolean 识别 bool）；`JsCoreEngine.swift`（JavaScriptCore 实现 `JsEngine`+`JsClosable`）。
   - **JSCore async 解法（核心）**：JSCore `evaluateScript` 不能像 QuickJS pump pending job / 中断 C 死循环。解法：`__bridgeCallAsync` block 内 `DispatchSemaphore` **同步等** handler 完成，返回**已 settle 的 Promise**——JS 侧 `await` 立即 resolve，整条 async IIFE 在一次 `evaluateScript` 内同步跑完，QuickJS 的 `ASYNC_WRAPPER`/`READ_ASYNC_RESULT` 两段式 JS **原样复用**。死锁前提：JsRuntime scope 用 `Dispatchers.Default`（≠ evalAsync 线程）。evalAsync 把脚本异常（含 rejection 转 throw）转可读串返回（与 Android「抛出→capability 捕获→回传 LLM 文案」终态等价）。
   - **iosMain**：`IosRunScriptBridge`（Swift→Kotlin 桥协议）+ `IosRunScriptCapability`（`run_gallery_script` 执行端，镜像 IosChartCapability）+ `IosJsRuntimeSupport.createIosJsRuntime`（后台 scope 工厂）。`ChatAgentBridge.dispatchRunScript`（确定性全链路测试）。
   - **gallery 只读 handler（3/12）**：`gallery.summary`（ScanDbStats+mediaTypeCounts）、`gallery.tags`（tags 表+cross_ref 聚合，新 `TagDatabase+GalleryJs`）、`tag.scan_status`（TagScanOrchestrator.currentProgress）。Swift `NativeHandlerAsync`（SKIE 重写为 `__invoke(args:completionHandler:)`）。
   - **接线**：`RunScriptBridge`（懒建 JsRuntime+注册 handler）→ `AppContainer` → `IosAgentComposition.initialize(runScriptBridge:)` 注册 `IosRunScriptCapability`。
   - **K/N 互操作坑（记录）**：① SKIE 把 Kotlin `suspend invoke` 重写为 Swift 协议方法 **`__invoke`**（双下划线），非 `invoke`；② `JsValue` 子类 Swift 名是**嵌套点号** `JsValue.Num/Str/Bool/Obj/Arr/Null`（非 `JsValueNum`）——header `swift_name("JsValue.Num")`；③ 大字典字面量致 Swift 类型检查器超时→级联 "cannot find" 假错误，须逐项赋值拆开。
-  - **剩余 Tier 2/3**：query/meta/timeline/intersect/stats_by_*/face.cluster/tag.audit（只读）+ capability.dispatch 写操作（删除/收藏/选中/记忆/人物关系）需用户确认弹窗。CHART 已不需 JS 沙盒。
+  - **Tier 2（query/meta/batch_meta/stats_by_tag 只读 handler）✅**（commit 待补）：`TagDatabase+GalleryJs` 加 `MediaDbRow`（白名单，无 uri/gps/ocrText/embedding）+ `mediaRow/mediaRows/personMediaIds/queryMediaIds(参数化动态 SQL，filter 值来自 LLM JS 防注入)/tagsByFilter`；Swift `parseQueryFilter`（移植）+ 4 handler。gallery.query 用单条动态 WHERE（多维 AND，对齐 Android applyFilter 语义），person 先独立 queue.sync 解析（避免串行队列重入死锁）。`gallery.tags`/`stats_by_tag` 形状对齐 Android 扁平 `{tag:count}`。纯 Swift（无 Kotlin 改动→免重编框架）。
+  - **剩余 Tier 3**：gallery.timeline/intersect/stats_by_city + face.cluster/tag.audit（只读）+ capability.dispatch 写操作（删除/收藏/选中/记忆/人物关系）需用户确认弹窗。CHART 已不需 JS 沙盒。
 - ~~**Task 1b ChatMessage 全字段下沉**~~ **✅ 完成（commit 64d3b70a）**：全字段 + 子类型下沉 commonMain `domain.chat`；org.json 序列化剥离到 androidApp 扩展（ChatModelCommonMainShim）；timestamp 用 expect/actual `nowEpochMillis()`（androidMain/iosMain）；androidApp typealias ChatMessageUi + 直接 import 子类型零语义改动。Android 编译+chat 单测+ktlint+我的文件 detekt 零违规 + commonMain 纯度门 + iosArm64 编译全过。iOS 暂未消费（Swift 原生 ChatMessage）。
 - **Task 3** iOS 模型接入 commonMain（1b 已完成，可做；但 iOS 暂未消费 commonMain 消息模型，价值待 iOS 迁移消费时兑现）
 - **Task 3** iOS 模型接入 commonMain（1b 已完成，可做；但 iOS 暂未消费 commonMain 消息模型，价值待 iOS 迁移消费时兑现）

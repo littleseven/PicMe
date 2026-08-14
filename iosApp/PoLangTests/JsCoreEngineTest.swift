@@ -63,6 +63,39 @@ final class JsCoreEngineTest: XCTestCase {
         XCTAssertTrue(keys.contains("isScanning"), "缺 isScanning")
         XCTAssertTrue(keys.contains("recommendation"), "缺 recommendation")
     }
+
+    // MARK: - Tier 2：query / meta / parseQueryFilter
+
+    /// parseQueryFilter：JS filter 对象 → GalleryQueryFilter（字段映射 + 默认 limit）。
+    func testParseQueryFilter() {
+        let filter = GalleryScriptHandlers.parseQueryFilter(
+            JsValue.Obj(entries: [
+                "label": JsValue.Str(value: "猫"),
+                "hasFace": JsValue.Bool(value: true),
+                "limit": JsValue.Num(value: 10),
+            ])
+        )
+        XCTAssertEqual(filter.label, "猫")
+        XCTAssertEqual(filter.hasFace, true)
+        XCTAssertEqual(filter.limit, 10)
+        XCTAssertNil(filter.ocr)
+    }
+
+    /// gallery.query 结果形状：{ids: Arr, total: Num}（确定性，不依赖相册内容）。
+    func testGalleryQueryShape() {
+        let result = GalleryScriptHandlers.buildQueryResult(filter: GalleryQueryFilter())
+        guard let object = result as? JsValue.Obj else {
+            XCTFail("gallery.query 应返回 Obj，got \(type(of: result))")
+            return
+        }
+        XCTAssertNotNil(object.entries["ids"], "缺 ids")
+        XCTAssertNotNil(object.entries["total"], "缺 total")
+    }
+
+    /// media.meta 缺失 id → 无行（handler 据此返回 null）。
+    func testMediaMetaMissing() {
+        XCTAssertNil(TagDatabase.shared.mediaRow(id: -1), "id=-1 不应命中任何媒体")
+    }
 }
 
 /// 测试用 echo handler：原样回传 args（验证 bridge 通路，不依赖相册数据）。
