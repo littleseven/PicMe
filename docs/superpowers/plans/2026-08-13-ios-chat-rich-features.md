@@ -36,9 +36,9 @@
 - **K/N 互操作坑**：`List<Double>` 经 K/N 导出为 `[KotlinDouble]`（NSNumber 子类，apinotes 映射 `SharedKitDouble`→`KotlinDouble`，`.doubleValue` 取值）；Swift→Kotlin 方向传数值列表用 CSV 字符串规避 boxing（`dispatchDrawChart` 用 `valuesCsv`）。SharedKit 改 Kotlin 后增量构建 clang 模块缓存陈旧（Swift 找不到新符号）——**清 derivedData 全量重建**可解（`touch .shared-kit-hash` 跳过伎俩勿用于改了 Kotlin 的场景）。
 
 **留下一单元（高复杂度 / 需决策）**：
-- **Task 1b ChatMessage 全字段下沉**：子类型 `OptimizeCandidateGroup`/`ClaudeAgentState` 含 `org.json`，需剥离 toJson（移平台层）才能进 commonMain——剥离范围待定。当前 Android `ChatMessageUi` 保留本地强类型未动（避免渲染断链）。
+- ~~**Task 1b ChatMessage 全字段下沉**~~ **✅ 完成（commit 64d3b70a）**：全字段 + 子类型下沉 commonMain `domain.chat`；org.json 序列化剥离到 androidApp 扩展（ChatModelCommonMainShim）；timestamp 用 expect/actual `nowEpochMillis()`（androidMain/iosMain）；androidApp typealias ChatMessageUi + 直接 import 子类型零语义改动。Android 编译+chat 单测+ktlint+我的文件 detekt 零违规 + commonMain 纯度门 + iosArm64 编译全过。iOS 暂未消费（Swift 原生 ChatMessage）。
 - **Task 4 run_gallery_script（JS 沙盒完整）**：CHART 渲染已端侧化（不需 JS 沙盒 gallery handler）；剩余 `run_gallery_script` 才需完整 JS 沙盒（`JsCoreEngine` installBridge ObjC block 桥接 + Promise + JSValue 转换 + gallery native handlers）。本批 CHART 已接通，run_gallery_script 留后续。
-- **Task 3** iOS 模型接入 commonMain（依赖 1b）
+- **Task 3** iOS 模型接入 commonMain（1b 已完成，可做；但 iOS 暂未消费 commonMain 消息模型，价值待 iOS 迁移消费时兑现）
 
 ---
 
