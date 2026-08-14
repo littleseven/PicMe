@@ -94,6 +94,12 @@ final class ChatViewModel: ObservableObject {
     func send(_ input: String) {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
 
+        // CHART 渲染 demo（手动触发验证 ChartJsEngine+ChartSvgCard；LLM draw_chart capability 接入留后续）
+        if trimmed.lowercased().hasPrefix("/chart") {
+            emitChartDemo()
+            return
+        }
+
         // EDIT 意图：有暂存图 → 跳编辑器（对齐 Android EDIT，不发推理）
         if let staged = stagedImage, stagedIntent == .edit {
             onEditImage?(staged.localIdentifier)
@@ -349,6 +355,20 @@ final class ChatViewModel: ObservableObject {
             cleaned = String(cleaned.prefix(20)).trimmingCharacters(in: trimChars) + "…"
         }
         return cleaned.isEmpty ? fallback : cleaned
+    }
+
+    // MARK: - CHART demo（手动触发；LLM draw_chart capability 接入后移除）
+
+    /// 手动触发一张示例图，验证 ChartJsEngine(JSCore+chart_bootstrap.js) → ChartSvgCard 端到端。
+    private func emitChartDemo() {
+        guard let r = ChartJsEngine.render(
+            type: "bar", title: "Chart Demo",
+            labels: ["A", "B", "C", "D"], values: [3, 7, 2, 5], unit: nil
+        ) else { return }
+        var msg = ChatMessage(role: .assistant, text: r.summary)
+        msg.chartSvg = r.svg
+        messages.append(msg)
+        persist()
     }
 
     // MARK: - Persistence

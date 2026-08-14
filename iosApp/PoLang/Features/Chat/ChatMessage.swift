@@ -19,6 +19,8 @@ struct ChatMessage: Identifiable, Codable {
     var mediaTotalCount: Int?   // 媒体结果全量命中数（> mediaIds.count 时显示「查看全部」）
     /// 流式光标可见性（commonMain StreamingPacingController 驱动；不持久化——CodingKeys 排除，老数据兼容）
     var showCursor: Bool = false
+    /// CHART 图卡 SVG（draw_chart 端侧 ChartJsEngine 生成；不持久化）
+    var chartSvg: String?
 
     enum CodingKeys: String, CodingKey {
         case id, role, text, timestamp, isStreaming, isThinking, isToolCalling

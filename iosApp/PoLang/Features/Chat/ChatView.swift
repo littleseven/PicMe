@@ -476,6 +476,13 @@ private struct MessageBubble: View {
                 UIPasteboard.general.string = message.text
             }
 
+            // CHART 图卡（draw_chart 端侧 JS 生成的 SVG，ChartJsEngine 渲染）
+            if let svg = message.chartSvg {
+                ChartSvgCard(svg: svg)
+                    .padding(.top, 6)
+                    .frame(maxWidth: ChatBubbleTokens.bubbleMaxWidth)
+            }
+
             if message.role == .assistant { Spacer(minLength: 40) }
         }
     }
