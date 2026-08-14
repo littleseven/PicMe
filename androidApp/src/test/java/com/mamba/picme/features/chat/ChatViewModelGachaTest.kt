@@ -1,5 +1,7 @@
 package com.mamba.picme.features.chat
 
+import com.mamba.picme.domain.chat.OptimizeCandidateGroup
+
 import com.mamba.picme.data.local.ChatMessageEntity
 import io.mockk.coEvery
 import io.mockk.coVerify

@@ -1,5 +1,7 @@
 package com.mamba.picme.features.chat
 
+import com.mamba.picme.domain.chat.OptimizeCandidateGroup
+
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.domain.agent.capability.optimize.analyzer.Scene
 import com.mamba.picme.domain.agent.capability.optimize.gacha.GachaResult

@@ -1,81 +1,10 @@
 package com.mamba.picme.features.chat
 
 import com.mamba.picme.data.remote.picme.ClaudeEvent
-import org.json.JSONArray
+import com.mamba.picme.domain.chat.ClaudeAgentState
+import com.mamba.picme.domain.chat.ClaudeStepStatus
+import com.mamba.picme.domain.chat.ClaudeStepUi
 import org.json.JSONObject
-
-/**
- * claude-tunnel agent 气泡的可变状态（spec §6 事件折叠产物，§7.4 渲染数据）。
- *
- * 纯 Kotlin 数据类型，便于单测与 Room 持久化（[toJson] / [fromJson]）。
- * UI（ChatScreen）把它挂到 [ChatMessageUi.claudeAgent] inline 渲染。
- *
- * @property text assistant_text delta 累积的流式文本。
- * @property steps tool_use↔tool_result 配对的步骤列表；file_change 也记为一步。
- * @property hasFileChange 是否出现过 file_change（决定是否显示「交付」按钮，§8）。
- * @property truncatedReason 截断原因（"max_turns"|"phase_timeout"）；null=未截断。置位后粘滞（只设不清）。
- */
-data class ClaudeAgentState(
-    val text: String = "",
-    val steps: List<ClaudeStepUi> = emptyList(),
-    val hasFileChange: Boolean = false,
-    val truncatedReason: String? = null,
-) {
-    /** 序列化为 Room metadata JSON（气泡跨重载/重启保留）。 */
-    fun toJson(): JSONObject {
-        val arr = JSONArray()
-        for (s in steps) {
-            arr.put(
-                JSONObject()
-                    .put("tool", s.tool)
-                    .put("status", s.status.name)
-                    .put("detail", s.detail),
-            )
-        }
-        return JSONObject()
-            .put("text", text)
-            .put("steps", arr)
-            .put("hasFileChange", hasFileChange)
-            .put("truncatedReason", truncatedReason ?: JSONObject.NULL)
-    }
-
-    companion object {
-        fun fromJson(obj: JSONObject): ClaudeAgentState {
-            val arr = obj.optJSONArray("steps")
-            val steps = mutableListOf<ClaudeStepUi>()
-            for (i in 0 until (arr?.length() ?: 0)) {
-                val s = arr!!.getJSONObject(i)
-                steps += ClaudeStepUi(
-                    tool = s.optString("tool"),
-                    status = runCatching { ClaudeStepStatus.valueOf(s.optString("status")) }
-                        .getOrDefault(ClaudeStepStatus.RUNNING),
-                    detail = s.optString("detail"),
-                )
-            }
-            return ClaudeAgentState(
-                text = obj.optString("text"),
-                steps = steps,
-                hasFileChange = obj.optBoolean("hasFileChange", false),
-                truncatedReason = if (obj.isNull("truncatedReason")) null else obj.optString("truncatedReason"),
-            )
-        }
-    }
-}
-
-/** agent 气泡里的一步（工具调用 / 文件改动）的状态。 */
-data class ClaudeStepUi(
-    val tool: String,
-    val status: ClaudeStepStatus,
-    val detail: String,
-)
-
-enum class ClaudeStepStatus { RUNNING, SUCCESS, FAILED }
-
-/**
- * claude 交付按钮状态。pending=true 显示按钮；交付完成后置 false。
- * gateway MVP 仅支持 push（§8 + README：pr/auto 二期）。
- */
-data class ClaudeDeliverUi(val sid: String, val pending: Boolean)
 
 /**
  * ClaudeEvent（spec §6）→ [ClaudeAgentState] 的有状态折叠器。
@@ -92,6 +21,9 @@ data class ClaudeDeliverUi(val sid: String, val pending: Boolean)
  * - [ClaudeEvent.ToolResult]：把最后一个 RUNNING 步骤改为 SUCCESS/FAILED + summary。
  * - [ClaudeEvent.FileChange]：追加一步（SUCCESS + "$action $path"）并置 hasFileChange=true。
  * - [ClaudeEvent.Error]：truncated 时置 truncatedReason（粘滞）；否则把 ⚠️ 提示追加到 [ClaudeAgentState.text]。
+ *
+ * 数据类（[ClaudeAgentState] / [ClaudeStepUi] / [ClaudeStepStatus]）已下沉 commonMain
+ * （`com.mamba.picme.domain.chat`）；org.json 序列化在 [ChatModelCommonMainShim] 扩展。
  */
 class ClaudeAgentRenderer {
     var state: ClaudeAgentState = ClaudeAgentState()

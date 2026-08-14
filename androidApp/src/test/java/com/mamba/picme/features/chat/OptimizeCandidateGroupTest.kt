@@ -1,5 +1,7 @@
 package com.mamba.picme.features.chat
 
+import com.mamba.picme.domain.chat.OptimizeCandidateGroup
+
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

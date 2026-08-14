@@ -1,5 +1,7 @@
 package com.mamba.picme.features.chat
 
+import com.mamba.picme.domain.chat.ClaudeStepStatus
+
 import com.mamba.picme.core.agenttools.AppTool
 import com.mamba.picme.core.agenttools.AppToolExecutor
 import com.mamba.picme.data.remote.picme.ClaudeChatClient

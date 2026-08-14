@@ -1,5 +1,7 @@
 package com.mamba.picme.features.chat
 
+import com.mamba.picme.domain.chat.MediaResultsUi
+
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.agent.core.model.context.MediaType
 import org.json.JSONArray

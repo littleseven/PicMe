@@ -1,5 +1,8 @@
 package com.mamba.picme.features.chat
 
+import com.mamba.picme.domain.chat.ClaudeAgentState
+import com.mamba.picme.domain.chat.ClaudeStepStatus
+
 import com.mamba.picme.data.remote.picme.ClaudeEvent
 import org.json.JSONObject
 import org.junit.Assert.assertEquals

@@ -4,6 +4,8 @@
 package com.mamba.picme.features.chat
 
 import com.mamba.picme.domain.chat.ChatMessageType
+import com.mamba.picme.domain.chat.ClaudeStepStatus
+import com.mamba.picme.domain.chat.ClaudeStepUi
 import com.mamba.picme.domain.chat.markdown.MarkdownTable
 import com.mamba.picme.domain.chat.markdown.SegmentType
 import com.mamba.picme.domain.chat.markdown.codeLineCount
@@ -167,7 +169,6 @@ import androidx.core.content.ContextCompat
 import android.Manifest
 import android.content.pm.PackageManager
 import com.mamba.picme.agent.core.model.context.MediaAsset
-import com.mamba.picme.agent.core.model.command.FeedbackAction
 import com.mamba.picme.features.chat.capability.ChatGallerySummaryCapability
 import com.mamba.picme.features.chat.capability.ChatRunScriptCapability
 import com.mamba.picme.features.chat.capability.ChatMediaWriteCapability
@@ -539,7 +540,8 @@ fun ChatScreen(
                                     }
                                 )
                             } else if (message.type == ChatMessageType.CHART && message.chartSvg != null) {
-                                ChartSvgCard(svg = message.chartSvg, onClick = { previewChartSvg = message.chartSvg })
+                                val chartSvg = message.chartSvg!!
+                                ChartSvgCard(svg = chartSvg, onClick = { previewChartSvg = chartSvg })
                             } else if (message.type == ChatMessageType.OPTIMIZE_CANDIDATES && message.optimizeCandidates != null) {
                                 val group = message.optimizeCandidates!!
                                 val selected = gachaSelections[message.id] ?: group.recommendedIndex
@@ -2291,19 +2293,6 @@ private fun ChatVoiceInputMode(
     }
 }
 
-/**
- * 本地 LLM 性能指标（展示用）
- */
-data class LlmPerformance(
-    val promptLen: Long,
-    val decodeLen: Long,
-    val prefillTimeMs: Long,
-    val decodeTimeMs: Long,
-    val prefillSpeed: Float,
-    val decodeSpeed: Float,
-    val usedSandbox: Boolean = false
-)
-
 /** 全屏预览态：携带保存所需的 messageId / 类型 / 已保存标记。 */
 /**
  * 聊天图片横滑预览状态：打开瞬间快照的翻页集合 + 初始页下标。
@@ -2352,52 +2341,9 @@ fun indexOfPage(pages: List<ImagePreviewPage>, messageId: String): Int {
     return if (i >= 0) i else 0
 }
 
-/**
- * 聊天消息 UI 数据类
- */
-data class ChatMessageUi(
-    val id: String,
-    val type: ChatMessageType,
-    val content: String,
-    val modelUsed: String? = null,
-    val timestamp: Long = System.currentTimeMillis(),
-    val performance: LlmPerformance? = null,
-    val mediaResults: MediaResultsUi? = null,
-    /** 图文混排（USER_IMAGE_TEXT）时携带的图片 uri；其余类型为 null。 */
-    val imageUri: String? = null,
-    /** CHART 类型：端侧 JS 生成的 SVG 字符串，由 AndroidSVG 渲染成图。 */
-    val chartSvg: String? = null,
-    /** agent_image / agent_edit_result 是否已保存到相册（来自 metadata.saved）。 */
-    val imageSaved: Boolean = false,
-    /** 流式输出中的瞬态消息（不落 Room）；UI 据此对未闭合表格做防抖动处理。 */
-    val isStreaming: Boolean = false,
-    /** 流式打字光标是否可见（由节奏器驱动：吐字中 true，停顿超时/完成 false）。 */
-    val showCursor: Boolean = false,
-    /** 思考中（首 token 到达前）：UI 显示三点 typing indicator 而非内容+光标。 */
-    val isThinking: Boolean = false,
-    /** claude-tunnel agent 气泡状态（文本流式 + 步骤列表 + 文件改动）；内嵌在消息气泡渲染。 */
-    val claudeAgent: ClaudeAgentState? = null,
-    /** claude agent 气泡的交付动作；非空且 pending=true 时渲染「交付」按钮（§8）。 */
-    val claudeDeliver: ClaudeDeliverUi? = null,
-    /** 抽卡候选卡组负载（OPTIMIZE_CANDIDATES 消息，来自 metadata JSON）。 */
-    val optimizeCandidates: OptimizeCandidateGroup? = null,
-    /** 卡条是否可交互（controller 内存态仍有 pending；进程重建后降级只读）。 */
-    val gachaInteractive: Boolean = false,
-)
-
-// ChatMessageType 已下沉 commonMain（com.mamba.picme.domain.chat.ChatMessageType），本文件顶部 import 引用。
-
-/**
- * 相册搜索结果 carousel 的 UI 数据。
- * assets 已截到展示上限（20）；totalCount 为全量命中数。
- */
-data class MediaResultsUi(
-    val query: String,
-    val assets: List<MediaAsset>,
-    val totalCount: Int,
-    val isRefinement: Boolean,
-    val feedbackState: Map<String, FeedbackAction> = emptyMap()
-)
+// ChatMessageUi（→ typealias commonMain ChatMessage）/ ClaudeAgentState / OptimizeCandidateGroup /
+// LlmPerformance / MediaResultsUi / ClaudeDeliverUi / ClaudeStepUi 等已下沉 commonMain
+// （com.mamba.picme.domain.chat）；本文件经 ChatModelCommonMainShim typealias + 顶部 import 引用。
 
 /**
  * 模型选项（chat 页仅远程：端侧文本 LLM 已移除，仅保留 Remote）

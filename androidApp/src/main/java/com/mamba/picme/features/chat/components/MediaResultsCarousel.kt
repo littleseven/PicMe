@@ -2,6 +2,7 @@
 
 package com.mamba.picme.features.chat.components
 
+import com.mamba.picme.domain.chat.MediaResultsUi
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -47,7 +48,6 @@ import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.agent.core.model.command.FeedbackAction
 import com.mamba.picme.core.image.faceAwareVerticalAlignment
-import com.mamba.picme.features.chat.MediaResultsUi
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

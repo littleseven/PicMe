@@ -1,5 +1,11 @@
 package com.mamba.picme.features.chat
 
+import com.mamba.picme.domain.chat.ClaudeAgentState
+import com.mamba.picme.domain.chat.ClaudeDeliverUi
+import com.mamba.picme.domain.chat.LlmPerformance
+import com.mamba.picme.domain.chat.MediaResultsUi
+import com.mamba.picme.domain.chat.OptimizeCandidateGroup
+
 import android.content.Context
 import android.net.Uri
 import androidx.annotation.VisibleForTesting

@@ -31,7 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.mamba.picme.R
-import com.mamba.picme.features.chat.OptimizeCandidateGroup
+import com.mamba.picme.domain.chat.OptimizeCandidateGroup
 
 /**
  * chat 对话内的 AI 优化候选卡条（spec §3.2）。
