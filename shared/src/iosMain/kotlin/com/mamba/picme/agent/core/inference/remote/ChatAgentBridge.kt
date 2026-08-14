@@ -161,6 +161,46 @@ class ChatAgentBridge(
     }
 
     /**
+     * 调试触发：直接经 [CapabilityRegistry] 派发 [AgentCommand.ExecuteScript]（绕过远程 LLM），
+     * 跑通完整触发链（IosRunScriptCapability → IosRunScriptBridge → JsRuntime+JsCoreEngine → gallery handler）。
+     *
+     * 用于确定性验证 run_gallery_script 接线（不依赖访客模型是否真正发起 tool_call）。
+     * 脚本结果（JSON 文本）经 [onComplete] 回传，作为普通 agent 文本消息展示。
+     */
+    fun dispatchRunScript(
+        code: String,
+        onComplete: (result: String, errorMessage: String?) -> Unit
+    ) {
+        bridgeScope.launch {
+            try {
+                val command = AgentCommand.ExecuteScript(code = code)
+                val context = AgentContext(scene = AgentScene.CHAT, memorySessionId = sessionId)
+                val result = withTimeout(DISPATCH_TIMEOUT_MS) {
+                    CapabilityRegistry.getInstance().dispatch(command, context, null)
+                }
+                result.fold(
+                    onSuccess = { action ->
+                        val text = (action as? AgentAction.TextReply)?.message ?: "脚本执行完成"
+                        onComplete(text, null)
+                    },
+                    onFailure = { e ->
+                        Logger.w(tag, "dispatchRunScript failed: ${e.message}")
+                        onComplete("", e.message ?: "dispatch failed")
+                    }
+                )
+            } catch (e: TimeoutCancellationException) {
+                Logger.w(tag, "dispatchRunScript timed out")
+                onComplete("", "dispatch timed out")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                Logger.w(tag, "dispatchRunScript exception", e)
+                onComplete("", e.message ?: "未知错误")
+            }
+        }
+    }
+
+    /**
      * 清空指定会话的对话记忆（Koog koog_memory_<sessionId> 键空间）。返回 void。
      * 显式 sessionId 参数：删除非当前会话时也能清其记忆（K/N 不导出默认参数）。
      */

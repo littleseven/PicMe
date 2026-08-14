@@ -3,6 +3,7 @@ package com.mamba.picme.agent
 import ai.koog.agents.core.tools.ToolRegistry
 import com.mamba.picme.agent.core.capability.IosChartCapability
 import com.mamba.picme.agent.core.capability.IosChatGalleryCapability
+import com.mamba.picme.agent.core.capability.IosRunScriptCapability
 import com.mamba.picme.agent.core.facade.AgentDependencies
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.inference.local.IosUnavailableImageInferenceEngine
@@ -17,6 +18,7 @@ import com.mamba.picme.data.IosChartBridge
 import com.mamba.picme.data.IosChatSearchBridge
 import com.mamba.picme.data.IosMediaRepository
 import com.mamba.picme.data.IosMediaRepositoryBridge
+import com.mamba.picme.data.IosRunScriptBridge
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
@@ -73,12 +75,15 @@ object IosAgentComposition {
      *                     chat 搜索保持文件名匹配降级（防御路径，契约 §9）
      * @param chartBridge Swift 侧图表渲染桥（ChartRendererBridge → ChartJsEngine）；null 时
      *                   draw_chart 命令不可用（IosChartCapability.isAvailable=false）
+     * @param runScriptBridge Swift 侧脚本执行桥（RunScriptBridge → JsRuntime+JsCoreEngine）；null 时
+     *                        run_gallery_script 命令不可用（IosRunScriptCapability.isAvailable=false）
      */
     fun initialize(
         bridge: IosMediaRepositoryBridge,
         deviceId: String,
         searchBridge: IosChatSearchBridge? = null,
-        chartBridge: IosChartBridge? = null
+        chartBridge: IosChartBridge? = null,
+        runScriptBridge: IosRunScriptBridge? = null
     ) {
         if (!initialized.compareAndSet(false, true)) {
             Logger.w(TAG, "initialize called twice, skipping")
@@ -122,6 +127,9 @@ object IosAgentComposition {
 
         // 注册 iOS chat 图表能力（draw_chart 执行端 → ChartJsEngine 端侧渲染）
         orchestrator.registerCapability(IosChartCapability(chartBridge))
+
+        // 注册 iOS chat 脚本能力（run_gallery_script 执行端 → JsRuntime+JsCoreEngine 端侧沙箱）
+        orchestrator.registerCapability(IosRunScriptCapability(runScriptBridge))
 
         // 创建 chat 桥
         chatBridge = ChatAgentBridge(orchestrator)

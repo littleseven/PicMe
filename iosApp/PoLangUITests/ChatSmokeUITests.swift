@@ -214,6 +214,37 @@ final class ChatSmokeUITests: XCTestCase {
         )
     }
 
+    /// run_gallery_script 触发链 E2E（Task 4，确定性）：/runscript → ChatAgentBridge.dispatchRunScript →
+    /// CapabilityRegistry → IosRunScriptCapability → RunScriptBridge → JsRuntime+JsCoreEngine → gallery.summary。
+    /// 绕过远程 LLM，确定性验证 run_gallery_script 接线 + 端侧 JS 沙盒 + gallery 只读 handler。
+    func testRunScriptDemo() throws {
+        navigateToChat()
+
+        let input = app.textFields["chat_input"].exists
+            ? app.textFields["chat_input"]
+            : app.textViews["chat_input"]
+        XCTAssertTrue(input.waitForExistence(timeout: 12), "chat_input 未找到")
+        input.tap()
+        input.typeText("/runscript")
+        tapSend()
+
+        // 派发 + 端侧脚本执行（gallery.summary handler + JsCoreEngine 沙箱），~5s 足够
+        let resultText = app.staticTexts
+            .containing(NSPredicate(format: "label CONTAINS %@", "相册共")).firstMatch
+        let appeared = resultText.waitForExistence(timeout: 15)
+
+        let screenshot = XCUIScreen.main.screenshot()
+        let attachment = XCTAttachment(screenshot: screenshot)
+        attachment.name = appeared ? "runscript_PASS" : "runscript_FAIL"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+
+        XCTAssertTrue(
+            appeared,
+            "❌ /runscript 触发链未产出盘点文案（IosRunScriptCapability/RunScriptBridge/JsCoreEngine/gallery.summary 接线断）"
+        )
+    }
+
     // MARK: - Helpers
 
     private func navigateToChat() {

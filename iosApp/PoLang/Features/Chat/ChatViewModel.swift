@@ -110,6 +110,13 @@ final class ChatViewModel: ObservableObject {
             return
         }
 
+        // run_gallery_script 触发链 demo：经 CapabilityRegistry 派发 ExecuteScript（确定性验证
+        // IosRunScriptCapability → RunScriptBridge → JsRuntime+JsCoreEngine → gallery handler）
+        if trimmed.lowercased() == "/runscript" {
+            emitRunScriptDemo()
+            return
+        }
+
         // EDIT 意图：有暂存图 → 跳编辑器（对齐 Android EDIT，不发推理）
         if let staged = stagedImage, stagedIntent == .edit {
             onEditImage?(staged.localIdentifier)
@@ -401,6 +408,33 @@ final class ChatViewModel: ObservableObject {
                 self.messages.append(
                     ChatMessage(role: .assistant, text: "图表生成失败：\(errorMessage)", error: errorMessage)
                 )
+                self.persist()
+            }
+        }
+    }
+
+    // MARK: - run_gallery_script（LLM run_gallery_script → JsRuntime 端侧沙箱 + 确定性 demo）
+
+    /// /runscript：经 CapabilityRegistry 派发 ExecuteScript，跑通 run_gallery_script 完整触发链（不依赖 LLM）。
+    /// 脚本 `await bridge.callAsync('gallery.summary')` 取相册盘点并组合成可读文案，return 后作为 agent 文本消息追加。
+    private func emitRunScriptDemo() {
+        guard let bridge else { return }
+        // JS：${...} 是 JS 模板插值（非 Swift \( )，原样透传给 JsCoreEngine。
+        let script = """
+        const s = await bridge.callAsync('gallery.summary', {});
+        return `相册共 ${s.totalMedia} 个媒体（照片 ${s.totalPhotos}、视频 ${s.totalVideos}）；` +
+          `已打标 ${s.labeledCount}，未打标 ${s.unlabeledCount}；人物聚类 ${s.personClusterCount}（已命名 ${s.namedPersonCount}）。`;
+        """
+        bridge.dispatchRunScript(code: script) { [weak self] result, errorMessage in
+            Task { @MainActor in
+                guard let self else { return }
+                if let errorMessage, !errorMessage.isEmpty {
+                    self.messages.append(
+                        ChatMessage(role: .assistant, text: "脚本执行失败：\(errorMessage)", error: errorMessage)
+                    )
+                } else {
+                    self.messages.append(ChatMessage(role: .assistant, text: result))
+                }
                 self.persist()
             }
         }
