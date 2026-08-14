@@ -1,6 +1,7 @@
 package com.mamba.picme.agent
 
 import ai.koog.agents.core.tools.ToolRegistry
+import com.mamba.picme.agent.core.capability.IosChartCapability
 import com.mamba.picme.agent.core.capability.IosChatGalleryCapability
 import com.mamba.picme.agent.core.facade.AgentDependencies
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
@@ -12,6 +13,7 @@ import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.platform.storage.ChatHistoryCleaner
 import com.mamba.picme.agent.core.platform.thread.DispatcherProvider
 import com.mamba.picme.agent.core.runtime.state.SceneManager
+import com.mamba.picme.data.IosChartBridge
 import com.mamba.picme.data.IosChatSearchBridge
 import com.mamba.picme.data.IosMediaRepository
 import com.mamba.picme.data.IosMediaRepositoryBridge
@@ -69,11 +71,14 @@ object IosAgentComposition {
      * @param deviceId 设备标识（identifierForVendor + UserDefaults 持久化），作访客 X-Device-Id
      * @param searchBridge Swift 侧搜索引擎桥（PhSearchBridge → MediaSearchEngine）；null 时
      *                     chat 搜索保持文件名匹配降级（防御路径，契约 §9）
+     * @param chartBridge Swift 侧图表渲染桥（ChartRendererBridge → ChartJsEngine）；null 时
+     *                   draw_chart 命令不可用（IosChartCapability.isAvailable=false）
      */
     fun initialize(
         bridge: IosMediaRepositoryBridge,
         deviceId: String,
-        searchBridge: IosChatSearchBridge? = null
+        searchBridge: IosChatSearchBridge? = null,
+        chartBridge: IosChartBridge? = null
     ) {
         if (!initialized.compareAndSet(false, true)) {
             Logger.w(TAG, "initialize called twice, skipping")
@@ -114,6 +119,9 @@ object IosAgentComposition {
 
         // 注册 iOS chat 相册能力（T4），使 ChatToolService.dispatchCommand → CapabilityRegistry(CHAT) 路由可达
         orchestrator.registerCapability(IosChatGalleryCapability(mediaRepository, bridge, searchBridge))
+
+        // 注册 iOS chat 图表能力（draw_chart 执行端 → ChartJsEngine 端侧渲染）
+        orchestrator.registerCapability(IosChartCapability(chartBridge))
 
         // 创建 chat 桥
         chatBridge = ChatAgentBridge(orchestrator)

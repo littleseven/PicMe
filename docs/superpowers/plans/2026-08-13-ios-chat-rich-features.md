@@ -22,10 +22,22 @@
 - Task 6 iOS Markdown 富渲染（AgentTextView 分段：表格网格 + 代码块折叠/复制）
 - Task 8 媒体反馈 👍👎🔄（MediaThumbnail 本地态）+ 模型胶囊（inputBar Menu 读 ModelConfigStore）
 - Task 9 键盘避让（已 done `d56fb3f3`）
+- **Task 7 渲染层**：`ChartJsEngine`（JavaScriptCore + `chart_bootstrap.js`，纯 JS 拼 SVG，不需 gallery handler）+ `ChartSvgCard`（WKWebView）+ `ChatMessage.chartSvg` + `MessageBubble` 分发 + `/chart` demo。真机 XCUITest `testChartRenderDemo` 通过（15.2s，`chat_chart_card` 出现 = 渲染链路端到端通）
+
+**进行中（Task 7 触发链：LLM draw_chart → 端侧渲染）**：
+- 设计：Android 经 `ChatRunScriptCapability.Delegate.onDrawChart` 直进 app 层 ChatViewModel；iOS 能力在组合根构造（早于 ChatViewModel），故走 **Swift 桥**——SVG 不跨 K/N 边界，仅 summary 回传 LLM。**零 commonMain / androidMain 改动**（图表渲染纯 iOS 关注点）。
+- 实现（4 组件）：
+  - iosMain `data/IosChartBridge.kt`：Swift→Kotlin 渲染桥协议（`renderChart(type,title,labels,values,unit,onResult)`）
+  - iosMain `capability/IosChartCapability.kt`：`draw_chart` 执行端（`supportedCommands=["draw_chart"]`，suspendCancellableCoroutine 包 onResult → `AgentAction.TextReply(summary)`）
+  - `IosAgentComposition.initialize` 加 `chartBridge` 参数 + 注册 `IosChartCapability`
+  - Swift `Platform/ChartRendererBridge.swift`（conforms `IosChartBridge`，调 ChartJsEngine，SVG 经 `onChart` 静态闭包交 ChatViewModel）+ `AppContainer` 接线 + `ChatViewModel.appendChartMessage`
+- 路由验证：`CapabilityRegistry.findCapabilityForCommand` 按 `supportedCommands()` 匹配，`draw_chart` 独占无冲突
+- **✅ 真机验证通过**：确定性 `/charttool` 测试（`testChartTriggerChain`，经 `ChatAgentBridge.dispatchDrawChart` 派发，绕过 LLM）通过 14.4s，图卡渲染。**注意**：访客模型经实测未稳定发起 `draw_chart` tool_call（回文字/表格）——属模型/提示词行为，非接线缺陷（接线已由 `/charttool` 确定性证明）。更强模型（DeepSeek 等用户自配）或加强 iOS system prompt 工具引导可改善。
+- **K/N 互操作坑**：`List<Double>` 经 K/N 导出为 `[KotlinDouble]`（NSNumber 子类，apinotes 映射 `SharedKitDouble`→`KotlinDouble`，`.doubleValue` 取值）；Swift→Kotlin 方向传数值列表用 CSV 字符串规避 boxing（`dispatchDrawChart` 用 `valuesCsv`）。SharedKit 改 Kotlin 后增量构建 clang 模块缓存陈旧（Swift 找不到新符号）——**清 derivedData 全量重建**可解（`touch .shared-kit-hash` 跳过伎俩勿用于改了 Kotlin 的场景）。
 
 **留下一单元（高复杂度 / 需决策）**：
 - **Task 1b ChatMessage 全字段下沉**：子类型 `OptimizeCandidateGroup`/`ClaudeAgentState` 含 `org.json`，需剥离 toJson（移平台层）才能进 commonMain——剥离范围待定。当前 Android `ChatMessageUi` 保留本地强类型未动（避免渲染断链）。
-- **Task 4/7 CHART + JS 沙盒**：`JsCoreEngine`（Kotlin iosMain interop JavaScriptCore）+ `JsValueConverter` + gallery native handlers + `ChartSvgCard`（WKWebView）+ ChatRunScriptCapability iOS 接入。难点：`installBridge` 的 ObjC block 桥接（`__bridgeCall`/`__bridgeCallAsync`）、Promise 两段式、JSValue 递归转换。eval-only 半成品无法跑 CHART（必须完整 bridge）。
+- **Task 4 run_gallery_script（JS 沙盒完整）**：CHART 渲染已端侧化（不需 JS 沙盒 gallery handler）；剩余 `run_gallery_script` 才需完整 JS 沙盒（`JsCoreEngine` installBridge ObjC block 桥接 + Promise + JSValue 转换 + gallery native handlers）。本批 CHART 已接通，run_gallery_script 留后续。
 - **Task 3** iOS 模型接入 commonMain（依赖 1b）
 
 ---

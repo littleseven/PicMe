@@ -87,6 +87,11 @@ final class ChatViewModel: ObservableObject {
         actionWatcher = bridge.watchUiActions { [weak self] dto in
             Task { @MainActor in self?.handleUiAction(dto) }
         }
+        // 图表渲染回调：LLM draw_chart → IosChartCapability → ChartJsEngine 产 SVG，
+        // 经 ChartRendererBridge.onChart 回到本 ViewModel 追加 CHART 消息。
+        ChartRendererBridge.onChart = { [weak self] svg, summary in
+            Task { @MainActor in self?.appendChartMessage(svg: svg, summary: summary) }
+        }
     }
 
     // MARK: - Send (对齐 Android sendMessage 流程)
@@ -94,7 +99,12 @@ final class ChatViewModel: ObservableObject {
     func send(_ input: String) {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // CHART 渲染 demo（手动触发验证 ChartJsEngine+ChartSvgCard；LLM draw_chart capability 接入留后续）
+        // CHART 触发链 demo：经 CapabilityRegistry 派发 DrawChart（确定性验证 capability→bridge→渲染）
+        if trimmed.lowercased() == "/charttool" {
+            emitChartViaToolChain()
+            return
+        }
+        // CHART 渲染 demo：直接调 ChartJsEngine（验证渲染层，不经触发链）
         if trimmed.lowercased().hasPrefix("/chart") {
             emitChartDemo()
             return
@@ -357,7 +367,17 @@ final class ChatViewModel: ObservableObject {
         return cleaned.isEmpty ? fallback : cleaned
     }
 
-    // MARK: - CHART demo（手动触发；LLM draw_chart capability 接入后移除）
+    // MARK: - CHART（LLM draw_chart → ChartJsEngine 渲染 + 手动 demo）
+
+    /// 追加一条 CHART 消息（图卡）。LLM draw_chart（经 IosChartCapability → ChartRendererBridge.onChart）
+    /// 与 /chart 手动 demo 共用此落点。
+    private func appendChartMessage(svg: String, summary: String) {
+        var msg = ChatMessage(role: .assistant, text: summary)
+        msg.chartSvg = svg
+        messages.append(msg)
+        touchThread(preview: summary)
+        persist()
+    }
 
     /// 手动触发一张示例图，验证 ChartJsEngine(JSCore+chart_bootstrap.js) → ChartSvgCard 端到端。
     private func emitChartDemo() {
@@ -365,10 +385,25 @@ final class ChatViewModel: ObservableObject {
             type: "bar", title: "Chart Demo",
             labels: ["A", "B", "C", "D"], values: [3, 7, 2, 5], unit: nil
         ) else { return }
-        var msg = ChatMessage(role: .assistant, text: r.summary)
-        msg.chartSvg = r.svg
-        messages.append(msg)
-        persist()
+        appendChartMessage(svg: r.svg, summary: r.summary)
+    }
+
+    /// /charttool：经 CapabilityRegistry 派发 DrawChart，跑通完整触发链（不依赖 LLM）。
+    /// 图卡经 ChartRendererBridge.onChart 追加；此处仅兜底 dispatch 失败。
+    private func emitChartViaToolChain() {
+        guard let bridge else { return }
+        bridge.dispatchDrawChart(
+            type: "bar", title: "Chart via draw_chart",
+            labels: ["一月", "二月", "三月"], valuesCsv: "10,15,8", unit: "张"
+        ) { [weak self] _, errorMessage in
+            Task { @MainActor in
+                guard let self, let errorMessage, !errorMessage.isEmpty else { return }
+                self.messages.append(
+                    ChatMessage(role: .assistant, text: "图表生成失败：\(errorMessage)", error: errorMessage)
+                )
+                self.persist()
+            }
+        }
     }
 
     // MARK: - Persistence

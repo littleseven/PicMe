@@ -2,9 +2,12 @@ package com.mamba.picme.agent.core.inference.remote
 
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.inference.remote.tool.ChatToolService
+import com.mamba.picme.agent.core.model.command.AgentCommand
+import com.mamba.picme.agent.core.model.context.AgentAction
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.AgentScene
 import com.mamba.picme.agent.core.platform.logging.Logger
+import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
 import com.mamba.picme.shared.FlowWatcher
 import com.mamba.picme.shared.watch
 import kotlinx.coroutines.CancellationException
@@ -12,7 +15,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 
 /**
  * Swift ↔ Kotlin chat 桥（Phase 6.2 T5）。
@@ -109,6 +114,53 @@ class ChatAgentBridge(
     }
 
     /**
+     * 调试触发：直接经 [CapabilityRegistry] 派发 [AgentCommand.DrawChart]（绕过远程 LLM），
+     * 跑通完整触发链（IosChartCapability → IosChartBridge → ChartJsEngine → onChart → 图卡）。
+     *
+     * 用于确定性验证 draw_chart 接线（不依赖访客模型是否真正发起 tool_call）。
+     * 渲染产物（SVG）经 IosChartBridge 的 Swift 侧通道回到 ChatViewModel；summary 经 [onComplete]。
+     */
+    fun dispatchDrawChart(
+        type: String,
+        title: String,
+        labels: List<String>,
+        valuesCsv: String,
+        unit: String?,
+        onComplete: (summary: String, errorMessage: String?) -> Unit
+    ) {
+        bridgeScope.launch {
+            try {
+                val values = valuesCsv.split(",").mapNotNull { it.trim().toDoubleOrNull() }
+                val command = AgentCommand.DrawChart(
+                    type = type, title = title, labels = labels, values = values, unit = unit
+                )
+                val context = AgentContext(scene = AgentScene.CHAT, memorySessionId = sessionId)
+                val result = withTimeout(DISPATCH_TIMEOUT_MS) {
+                    CapabilityRegistry.getInstance().dispatch(command, context, null)
+                }
+                result.fold(
+                    onSuccess = { action ->
+                        val summary = (action as? AgentAction.TextReply)?.message ?: "图表已生成"
+                        onComplete(summary, null)
+                    },
+                    onFailure = { e ->
+                        Logger.w(tag, "dispatchDrawChart failed: ${e.message}")
+                        onComplete("", e.message ?: "dispatch failed")
+                    }
+                )
+            } catch (e: TimeoutCancellationException) {
+                Logger.w(tag, "dispatchDrawChart timed out")
+                onComplete("", "dispatch timed out")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                Logger.w(tag, "dispatchDrawChart exception", e)
+                onComplete("", e.message ?: "未知错误")
+            }
+        }
+    }
+
+    /**
      * 清空指定会话的对话记忆（Koog koog_memory_<sessionId> 键空间）。返回 void。
      * 显式 sessionId 参数：删除非当前会话时也能清其记忆（K/N 不导出默认参数）。
      */
@@ -140,5 +192,6 @@ class ChatAgentBridge(
 
     companion object {
         const val DEFAULT_SESSION_ID = "default"
+        private const val DISPATCH_TIMEOUT_MS = 5000L
     }
 }

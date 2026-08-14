@@ -156,6 +156,64 @@ final class ChatSmokeUITests: XCTestCase {
         XCTAssertFalse(keyboard.exists, "❌ 点空白后键盘未收起（有历史消息时点空白无效）")
     }
 
+    /// CHART 渲染层验证（Task 7）：/chart demo → ChartJsEngine(JavaScriptCore + chart_bootstrap.js)
+    /// → ChartSvgCard(WKWebView)。触发 emitChartDemo()，断言 chat_chart_card 出现 =
+    /// SVG 生成 + 渲染端到端通（无需 LLM draw_chart capability，纯端侧渲染链路）。
+    func testChartRenderDemo() throws {
+        navigateToChat()
+
+        let input = app.textFields["chat_input"].exists
+            ? app.textFields["chat_input"]
+            : app.textViews["chat_input"]
+        XCTAssertTrue(input.waitForExistence(timeout: 12), "chat_input 未找到")
+        input.tap()
+        input.typeText("/chart")
+        tapSend()
+
+        // chart 卡容器（ChartSvgCard 的 accessibilityIdentifier=chat_chart_card）
+        let chartCard = app.descendants(matching: .any)["chat_chart_card"].firstMatch
+        XCTAssertTrue(
+            chartCard.waitForExistence(timeout: 10),
+            "❌ /chart 未渲染出图卡（ChartJsEngine 或 chart_bootstrap.js 加载失败）"
+        )
+
+        let screenshot = XCUIScreen.main.screenshot()
+        let attachment = XCTAttachment(screenshot: screenshot)
+        attachment.name = "chart_render_demo"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    /// CHART 触发链 E2E（Task 7，确定性）：/charttool → ChatAgentBridge.dispatchDrawChart →
+    /// CapabilityRegistry → IosChartCapability → ChartRendererBridge → ChartJsEngine →
+    /// appendChartMessage。绕过远程 LLM（访客模型未必发起 tool_call），确定性验证 draw_chart 接线。
+    func testChartTriggerChain() throws {
+        navigateToChat()
+
+        let input = app.textFields["chat_input"].exists
+            ? app.textFields["chat_input"]
+            : app.textViews["chat_input"]
+        XCTAssertTrue(input.waitForExistence(timeout: 12), "chat_input 未找到")
+        input.tap()
+        input.typeText("/charttool")
+        tapSend()
+
+        // 派发 + 端侧渲染（无 LLM 往返），~5s 足够
+        let chartCard = app.descendants(matching: .any)["chat_chart_card"].firstMatch
+        let appeared = chartCard.waitForExistence(timeout: 15)
+
+        let screenshot = XCUIScreen.main.screenshot()
+        let attachment = XCTAttachment(screenshot: screenshot)
+        attachment.name = appeared ? "chart_triggerchain_PASS" : "chart_triggerchain_FAIL"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+
+        XCTAssertTrue(
+            appeared,
+            "❌ /charttool 触发链未渲染图卡（IosChartCapability/ChartRendererBridge/onChart 接线断）"
+        )
+    }
+
     // MARK: - Helpers
 
     private func navigateToChat() {

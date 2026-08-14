@@ -17,6 +17,9 @@ final class AppContainer: ObservableObject {
     /// chat 搜索桥（IosChatGalleryCapability → MediaSearchEngine，契约 §9 Chat 搜索链路）
     let searchBridge: PhSearchBridge
 
+    /// chat 图表渲染桥（IosChartCapability draw_chart → ChartJsEngine 端侧渲染）
+    let chartBridge: ChartRendererBridge
+
     /// 美颜渲染参数（全局共享，BeautyPanelView ↔ BeautyRenderer 双向绑定）
     @Published var beautyParams = BeautyRenderer.Params()
 
@@ -27,6 +30,7 @@ final class AppContainer: ObservableObject {
         self.mediaBridge = PhMediaBridge()
         self.mediaRepository = IosMediaRepository(bridge: mediaBridge)
         self.searchBridge = PhSearchBridge()
+        self.chartBridge = ChartRendererBridge.shared
         setupAgentComposition()
     }
 
@@ -36,7 +40,8 @@ final class AppContainer: ObservableObject {
         IosAgentComposition.shared.initialize(
             bridge: mediaBridge,
             deviceId: deviceId,
-            searchBridge: searchBridge
+            searchBridge: searchBridge,
+            chartBridge: chartBridge
         )
         chatBridge = IosAgentComposition.shared.chatBridge
         // 应用用户保存的模型配置（有自定义模型则覆盖访客默认，无则保持 PICME_SERVER_DEFAULT）
