@@ -148,17 +148,13 @@ private struct BeautySliderRow: View {
                     .foregroundColor(value != 0 ? .accentColor : .white.opacity(0.4))
             }
 
-            Slider(value: $value, in: range)
-                .tint(.accentColor)
+            // 对标 Android HyperOS 滑杆:自绘胶囊轨道+描边 thumb(AppSlider),不用系统 Slider
+            AppSlider(value: value, range: range, onValueChange: { value = $0 })
         }
     }
 
     private var displayValue: String {
-        if value == 0 { return "--" }
-        switch displayFormat {
-        case .percent: return "\(Int(value))"
-        case .raw: return "\(Int(value))"
-        }
+        "\(Int(value))"  // 对标 Android:始终显示数值(0 也显示 "0",非 "--")
     }
 }
 

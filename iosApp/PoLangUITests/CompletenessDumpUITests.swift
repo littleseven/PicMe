@@ -54,9 +54,11 @@ final class CompletenessDumpUITests: XCTestCase {
         XCTAssertTrue(nodes.count > 0, "美颜面板未采集到节点")
     }
 
-    /// 一次跑完其余 5 面板 dump:每面板经 -openPanel 启动参数重启(确定性,无面板间点击切换的 flaky)
+    /// 一次跑完 6 面板 dump + 截图:每面板经 -openPanel 启动参数重启(确定性)。
+    /// 截图存 Documents/ios-shot-<state>.png(devicectl copy from 取回,供像素级视觉比对)。
     func testDumpAllPanels() throws {
         let panels: [(String, String)] = [
+            ("beauty", "panel_beauty_face"),
             ("pro", "panel_pro"),
             ("ratio", "panel_ratio"),
             ("grid", "panel_grid"),
@@ -78,6 +80,11 @@ final class CompletenessDumpUITests: XCTestCase {
             let payload: [String: Any] = ["state": state, "nodes": nodes]
             let json = try JSONSerialization.data(withJSONObject: payload, options: [])
             print("DUMP_JSON:::\(state):::\(String(data: json, encoding: .utf8) ?? "{}"):::END")
+            // 截图经 XCTAttachment 落 xcresult(devicectl 取 runner Documents 不可行),再 xcresulttool 导出
+            let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+            attachment.name = "ios-shot-\(state)"
+            attachment.lifetime = .keepAlways
+            add(attachment)
         }
     }
 

@@ -642,10 +642,10 @@ private struct OptionButton: View {
     var body: some View {
         Button(action: action) {
             Text(titleKey).font(.system(size: 12))
-                .foregroundColor(isSelected ? .black : .white)
+                .foregroundColor(isSelected ? AppColorScheme.dark.onPrimaryContainer : .white)
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(isSelected ? Color.accentColor : Color(white: 0.25)))
+                    .fill(isSelected ? AppColorScheme.dark.primaryContainer : Color(white: 0.25)))
         }
     }
 }
@@ -695,7 +695,10 @@ private struct ProModePanel: View {
                 Spacer()
                 Text(display).font(.system(size: 12, weight: .bold)).foregroundStyle(.white)
             }
-            Slider(value: value, in: range, step: step).tint(.accentColor)
+            // 对标 Android HyperOS 滑杆(与美颜面板同源 AppSlider;step 连续化,视觉优先)
+            AppSlider(value: Float(value.wrappedValue),
+                      range: Float(range.lowerBound)...Float(range.upperBound),
+                      onValueChange: { value.wrappedValue = Double($0) })
         }
     }
 }
