@@ -82,3 +82,42 @@ struct ChatEditImageCard: View {
         .accessibilityIdentifier("chat_edit_image")
     }
 }
+
+// MARK: - 全屏图片预览（点 chat 图片/媒体卡打开；捏合缩放 1-5x，点图或 × 关闭）
+
+struct ChatImagePreview: View {
+    let image: UIImage
+    @Environment(\.dismiss) private var dismiss
+    @State private var scale: CGFloat = 1
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            Image(uiImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .scaleEffect(scale)
+                .gesture(
+                    MagnificationGesture()
+                        .onChanged { value in scale = min(max(value, 1), 5) }
+                        .onEnded { _ in if scale < 1.05 { scale = 1 } }
+                )
+                .onTapGesture { dismiss() }
+            VStack {
+                HStack {
+                    Spacer()
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundColor(.white.opacity(0.85))
+                            .padding(16)
+                    }
+                    .accessibilityIdentifier("chat_image_preview_close")
+                }
+                Spacer()
+            }
+        }
+    }
+}

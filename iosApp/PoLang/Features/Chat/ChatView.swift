@@ -14,6 +14,8 @@ struct ChatView: View {
     var onEditImage: ((String) -> Void)? = nil
 
     @StateObject private var viewModel = ChatViewModel()
+    /// 全屏图片预览（chat 图/媒体卡点击打开）
+    @State private var previewImage: UIImage?
     @EnvironmentObject private var container: AppContainer
     @State private var inputText = ""
     @FocusState private var inputFocused: Bool
@@ -188,8 +190,15 @@ struct ChatView: View {
             ScrollView {
                 LazyVStack(spacing: 8) {
                     ForEach(viewModel.messages) { msg in
-                        MessageBubble(message: msg, onNavigateToGallery: onNavigateToGallery)
-                            .id(msg.id)
+                        MessageBubble(
+                            message: msg,
+                            onNavigateToGallery: onNavigateToGallery,
+                            onImageTap: { img in
+                                if let img { previewImage = img }
+                            },
+                            onMediaTap: { lid in openPreview(localIdentifier: lid) }
+                        )
+                        .id(msg.id)
                     }
                 }
                 .padding(.horizontal, 12)
@@ -198,8 +207,24 @@ struct ChatView: View {
             }
             .scrollDismissesKeyboard(.interactively)  // 下滑消息列表收起键盘
             .onTapGesture { inputFocused = false }  // 点消息/空白收键盘（tap 与 scroll 手势不冲突）
+            .fullScreenCover(isPresented: Binding(
+                get: { previewImage != nil },
+                set: { if !$0 { previewImage = nil } }
+            )) {
+                if let previewImage {
+                    ChatImagePreview(image: previewImage)
+                }
+            }
             .onChange(of: viewModel.messages.count) { _ in scrollToBottom(proxy) }
             .onChange(of: viewModel.messages.last?.text) { _ in scrollToBottom(proxy) }
+        }
+    }
+
+    /// 媒体卡全屏：localIdentifier → 原图 async 载入后打开预览。
+    private func openPreview(localIdentifier: String) {
+        Task {
+            let image = await ThumbnailLoader.shared.fullResolution(for: localIdentifier)
+            await MainActor.run { if let image { previewImage = image } }
         }
     }
 
@@ -416,6 +441,7 @@ private struct MessageBubble: View {
     let message: ChatMessage
     var onNavigateToGallery: ((String) -> Void)? = nil
     var onImageTap: ((UIImage?) -> Void)? = nil
+    var onMediaTap: ((String) -> Void)? = nil
 
     var body: some View {
         HStack {
@@ -473,7 +499,8 @@ private struct MessageBubble: View {
                         MediaCardRow(
                             mediaIds: message.mediaIds,
                             totalCount: message.mediaTotalCount ?? message.mediaIds.count,
-                            onViewAll: { onNavigateToGallery?(message.mediaQuery ?? "") }
+                            onViewAll: { onNavigateToGallery?(message.mediaQuery ?? "") },
+                            onMediaTap: onMediaTap
                         )
                         .padding(.top, 6)
                     }
@@ -572,6 +599,7 @@ private struct MediaCardRow: View {
     let mediaIds: [Int64]
     var totalCount: Int = 0
     var onViewAll: () -> Void = {}
+    var onMediaTap: ((String) -> Void)? = nil
     @State private var idToIdentifier: [Int64: String] = [:]
     @State private var idToDate: [Int64: Date] = [:]
 
@@ -581,7 +609,8 @@ private struct MediaCardRow: View {
                 ForEach(mediaIds, id: \.self) { id in
                     MediaThumbnail(
                         localIdentifier: idToIdentifier[id],
-                        date: idToDate[id]
+                        date: idToDate[id],
+                        onTap: { if let lid = idToIdentifier[id] { onMediaTap?(lid) } }
                     )
                     .frame(width: ChatCarouselTokens.cardWidth, height: ChatCarouselTokens.cardHeight)
                     .clipShape(RoundedRectangle(cornerRadius: ChatCarouselTokens.cardCornerRadius))
@@ -650,6 +679,7 @@ private struct ViewAllCard: View {
 private struct MediaThumbnail: View {
     let localIdentifier: String?
     let date: Date?
+    var onTap: () -> Void = {}
     @State private var image: UIImage?
     /// 媒体反馈（对齐 Android FeedbackIconButton 👍👎🔄；本批本地态选中，上报/持久留后续）
     enum FeedbackType: Hashable { case thumbUp, thumbDown, refresh }
@@ -691,6 +721,8 @@ private struct MediaThumbnail: View {
             }
         }
         .overlay(alignment: .topTrailing) { mediaFeedbackButtons }
+        .contentShape(Rectangle())
+        .onTapGesture { onTap() }
         .task(id: localIdentifier) {
             guard let localIdentifier, image == nil else { return }
             image = await ThumbnailLoader.shared.thumbnail(
