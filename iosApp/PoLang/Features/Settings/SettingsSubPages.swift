@@ -284,6 +284,12 @@ struct DeveloperSettingsView: View {
     @AppStorage("show_camera_info_in_preview") private var showCameraInfo = true
     @AppStorage("show_face_debug_overlay") private var showFaceDebug = true
     @AppStorage("show_log_overlay") private var showLogOverlay = true
+    @AppStorage("debug_shader_mode") private var debugShaderMode = 0
+
+    /// Shader Debug Mode 单选 chips（值 0-5，持久化 debug_shader_mode；预览暂不消费）
+    private let shaderDebugModes: [String] = [
+        "Normal", "Skin Mask", "Warp Offset", "BigEye Radius", "ThinFace Radius", "All Warp"
+    ]
 
     var body: some View {
         ScrollView {
@@ -299,37 +305,60 @@ struct DeveloperSettingsView: View {
                             toggleRow(L("Show Face Debug"), isOn: $showFaceDebug)
                             Divider()
                             toggleRow(L("Show Log Overlay"), isOn: $showLogOverlay)
+                            Divider()
+                            // Shader Debug Mode 单选 chips
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(L("Shader Debug Mode"))
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                                FlowLayout(spacing: 8) {
+                                    ForEach(0..<shaderDebugModes.count, id: \.self) { mode in
+                                        shaderModeChip(mode)
+                                    }
+                                }
+                                Text(L("Stored only; preview rendering does not consume this setting yet."))
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 8)
                         }
                     }
                 }
 
-                // ── 2. 诊断与日志（iOS 占位）──
+                // ── 2. 诊断与日志（LLM 日志/模块开关为 Android 专属，灰显不可点）──
                 settingsSection(L("Diagnostics & Logs")) {
-                    Text(L("LLM call log and per-module log switches are not yet available on iOS."))
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    VStack(spacing: 0) {
+                        disabledRow(title: L("LLM Call Log"),
+                                    subtitle: L("View LLM inference, tool call and JS run logs"))
+                        Divider()
+                        disabledRow(title: L("Log Modules"),
+                                    subtitle: L("Per-module log switches"))
+                    }
                 }
 
                 // ── 3. 开发测试工具（仅 DEBUG）──
                 #if DEBUG
                 settingsSection(L("Developer Tools")) {
-                    NavigationLink {
-                        DebugScreenView()
-                    } label: {
-                        HStack {
-                            Text(L("Image Download")).foregroundColor(.primary)
-                            Spacer()
-                            Text(L("Enter")).font(.system(size: 13)).foregroundColor(.secondary)
-                            Image(systemName: "chevron.right").font(.system(size: 13)).foregroundColor(.secondary)
+                    VStack(spacing: 0) {
+                        NavigationLink {
+                            DebugScreenView()
+                        } label: {
+                            HStack {
+                                Text(L("Image Download")).foregroundColor(.primary)
+                                Spacer()
+                                Text(L("Enter")).font(.system(size: 13)).foregroundColor(.secondary)
+                                Image(systemName: "chevron.right").font(.system(size: 13)).foregroundColor(.secondary)
+                            }
+                            .contentShape(Rectangle())
                         }
-                        .contentShape(Rectangle())
+                        .buttonStyle(.plain)
+                        Divider()
+                        disabledRow(title: L("Search Test"), subtitle: nil)
+                        Divider()
+                        disabledRow(title: L("JSBridge"), subtitle: nil)
+                        Divider()
+                        disabledRow(title: L("Accessibility Service"), subtitle: nil)
                     }
-                    .buttonStyle(.plain)
-                    Divider()
-                    Text(L("Search test, JSBridge and accessibility tools are Android-only."))
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
                 }
                 #endif
             }
@@ -339,6 +368,36 @@ struct DeveloperSettingsView: View {
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationTitle(L("Developer Options"))
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func shaderModeChip(_ mode: Int) -> some View {
+        let selected = debugShaderMode == mode
+        return Button { debugShaderMode = mode } label: {
+            Text(L(shaderDebugModes[mode]))
+                .font(.system(size: 13, weight: selected ? .semibold : .regular))
+                .foregroundColor(selected ? .white : .primary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(selected ? Color.accentColor : Color(.tertiarySystemBackground))
+                .clipShape(Capsule())
+        }
+    }
+
+    /// Android 专属功能行：整体灰显、不可点击，右值标注 "Android only"
+    private func disabledRow(title: String, subtitle: String?) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).font(.system(size: 14))
+                if let subtitle {
+                    Text(subtitle).font(.system(size: 12))
+                }
+            }
+            Spacer()
+            Text(L("Android only"))
+                .font(.system(size: 13))
+        }
+        .foregroundColor(.secondary)
+        .padding(.vertical, 8)
     }
 }
 

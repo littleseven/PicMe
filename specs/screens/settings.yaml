@@ -197,6 +197,78 @@ about:
     - github: { label: "GitHub", url: "https://github.com/littleseven/polang" }
 
 # ============================================================================
+# 6.5 开发者选项页（developer，2026-08-15 补全）
+# ============================================================================
+# 入口门控：主菜单「Developer Options」卡（icon: terminal）仅在
+# developer_options_unlocked=true 时显示；版本页脚连点 7 次解锁并持久化。
+developer:
+  navigation_title: "Developer Options"
+  sections:
+    - title: "Camera Preview Debug"             # 相机预览调试
+      desc: "Recommended for debugging only."
+      items:
+        - debug:
+            type: switch
+            key: debug_ui_enabled               # 总开关，关闭时下列 4 项隐藏
+            default: false
+        - show_camera_info:
+            type: switch
+            key: show_camera_info_in_preview
+            default: true
+            show_when: "debug == on"
+        - show_face_debug:
+            type: switch
+            key: show_face_debug_overlay
+            default: true
+            show_when: "debug == on"
+        - show_log_overlay:
+            type: switch
+            key: show_log_overlay
+            default: true
+            show_when: "debug == on"
+        - shader_debug_mode:
+            type: chips                          # 单选 chips，最多 2 行
+            key: debug_shader_mode               # Int 0-5
+            title: "Shader Debug Mode"
+            options: [Normal, Skin Mask, Warp Offset, BigEye Radius, ThinFace Radius, All Warp]
+            default: 0                           # Normal
+            show_when: "debug == on"
+            note: "persistence-only：双端预览均不消费——Android CameraScreen 硬编码 0（避免调试模式蓝屏），iOS Metal shader 无 uDebugMode 分支；行下加注脚说明"
+
+    - title: "Diagnostics & Logs"               # 诊断与日志
+      items:
+        - llm_call_log:
+            type: nav_row
+            title: "LLM Call Log"
+            desc: "View LLM inference, tool call and JS run logs"
+            ios_state: disabled_android_only     # iOS 无 LLM 日志存储基建：行灰显不可点，右值 "Android only"
+        - log_modules:
+            type: nav_row
+            title: "Log Modules"
+            desc: "Per-module log switches"
+            ios_state: disabled_android_only     # iOS 无模块日志基建：同上灰显
+
+    - title: "Developer Tools"                   # 开发测试工具
+      build: debug_only                          # 仅 DEBUG 构建显示整区
+      items:
+        - image_download:
+            type: nav_row
+            title: "Image Download"
+            ios_state: implemented               # → DebugScreenView（已有）
+        - search_test:
+            type: nav_row
+            title: "Search Test"
+            ios_state: disabled_android_only
+        - jsbridge:
+            type: nav_row
+            title: "JSBridge"
+            ios_state: disabled_android_only     # iOS JS 沙盒 Tier1-3 已具备但无调试页
+        - accessibility:
+            type: nav_row
+            title: "Accessibility Service"
+            ios_state: disabled_android_only     # Android 系统无障碍设置跳转，iOS 无等价
+
+# ============================================================================
 # 7. iOS 当前阶段实现范围
 # ============================================================================
 ios_scope:
@@ -220,9 +292,9 @@ ios_scope:
     - "Floating Chat Bubble（Android 悬浮窗，iOS 无等价）"
     - "Battery Optimization（Android 专属）"
     - "MIUI Auto Start / Permission Editor（小米专属）"
-    - "Accessibility Service（Android 专属）"
-    - "Developer Options → Image Download Test / Search Test / JS Bridge（Android debug 专属）"
-    - "LLM Call Log viewer（Android Room DB 专属）"
+    - "Accessibility Service（Android 专属；开发者选项页内灰显标注 Android only）"
+    - "Developer Options → Search Test / JS Bridge（Android debug 专属，iOS 行灰显标注；Image Download iOS 已实现）"
+    - "LLM Call Log viewer / Log Modules（Android Room DB/Logger 基建专属，iOS 行灰显标注 Android only）"
 
 # ============================================================================
 # 8. 通用组件规格
@@ -269,6 +341,7 @@ allowed_differences:
   - "卡片材质（Material elevation vs SwiftUI background）"
   - "Switch 控件原生外观"
   - "导航转场动画"
-  - "开发者选项（iOS 暂不做 Debug 页面）"
+  - "开发者选项 Shader Debug Mode 双端 persistence-only（Android CameraScreen 硬编码 0；iOS Metal shader 无 uDebugMode 分支），chips 仅持久化不消费"
+  - "开发者选项诊断与日志/部分开发工具 iOS 灰显标注 Android only（无 LLM 日志与模块日志基建）"
   - "语音控制（iOS 暂无 sherpa-onnx）"
   - "相册 TAG 控制页（iOS Phase 6.1 未落地）"
