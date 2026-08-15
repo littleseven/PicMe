@@ -35,6 +35,9 @@ final class PhotoEditorViewModel: ObservableObject {
 
     /// 保存完成回调（新副本 localIdentifier 或 nil）。
     var onSaved: ((String?) -> Void)?
+    /// chat 回链：编辑结果落盘路径（Documents/chat_edits/xxx.jpg）。
+    /// 与 onSaved 并存——onSaved 语义不变（新副本 localId，lite 版=原图 id），本回调专供 chat 渲染。
+    var onEditResult: ((String) -> Void)?
 
     private let history = EditHistory()
     private var previewSourceCI: CIImage?   // 预览源（≤2048 降采样）
@@ -167,6 +170,7 @@ final class PhotoEditorViewModel: ObservableObject {
         state = .ready(r)
         let recipe = r.recipe
         Task {
+            var editResultPath: String? = nil
             // 全分辨率原图（非预览缩略图）
             let full = await ThumbnailLoader.shared.fullResolution(for: localId)
             var savedUri: String? = nil
@@ -181,6 +185,11 @@ final class PhotoEditorViewModel: ObservableObject {
                         try? await PhotoSaver.saveToLibrary(image)
                         savedUri = localId   // lite 版不追踪新副本 id
                     }
+                    // chat 回链：编辑结果写文件（Documents/chat_edits）。lite 版库保存不追踪新副本
+                    // PHAsset id（savedUri=原图 id，显示会错图），文件路径才可靠——对齐 Android outputUri 模型。
+                    if let data = image.jpegData(compressionQuality: 0.92) {
+                        editResultPath = Self.writeChatEditFile(data)
+                    }
                 }
             }
             await MainActor.run {
@@ -189,7 +198,25 @@ final class PhotoEditorViewModel: ObservableObject {
                     self.state = .ready(rr)
                 }
                 self.onSaved?(savedUri)
+                if let path = editResultPath {
+                    self.onEditResult?(path)
+                }
             }
+        }
+    }
+
+    /// 编辑结果落盘 Documents/chat_edits/<uuid>.jpg（目录懒创建）；失败返回 nil。
+    private static func writeChatEditFile(_ data: Data) -> String? {
+        let fm = FileManager.default
+        guard let docs = fm.urls(for: .documentDirectory, in: .userDomainMask).first else { return nil }
+        let dir = docs.appendingPathComponent("chat_edits", isDirectory: true)
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        let url = dir.appendingPathComponent("\(UUID().uuidString).jpg")
+        do {
+            try data.write(to: url)
+            return url.path
+        } catch {
+            return nil
         }
     }
 }

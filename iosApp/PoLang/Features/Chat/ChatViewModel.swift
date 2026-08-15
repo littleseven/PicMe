@@ -92,6 +92,10 @@ final class ChatViewModel: ObservableObject {
         ChartRendererBridge.onChart = { [weak self] svg, summary in
             Task { @MainActor in self?.appendChartMessage(svg: svg, summary: summary) }
         }
+        // 编辑结果回链：chat EDIT → PhotoEditorScreen 保存 → 落盘路径回此追加 AGENT_EDIT_RESULT
+        ChatEditResultBridge.onEditResult = { [weak self] path in
+            Task { @MainActor in self?.appendEditResultMessage(imagePath: path) }
+        }
     }
 
     // MARK: - Send (对齐 Android sendMessage 流程)
@@ -110,6 +114,19 @@ final class ChatViewModel: ObservableObject {
             return
         }
 
+        // run_gallery_script 触发链 demo：经 CapabilityRegistry 派发 ExecuteScript（确定性验证
+        // IosRunScriptCapability → RunScriptBridge → JsRuntime+JsCoreEngine → gallery handler）
+        if trimmed.lowercased() == "/runscript" {
+            emitRunScriptDemo()
+            return
+        }
+
+        // AGENT_EDIT_RESULT 渲染 demo：生成图落盘 → 追加编辑结果消息（确定性验证，/chart 同款）
+        if trimmed.lowercased() == "/editdemo" {
+            emitEditResultDemo()
+            return
+        }
+
         // EDIT 意图：有暂存图 → 跳编辑器（对齐 Android EDIT，不发推理）
         if let staged = stagedImage, stagedIntent == .edit {
             onEditImage?(staged.localIdentifier)
@@ -125,8 +142,14 @@ final class ChatViewModel: ObservableObject {
         guard !trimmed.isEmpty, !isProcessing else { return }
         guard let bridge else { return }
 
-        // 1. user 消息即追加
-        messages.append(ChatMessage(role: .user, text: trimmed))
+        // 1. user 消息即追加（带暂存图 → userImageText 上图下文；图引用 localIdentifier，
+        //    远程只发文本——图片像素不上传，隐私红线）
+        messages.append(ChatMessage(
+            role: .user,
+            text: trimmed,
+            type: stagedImage != nil ? .userImageText : .userText,
+            imageUri: stagedImage?.localIdentifier
+        ))
         autoTitleIfNeeded(firstUserText: trimmed)
         touchThread(preview: trimmed)
         persist()
@@ -281,6 +304,7 @@ final class ChatViewModel: ObservableObject {
             messages.append(ChatMessage(
                 role: .assistant,
                 text: header,
+                type: .mediaResults,
                 mediaIds: ids,
                 mediaQuery: dto.query,
                 mediaTotalCount: Int(truncatingIfNeeded: dto.totalCount)
@@ -372,7 +396,7 @@ final class ChatViewModel: ObservableObject {
     /// 追加一条 CHART 消息（图卡）。LLM draw_chart（经 IosChartCapability → ChartRendererBridge.onChart）
     /// 与 /chart 手动 demo 共用此落点。
     private func appendChartMessage(svg: String, summary: String) {
-        var msg = ChatMessage(role: .assistant, text: summary)
+        var msg = ChatMessage(role: .assistant, text: summary, type: .chart)
         msg.chartSvg = svg
         messages.append(msg)
         touchThread(preview: summary)
@@ -403,6 +427,71 @@ final class ChatViewModel: ObservableObject {
                 )
                 self.persist()
             }
+        }
+    }
+
+    // MARK: - run_gallery_script（LLM run_gallery_script → JsRuntime 端侧沙箱 + 确定性 demo）
+
+    /// /runscript：经 CapabilityRegistry 派发 ExecuteScript，跑通 run_gallery_script 完整触发链（不依赖 LLM）。
+    /// 脚本 `await bridge.callAsync('gallery.summary')` 取相册盘点并组合成可读文案，return 后作为 agent 文本消息追加。
+    private func emitRunScriptDemo() {
+        guard let bridge else { return }
+        // JS：${...} 是 JS 模板插值（非 Swift \( )，原样透传给 JsCoreEngine。
+        let script = """
+        const s = await bridge.callAsync('gallery.summary', {});
+        return `相册共 ${s.totalMedia} 个媒体（照片 ${s.totalPhotos}、视频 ${s.totalVideos}）；` +
+          `已打标 ${s.labeledCount}，未打标 ${s.unlabeledCount}；人物聚类 ${s.personClusterCount}（已命名 ${s.namedPersonCount}）。`;
+        """
+        bridge.dispatchRunScript(code: script) { [weak self] result, errorMessage in
+            Task { @MainActor in
+                guard let self else { return }
+                if let errorMessage, !errorMessage.isEmpty {
+                    self.messages.append(
+                        ChatMessage(role: .assistant, text: "脚本执行失败：\(errorMessage)", error: errorMessage)
+                    )
+                } else {
+                    self.messages.append(ChatMessage(role: .assistant, text: result))
+                }
+                self.persist()
+            }
+        }
+    }
+
+    // MARK: - AGENT_EDIT_RESULT（chat EDIT → 编辑器 → 结果图回链）
+
+    /// 追加编辑结果消息（图=Documents/chat_edits 文件路径；文案标注已存相册——iOS 编辑器
+    /// 保存时已入库，与 Android「chat 内保存按钮」为有意分歧，见 plan 范围裁决）。
+    private func appendEditResultMessage(imagePath: String) {
+        let caption = String(localized: "Edit complete. Result saved to Photos.")
+        messages.append(ChatMessage(role: .assistant, text: caption, type: .agentEditResult, imageUri: imagePath))
+        touchThread(preview: caption)
+        persist()
+    }
+
+    /// /editdemo：生成一张渐变图落盘并追加编辑结果消息（确定性验证渲染链，不经编辑器）。
+    private func emitEditResultDemo() {
+        let size = CGSize(width: 600, height: 400)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let image = renderer.image { ctx in
+            let colors = [UIColor.systemBlue.cgColor, UIColor.systemTeal.cgColor]
+            let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                                      colors: colors as CFArray, locations: [0, 1])!
+            ctx.cgContext.drawLinearGradient(
+                gradient, start: .zero,
+                end: CGPoint(x: size.width, y: size.height), options: []
+            )
+        }
+        guard let data = image.jpegData(compressionQuality: 0.9),
+              let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        let dir = docs.appendingPathComponent("chat_edits", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let url = dir.appendingPathComponent("demo-\(UUID().uuidString).jpg")
+        do {
+            try data.write(to: url)
+            appendEditResultMessage(imagePath: url.path)
+        } catch {
+            messages.append(ChatMessage(role: .assistant, text: "demo 图片写入失败：\(error.localizedDescription)", error: error.localizedDescription))
+            persist()
         }
     }
 
