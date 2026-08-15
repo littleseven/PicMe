@@ -1,20 +1,13 @@
 import SwiftUI
 
 /// 美颜面板（对标 Android BeautyPanel.kt:55-157）
-/// 双 Tab（FACE / MAKEUP），拖拽手柄，35% 屏高，24pt 顶部圆角
+/// 双 Tab（FACE / MAKEUP）；容器由调用方 ControlPanel 提供，本视图只负责内容与 Tab 栏
 struct BeautyPanelView: View {
     @Binding var params: BeautyRenderer.Params
     @State private var selectedTab = 0
 
     var body: some View {
         VStack(spacing: 0) {
-            // 拖拽手柄（36x4pt 胶囊）
-            Capsule()
-                .fill(Color.white.opacity(0.3))
-                .frame(width: 36, height: 4)
-                .padding(.top, 10)
-                .padding(.bottom, 4)
-
             // 内容区
             ScrollView {
                 VStack(spacing: 12) {
@@ -44,19 +37,6 @@ struct BeautyPanelView: View {
             }
             .padding(.vertical, 8)
         }
-        .frame(maxHeight: UIScreen.main.bounds.height * 0.35) // 对标 Android BeautyPanel PANEL_HEIGHT_RATIO=0.35
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color(red: 0.11, green: 0.10, blue: 0.12).opacity(0.95))
-                .ignoresSafeArea(edges: .bottom)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                .ignoresSafeArea(edges: .bottom)
-        )
-        .shadow(color: .black.opacity(0.5), radius: 16)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 }
 

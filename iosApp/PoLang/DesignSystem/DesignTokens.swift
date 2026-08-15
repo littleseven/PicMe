@@ -373,6 +373,12 @@ enum CameraTokens {
     static let filterSelectorHeight: CGFloat = 280
     static let filterSelectedScale: CGFloat = 1.08
     static let filterSelectedBorderWidth: CGFloat = 2.5
+    // 面板高度比例（对标 specs/screens/camera.yaml）
+    static let beautyPanelHeightRatio: CGFloat = 0.30
+    static let filterPanelHeightRatio: CGFloat = 0.30
+    static let ratioGridScenePanelHeightRatio: CGFloat = 0.22
+    static let proPanelHeightRatio: CGFloat = 0.38
+    static let panelCornerRadius: CGFloat = 20
 }
 
 // MARK: - Chat Bubble

@@ -103,8 +103,8 @@ struct CameraPreviewView: View {
     enum CameraMode: String, CaseIterable { case video = "视频", photo = "照片", document = "文档" }
     // 构图网格（对标 Android GridType）
     enum GridType: Equatable { case off, thirds, golden }
-    // 场景模式（对标 Android ScenePreset；NIGHT→EV+1，MOON→EV-2+3.2x）
-    enum ScenePreset: Equatable { case off, night, moon }
+    // 场景模式（对标 Android ScenePreset；NIGHT→EV+1，MOON 已移除）
+    enum ScenePreset: Equatable { case off, night }
     // 画面比例（对标 Android CameraAspectRatio：FULL=填充裁剪，4:3/16:9=FIT 留黑边）
     enum AspectMode: Equatable { case full, ratio43, ratio169 }
 
@@ -282,14 +282,11 @@ struct CameraPreviewView: View {
         .allowsHitTesting(false)
     }
 
-    /// 场景模式作用到相机（对标 Android：NIGHT→EV+1，MOON→EV-2+3.2x，NONE→EV 0）
+    /// 场景模式作用到相机（对标 Android：NIGHT→EV+1，NONE→EV 0；MOON 已从 spec 移除）
     private func applyScene(_ s: ScenePreset) {
         switch s {
         case .off: controller.setExposureBias(0)
         case .night: controller.setExposureBias(1)
-        case .moon:
-            controller.setExposureBias(-2)
-            controller.setZoom(3.2)
         }
     }
 
@@ -412,35 +409,40 @@ struct CameraPreviewView: View {
                 if let panel = activePanel {
                     switch panel {
                     case .beauty:
-                        BeautyPanelView(params: $container.beautyParams)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                        ControlPanel(heightRatio: CameraTokens.beautyPanelHeightRatio) {
+                            BeautyPanelView(params: $container.beautyParams)
+                        }
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                     case .filter:
-                        // 高度锚 Android 实测 ~38% ≈ filterSelectorHeight token(280)
-                        ControlPanel(maxHeight: CameraTokens.filterSelectorHeight) {
+                        ControlPanel(heightRatio: CameraTokens.filterPanelHeightRatio) {
                             FilterSelectorView(selectedFilter: $container.beautyParams.colorFilter)
                         }
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     case .grid:
-                        // Android 实测:底部矮 chip 行(非面板壳);文案 关闭/九宫格/黄金比例
-                        selectorChipRow([
-                            ("Off Grid", currentGrid == .off, { currentGrid = .off; closePanel() }),
-                            ("Nine Grid", currentGrid == .thirds, { currentGrid = .thirds; closePanel() }),
-                            ("Golden Ratio", currentGrid == .golden, { currentGrid = .golden; closePanel() }),
-                        ])
+                        ControlPanel(heightRatio: CameraTokens.ratioGridScenePanelHeightRatio) {
+                            selectorChipRow([
+                                ("Off Grid", currentGrid == .off, { currentGrid = .off; closePanel() }),
+                                ("Nine Grid", currentGrid == .thirds, { currentGrid = .thirds; closePanel() }),
+                                ("Golden Ratio", currentGrid == .golden, { currentGrid = .golden; closePanel() }),
+                            ])
+                        }
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     case .scene:
-                        selectorChipRow([
-                            ("Scene Off", currentScene == .off, { currentScene = .off; closePanel() }),
-                            ("Night", currentScene == .night, { currentScene = .night; closePanel() }),
-                            ("Moon Shot", currentScene == .moon, { currentScene = .moon; closePanel() }),
-                        ])
+                        ControlPanel(heightRatio: CameraTokens.ratioGridScenePanelHeightRatio) {
+                            selectorChipRow([
+                                ("Scene Off", currentScene == .off, { currentScene = .off; closePanel() }),
+                                ("Night", currentScene == .night, { currentScene = .night; closePanel() }),
+                            ])
+                        }
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     case .ratio:
-                        selectorChipRow([
-                            ("4:3", currentRatio == .ratio43, { currentRatio = .ratio43; closePanel() }),
-                            ("16:9", currentRatio == .ratio169, { currentRatio = .ratio169; closePanel() }),
-                            ("Fullscreen", currentRatio == .full, { currentRatio = .full; closePanel() }),
-                        ])
+                        ControlPanel(heightRatio: CameraTokens.ratioGridScenePanelHeightRatio) {
+                            selectorChipRow([
+                                ("4:3", currentRatio == .ratio43, { currentRatio = .ratio43; closePanel() }),
+                                ("16:9", currentRatio == .ratio169, { currentRatio = .ratio169; closePanel() }),
+                                ("Fullscreen", currentRatio == .full, { currentRatio = .full; closePanel() }),
+                            ])
+                        }
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
@@ -579,25 +581,28 @@ struct CameraPreviewView: View {
             // 缩略图 | 快门 | 翻转 —— selector chip 行态让位给 chip 行（Android 实测:此行隐藏）
             if !panelOpen {
                 HStack {
-                    Circle()
-                        .fill(Color(red: 0.25, green: 0.25, blue: 0.25))
-                        .frame(width: 48, height: 48)
-                        .overlay(
-                            Group {
-                                if let lastThumb {
-                                    Image(uiImage: lastThumb)
-                                        .resizable()
-                                        .scaledToFill()
-                                } else {
-                                    MatIcon(name: "photo.fill", size: 18)
-                                        .foregroundColor(.white.opacity(0.5))
+                    ShutterSideButton(
+                        identifier: "camera_gallery_thumb",
+                        label: String(localized: "Gallery"),
+                        action: { onGalleryTap() }
+                    ) {
+                        Circle()
+                            .fill(Color(red: 0.25, green: 0.25, blue: 0.25))
+                            .frame(width: 48, height: 48)
+                            .overlay(
+                                Group {
+                                    if let lastThumb {
+                                        Image(uiImage: lastThumb)
+                                            .resizable()
+                                            .scaledToFill()
+                                    } else {
+                                        MatIcon(name: "photo.fill", size: 18)
+                                            .foregroundColor(.white.opacity(0.5))
+                                    }
                                 }
-                            }
-                        )
-                        .clipShape(Circle())
-                        .accessibilityIdentifier("camera_gallery_thumb")
-                        .contentShape(Circle())
-                        .onTapGesture { onGalleryTap() }
+                            )
+                            .clipShape(Circle())
+                    }
 
                     Spacer()
 
@@ -617,12 +622,16 @@ struct CameraPreviewView: View {
 
                     Spacer()
 
-                    Circle()
-                        .fill(Color.white.opacity(0.2))
-                        .frame(width: 48, height: 48)
-                        .overlay(MatIcon(name: "camera.rotate", size: 18).foregroundColor(.white))
-                        .accessibilityIdentifier("camera_flip")
-                        .onTapGesture { controller.flipCamera() }
+                    ShutterSideButton(
+                        identifier: "camera_flip",
+                        label: String(localized: "Flip"),
+                        action: { controller.flipCamera() }
+                    ) {
+                        Circle()
+                            .fill(Color.white.opacity(0.2))
+                            .frame(width: 48, height: 48)
+                            .overlay(MatIcon(name: "camera.rotate", size: 18).foregroundColor(.white))
+                    }
                 }
                 .padding(.horizontal, 40)
             }
@@ -631,15 +640,38 @@ struct CameraPreviewView: View {
     }
 }
 
+// MARK: - 底部快门两侧按钮（图标 + 文字标签，对标 specs/screens/camera.yaml）
+
+private struct ShutterSideButton<Icon: View>: View {
+    let identifier: String
+    let label: String
+    let action: () -> Void
+    @ViewBuilder let icon: () -> Icon
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                icon()
+                Text(label)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.white)
+            }
+        }
+        .accessibilityIdentifier(identifier)
+    }
+}
+
 // MARK: - ControlPanel 容器（对标 Android ControlPanel：半屏 50% + 顶部圆角 24 + 拖拽手柄 + 底部渐变遮罩 + 边框 + 实色 surface）
 
 private struct ControlPanel<Content: View>: View {
     var onDismiss: (() -> Void)? = nil
-    // 高度上限:默认半屏 50%;filter 传 CameraTokens.filterSelectorHeight(280,Android 实测≈38%)
+    // 高度上限:默认半屏 50%;filter 传 CameraTokens.filterSelectorHeight(280,Android 实测≈30%)
     var maxHeight: CGFloat? = nil
+    // 高度比例（优先级低于 maxHeight）
+    var heightRatio: CGFloat = 0.5
     @ViewBuilder let content: () -> Content
 
-    private var cap: CGFloat { maxHeight ?? UIScreen.main.bounds.height * 0.5 }
+    private var cap: CGFloat { maxHeight ?? UIScreen.main.bounds.height * heightRatio }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -662,9 +694,9 @@ private struct ControlPanel<Content: View>: View {
             }
             .frame(maxWidth: .infinity)
             .frame(maxHeight: cap, alignment: .top)
-            .background(RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .background(RoundedRectangle(cornerRadius: CameraTokens.panelCornerRadius, style: .continuous)
                 .fill(Color(red: 0.11, green: 0.10, blue: 0.12).opacity(0.95)))
-            .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .overlay(RoundedRectangle(cornerRadius: CameraTokens.panelCornerRadius, style: .continuous)
                 .stroke(Color.white.opacity(0.25), lineWidth: 0.5))
             .shadow(color: .black.opacity(0.5), radius: 16)
         }
@@ -705,7 +737,7 @@ private struct ProModePanel: View {
     ]
 
     var body: some View {
-        ControlPanel(onDismiss: onDismiss) {
+        ControlPanel(onDismiss: onDismiss, heightRatio: CameraTokens.proPanelHeightRatio) {
             VStack(alignment: .leading, spacing: 14) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("White Balance").font(.system(size: 12)).foregroundStyle(.white.opacity(0.7))
