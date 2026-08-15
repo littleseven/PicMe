@@ -7,8 +7,8 @@ final class DebugOverlayState: ObservableObject {
     static let shared = DebugOverlayState()
     @Published private(set) var entries: [(key: String, value: String)] = []
     @Published var isExpanded = true  // 默认展开（验收期直接显示 face.mnn/face.engine.active/camera.fps；点摘要行可折叠）
+    @Published var isEnabled = false  // 默认关闭；由 Settings / CameraPreviewView 根据 UserDefaults 同步
     private var map: [String: String] = [:]
-    var isEnabled = true
 
     private init() {}
 

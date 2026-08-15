@@ -76,20 +76,6 @@ private struct FilterThumbnailView: View {
                                 .clipShape(Circle())
                         }
                     }
-                    .overlay {
-                        Circle()
-                            .strokeBorder(
-                                isSelected ? Color.accentColor : Color.clear,
-                                lineWidth: 2.5
-                            )
-                    }
-                if isSelected {
-                    Circle()
-                        .fill(Color.accentColor.opacity(0.25))
-                        .frame(width: 56, height: 56)
-                    MatIcon(name: "checkmark", size: 14)
-                        .foregroundColor(.accentColor)
-                }
                 // Phase 6 占位标记
                 if stylePlaceholder != nil {
                     MatIcon(name: "lock.fill", size: 14)
@@ -102,9 +88,18 @@ private struct FilterThumbnailView: View {
             Text(displayName)
                 .font(.system(size: 10))
                 .fontWeight(isSelected ? .bold : .regular)
-                .foregroundColor(isSelected ? .accentColor : .white.opacity(0.85))
+                .foregroundColor(isSelected ? CameraTokens.cameraAccent : .white.opacity(0.85))
                 .lineLimit(1)
         }
+        .padding(6)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(isSelected ? CameraTokens.cameraAccent.opacity(0.25) : Color.clear)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(isSelected ? CameraTokens.cameraAccent : Color.clear, lineWidth: 1.5)
+        )
         .accessibilityIdentifier("filter_\(accessibilitySuffix)")
         .onTapGesture(perform: onTap)
     }

@@ -88,7 +88,9 @@ fragment float4 lut_fragment(
     sampler bilinear [[sampler(0)]],
     constant ColorGradeUniforms& uni [[buffer(0)]])
 {
-    float4 src = inputTexture.sample(bilinear, in.uv);
+    // 🔴 中间 pass 方向约定同 smoothing.metal：quad_vertex 每 pass 垂直翻转一次，
+    // 采样 y 取反使本 pass 输出与输入同向，保持末级 beauty pass「翻转相消」不变。
+    float4 src = inputTexture.sample(bilinear, float2(in.uv.x, 1.0 - in.uv.y));
     float3 color = src.rgb;
 
     // ColorMatrix（FilterType 通过此路径生效）

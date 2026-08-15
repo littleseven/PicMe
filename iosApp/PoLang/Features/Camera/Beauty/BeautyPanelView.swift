@@ -52,16 +52,16 @@ private struct TabIconButton: View {
         Button(action: action) {
             VStack(spacing: 2) {
                 MatIcon(name: systemName, size: 20)
-                    .foregroundColor(isSelected ? .accentColor : .white.opacity(0.5))
+                    .foregroundColor(isSelected ? CameraTokens.cameraAccent : .white.opacity(0.5))
                 Text(label)
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(isSelected ? .accentColor : .white.opacity(0.5))
+                    .foregroundColor(isSelected ? CameraTokens.cameraAccent : .white.opacity(0.5))
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(isSelected ? Color.accentColor.opacity(0.12) : Color.clear)
+                    .fill(isSelected ? CameraTokens.cameraAccent.opacity(0.12) : Color.clear)
             )
         }
         .accessibilityLabel(label)
@@ -113,10 +113,10 @@ private struct BeautySliderRow: View {
                 Button { value = 0 } label: {
                     HStack(spacing: 8) {
                         MatIcon(name: icon, size: 15)
-                            .foregroundColor(value != 0 ? .accentColor : .white.opacity(0.6))
+                            .foregroundColor(value != 0 ? CameraTokens.cameraAccent : .white.opacity(0.6))
                         Text(label)
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(value != 0 ? .accentColor : .white.opacity(0.6))
+                            .foregroundColor(value != 0 ? CameraTokens.cameraAccent : .white.opacity(0.6))
                     }
                 }
                 .buttonStyle(.plain)
@@ -125,11 +125,17 @@ private struct BeautySliderRow: View {
 
                 Text(displayValue)
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(value != 0 ? .accentColor : .white.opacity(0.4))
+                    .foregroundColor(value != 0 ? CameraTokens.cameraAccent : .white.opacity(0.4))
             }
 
             // 对标 Android HyperOS 滑杆:自绘胶囊轨道+描边 thumb(AppSlider),不用系统 Slider
-            AppSlider(value: value, range: range, onValueChange: { value = $0 })
+            AppSlider(
+                value: value,
+                range: range,
+                activeTrackColor: CameraTokens.cameraAccent,
+                thumbBorderColor: CameraTokens.cameraAccent,
+                onValueChange: { value = $0 }
+            )
         }
     }
 

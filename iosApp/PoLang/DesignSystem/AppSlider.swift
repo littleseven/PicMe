@@ -6,6 +6,8 @@ import SwiftUI
 struct AppSlider: View {
     let value: Float
     let range: ClosedRange<Float>
+    var activeTrackColor: Color = Color.accentColor
+    var thumbBorderColor: Color = Color.accentColor
     var onValueChange: (Float) -> Void
 
     @State private var pressed = false
@@ -31,13 +33,13 @@ struct AppSlider: View {
                     .frame(height: trackH)
                 // active 段
                 Capsule()
-                    .fill(Color.accentColor)
+                    .fill(activeTrackColor)
                     .frame(width: max(thumb, clampedFraction * geo.size.width), height: trackH)
                 // thumb
                 Circle()
                     .fill(AppSliderTokens.thumbColor)
                     .overlay(
-                        Circle().stroke(Color.accentColor, lineWidth: AppSliderTokens.thumbBorderWidth)
+                        Circle().stroke(thumbBorderColor, lineWidth: AppSliderTokens.thumbBorderWidth)
                     )
                     .shadow(radius: AppSliderTokens.thumbShadowElevation)
                     .frame(width: thumb, height: thumb)

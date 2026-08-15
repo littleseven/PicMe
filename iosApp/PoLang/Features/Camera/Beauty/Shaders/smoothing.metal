@@ -136,7 +136,11 @@ fragment float4 smoothing_fragment(
     sampler bilinear [[sampler(0)]],
     constant SmoothingUniforms& uni [[buffer(0)]])
 {
-    float2 uv = in.uv;
+    // 🔴 中间 pass 方向约定：quad_vertex 的 UV 映射使「每个 pass 相对输入垂直翻转一次」
+    // （yuv.metal 🔴10）。末级 beauty pass 上屏依赖「偶数 pass 翻转相消」——插入本 pass 后
+    // 变奇数 → 预览上下颠倒（实测 bug）。故中间 pass 采样时 y 取反，让输出与输入同向，
+    // 保持「翻转相消」数学不变（lut.metal 同）。
+    float2 uv = float2(in.uv.x, 1.0 - in.uv.y);
     float4 iColor = uInputTexture.sample(bilinear, uv);
     float3 color = iColor.rgb;
 

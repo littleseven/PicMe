@@ -382,6 +382,14 @@ enum BadgeTokens {
 // MARK: - Camera（强制深色 overlay）
 
 enum CameraTokens {
+    // 相机 accent 色与其他页面统一：全 App 共用 accentColor（无 AccentColor 资产时为系统蓝）。
+    // 此前 Ardot 稿的淡紫 #D0BCFF 虽等于 M3 dark primary，但其他页面实际消费 accentColor → 观感割裂，已回正。
+    static let cameraAccent: Color = Color.accentColor
+    static let cameraAccentOn: Color = .white
+    static let panelBackground: Color = Color(red: 0.11, green: 0.10, blue: 0.12).opacity(0.95)
+    static let toolBarSelectedBg: Color = cameraAccent
+    static let toolBarUnselectedBg: Color = Color.clear
+
     static let focusRingDiameter: CGFloat = 100
     static let focusRingStrokeWidth: CGFloat = 3
     static let focusRingCornerRadius: CGFloat = 20
@@ -399,11 +407,27 @@ enum CameraTokens {
     static let filterSelectedScale: Double = 1.08
     static let filterSelectedBorderWidth: CGFloat = 2.5
     // 面板高度比例（对标 specs/screens/camera.yaml）
-    static let beautyPanelHeightRatio: CGFloat = 0.30
+    // 美颜面板高度：0.40 ≈ 完整容下 4 行滑杆（磨皮/美白/瘦脸/大眼）+ Tab 栏，无需滚动
+    static let beautyPanelHeightRatio: CGFloat = 0.40
     static let filterPanelHeightRatio: CGFloat = 0.30
     static let ratioGridScenePanelHeightRatio: CGFloat = 0.22
     static let proPanelHeightRatio: CGFloat = 0.38
+    static let inlineFilterPanelHeight: CGFloat = 200
     static let panelCornerRadius: CGFloat = 20
+
+    // 主界面布局 token（Ardot 系统相机风格）
+    static let topToolBarPaddingTop: CGFloat = 8
+    static let topToolBarItemPaddingH: CGFloat = 14
+    static let topToolBarItemPaddingV: CGFloat = 8
+    static let topToolBarItemRadius: CGFloat = 10
+    static let topToolBarSpacing: CGFloat = 8
+    static let modeSwitcherSpacing: CGFloat = 24
+    static let zoomBarSpacing: CGFloat = 12
+    static let zoomCapsulePaddingH: CGFloat = 14
+    static let zoomCapsuleHeight: CGFloat = 32
+    static let bottomActionButtonWidth: CGFloat = 76
+    static let bottomActionButtonHeight: CGFloat = 84
+    static let bottomActionButtonRadius: CGFloat = 18
 }
 
 // MARK: - Chat Bubble

@@ -50,7 +50,8 @@ struct MainTabView: View {
             .tabViewStyle(.page(indexDisplayMode: .never))  // 去页码点（Android 无指示器）
             // 仅忽略顶部容器（状态栏全出血，保持现状）；底部 home 指示条 + 键盘安全区须尊重——
             // 否则 chat 输入框既不避开键盘也不避开 home 指示条（原 .ignoresSafeArea() 默认 .all 含 keyboard）。
-            .ignoresSafeArea(.container, edges: .top)
+            // 🔴 相机页例外：全出血到底（修复底部白条 bug），底栏避让由 CameraPreviewView 自行加 safeBottom padding。
+            .ignoresSafeArea(.container, edges: currentPage == 0 ? [.top, .bottom] : .top)
 
             // 打标页 push（覆盖在 pager 之上）：TAG tab → TagScanScreen（SP-B）；其余占位 Coming Soon
             if let ph = showPlaceholder {
@@ -86,17 +87,6 @@ struct MainTabView: View {
             }
         }
         // 🔴 左右滑切页改由 TabView(.page) 原生跟手处理（见上方 TabView），不再用 onEnded 手势。
-        // 调试悬浮窗仅相机页（排查美颜/快门用），其余页面不干扰观感
-        // 🔴 避让相机控件：顶推 116pt 越过左列按钮区（safeTop 系坐标：8 + 2×48+8 + 4 余量），
-        //    右缘收 76pt 避开右列按钮（48 按钮 + 16 边距 + 余量），宽度封顶防长行伸进右列
-        .overlay(alignment: .topLeading) {
-            if currentPage == 0 {
-                DebugOverlayView()
-                    .frame(maxWidth: UIScreen.main.bounds.width - 84, alignment: .leading)
-                    .padding(.leading, 4)
-                    .padding(.top, 116)
-            }
-        }
         #if DEBUG
         .overlay(alignment: .topTrailing) {
             // 调试旁路：点此抓当前画面到 Documents，宿主 devicectl copy 拉取（仅 DEBUG）

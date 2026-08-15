@@ -58,19 +58,18 @@ struct CameraPreviewView: View {
         return .full
     }
 
-    /// 面板启动覆盖（自动化验收用）：-openPanel beauty|filter|grid|scene|ratio|pro，
+    /// 面板启动覆盖（自动化验收用）：-openPanel beauty|filter|grid|ratio|pro，
     /// 启动即开该面板（XCUITest 逐面板 dump 用，替代面板间点击切换的 flaky 导航）。
-    private static func resolveInitialPanel() -> (ActivePanel?, Bool) {
+    private static func resolveInitialPanel() -> ActivePanel? {
         let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "-openPanel"), args.count > i + 1 else { return (nil, false) }
+        guard let i = args.firstIndex(of: "-openPanel"), args.count > i + 1 else { return nil }
         switch args[i + 1] {
-        case "beauty": return (.beauty, false)
-        case "filter": return (.filter, false)
-        case "grid": return (.grid, false)
-        case "scene": return (.scene, false)
-        case "ratio": return (.ratio, false)
-        case "pro": return (nil, true)
-        default: return (nil, false)
+        case "beauty": return .beauty
+        case "filter": return .filter
+        case "grid": return .grid
+        case "ratio": return .ratio
+        case "pro": return .pro
+        default: return nil
         }
     }
 
@@ -82,29 +81,33 @@ struct CameraPreviewView: View {
     /// 否则跟随 设置→相机与美颜 的 `camera_show_landmarks` 开关（对标 Android face debug overlay）。
     @State private var showLandmarks = Self.resolveShowLandmarks()
     @AppStorage("camera_show_landmarks") private var settingsShowLandmarks = false
-
-    @State private var activePanel: ActivePanel? = Self.resolveInitialPanel().0
+    @State private var activePanel: ActivePanel? = Self.resolveInitialPanel()
     // 🔴 renderer 提到视图层直持：快门链路不再依赖 representable 回调往返（nil 则拍照静默失败）
     @State private var sharedRenderer: BeautyRenderer? = CameraPreviewView.makeRenderer()
     @State private var zoomPreset: CGFloat = 1.0
     @State private var selectedMode: CameraMode = .photo
     @State private var shutterFlash = false
     @State private var lastThumb: UIImage?
-    // 右列对齐（B2a）：构图网格 + 场景模式（对标 Android currentGrid / currentScene）
+    // 构图网格（对标 Android currentGrid）
     @State private var currentGrid: GridType = .off
-    @State private var currentScene: ScenePreset = .off
     @State private var currentRatio: AspectMode = Self.resolveRatio()
-    // ProMode 独立轨道（对标 Android showProPanel；与 primary 组互斥渲染，可与 beauty 并存）
-    @State private var showProPanel = Self.resolveInitialPanel().1
     @State private var exposureComp: Double = 0      // EV -2..2（AVCapture setExposureBias）
     @State private var whiteBalanceMode = 0          // 0=auto/1=sunny/2=cloudy/3=incandescent/4=fluorescent
 
-    enum ActivePanel: Equatable { case beauty, filter, grid, scene, ratio }
-    enum CameraMode: String, CaseIterable { case video = "视频", photo = "照片", document = "文档" }
+    enum ActivePanel: Equatable { case beauty, filter, grid, ratio, pro }
+    enum CameraMode: String, CaseIterable {
+        case video, photo, document
+
+        var displayName: String {
+            switch self {
+            case .video:    return String(localized: "Video")
+            case .photo:    return String(localized: "Photo")
+            case .document: return String(localized: "Document")
+            }
+        }
+    }
     // 构图网格（对标 Android GridType）
     enum GridType: Equatable { case off, thirds, golden }
-    // 场景模式（对标 Android ScenePreset；NIGHT→EV+1，MOON 已移除）
-    enum ScenePreset: Equatable { case off, night }
     // 画面比例（对标 Android CameraAspectRatio：FULL=填充裁剪，4:3/16:9=FIT 留黑边）
     enum AspectMode: Equatable { case full, ratio43, ratio169 }
 
@@ -143,8 +146,6 @@ struct CameraPreviewView: View {
                     // 控件层：锚安全区（🔴 根 GeometryReader 忽略了 safe area，
                     // geo.safeAreaInsets 恒为 0，必须用 UIKit 读真实安全区）
                     cameraOverlay(screenHeight: geo.size.height, safeTop: realSafeTop)
-                        // 引擎切换胶囊同样避让刘海（safeTop + 4）
-                        .overlay(alignment: .top) { engineToggle.padding(.top, realSafeTop + 4) }
                 }
 
                 // 快门黑闪反馈（对标 Android CameraScreen.kt:1517-1523 拍照黑场闪屏）
@@ -186,9 +187,9 @@ struct CameraPreviewView: View {
         .task {
             // MNN 端侧推理离线自检（-mnnSelfTest 时跑；写 Documents/mnn-verify.txt 供验收拉取）
             MnnSelfTest.runIfRequested()
-            // Debug 叠加层：设置页开关控制（默认启用，验收期直接看遥测）
+            // Debug 叠加层：设置页开关控制（默认关闭）
             DebugOverlayState.shared.isEnabled =
-                (UserDefaults.standard.object(forKey: "camera_debug_overlay") as? Bool) ?? true
+                (UserDefaults.standard.object(forKey: "camera_debug_overlay") as? Bool) ?? false
             // 引擎：启动参数 > 设置页；自动化验收用 -mnnEngine / -useMediaPipe 覆盖
             faceRouter.setUseMnn(useMnnEngine)
             // 瘦脸/大眼/形变强度：验收 -slim 覆盖；否则用设置页持久值（beauty_slim_debug 等）
@@ -224,10 +225,6 @@ struct CameraPreviewView: View {
             // 关键点 overlay 实时同步（启动参数锁定开时不覆盖）
             guard !Self.parseLaunchFlag("-showLandmarks") else { return }
             showLandmarks = v
-        }
-        .onChange(of: currentScene) { s in
-            // 场景模式作用相机（NIGHT→EV+1，MOON→EV-2+3.2x，NONE→EV 0）
-            applyScene(s)
         }
         .onChange(of: exposureComp) { ev in
             // ProMode EV → AVCapture 曝光补偿（-2..2；场景模式也写 EV，后到者覆盖，对标 Android）
@@ -282,14 +279,6 @@ struct CameraPreviewView: View {
         .allowsHitTesting(false)
     }
 
-    /// 场景模式作用到相机（对标 Android：NIGHT→EV+1，NONE→EV 0；MOON 已从 spec 移除）
-    private func applyScene(_ s: ScenePreset) {
-        switch s {
-        case .off: controller.setExposureBias(0)
-        case .night: controller.setExposureBias(1)
-        }
-    }
-
     private func closePanel() { withAnimation { activePanel = nil } }
 
     /// 当前比例对应的拍照裁剪 h/w（FULL=nil 不裁；4:3→4/3，16:9→16/9，对标 Android 拍照 aspect crop）
@@ -313,36 +302,6 @@ struct CameraPreviewView: View {
         .accessibilityIdentifier("camera_denied")
     }
 
-    // MARK: - 人脸引擎切换（MediaPipe 默认 / MNN 双引擎可切换）
-
-    /// 顶部胶囊：点击切换人脸检测引擎。亮色 = 当前引擎。
-    ///（top padding 由调用方按 safeTop 避让刘海，本视图不内嵌）
-    private var engineToggle: some View {
-        Button {
-            useMnnEngine.toggle()
-            faceRouter.setUseMnn(useMnnEngine)
-            print("[PoLang] face.engine switch → \(faceRouter.activeLabel)")
-        } label: {
-            HStack(spacing: 5) {
-                Image(systemName: useMnnEngine ? "cpu" : "faceid")
-                    .font(.system(size: 11, weight: .bold))
-                Text("MNN")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(useMnnEngine ? .yellow : .white.opacity(0.45))
-                Text("/")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.white.opacity(0.35))
-                Text("MediaPipe")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(useMnnEngine ? .white.opacity(0.45) : .yellow)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(.ultraThinMaterial, in: Capsule())
-            .overlay(Capsule().stroke(Color.white.opacity(0.15), lineWidth: 0.5))
-        }
-    }
-
     // MARK: - 控件层（锚安全区，不跟随预览延伸）
 
     /// 真实顶部安全区高度（刘海/灵动岛）。
@@ -355,288 +314,261 @@ struct CameraPreviewView: View {
             .first { $0.isKeyWindow }?.safeAreaInsets.top ?? 0
     }
 
-    /// Android RatioItem 风格选择器 chip 行(底部矮行,非面板壳)。
-    /// 几何锚 Android a11y 实测:chip 高 156px≈46pt、胶囊、间距 16pt、底距 12pt、前导 24pt。
+    /// 真实底部安全区高度（home 指示条）。相机页忽略底部 safe area 后，底栏需自行避让。
+    private var realSafeBottom: CGFloat {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow }?.safeAreaInsets.bottom ?? 0
+    }
+
+    /// 顶部内联选项 chip 行（iOS 系统相机风格：居中的胶囊组，无面板壳拉伸）。
     private func selectorChipRow(_ chips: [(String, Bool, () -> Void)]) -> some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 12) {
             ForEach(chips.indices, id: \.self) { i in
                 Button(action: chips[i].2) {
                     Text(LocalizedStringKey(chips[i].0))
                         .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(chips[i].1 ? AppColorScheme.dark.onPrimaryContainer : .white)
-                        .padding(.horizontal, 20)
-                        .frame(height: 46)
+                        .foregroundColor(chips[i].1 ? CameraTokens.cameraAccentOn : .white)
+                        .padding(.horizontal, 18)
+                        .frame(height: 40)
                         .background(
-                            Capsule().fill(chips[i].1 ? AppColorScheme.dark.primaryContainer : Color.black.opacity(0.5))
+                            Capsule().fill(chips[i].1 ? CameraTokens.cameraAccent : Color.white.opacity(0.15))
                         )
                 }
                 .accessibilityLabel(Text(LocalizedStringKey(chips[i].0)))
             }
         }
-        .padding(.leading, 24)
-        .padding(.bottom, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func cameraOverlay(screenHeight: CGFloat, safeTop: CGFloat) -> some View {
         ZStack {
-            // 手势层(面板开启时禁用——点按语义变为收起面板,对标 Android;修复 Pro 点外部不收起)
+            // 手势层（任何面板开启时禁用——点按语义变为收起面板）
             CameraGesturesView(controller: controller)
-                .allowsHitTesting(activePanel == nil && !showProPanel)
+                .allowsHitTesting(activePanel == nil)
 
-            // 空白点击收起层:任何面板开启时,点预览空白收起全部(位于按钮/面板层之下,不挡右列按钮)
-            // 对标 Android click_blank_area dismiss(isAnyPanelOpen||Pro||Beauty → closeAll)
-            if activePanel != nil || showProPanel {
+            // 空白点击收起层：任何面板开启时，点预览空白收起
+            if activePanel != nil {
                 Color.clear
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        withAnimation { activePanel = nil; showProPanel = false }
+                        withAnimation { activePanel = nil }
                     }
             }
 
-            // 顶部控件
-            topControls(screenHeight: screenHeight, safeTop: safeTop)
-
-            // 底部控件（底对齐，独立层）
-            VStack(spacing: 0) {
-                Spacer()
-                bottomControls
-            }
-
-            // 面板层：底对齐、覆盖底栏（Z 序在底栏之上，对标 Android align(BottomCenter) 覆盖 CameraBottomControls）
-            VStack(spacing: 0) {
-                Spacer()
-                if let panel = activePanel {
-                    switch panel {
-                    case .beauty:
-                        ControlPanel(heightRatio: CameraTokens.beautyPanelHeightRatio) {
-                            BeautyPanelView(params: $container.beautyParams)
-                        }
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                    case .filter:
-                        ControlPanel(heightRatio: CameraTokens.filterPanelHeightRatio) {
-                            FilterSelectorView(selectedFilter: $container.beautyParams.colorFilter)
-                        }
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                    case .grid:
-                        ControlPanel(heightRatio: CameraTokens.ratioGridScenePanelHeightRatio) {
-                            selectorChipRow([
-                                ("Off Grid", currentGrid == .off, { currentGrid = .off; closePanel() }),
-                                ("Nine Grid", currentGrid == .thirds, { currentGrid = .thirds; closePanel() }),
-                                ("Golden Ratio", currentGrid == .golden, { currentGrid = .golden; closePanel() }),
-                            ])
-                        }
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                    case .scene:
-                        ControlPanel(heightRatio: CameraTokens.ratioGridScenePanelHeightRatio) {
-                            selectorChipRow([
-                                ("Scene Off", currentScene == .off, { currentScene = .off; closePanel() }),
-                                ("Night", currentScene == .night, { currentScene = .night; closePanel() }),
-                            ])
-                        }
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                    case .ratio:
-                        ControlPanel(heightRatio: CameraTokens.ratioGridScenePanelHeightRatio) {
-                            selectorChipRow([
-                                ("4:3", currentRatio == .ratio43, { currentRatio = .ratio43; closePanel() }),
-                                ("16:9", currentRatio == .ratio169, { currentRatio = .ratio169; closePanel() }),
-                                ("Fullscreen", currentRatio == .full, { currentRatio = .full; closePanel() }),
-                            ])
-                        }
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                    }
+            // 顶部控件 + inline 面板（iOS 系统相机 HUD 风格）
+            VStack(spacing: 8) {
+                topBar(safeTop: safeTop)
+                if let panel = activePanel, panel != .beauty {
+                    inlinePanel(for: panel)
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
-                // ProMode 独立面板（与 beauty 可并存；被 filter/grid/scene/ratio primary 面板抑制渲染
-                // —— 对标 Android isAnyPanelOpen 含 showRatioSelector;此前漏 .ratio 致 Pro+比例chips 双面板）
-                if showProPanel && activePanel != .filter && activePanel != .grid && activePanel != .scene && activePanel != .ratio {
-                    ProModePanel(
-                        exposure: $exposureComp,
-                        whiteBalance: $whiteBalanceMode,
-                        contrast: Binding(get: { Double(container.beautyParams.contrast) },
-                                          set: { container.beautyParams.contrast = Float($0) }),
-                        saturation: Binding(get: { Double(container.beautyParams.saturation) },
-                                            set: { container.beautyParams.saturation = Float($0) }),
-                        temperature: Binding(get: { Double(container.beautyParams.temperature) },
-                                             set: { container.beautyParams.temperature = Float($0) }),
-                        onDismiss: { withAnimation { showProPanel = false } }
-                    )
-                    // 注:不加 .padding(.horizontal, 24)——Pro 面板须满屏宽,同 beauty/filter(ControlPanel 内容自带 padding)
+                // Debug 遥测浮层：受 Debug Overlay 开关控制，默认关闭，顶部居中
+                DebugOverlayView()
+                    .padding(.top, 4)
+                Spacer()
+            }
+
+            // 底部控件（底对齐，独立层；面板开启时被覆盖而非顶起）
+            VStack(spacing: 0) {
+                Spacer()
+                bottomControls()
+            }
+
+            // Beauty 底部矮抽屉
+            if activePanel == .beauty {
+                VStack(spacing: 0) {
+                    Spacer()
+                    ControlPanel(heightRatio: CameraTokens.beautyPanelHeightRatio) {
+                        BeautyPanelView(params: $container.beautyParams)
+                    }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
         }
     }
 
-    // MARK: - 顶部控件（右列锚定 safeTop，间距保持 Android dump 节奏）
+    // MARK: - 顶部控件（iOS 系统相机风格）
 
-    /// 右列相邻按钮中心 y% 差（dump 实测）：ratio-wand 9.29% / grid-ratio 7.08% /
-    /// scene-grid 9.28% / filter-scene 7.08% / tune-filter 9.29%
-    private func topControls(screenHeight: CGFloat, safeTop: CGFloat) -> some View {
-        // 按钮容器 48pt，中心到底/顶各 24pt
-        let buttonSize: CGFloat = 48
-        let halfButton = buttonSize / 2
-
-        // 🔴 刘海屏适配：首按钮锚定 safeTop（与左列同一基线），不再用屏高绝对 y%——
-        // 旧 wand 中心 = 屏高 4.87%（刘海机上 ~41pt < safeTop 59pt），撞刘海/灵动岛
-        let yWand = safeTop + halfButton + 8
-        let yRatio = yWand + screenHeight * 0.0929
-        let yGrid = yRatio + screenHeight * 0.0708
-        let yScene = yGrid + screenHeight * 0.0928
-        let yFilter = yScene + screenHeight * 0.0708
-        let yTune = yFilter + screenHeight * 0.0929
-
-        return ZStack {
-            // 左列：返回（裸箭头）+ Refresh（裸图标，无圆底，对标 Android CameraControlButtons.kt 左列）
-            VStack(spacing: 8) {
-                Button { } label: {
-                    MatIcon(name: "chevron.left", size: 20)
-                        .foregroundColor(.white)
-                        .frame(width: buttonSize, height: buttonSize)
-                }
-                // Refresh: 裸图标（Android 左列是裸图标无圆底容器）
-                Button { } label: {
-                    MatIcon(name: "arrow.clockwise", size: 18)
-                        .foregroundColor(.white)
-                        .frame(width: buttonSize, height: buttonSize)
-                }
-            }
-            // 🔴 .position 锚的是整个 VStack 的中心（2×48+8=104pt，半高 52）：
-            // 首按钮中心 = safeTop+8+52-52+24 = safeTop+32，与右列 wand 同基线
-            .position(x: 16 + halfButton, y: safeTop + 8 + 52)
-
-            // 右列：6 按钮按 dump y% 绝对定位
-            // 面板互斥(用户判定:两面板同显=错;此前 Pro+美颜 会垂直堆叠 85% 屏高):
-            // 开任一面板关 Pro,开 Pro 关其他
-            rightColumnButton("wand.and.stars", y: yWand, isActive: activePanel == .beauty,
-                              hasIndicator: container.beautyParams.whitening > 0 || container.beautyParams.smoothing > 0) {
-                withAnimation { showProPanel = false; activePanel = activePanel == .beauty ? nil : .beauty }
-            }
-            rightColumnButton("aspectratio", y: yRatio, isActive: activePanel == .ratio) {
-                withAnimation { showProPanel = false; activePanel = activePanel == .ratio ? nil : .ratio }
-            }
-            rightColumnButton("square.grid.3x3", y: yGrid, isActive: activePanel == .grid) {
-                withAnimation { showProPanel = false; activePanel = activePanel == .grid ? nil : .grid }
-            }
-            rightColumnButton("mountain.2", y: yScene, isActive: activePanel == .scene) {
-                withAnimation { showProPanel = false; activePanel = activePanel == .scene ? nil : .scene }
-            }
-            rightColumnButton("circle.lefthalf.filled", y: yFilter, isActive: activePanel == .filter) {
-                withAnimation { showProPanel = false; activePanel = activePanel == .filter ? nil : .filter }
-            }
-            rightColumnButton("slider.horizontal.3", y: yTune, isActive: showProPanel) {
-                withAnimation { activePanel = nil; showProPanel.toggle() }
-            }
+    private func topBar(safeTop: CGFloat) -> some View {
+        ZStack(alignment: .top) {
+            // 顶部居中横向工具栏
+            topToolBar
+                .padding(.top, safeTop + CameraTokens.topToolBarPaddingTop)
         }
-        .frame(width: UIScreen.main.bounds.width, height: screenHeight, alignment: .topLeading)
     }
 
-    /// 右列单个按钮绝对定位
-    @ViewBuilder
-    private func rightColumnButton(_ systemName: String, y: CGFloat,
-                                   isActive: Bool = false, hasIndicator: Bool = false,
-                                   action: @escaping () -> Void) -> some View {
-        CircleIconButton(systemName: systemName, isActive: isActive, hasIndicator: hasIndicator, action: action)
-            .position(x: UIScreen.main.bounds.width - 16 - 24, y: y) // 右缘 16pt + 半按钮 24pt
+    /// 顶部横向工具栏：美颜 / 比例 / 辅助线 / 滤镜 / 专业
+    private var topToolBar: some View {
+        HStack(spacing: CameraTokens.topToolBarSpacing) {
+            topToolBarItem(String(localized: "Beauty"), isSelected: activePanel == .beauty) {
+                withAnimation { activePanel = activePanel == .beauty ? nil : .beauty }
+            }
+            topToolBarItem(String(localized: "Ratio"), isSelected: activePanel == .ratio) {
+                withAnimation { activePanel = activePanel == .ratio ? nil : .ratio }
+            }
+            topToolBarItem(String(localized: "Grid"), isSelected: activePanel == .grid) {
+                withAnimation { activePanel = activePanel == .grid ? nil : .grid }
+            }
+            topToolBarItem(String(localized: "Filter"), isSelected: activePanel == .filter) {
+                withAnimation { activePanel = activePanel == .filter ? nil : .filter }
+            }
+            topToolBarItem(String(localized: "Pro"), isSelected: activePanel == .pro) {
+                withAnimation { activePanel = activePanel == .pro ? nil : .pro }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+    }
+
+    private func topToolBarItem(_ title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 12, weight: isSelected ? .bold : .medium))
+                .foregroundColor(isSelected ? CameraTokens.cameraAccentOn : .white)
+                .padding(.horizontal, CameraTokens.topToolBarItemPaddingH)
+                .padding(.vertical, CameraTokens.topToolBarItemPaddingV)
+                .background(
+                    RoundedRectangle(cornerRadius: CameraTokens.topToolBarItemRadius, style: .continuous)
+                        .fill(isSelected ? CameraTokens.toolBarSelectedBg : CameraTokens.toolBarUnselectedBg)
+                )
+        }
+        .accessibilityLabel(title)
     }
 
     // MARK: - 底部三行控件
 
-    private var bottomControls: some View {
-        // selector chip 行打开时:模式 tab 上移让位(锚 Android 实测:模式 tab 距底 ~109pt,chip 行距底 12pt)
-        let selectorOpen = activePanel == .grid || activePanel == .scene || activePanel == .ratio
-        let panelOpen = activePanel != nil || showProPanel
+    private func bottomControls() -> some View {
         return VStack(spacing: 20) {
-            // 变焦条（纯文本行无 pill）；面板开时隐藏（对标 Android visible_when "!isAnyPanelOpen"）
-            if !panelOpen {
-                HStack(spacing: 12) {
-                    ForEach([(0.6, "0.6x"), (1.0, "1x"), (2.0, "2x"), (3.2, "3.2x")], id: \.0) { val, label in
-                        Button {
-                            zoomPreset = val
-                            controller.setZoom(val)
-                        } label: {
-                            Text(label)
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(abs(zoomPreset - val) < 0.01 ? .black : .white)
-                                .frame(width: 32, height: 32)
-                                .background(
-                                    Circle().fill(abs(zoomPreset - val) < 0.01 ? Color.white : Color.clear)
-                                )
-                        }
-                    }
-                }
-                .accessibilityIdentifier("camera_zoom_bar")
-            }
-
-            // 模式选择器（白 Bold / 灰）—— selector 态仍显示（Android 实测）
-            HStack(spacing: 16) {
+            // 模式选择器（位置在变焦按钮上方）
+            HStack(spacing: CameraTokens.modeSwitcherSpacing) {
                 ForEach(CameraMode.allCases, id: \.self) { mode in
-                    Text(mode.rawValue)
-                        .font(.system(size: 13, weight: selectedMode == mode ? .bold : .regular))
-                        .foregroundColor(selectedMode == mode ? .white : .white.opacity(0.6))
-                        .padding(.horizontal, 12)
+                    Text(mode.displayName)
+                        .font(.system(size: CameraTokens.modeTabFontSize,
+                                      weight: selectedMode == mode ? .bold : .regular))
+                        .foregroundColor(selectedMode == mode ? .white : .white.opacity(CameraTokens.modeTabUnselectedAlpha))
                         .onTapGesture { selectedMode = mode }
                 }
             }
 
-            // 缩略图 | 快门 | 翻转 —— selector chip 行态让位给 chip 行（Android 实测:此行隐藏）
-            if !panelOpen {
-                HStack {
-                    ShutterSideButton(
-                        identifier: "camera_gallery_thumb",
-                        label: String(localized: "Gallery"),
-                        action: { onGalleryTap() }
-                    ) {
-                        Circle()
-                            .fill(Color(red: 0.25, green: 0.25, blue: 0.25))
-                            .frame(width: 48, height: 48)
-                            .overlay(
-                                Group {
-                                    if let lastThumb {
-                                        Image(uiImage: lastThumb)
-                                            .resizable()
-                                            .scaledToFill()
-                                    } else {
-                                        MatIcon(name: "photo.fill", size: 18)
-                                            .foregroundColor(.white.opacity(0.5))
-                                    }
-                                }
+            // 变焦条（药丸 Capsule）
+            HStack(spacing: CameraTokens.zoomBarSpacing) {
+                ForEach([(0.6, "0.6x"), (1.0, "1x"), (2.0, "2x"), (3.2, "3.2x")], id: \.0) { val, label in
+                    let selected = abs(zoomPreset - val) < 0.01
+                    Button {
+                        zoomPreset = val
+                        controller.setZoom(val)
+                    } label: {
+                        Text(label)
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(selected ? .black : .white)
+                            .padding(.horizontal, CameraTokens.zoomCapsulePaddingH)
+                            .frame(height: CameraTokens.zoomCapsuleHeight)
+                            .background(
+                                Capsule().fill(selected ? Color.white : Color.black.opacity(0.5))
                             )
-                            .clipShape(Circle())
-                    }
-
-                    Spacer()
-
-                    ShutterButton {
-                        // 白闪反馈（确认点击注册，对标 Android 拍照闪屏）
-                        shutterFlash = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { shutterFlash = false }
-                        guard let renderer = sharedRenderer else {
-                            print("[PoLang] shutter.FAIL: sharedRenderer nil")
-                            DebugOverlayState.shared.set("camera.shutter", "error: renderer nil")
-                            return
-                        }
-                        let flow = CaptureFlow(photoController: photoController, renderer: renderer, cropHPerW: captureCropHPerW)
-                        flow.onSaved = { refreshLatestThumb() }
-                        flow.captureAndSave()
-                    }
-
-                    Spacer()
-
-                    ShutterSideButton(
-                        identifier: "camera_flip",
-                        label: String(localized: "Flip"),
-                        action: { controller.flipCamera() }
-                    ) {
-                        Circle()
-                            .fill(Color.white.opacity(0.2))
-                            .frame(width: 48, height: 48)
-                            .overlay(MatIcon(name: "camera.rotate", size: 18).foregroundColor(.white))
                     }
                 }
-                .padding(.horizontal, 40)
+            }
+            .accessibilityIdentifier("camera_zoom_bar")
+
+            // 缩略图 | 快门 | 翻转（回退老版本：图标 + 文字标签，对标 specs/screens/camera.yaml）
+            HStack {
+                ShutterSideButton(
+                    identifier: "camera_gallery_thumb",
+                    label: String(localized: "Gallery"),
+                    action: { onGalleryTap() }
+                ) {
+                    Circle()
+                        .fill(Color(red: 0.25, green: 0.25, blue: 0.25))
+                        .frame(width: 48, height: 48)
+                        .overlay(
+                            Group {
+                                if let lastThumb {
+                                    Image(uiImage: lastThumb)
+                                        .resizable()
+                                        .scaledToFill()
+                                } else {
+                                    MatIcon(name: "photo.fill", size: 18)
+                                        .foregroundColor(.white.opacity(0.5))
+                                }
+                            }
+                        )
+                        .clipShape(Circle())
+                }
+
+                Spacer()
+
+                ShutterButton {
+                    // 白闪反馈（确认点击注册，对标 Android 拍照闪屏）
+                    shutterFlash = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { shutterFlash = false }
+                    guard let renderer = sharedRenderer else {
+                        print("[PoLang] shutter.FAIL: sharedRenderer nil")
+                        DebugOverlayState.shared.set("camera.shutter", "error: renderer nil")
+                        return
+                    }
+                    let flow = CaptureFlow(photoController: photoController, renderer: renderer, cropHPerW: captureCropHPerW)
+                    flow.onSaved = { refreshLatestThumb() }
+                    flow.captureAndSave()
+                }
+
+                Spacer()
+
+                ShutterSideButton(
+                    identifier: "camera_flip",
+                    label: String(localized: "Flip"),
+                    action: { controller.flipCamera() }
+                ) {
+                    Circle()
+                        .fill(Color.white.opacity(0.2))
+                        .frame(width: 48, height: 48)
+                        .overlay(MatIcon(name: "camera.rotate", size: 18).foregroundColor(.white))
+                }
+            }
+            .padding(.horizontal, 40)
+        }
+        // 固定底距：面板开启时覆盖底栏（Z 序在上），不顶起其他 UI
+        .padding(.bottom, 33 + realSafeBottom)
+    }
+
+    // MARK: - 顶部内联面板（ratio / grid / filter / pro）
+
+    @ViewBuilder
+    private func inlinePanel(for panel: ActivePanel) -> some View {
+        InlineControlPanel {
+            switch panel {
+            case .ratio:
+                selectorChipRow([
+                    ("4:3", currentRatio == .ratio43, { currentRatio = .ratio43; closePanel() }),
+                    ("16:9", currentRatio == .ratio169, { currentRatio = .ratio169; closePanel() }),
+                    ("Fullscreen", currentRatio == .full, { currentRatio = .full; closePanel() }),
+                ])
+            case .grid:
+                selectorChipRow([
+                    ("Off Grid", currentGrid == .off, { currentGrid = .off; closePanel() }),
+                    ("Nine Grid", currentGrid == .thirds, { currentGrid = .thirds; closePanel() }),
+                    ("Golden Ratio", currentGrid == .golden, { currentGrid = .golden; closePanel() }),
+                ])
+            case .filter:
+                ScrollView {
+                    FilterSelectorView(selectedFilter: $container.beautyParams.colorFilter)
+                }
+                .frame(maxHeight: CameraTokens.inlineFilterPanelHeight)
+            case .pro:
+                ProModePanel(
+                    exposure: $exposureComp,
+                    whiteBalance: $whiteBalanceMode,
+                    contrast: Binding(get: { Double(container.beautyParams.contrast) },
+                                      set: { container.beautyParams.contrast = Float($0) }),
+                    saturation: Binding(get: { Double(container.beautyParams.saturation) },
+                                        set: { container.beautyParams.saturation = Float($0) }),
+                    temperature: Binding(get: { Double(container.beautyParams.temperature) },
+                                         set: { container.beautyParams.temperature = Float($0) })
+                )
+            case .beauty:
+                EmptyView()
             }
         }
-        .padding(.bottom, selectorOpen ? 108 : 33)
     }
 }
 
@@ -658,6 +590,32 @@ private struct ShutterSideButton<Icon: View>: View {
             }
         }
         .accessibilityIdentifier(identifier)
+    }
+}
+
+// MARK: - 顶部内联面板外壳（iOS 系统相机 HUD 风格：material 玻璃 + 紧凑圆角 + 轻阴影）
+
+private struct InlineControlPanel<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(spacing: 0) {
+            content()
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, 10)
+        }
+        .frame(maxWidth: 420)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(.ultraThinMaterial)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Color.white.opacity(0.18), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.35), radius: 12, x: 0, y: 6)
+        .padding(.horizontal, Spacing.md)
     }
 }
 
@@ -695,7 +653,7 @@ private struct ControlPanel<Content: View>: View {
             .frame(maxWidth: .infinity)
             .frame(maxHeight: cap, alignment: .top)
             .background(RoundedRectangle(cornerRadius: CameraTokens.panelCornerRadius, style: .continuous)
-                .fill(Color(red: 0.11, green: 0.10, blue: 0.12).opacity(0.95)))
+                .fill(CameraTokens.panelBackground))
             .overlay(RoundedRectangle(cornerRadius: CameraTokens.panelCornerRadius, style: .continuous)
                 .stroke(Color.white.opacity(0.25), lineWidth: 0.5))
             .shadow(color: .black.opacity(0.5), radius: 16)
@@ -703,7 +661,7 @@ private struct ControlPanel<Content: View>: View {
     }
 }
 
-// 选项 chip(Pro 面板白平衡用;与 selector chip 同款——Android 实测两处 chip 同尺寸:高≈47pt 胶囊)
+// 选项 chip（Pro 面板白平衡用；与顶部 chip 同款风格）
 private struct OptionButton: View {
     let titleKey: LocalizedStringKey
     let isSelected: Bool
@@ -711,11 +669,11 @@ private struct OptionButton: View {
     var body: some View {
         Button(action: action) {
             Text(titleKey).font(.system(size: 15, weight: .medium))
-                .foregroundColor(isSelected ? AppColorScheme.dark.onPrimaryContainer : .white)
-                .padding(.horizontal, 20)
-                .frame(height: 46)
+                .foregroundColor(isSelected ? CameraTokens.cameraAccentOn : .white)
+                .padding(.horizontal, 18)
+                .frame(height: 40)
                 .background(
-                    Capsule().fill(isSelected ? AppColorScheme.dark.primaryContainer : Color.black.opacity(0.5))
+                    Capsule().fill(isSelected ? CameraTokens.cameraAccent : Color.white.opacity(0.15))
                 )
         }
         .accessibilityLabel(Text(titleKey))
@@ -730,32 +688,29 @@ private struct ProModePanel: View {
     @Binding var contrast: Double
     @Binding var saturation: Double
     @Binding var temperature: Double
-    var onDismiss: () -> Void
 
     private let wbOptions: [(label: String, value: Int)] = [
         ("Auto", 0), ("Sunny", 1), ("Cloudy", 2), ("Incandescent", 3), ("Fluorescent", 4)
     ]
 
     var body: some View {
-        ControlPanel(onDismiss: onDismiss, heightRatio: CameraTokens.proPanelHeightRatio) {
-            VStack(alignment: .leading, spacing: 14) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("White Balance").font(.system(size: 12)).foregroundStyle(.white.opacity(0.7))
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(wbOptions, id: \.value) { opt in
-                                OptionButton(titleKey: LocalizedStringKey(opt.label), isSelected: whiteBalance == opt.value) {
-                                    whiteBalance = opt.value
-                                }
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("White Balance").font(.system(size: 12)).foregroundStyle(.white.opacity(0.7))
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(wbOptions, id: \.value) { opt in
+                            OptionButton(titleKey: LocalizedStringKey(opt.label), isSelected: whiteBalance == opt.value) {
+                                whiteBalance = opt.value
                             }
                         }
                     }
                 }
-                sliderRow(label: "Exposure", value: $exposure, range: -2...2, step: 1, display: String(format: "%+.0f", exposure))
-                sliderRow(label: "Contrast", value: $contrast, range: 0...200, step: 1, display: "\(Int(contrast))")
-                sliderRow(label: "Saturation", value: $saturation, range: 0...200, step: 1, display: "\(Int(saturation))")
-                sliderRow(label: "Color Temperature", value: $temperature, range: 2000...8000, step: 50, display: "\(Int(temperature))K")
             }
+            sliderRow(label: "Exposure", value: $exposure, range: -2...2, step: 1, display: String(format: "%+.0f", exposure))
+            sliderRow(label: "Contrast", value: $contrast, range: 0...200, step: 1, display: "\(Int(contrast))")
+            sliderRow(label: "Saturation", value: $saturation, range: 0...200, step: 1, display: "\(Int(saturation))")
+            sliderRow(label: "Color Temperature", value: $temperature, range: 2000...8000, step: 50, display: "\(Int(temperature))K")
         }
     }
 

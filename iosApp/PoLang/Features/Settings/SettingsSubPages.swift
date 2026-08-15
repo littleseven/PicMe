@@ -510,7 +510,7 @@ struct CameraBeautySettingsView: View {
     @ObservedObject private var container = AppContainer.shared
     @ObservedObject private var dbg = DebugOverlayState.shared
     @AppStorage("camera_use_mnn") private var cameraUseMnn = true
-    @AppStorage("camera_debug_overlay") private var debugOverlay = true
+    @AppStorage("camera_debug_overlay") private var debugOverlay = false
     @AppStorage("camera_show_landmarks") private var showLandmarks = false
 
     var body: some View {
@@ -563,6 +563,7 @@ struct CameraBeautySettingsView: View {
                             .foregroundColor(.secondary)
                             .padding(.top, 6)
                     }
+                    .onAppear { DebugOverlayState.shared.isEnabled = debugOverlay }
                 }
 
                 // Section: live 诊断遥测
