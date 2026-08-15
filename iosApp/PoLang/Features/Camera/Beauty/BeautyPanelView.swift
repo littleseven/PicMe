@@ -28,15 +28,17 @@ struct BeautyPanelView: View {
                 .padding(.vertical, 8)
             }
 
-            // Tab 栏（对标 Android BeautyTab）
+            // Tab 栏（对标 Android BeautyTab：图标 + 文字标签 面部精修/妆容调节）
             HStack(spacing: 0) {
                 TabIconButton(
                     systemName: "face.smiling",
+                    label: String(localized: "Facial Refinement"),
                     isSelected: selectedTab == 0
                 ) { selectedTab = 0 }
 
                 TabIconButton(
                     systemName: "paintpalette",
+                    label: String(localized: "Makeup Tab"),
                     isSelected: selectedTab == 1
                 ) { selectedTab = 1 }
             }
@@ -62,20 +64,27 @@ struct BeautyPanelView: View {
 
 private struct TabIconButton: View {
     let systemName: String
+    let label: String
     let isSelected: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            MatIcon(name: systemName, size: 20)
-                .foregroundColor(isSelected ? .accentColor : .white.opacity(0.5))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(isSelected ? Color.accentColor.opacity(0.12) : Color.clear)
-                )
+            VStack(spacing: 2) {
+                MatIcon(name: systemName, size: 20)
+                    .foregroundColor(isSelected ? .accentColor : .white.opacity(0.5))
+                Text(label)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(isSelected ? .accentColor : .white.opacity(0.5))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(isSelected ? Color.accentColor.opacity(0.12) : Color.clear)
+            )
         }
+        .accessibilityLabel(label)
     }
 }
 
@@ -139,17 +148,13 @@ private struct BeautySliderRow: View {
                     .foregroundColor(value != 0 ? .accentColor : .white.opacity(0.4))
             }
 
-            Slider(value: $value, in: range)
-                .tint(.accentColor)
+            // 对标 Android HyperOS 滑杆:自绘胶囊轨道+描边 thumb(AppSlider),不用系统 Slider
+            AppSlider(value: value, range: range, onValueChange: { value = $0 })
         }
     }
 
     private var displayValue: String {
-        if value == 0 { return "--" }
-        switch displayFormat {
-        case .percent: return "\(Int(value))"
-        case .raw: return "\(Int(value))"
-        }
+        "\(Int(value))"  // 对标 Android:始终显示数值(0 也显示 "0",非 "--")
     }
 }
 

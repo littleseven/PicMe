@@ -1,0 +1,20 @@
+{
+  "screen": "camera",
+  "fileKey": "V4qGxkpPgflZ4XK61X7bq9",
+  "page": "Camera",
+  "frames": {
+    "panel_beauty_face": "6:3",
+    "idle": "9:2",
+    "panel_beauty_makeup": "9:33",
+    "panel_filter": "9:74",
+    "panel_ratio": "9:120",
+    "panel_scene": "9:144",
+    "panel_grid": "9:168",
+    "panel_pro": "9:192",
+    "focusing": "9:237",
+    "capturing": "9:254"
+  },
+  "deferred": ["permission_denied"],
+  "fidelity": "结构+布局+token配色对齐;图标文字占位/预览区留空,后续精修",
+  "note": "nodeIds 在帧重建后会变;重建用 scripts/figma/build-frames.js,再跑 dump 重新生成本索引。"
+}
