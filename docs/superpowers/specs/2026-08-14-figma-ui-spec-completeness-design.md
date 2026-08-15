@@ -1,5 +1,7 @@
 # 设计：Figma 作为 UI & 样式 规格中枢 + 完整性闸门（Android → Figma → iOS）
 
+> **⚠️ 已废止（2026-08-15）**：实验结论——非设计师维护者不适合以 Figma/Ardot 画布作 SSOT，双端不一致的核心是漂移问题。现行工作流改为 **codegen**：`design-tokens.json` 为唯一 SSOT，双端镜像由 `scripts/gen-design-tokens.py` 生成 + `--check` CI 门禁；Figma/Ardot 降级为可选可视化预览层（见 `docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md` 头部工作流说明）。本文档仅作历史决策记录保留。
+>
 > **日期**：2026-08-14
 > **状态**：✅ **先导已执行完毕（2026-08-15，见下方执行结果）**；铺开其余屏待定
 > **先导屏**：相机页（压力测试，状态最丰富）
