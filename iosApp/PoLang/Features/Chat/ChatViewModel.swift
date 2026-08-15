@@ -296,11 +296,17 @@ final class ChatViewModel: ObservableObject {
     private func handleUiAction(_ dto: ChatUiActionDto) {
         switch dto.kind {
         case "media_results":
-            // 媒体结果作为独立消息项追加（不嵌入文本气泡）
+            // 空结果不出卡片：Android uiActions 收集器以 assets.isNotEmpty() 为门，
+            // 空结果由 LLM 在最终回复里说明（避免多轮空搜索刷出多条「未找到」气泡）
+            guard dto.totalCount > 0, !dto.mediaIds.isEmpty else { return }
+            // ReAct 多轮搜索只保留最后一张卡片：替换本次发送（最后一条 user 消息之后）
+            // 的上一张媒体卡（对齐 Android dropLast 替换语义）
+            if let lastUser = messages.lastIndex(where: { $0.role == .user }),
+               let prevCard = messages[lastUser...].lastIndex(where: { $0.type == .mediaResults }) {
+                messages.remove(at: prevCard)
+            }
             let ids = dto.mediaIds.map { $0.int64Value }
-            let header = dto.totalCount > 0
-                ? String(localized: "Found \(dto.totalCount) results for「\(dto.query)」")
-                : String(localized: "No results found for「\(dto.query)」")
+            let header = String(localized: "Found \(dto.totalCount) results for「\(dto.query)」")
             messages.append(ChatMessage(
                 role: .assistant,
                 text: header,
@@ -312,19 +318,13 @@ final class ChatViewModel: ObservableObject {
             touchThread(preview: header)
             persist()
         case "text_reply":
-            // 工具产出的文本回复：作为独立 agent 消息（对齐 Android handleAgentAction TextReply）
-            guard !dto.message.isEmpty else { return }
-            messages.append(ChatMessage(role: .assistant, text: dto.message))
-            touchThread(preview: dto.message)
-            persist()
+            // 工具文本已作为 observation 回传 LLM（ChatToolService.dispatchCommand），
+            // 最终答复经 onComplete 写入同一气泡；不追加独立气泡
+            //（对齐 Android uiActions 收集器 TextReply → else{} 忽略，修复回复被切成多条）
+            break
         case "error":
-            // 工具执行错误：同 agent 正常气泡渲染（spec：错误无特殊色），不再静默丢弃
-            let text = dto.message.isEmpty
-                ? String(localized: "Operation failed.")
-                : dto.message
-            messages.append(ChatMessage(role: .assistant, text: text, error: dto.message))
-            touchThread(preview: text)
-            persist()
+            // 同 text_reply：错误经 "Error: ..." observation 回传，由 LLM 总结呈现
+            break
         case "success":
             // 命令成功：无用户可见文本载荷，静默（对齐 Android Success 不追加气泡）
             break

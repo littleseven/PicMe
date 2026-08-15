@@ -11,7 +11,7 @@
 ## 1. 核心设计准则 (Design Tokens)
 
 - **[TOKENS] 严禁硬编码**：禁止在 Compose 代码中直接使用 `Color(0xFF...)` 或 `16.dp`。必须引用 `MaterialTheme.spacing`（`Spacing` object）、`MaterialTheme.appShapes`（`AppShapes` object）、`MaterialTheme.appColors`（`AppColors` object）或 `MaterialTheme.colorScheme`（M3 主题色）。
-- **[TOKENS-SOURCE] 双端 SSOT**：所有 token 的唯一事实来源是 `shared/src/commonMain/resources/design-tokens.json`。新增/修改 UI 尺寸时，先更新 JSON 源文件，再同步 Android（`Spacing.kt` / `AppShapes.kt` / `Color.kt`）和 iOS（`DesignTokens.swift`）。两端代码中的值必须与 JSON 一致。
+- **[TOKENS-SOURCE] 双端 SSOT + codegen**：所有 token 的唯一事实来源是 `shared/src/commonMain/resources/design-tokens.json`。改 token = 改 JSON → 跑 `python3 scripts/gen-design-tokens.py` 重新生成双端镜像。本目录的 `Spacing.kt` / `AppShapes.kt` / `Color.kt` / `Typography.kt` / `DesignTokens.kt` 与 iOS `DesignTokens.swift` 均为**生成物，禁止手改**（文件头有 GENERATED 标记；`ai-gate.sh` 的 `--check` 门禁拦截不一致）。`Theme.kt` 为手写保留（主题装配逻辑），色值引用 `Color.kt` 生成常量。
 - **[THEME] 主题色适配**：所有文字和图标颜色必须使用 Material 3 主题色：
     - **前景色**：`MaterialTheme.colorScheme.onSurface` - 自动适配浅色/深色模式
     - **主色**：`MaterialTheme.colorScheme.primary` - 强调和高亮

@@ -1,5 +1,7 @@
 # Figma UI Spec + 完整性闸门 — 相机页先导 实现计划
 
+> **⚠️ 已废止（2026-08-15）**：Figma SSOT 路线实验失败（非设计师维护成本高、双向漂移），由 codegen 工作流取代（`scripts/gen-design-tokens.py`，见 `DESIGN_TOKENS_SPEC.md`）。仅作历史记录保留。
+>
 > **For agentic workers:** REQUIRED SUB-SKILL: 用 superpowers:subagent-driven-development(推荐) 或 superpowers:executing-plans 逐任务实现。步骤用 checkbox(`- [ ]`) 跟踪。
 >
 > **执行位置**:本计划在隔离 worktree `.worktrees/figma-camera-spec`(分支 `feat/figma-ui-spec-camera-pilot`,from main)内执行。所有相对路径相对 worktree 根。
