@@ -1,10 +1,27 @@
 # 设计：Figma 作为 UI & 样式 规格中枢 + 完整性闸门（Android → Figma → iOS）
 
 > **日期**：2026-08-14
-> **状态**：设计稿（待评审 → 转 writing-plans）
+> **状态**：✅ **先导已执行完毕（2026-08-15，见下方执行结果）**；铺开其余屏待定
 > **先导屏**：相机页（压力测试，状态最丰富）
 > **基准**：Android `main` 为 ground truth；契约 SSOT 复用 `specs/screens/*.yaml` 的状态机
 > **动机**：iOS 对齐 Android 时**完整性（漏东西）**最卡——AI 读 YAML+源码脑补，漏元素/漏状态；验收靠人眼，漏了不知。
+>
+> ---
+> ## ✅ 执行结果摘要（2026-08-15，分支 feat/figma-ui-spec-camera-pilot）
+>
+> **管线全通**：Android 真机自动采集(ui_driver)→ Figma 10 帧设计稿(156 token Variables)→ 完整性闸门(match.py, 真机 XCUITest dump)→ iOS 面板还原 → **闸门 6 面板状态全绿(missing=0)**。
+>
+> **iOS 还原交付**（对标 Android,经闸门+用户真机验收）：
+> - 美颜 tab 文字标签（面部精修/妆容调节,三语）——修复 VoiceOver 读不出
+> - selector 三面板重构为 Android 真身**底部矮 chip 行**（原为错误的高面板壳）+ 真实文案（全屏/关闭/九宫格/黄金比例/拍月亮——修复**中机英文裸奔**）
+> - 滑杆换自绘 AppSlider（系统 Slider 观感完全不同）、filter 面板高度 50%→280pt、chip 选中 primaryContainer、Pro 满宽
+> - bug 修：Pro+比例双面板（抑制条件漏 .ratio）、面板彻底互斥、点空白收起
+>
+> **成功标准核验**：缺口数>0 ✓（首轮闸门 missing=6~12/面板,全部真实缺口）；6 面板闸门全绿 ✓；用户真机验收 ✓。
+>
+> **关键教训**：①文案/结构必须锚 a11y 实测,勿从 spec yaml 猜（曾致闸门"两错相符"假绿）②token/组件常"已定义未使用"（AppSlider/filterSelectorHeight）,还原先查现有资产 ③iOS dump 用 -openPanel 启动参数确定性驱动,面板间点击切换 flaky。
+>
+> **未竟**：beauty_makeup tab 内容 iOS 仍占位、idle 的 AI FAB(机-22 功能缺口)、token 导出回路(Figma→JSON 再生)、其余屏铺开。
 
 ---
 
