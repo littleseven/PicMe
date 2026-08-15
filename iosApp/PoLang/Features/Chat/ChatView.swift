@@ -483,7 +483,6 @@ private struct MessageBubble: View {
                             .lineSpacing(ChatBubbleTokens.textLineHeight - ChatBubbleTokens.textSize)
                             .foregroundColor(message.role == .user ? .white : Color(.label))
                             .fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: ChatBubbleTokens.bubbleMaxWidth, alignment: .leading)
                             .accessibilityIdentifier(message.role == .user ? "chat_user_bubble" : "chat_ai_bubble")
 
                             // 流式光标（内联右侧，由节奏器 showCursor 驱动：吐字中可见 / 完成隐藏）
@@ -506,6 +505,11 @@ private struct MessageBubble: View {
                     }
                 }
             }
+            // 宽度上限（对齐 Android Column.widthIn）：内容收缩包裹，超 cap 才换行。
+            // 图+文气泡 240，其余 360（对齐 Android isImage/isImageText 分支）。
+            .widthCap(message.type == .userImageText
+                ? ChatBubbleTokens.imageMaxWidth
+                : ChatBubbleTokens.bubbleMaxWidth)
             .padding(.horizontal, ChatBubbleTokens.paddingH)
             .padding(.vertical, ChatBubbleTokens.paddingV)
             .background(bubbleBackground)
@@ -548,6 +552,37 @@ private struct MessageBubble: View {
         } else {
             return Color(.secondarySystemBackground).opacity(0.85)
         }
+    }
+}
+
+// MARK: - WidthCap Layout（对齐 Android Modifier.widthIn(max=)）
+
+/// `widthIn(max:)` 等价布局：内容宽度自适应（短文本收缩包裹），超过 maxWidth 才收缩换行。
+/// 不能用 `.frame(maxWidth:)` 替代——flexible frame 的尺寸是「父提案 clamp 到 max」，
+/// 与内容无关，短文本也会撑满 max（即气泡恒定 360 固定宽的根因）。
+private struct WidthCapLayout: Layout {
+    var maxWidth: CGFloat
+
+    private func capped(_ proposal: ProposedViewSize) -> ProposedViewSize {
+        let cap = min(proposal.width ?? maxWidth, maxWidth)
+        return ProposedViewSize(width: cap, height: proposal.height)
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard let subview = subviews.first else { return .zero }
+        return subview.sizeThatFits(capped(proposal))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard let subview = subviews.first else { return }
+        subview.place(at: bounds.origin, proposal: capped(proposal))
+    }
+}
+
+private extension View {
+    /// `WidthCapLayout` 的 modifier 形式（Layout 协议只有 callAsFunction 用法，无 .layout()）。
+    func widthCap(_ maxWidth: CGFloat) -> some View {
+        WidthCapLayout(maxWidth: maxWidth) { self }
     }
 }
 

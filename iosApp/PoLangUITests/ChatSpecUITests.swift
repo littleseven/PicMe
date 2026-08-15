@@ -239,6 +239,40 @@ final class ChatSpecUITests: XCTestCase {
         }
     }
 
+    // MARK: - 用例 5：气泡宽度自适应（对齐 Android widthIn(max=360)）
+
+    /// 短消息气泡应收缩包裹内容（不撑满 360 固定宽）；长消息触顶 360 上限换行。
+    /// 不依赖 AI 回复（离线可跑）——用户气泡足以验证布局。
+    func testChatBubbleWidthHugging() throws {
+        try navigateToChat()
+
+        let inputField = app.textFields["chat_input"]
+        XCTAssertTrue(inputField.waitForExistence(timeout: 5), "Chat 输入框应存在")
+
+        // 短消息：气泡（chat_user_bubble = 文本 bounds）应收窄
+        inputField.tap()
+        inputField.typeText("Hi")
+        app.buttons["chat_send"].tap()
+        let userBubbles = app.descendants(matching: .any).matching(identifier: "chat_user_bubble")
+        XCTAssertTrue(userBubbles.firstMatch.waitForExistence(timeout: 10), "用户气泡应出现")
+        usleep(500_000) // 等流式节奏器首帧稳定
+        let shortWidth = userBubbles.allElementsBoundByIndex.last!.frame.width
+        print("CHAT_BUBBLE_SHORT_WIDTH: \(shortWidth)")
+        XCTAssertLessThan(shortWidth, 120, "短消息气泡应收缩包裹（固定宽 bug 时 ~360）")
+        attachScreenshot(name: "chat_bubble_short")
+
+        // 长消息：触顶 bubbleMaxWidth 360 换行（文本 bounds ≈ 360 - 32 padding = 328）
+        inputField.tap()
+        inputField.typeText("This is a deliberately long message that must exceed the maximum bubble width so the text is forced to wrap onto multiple lines")
+        app.buttons["chat_send"].tap()
+        usleep(1_000_000) // 等第二条气泡渲染
+        let longWidth = userBubbles.allElementsBoundByIndex.last!.frame.width
+        print("CHAT_BUBBLE_LONG_WIDTH: \(longWidth)")
+        XCTAssertGreaterThan(longWidth, 310, "长消息应触顶宽度上限")
+        XCTAssertLessThan(longWidth, 345, "长消息不应超过 360 上限（含 32pt 气泡内边距）")
+        attachScreenshot(name: "chat_bubble_long")
+    }
+
     // MARK: - Helpers
 
     /// 从相册（初始页）导航到 Chat 页。
