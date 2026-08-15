@@ -76,6 +76,13 @@ echo ""
 # 1. 代码格式检查 (ktlint)
 run_check "Ktlint Format Check" "./gradlew ktlintCheck --quiet > '$OUTPUT_DIR/ktlint.log' 2>&1"
 
+# 1.5 Design Token 生成物一致性（防漂移：design-tokens.json 为 SSOT，双端镜像禁止手改）
+if [ -f "scripts/gen-design-tokens.py" ]; then
+    run_check "Design Tokens Sync Check" "python3 scripts/gen-design-tokens.py --check > '$OUTPUT_DIR/design_tokens.log' 2>&1"
+else
+    run_warn "Design Tokens Sync Check" "scripts/gen-design-tokens.py 不存在"
+fi
+
 # 2. 静态代码分析 (detekt)
 run_check "Detekt Static Analysis" "./gradlew detekt > '$OUTPUT_DIR/detekt.log' 2>&1"
 

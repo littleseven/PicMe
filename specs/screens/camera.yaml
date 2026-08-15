@@ -11,11 +11,12 @@
 # 颜色引用：appColors.* 对应 design-tokens.json color 节点
 # 图标映射：Material Icons (Android) → SF Symbols (iOS)
 #
-# ── SSOT 分工（2026-08-15 起，Phase E 瘦身，设计见 docs/superpowers/specs/2026-08-14-figma-ui-spec-completeness-design.md）──
+# ── SSOT 分工（2026-08-15 修订：codegen 工作流，原 Figma SSOT 方案已废止）──
 # 本文件只留：行为/状态机/交互规则/内容数据（色板等）+ 触发与绑定。
-# 结构与样式（布局/尺寸/颜色/圆角/间距）SSOT = Figma「PoLang UI Spec」
-#   fileKey V4qGxkpPgflZ4XK61X7bq9,页 Camera,帧名 camera/<state_id>(如 camera/panel_beauty_face);
-#   token 值仍在 design-tokens.json(样式可改处:改 Figma Variables → 导出再生 JSON)。
+# 样式值（尺寸/颜色/圆角/间距）SSOT = design-tokens.json，双端代码由 scripts/gen-design-tokens.py
+#   生成（禁手改；ai-gate --check 门禁）；改 token 只改 JSON 再重跑生成器。
+# 可视化预览（非 SSOT）：build/design-tokens/ardot-variables.json 经 Ardot MCP apply_variables
+#   推入画布做「token 活体预览」；Figma「PoLang UI Spec」仅作历史参考，不再维护。
 # 地面真值:specs/screens/refs/android/camera-<state>.{png,txt}(真机截图+a11y 实测)。
 # ⚠️ 教训:文案/结构以 a11y 实测为准,勿从本 yaml 推测(曾致 FULL/三分/黄金 全错)。
 # 瘦身进度:beauty_panel 段已完成(模板),其余段随对齐推进逐步瘦身。
@@ -523,18 +524,18 @@ beauty_panel:
   animation:
     enter: slide_in_vertically + fade_in   # 从底部滑入 + 淡入
     exit: slide_out_vertically + fade_out
-  # ── 视觉已移 Figma:高度35%/clamp、容器圆角/底色/渐变/边框/阴影、内边距/间距
-  #    (Figma 帧 camera/panel_beauty_face + token beautyPanel/bottomSheet)──
+  # ── 视觉 SSOT=design-tokens.json:高度35%/clamp、容器圆角/底色/渐变/边框/阴影、内边距/间距
+  #    (token beautyPanel/bottomSheet,经 gen-design-tokens.py 生成双端常量)──
   scrollable: true                   # 内容可垂直滚动(行为)
 
-  # ── 拖拽手柄(行为:存在且可点关闭;形状 36×4 → Figma)──
+  # ── 拖拽手柄(行为:存在且可点关闭;形状 36×4 → token bottomSheet.handleWidth/Height)──
   drag_handle:
     position: top_center
     on_tap: close_panel
 
   # ── 底部 Tab 栏 ──
   # ✅ iOS 已还原(2026-08-15:文字标签 面部精修/妆容调节 + accessibilityLabel);
-  #    选中/未选中样式 → Figma。标签以 a11y 实测为准(妆容调节,非"妆容")
+  #    选中/未选中样式 → token。标签以 a11y 实测为准(妆容调节,非"妆容")
   tab_bar:
     position: panel_bottom           # 面板底部固定
     tabs:
@@ -547,7 +548,7 @@ beauty_panel:
 
   # ── FACE Tab 内容：4 条滑杆 ──
   # 通用行为:点击「图标+标签」行 → 重置该项为 0;数值显示整数(含 0——a11y 实测瘦脸0显示"0",非"--")
-  # 视觉(AppSlider 胶囊轨道/图标尺寸/配色)→ Figma 帧 + token appSlider/beautyPanel
+  # 视觉(AppSlider 胶囊轨道/图标尺寸/配色)→ token appSlider/beautyPanel
   face_tab_sliders:
 
     - id: smoothing
@@ -582,7 +583,7 @@ beauty_panel:
       display_format: integer
       reset_value: 0
 
-  # ── MAKEUP Tab 内容:色板/数据保留(内容色板属产品数据),布局/样式 → Figma 帧
+  # ── MAKEUP Tab 内容:色板/数据保留(内容色板属产品数据),布局/样式 → token
   #     camera/panel_beauty_makeup。iOS 现状:tab 已有,内容仍占位(MakeupPlaceholderContent)
   makeup_tab_content:
 
@@ -590,7 +591,7 @@ beauty_panel:
     lip_color:
       label: "唇彩"
       click_to_reset: true
-      color_palette:                 # 12 色调色板(2 行;视觉→Figma)
+      color_palette:                 # 12 色调色板(2 行;视觉→token)
         rows: 2
         colors:
           - "#D4757D"  # 珊瑚粉
@@ -611,7 +612,7 @@ beauty_panel:
         default_value: 0
         reset_value: 0
 
-    # ── 腮红色系(标签以 a11y 实测为准:梅子色,非"梅色";样式→Figma)──
+    # ── 腮红色系(标签以 a11y 实测为准:梅子色,非"梅色";样式→token)──
     blush_color_family:
       label: "腮红色系"
       families:

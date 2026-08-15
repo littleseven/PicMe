@@ -1,9 +1,13 @@
 # PoLang Design Tokens 规范（双端还原 SSOT）
 
+> **工作流（2026-08-15 起，codegen 版）**：`design-tokens.json` 是唯一 SSOT；双端镜像**全部由 `scripts/gen-design-tokens.py` 生成，禁止手改**。改 token = 改 JSON → 重跑生成器 → CI（`ai-gate.sh`）跑 `--check` 门禁（生成物与 JSON 不一致即 fail）。可视化预览：生成器输出 `build/design-tokens/ardot-variables.json`，经 Ardot MCP `apply_variables` 推入画布当「token 活体预览」（预览层，非 SSOT）。
+>
 > 配套文件：
 > - SSOT：`shared/src/commonMain/resources/design-tokens.json`（v2.0.0）
-> - Android 镜像：`androidApp/.../core/designsystem/`（`Spacing` / `AppShapes` / `Color` / `Theme` / `Typography`）
-> - iOS 镜像：`iosApp/PoLang/DesignSystem/DesignTokens.swift`
+> - 生成器：`scripts/gen-design-tokens.py`（含 `--check` 校验模式）
+> - Android 生成物：`androidApp/.../core/designsystem/`（`Spacing` / `AppShapes` / `Color` / `Typography` / `DesignTokens.kt` 组件级 token）
+> - Android 手写保留：`Theme.kt`（主题装配逻辑；引用 Color.kt 生成值，色值随 SSOT 自动同步）
+> - iOS 生成物：`iosApp/PoLang/DesignSystem/DesignTokens.swift`
 > - 规范约束：`androidApp/.../core/designsystem/AGENTS.md`（[TOKENS] / [TOKENS-SOURCE] / [SHAPE] / [EASING]）
 
 ## 1. 目的
@@ -149,14 +153,14 @@ photo-info tag chip `primary@0.2`/corner6/12sp/White/8h-4v；section header 14sp
 ## 8. 双端同步检查清单
 
 新增/改动 UI 时：
-- [ ] 先改 `design-tokens.json`（SSOT）
-- [ ] 同步 `DesignTokens.swift`（新增对应 `enum`）
-- [ ] 同步 `core/designsystem/`（Android 侧，若涉及全局基础）
+- [ ] 只改 `design-tokens.json`（SSOT），然后跑 `python3 scripts/gen-design-tokens.py` 重新生成双端镜像
+- [ ] **禁止手改生成物**（`DesignTokens.swift` / `Spacing.kt` / `AppShapes.kt` / `Color.kt` / `Typography.kt` / `DesignTokens.kt`——文件头有 GENERATED 标记）；`ai-gate.sh` 的 `--check` 门禁会拦截
 - [ ] 尺寸只引用 `Spacing`/`IconSize`/`*Tokens`，禁内联 dp
 - [ ] 圆角只引用 `AppRadius`/`AppShapes`
 - [ ] 颜色：随主题→`AppColorScheme`+`AppAlpha`；固定功能→`AppColors`/`StatusColor`；内容色→§6 附录
 - [ ] 动效用 `AppMotion`，禁线性
 - [ ] 字体用 `AppTypography` role
+- [ ] （可选）改完色值/尺寸后跑 Ardot 同步预览：agent 读 `build/design-tokens/ardot-variables.json` 调 `apply_variables`，`capture_screenshot` 留档
 - [ ] 用户可见文本三语同步（Android `values`/`values-zh-rCN`/`values-zh-rTW`；iOS `Localizable`/`*.xcstrings`，注意 iOS 当前缺 zh-Hant）
 
 ---
