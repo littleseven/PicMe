@@ -162,6 +162,33 @@ final class GallerySpecUITests: XCTestCase {
                        "退出选择模式后操作栏应消失")
     }
 
+    // MARK: - §4 模型中心导航闭环
+
+    /// gallery-grid.yaml §4 top_bar.actions 模型中心：
+    /// 顶栏进入模型中心 → 自绘返回键存在（model_center_back）→ 点击返回相册。
+    /// 回归：模型中心原为 fullScreenCover 内 NavigationStack 根视图，无系统 back 且
+    /// cover 不可下滑关闭 → 进入后无法返回；修复 = 页内自绘返回（对齐 Android
+    /// ModelCenterScreen AppTopBarNavBack）。
+    func testModelCenterBackNavigation() throws {
+        try requireElement("gallery_grid", timeout: 10, "初始页应为相册网格")
+
+        // 进入模型中心
+        element("topbar_model_center").tap()
+
+        // 返回按钮应存在（修复前缺失 → 无法返回）
+        try requireElement("model_center_back", timeout: 5, "模型中心返回按钮应存在")
+        usleep(800_000) // 等待 fullScreenCover 转场完成
+        attachScreenshot(name: "model_center_open")
+
+        // 点击返回 → 模型中心关闭、回到相册网格
+        element("model_center_back").tap()
+        usleep(800_000)
+        XCTAssertFalse(element("model_center_back").waitForExistence(timeout: 3),
+                       "返回后模型中心应关闭")
+        try requireElement("gallery_grid", timeout: 5, "返回后应回到相册网格")
+        attachScreenshot(name: "model_center_closed")
+    }
+
     // MARK: - helpers
 
     /// media_pager 容器标识符传播覆盖所有子按钮标识符，

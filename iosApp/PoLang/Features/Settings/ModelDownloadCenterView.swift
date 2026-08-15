@@ -33,6 +33,18 @@ struct ModelDownloadCenterView: View {
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationTitle(L("Model Center"))
         .navigationBarTitleDisplayMode(.inline)
+        // 自绘返回（对齐 Android AppTopBarNavBack）：
+        // Gallery 入口是 fullScreenCover 内 NavigationStack 根视图，无系统 back → 必须显式提供；
+        // Settings push 入口隐藏系统 back 避免双按钮，dismiss() 对 pop/cover 关闭均生效
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button { dismiss() } label: {
+                    MatIcon(name: "mat_arrow_back", size: 22)
+                }
+                .accessibilityIdentifier("model_center_back")
+            }
+        }
         .onAppear {
             // 确保目录加载后刷新已下载状态（修复 init 时序问题）
             manager.refreshStates()
