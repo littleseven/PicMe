@@ -659,6 +659,7 @@ private struct MediaCardRow: View {
             }
             .padding(.vertical, 4)
         }
+        .accessibilityIdentifier("chat_media_card")
         .task(id: mediaIds) {
             // mediaIds = localIdentifier.hashCode().toLong()（Kotlin String.hashCode，见
             // IosChatGalleryCapability.toDomain id 口径）。反查须用同一 32-bit Java hash。

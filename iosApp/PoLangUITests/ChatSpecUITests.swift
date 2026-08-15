@@ -273,6 +273,65 @@ final class ChatSpecUITests: XCTestCase {
         attachScreenshot(name: "chat_bubble_long")
     }
 
+    // MARK: - 用例 6：工具轮渲染策略（对齐 Android uiActions 收集器）
+
+    /// 两轮搜索（search → refine）后：媒体卡只保留最后一张（替换不叠加）；
+    /// 工具 text_reply 不追加独立气泡——修复「回复切成多条」「连续多条未找到」。
+    /// 新建会话保证基线为 0；新增气泡上界：2 轮最终回复 + 1 张卡 header ≤ 3。
+    func testChatToolRoundSingleCardNoSplit() throws {
+        try navigateToChat()
+
+        // 新建会话：历史消息清零，断言不被往轮污染
+        let newChatButton = app.buttons["chat_new"]
+        XCTAssertTrue(newChatButton.waitForExistence(timeout: 5), "新建会话按钮应存在")
+        newChatButton.tap()
+        usleep(1_000_000)
+
+        let inputField = app.textFields["chat_input"]
+        XCTAssertTrue(inputField.waitForExistence(timeout: 5), "Chat 输入框应存在")
+
+        func aiBubbleCount() -> Int {
+            app.descendants(matching: .any).matching(identifier: "chat_ai_bubble").count
+        }
+
+        /// 等新增 AI 气泡：count 超过基线（firstMatch 存在性会被历史气泡立即满足）
+        func waitForNewReply(baseline: Int, timeout: TimeInterval) -> Bool {
+            let deadline = Date().addingTimeInterval(timeout)
+            while Date() < deadline && aiBubbleCount() <= baseline { usleep(500_000) }
+            return aiBubbleCount() > baseline
+        }
+
+        // 第一轮：宽泛搜索（建立上下文 + 期待媒体卡）
+        inputField.tap()
+        inputField.typeText("Show me photos from this month")
+        app.buttons["chat_send"].tap()
+        XCTAssertTrue(waitForNewReply(baseline: 0, timeout: 40), "第一轮 AI 回复应在 40s 内出现")
+        waitForProcessingComplete(timeout: 40)
+        attachScreenshot(name: "chat_single_card_round1")
+
+        // 第二轮：窄化（refine_media_search → 替换上一张卡片）
+        inputField.tap()
+        inputField.typeText("Only today's")
+        // 等发送按钮出现（canSend = 有文本 && 非处理中；第一轮处理未结束时不显示）
+        let sendButton = app.buttons["chat_send"]
+        XCTAssertTrue(sendButton.waitForExistence(timeout: 40), "第二轮发送按钮应出现")
+        let baseline2 = aiBubbleCount()
+        sendButton.tap()
+        XCTAssertTrue(waitForNewReply(baseline: baseline2, timeout: 40), "第二轮 AI 回复应在 40s 内出现")
+        waitForProcessingComplete(timeout: 40)
+        attachScreenshot(name: "chat_single_card_round2")
+
+        // 断言 1：媒体卡至多 1 张（多轮替换，不叠加）
+        let cardCount = app.descendants(matching: .any).matching(identifier: "chat_media_card").count
+        print("CHAT_TOOL_CARD_COUNT: \(cardCount)")
+        XCTAssertLessThanOrEqual(cardCount, 1, "多轮搜索的媒体卡应只保留最后一张")
+
+        // 断言 2：无工具中间文本气泡（text_reply 已忽略，最终回复单气泡呈现）
+        let bubbleCount = aiBubbleCount()
+        print("CHAT_TOOL_BUBBLE_COUNT: \(bubbleCount)")
+        XCTAssertLessThanOrEqual(bubbleCount, 3, "工具中间结果不应追加独立文本气泡")
+    }
+
     // MARK: - Helpers
 
     /// 从相册（初始页）导航到 Chat 页。

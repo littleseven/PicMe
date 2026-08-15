@@ -4762,28 +4762,6 @@
         }
       }
     },
-    "No results found for「%@」": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No results found for"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未找到"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未找到「%@」的結果"
-          }
-        }
-      }
-    },
     "None": {
       "localizations": {
         "en": {
