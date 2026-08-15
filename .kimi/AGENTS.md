@@ -49,6 +49,47 @@
 - 统一标签格式：`PoLang:[ModuleName]`
 - 示例：`private const val TAG = "PoLang:Camera"`
 
+## 设计稿 ↔ 代码工作流（Ardot MCP）
+
+> **状态（2026-08-15）**：Figma MCP 因 OAuth 403 无法完成登录，已暂停使用；Ardot 本地 MCP 已配置并通过验证，作为当前设计稿 ↔ 代码的主链路。
+
+### 配置
+
+- 项目级 MCP 配置：`.kimi-code/mcp.json`
+- Ardot 本地 MCP 端点：`http://127.0.0.1:50501/api/v1/mcp`
+- 可用工具前缀：`mcp__ardot__*`（共 18 个，含读取、编辑、截图、导出、设计变量等）
+
+### 使用前提
+
+1. 启动 Ardot 桌面客户端并登录
+2. 打开任意 `.ardot` 设计文件（本地 MCP 服务随文件打开而启动）
+3. 在 Kimi Code 中运行 `/mcp` 确认 `mcp__ardot__*` 工具已连接
+
+### 标准工作流
+
+```
+需求/参考图 ──→ Ardot AI 生成可编辑设计稿 ──→ 在 Ardot 中精修 ──→ Kimi Code 读取/截图/导出 ──→ 生成 polang 代码
+```
+
+- **AI 生成**：在 Ardot 对话框输入自然语言，如“生成一个 poLang 相册首页，底部 4 个 tab，顶部搜索栏”
+- **设计精修**：在 Ardot 中调整布局、颜色、组件、Design Token
+- **代码生成**：在 Kimi Code 中通过 `mcp__ardot__fetch_editor_state`、`mcp__ardot__capture_screenshot`、`mcp__ardot__batch_read`、`mcp__ardot__fetch_variables` 等工具获取上下文，生成 Jetpack Compose / SwiftUI 代码
+
+### 成本说明
+
+- **Ardot MCP 操作本身不消耗 Ardot Credits**：读取、截图、导出、批量编辑设计稿均免费
+- **Ardot 内置 AI 生成仍消耗 Credits**：新用户 1000 Credits 初始额度，用完后可购买积分包，或通过 MCP 接本地模型
+
+### Figma 资产处理
+
+- 历史 Figma 文件可导出为 `.fig`，直接导入 Ardot 继续使用
+- Figma MCP 登录问题解决后，可作为备选链路恢复，但当前默认链路为 Ardot
+
+### 参考文档
+
+- Ardot 本地 MCP 文档：https://docs.ardot.tencent.com/ardot-mcp/desktop-mcp
+- 项目内使用示例：`.kimi-code/ARDOT_MCP.md`
+
 ## 项目文档索引
 
 | 文档 | 路径 | 内容 |
