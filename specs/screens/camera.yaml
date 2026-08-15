@@ -10,6 +10,15 @@
 # 值引用：尺寸引用 design-tokens.json 的 token 名（如 topBar.height），数值在注释中标注
 # 颜色引用：appColors.* 对应 design-tokens.json color 节点
 # 图标映射：Material Icons (Android) → SF Symbols (iOS)
+#
+# ── SSOT 分工（2026-08-15 起，Phase E 瘦身，设计见 docs/superpowers/specs/2026-08-14-figma-ui-spec-completeness-design.md）──
+# 本文件只留：行为/状态机/交互规则/内容数据（色板等）+ 触发与绑定。
+# 结构与样式（布局/尺寸/颜色/圆角/间距）SSOT = Figma「PoLang UI Spec」
+#   fileKey V4qGxkpPgflZ4XK61X7bq9,页 Camera,帧名 camera/<state_id>(如 camera/panel_beauty_face);
+#   token 值仍在 design-tokens.json(样式可改处:改 Figma Variables → 导出再生 JSON)。
+# 地面真值:specs/screens/refs/android/camera-<state>.{png,txt}(真机截图+a11y 实测)。
+# ⚠️ 教训:文案/结构以 a11y 实测为准,勿从本 yaml 推测(曾致 FULL/三分/黄金 全错)。
+# 瘦身进度:beauty_panel 段已完成(模板),其余段随对齐推进逐步瘦身。
 
 # ============================================================================
 # 1. 总体结构
@@ -514,154 +523,75 @@ beauty_panel:
   animation:
     enter: slide_in_vertically + fade_in   # 从底部滑入 + 淡入
     exit: slide_out_vertically + fade_out
-  height: "screenHeight * 0.35"      # beautyPanel.heightRatio = 35% 屏高
-  max_height_clamp: "0.2 ~ 0.75"    # clamp(0.2f, 0.75f)
+  # ── 视觉已移 Figma:高度35%/clamp、容器圆角/底色/渐变/边框/阴影、内边距/间距
+  #    (Figma 帧 camera/panel_beauty_face + token beautyPanel/bottomSheet)──
+  scrollable: true                   # 内容可垂直滚动(行为)
 
-  container:
-    top_corner_radius: 24            # beautyPanel.topCornerRadius = 24dp（仅顶部两角）
-    background:
-      panel_surface: "colorScheme.surface_alpha_95"  # surface.copy(alpha=0.95)
-      gradient_overlay:              # 面板下方的底部渐变遮罩（在面板之外）
-        colors: ["transparent", "black_alpha_55", "black_alpha_82"]
-    shadow_elevation: 16             # 16dp 阴影
-    border: "0.5dp outlineVariant_alpha_25"  # 0.5dp 边框
-    navigation_bars_padding: true
-
-  # ── 拖拽手柄 ──
-  # 🔴 iOS 缺失
+  # ── 拖拽手柄(行为:存在且可点关闭;形状 36×4 → Figma)──
   drag_handle:
-    width: 36                        # 36dp
-    height: 4                        # 4dp
-    shape: circle                    # 胶囊形（CircleShape clip）
-    color: "onSurface_alpha_20"      # onSurface 20% 透明
     position: top_center
-    margin_top: 10
-    margin_bottom: 4
-
-  # ── 面板内容区 ──
-  content_area:
-    padding_horizontal: 24
-    padding_vertical: 8
-    spacing: 12                      # 滑杆间距 12dp
-    scrollable: true                 # verticalScroll
+    on_tap: close_panel
 
   # ── 底部 Tab 栏 ──
-  # 🔴 iOS 缺失（当前只有 flat 4 条滑杆，无 Tab）
+  # ✅ iOS 已还原(2026-08-15:文字标签 面部精修/妆容调节 + accessibilityLabel);
+  #    选中/未选中样式 → Figma。标签以 a11y 实测为准(妆容调节,非"妆容")
   tab_bar:
     position: panel_bottom           # 面板底部固定
-    background: "colorScheme.surface"
-    padding_vertical: 8
     tabs:
       - id: face_tab
-        label: "面部精修"            # "面部精修" / "Facial Refinement"
-        icon:
-          material: face_retouching_natural  # Icons.Rounded.FaceRetouchingNatural
-          sf_symbol: "face.smiling"
-        icon_size: 24                # beautyPanel.iconSize = 24dp
-        selected_style:
-          background: "primary_alpha_12"    # primary 12% 透明底
-          icon_tint: "colorScheme.primary"
-        unselected_style:
-          background: transparent
-          icon_tint: "onSurface_alpha_50"
-        corner_radius: 10            # RoundedCornerShape(10dp)
-        padding_vertical: 8
-
+        label: "面部精修"
+        icon: { material: face_retouching_natural, sf_symbol: "face.smiling" }
       - id: makeup_tab
-        label: "妆容"                # "妆容" / "Makeup"
-        icon:
-          material: color_lens       # Icons.Rounded.ColorLens
-          sf_symbol: "paintpalette"
-        icon_size: 24
-        # 同上样式
+        label: "妆容调节"            # a11y 实测(Android 真机 dump)
+        icon: { material: color_lens, sf_symbol: "paintpalette" }
 
   # ── FACE Tab 内容：4 条滑杆 ──
+  # 通用行为:点击「图标+标签」行 → 重置该项为 0;数值显示整数(含 0——a11y 实测瘦脸0显示"0",非"--")
+  # 视觉(AppSlider 胶囊轨道/图标尺寸/配色)→ Figma 帧 + token appSlider/beautyPanel
   face_tab_sliders:
 
-    # 每条 BeautySlider 的通用结构：
-    # ┌──────────────────────────────────────────┐
-    # │ [icon] Label          (点击重置)   42    │ ← Row: 图标+标签(可点击重置) | 数值显示
-    │ │─────── AppSlider ─────────────────────│ ← 滑杆
-    # └──────────────────────────────────────────┘
-    #
-    # 图标：非零=primary 色，零=onSurface 60% 透明
-    # 数值：非零=primary 色 Bold 数字，零="--" onSurface 40% 透明
-    # 重置：点击图标+标签行 → 该项重置为 0
-    # 滑杆：AppSlider，fillMaxWidth，height=32dp
-
     - id: smoothing
-      label: "磨皮"                  # "磨皮" / "Smoothing"
-      icon:
-        material: face               # Icons.Rounded.Face
-        sf_symbol: "face.smiling"
-        size: 18                     # beautyPanel.iconSize 滑杆图标实际 18dp
-      value_range: [0, 100]          # 0f..100f
+      label: "磨皮"
+      icon: { material: face, sf_symbol: "face.smiling" }
+      value_range: [0, 100]
       default_value: 0
-      display_format: integer        # 整数显示（0-100）
+      display_format: integer
       reset_value: 0
-      on_reset: "smoothing = 0f"
 
     - id: whitening
-      label: "美白"                  # "美白" / "Whitening"
-      icon:
-        material: auto_fix_high      # Icons.Rounded.AutoFixHigh
-        sf_symbol: "wand.and.stars"
-        size: 18
+      label: "美白"
+      icon: { material: auto_fix_high, sf_symbol: "wand.and.stars" }
       value_range: [0, 100]
       default_value: 0
       display_format: integer
       reset_value: 0
-      on_reset: "whitening = 0f"
 
     - id: slim_face
-      label: "瘦脸"                  # "瘦脸" / "Slim Face"
-      icon:
-        material: face_retouching_natural  # Icons.Rounded.FaceRetouchingNatural
-        sf_symbol: "face.dashed"
-        size: 18
-      value_range: [-50, 50]         # -50f..50f（唯一支持负值的滑杆）
+      label: "瘦脸"
+      icon: { material: face_retouching_natural, sf_symbol: "face.dashed" }
+      value_range: [-50, 50]         # 唯一支持负值
       default_value: 0
-      display_format: signed_integer # 带符号整数显示
+      display_format: signed_integer
       reset_value: 0
-      on_reset: "slimFace = 0f"
 
     - id: big_eyes
-      label: "大眼"                  # "大眼" / "Big Eyes"
-      icon:
-        material: visibility         # Icons.Rounded.Visibility
-        sf_symbol: "eye"
-        size: 18
+      label: "大眼"
+      icon: { material: visibility, sf_symbol: "eye" }
       value_range: [0, 100]
       default_value: 0
       display_format: integer
       reset_value: 0
-      on_reset: "bigEyes = 0f"
 
-  # ── MAKEUP Tab 内容 ──
-  # 🔴 iOS 整个 Tab 缺失
+  # ── MAKEUP Tab 内容:色板/数据保留(内容色板属产品数据),布局/样式 → Figma 帧
+  #     camera/panel_beauty_makeup。iOS 现状:tab 已有,内容仍占位(MakeupPlaceholderContent)
   makeup_tab_content:
 
-    # ── 唇彩选择器（LipColorSelector）──
+    # ── 唇彩选择器(行为:点击图标+标签行重置;强度滑杆)──
     lip_color:
-      header:
-        icon:
-          material: color_lens       # Icons.Rounded.ColorLens
-          sf_symbol: "paintpalette"
-          size: 18
-        label: "唇彩"                # "唇彩" / "Lip Color"
-        click_to_reset: true         # 点击图标+标签行重置
-        value_display:
-          active: "strength.toInt()"  # 强度数值
-          inactive: "--"
-          color_active: "colorScheme.primary"
-          color_inactive: "onSurface_alpha_40"
-
-      # 12 色调色板
-      color_palette:
-        layout: lazy_horizontal_grid  # LazyHorizontalGrid
-        rows: 2                       # 2 行
-        height: 64                    # 64dp
-        spacing: 8                    # 水平/垂直各 8dp
+      label: "唇彩"
+      click_to_reset: true
+      color_palette:                 # 12 色调色板(2 行;视觉→Figma)
+        rows: 2
         colors:
           - "#D4757D"  # 珊瑚粉
           - "#C43343"  # 正红
@@ -675,70 +605,29 @@ beauty_panel:
           - "#FFB6C1"  # 浅粉
           - "#B22222"  # 火砖红
           - "#FF1493"  # 深粉
-        item_size: [48, 28]          # 每个 48x28dp
-        item_corner_radius: 8         # RoundedCornerShape(8dp)
-        selected_style:
-          border_width: 3            # 3dp
-          border_color: "colorScheme.primary"
-        unselected_style:
-          border_width: 1
-          border_color: "white_alpha_30"
         default_selected_index: 0
-
-      # 唇彩强度滑杆
       strength_slider:
         value_range: [0, 100]
-        default_value: 0             # DEFAULT_LIP_COLOR = 0f
+        default_value: 0
         reset_value: 0
-        height: 32
 
-    # ── 腮红色系选择器（BlushColorFamilySelector）──
+    # ── 腮红色系(标签以 a11y 实测为准:梅子色,非"梅色";样式→Figma)──
     blush_color_family:
-      label: "腮红色系"              # "腮红色系" / "Blush Color Family"
-      label_size: 13
-      label_weight: medium
-      layout: row
-      spacing: 8
+      label: "腮红色系"
       families:
-        - id: pink
-          label: "粉色"              # "粉色" / "Pink"
-          color_dot: "#FF8DAA"
-          dot_size: 10
-        - id: orange
-          label: "橙色"              # "橙色" / "Orange"
-          color_dot: "#FFA85C"
-          dot_size: 10
-        - id: plum
-          label: "梅色"              # "梅色" / "Plum"
-          color_dot: "#9B3D6A"
-          dot_size: 10
-      item_style:
-        shape: rounded_corner_12     # RoundedCornerShape(12dp)
-        padding_horizontal: 10
-        padding_vertical: 6
-        selected:
-          background: "primary_alpha_15"
-          border_width: 1.5
-          border_color: "colorScheme.primary"
-          text_color: "colorScheme.primary"
-        unselected:
-          background: "surfaceVariant_alpha_25"
-          border_width: 1
-          border_color: "outline_alpha_30"
-          text_color: "onSurface_alpha_85"
+        - { id: pink, label: "粉色", color_dot: "#FF8DAA" }
+        - { id: orange, label: "橙色", color_dot: "#FFA85C" }
+        - { id: plum, label: "梅子色", color_dot: "#9B3D6A" }
       default_selected_index: 0
 
     # ── 腮红强度滑杆 ──
     blush_slider:
-      icon:
-        material: favorite_border    # Icons.Rounded.FavoriteBorder
-        sf_symbol: "heart"
-        size: 18
-      label: "腮红"                  # "腮红" / "Blush"
+      label: "腮红"
+      icon: { material: favorite_border, sf_symbol: "heart" }
       value_range: [0, 100]
-      default_value: 0               # DEFAULT_BLUSH = 0f
+      default_value: 0
       display_format: integer
-      reset_value: 0                 # BeautySettings.DEFAULT_BLUSH
+      reset_value: 0
       click_to_reset: true
 
 # ============================================================================
