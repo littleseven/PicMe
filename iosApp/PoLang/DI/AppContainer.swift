@@ -29,6 +29,15 @@ final class AppContainer: ObservableObject {
     /// Chat Agent 桥（Phase 6.2 T6：IosAgentComposition.initialize 后可用）
     private(set) var chatBridge: ChatAgentBridge?
 
+    /// 编译期 DEBUG 标记（诊断日志 captureContent 门控用）
+    private var isDebugBuild: Bool {
+        #if DEBUG
+        return true
+        #else
+        return false
+        #endif
+    }
+
     private init() {
         self.mediaBridge = PhMediaBridge()
         self.mediaRepository = IosMediaRepository(bridge: mediaBridge)
@@ -46,7 +55,8 @@ final class AppContainer: ObservableObject {
             deviceId: deviceId,
             searchBridge: searchBridge,
             chartBridge: chartBridge,
-            runScriptBridge: runScriptBridge
+            runScriptBridge: runScriptBridge,
+            debugBuild: isDebugBuild   // 诊断日志 captureContent：DEBUG 记全文 / Release 仅指标
         )
         chatBridge = IosAgentComposition.shared.chatBridge
         // 应用用户保存的模型配置（有自定义模型则覆盖访客默认，无则保持 PICME_SERVER_DEFAULT）

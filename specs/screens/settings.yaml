@@ -197,6 +197,119 @@ about:
     - github: { label: "GitHub", url: "https://github.com/littleseven/polang" }
 
 # ============================================================================
+# 6.5 开发者选项页（developer，2026-08-15 补全）
+# ============================================================================
+# 入口：主菜单「Developer Options」卡（icon: terminal）直接显示。
+# ⚠️ 平台差异（2026-08-15 用户定）：Android 需版本页脚连点 7 次解锁
+# （developer_options_unlocked 持久化门控），iOS 不做门控直接展示——见 allowed_differences。
+developer:
+  navigation_title: "Developer Options"
+  sections:
+    - title: "Camera Preview Debug"             # 相机预览调试
+      desc: "Recommended for debugging only."
+      items:
+        - debug:
+            type: switch
+            key: debug_ui_enabled               # 总开关，关闭时下列 4 项隐藏
+            default: false
+        - show_camera_info:
+            type: switch
+            key: show_camera_info_in_preview
+            default: true
+            show_when: "debug == on"
+        - show_face_debug:
+            type: switch
+            key: show_face_debug_overlay
+            default: true
+            show_when: "debug == on"
+        - show_log_overlay:
+            type: switch
+            key: show_log_overlay
+            default: true
+            show_when: "debug == on"
+        - shader_debug_mode:
+            type: chips                          # 单选 chips，最多 2 行
+            key: debug_shader_mode               # Int 0-5
+            title: "Shader Debug Mode"
+            options: [Normal, Skin Mask, Warp Offset, BigEye Radius, ThinFace Radius, All Warp]
+            default: 0                           # Normal
+            show_when: "debug == on"
+            note: "persistence-only：双端预览均不消费——Android CameraScreen 硬编码 0（避免调试模式蓝屏），iOS Metal shader 无 uDebugMode 分支；行下加注脚说明"
+
+    - title: "Diagnostics & Logs"               # 诊断与日志
+      items:
+        - llm_call_log:
+            type: nav_row
+            title: "LLM Call Log"
+            desc: "View LLM inference, tool call and JS run logs"
+            ios_state: implemented               # → DiagnosticLogView（三层日志查看器，见 §6.6）
+        - log_modules:
+            type: chips_multi                    # 多选 chips，最多 3 行（对标 Android LogModuleConfigSection）
+            title: "Log Modules"
+            key: log_module_config               # UserDefaults JSON：{"enabledModules":[...]}，与 Android 同构
+            options: [Face Detection, Rendering, Beauty, Agent, Camera, Download, Settings, Orchestrator, Chat, Semantic Search]
+            default_enabled: [Agent, Orchestrator, Download, Settings, Chat, Semantic Search]  # FACE_DETECTION/RENDERING/BEAUTY/CAMERA 默认关
+            note: "门控 shared Kotlin 侧 Logger 输出（IosModuleGatedLogger，tag 前缀最长匹配，未分类默认放行）；iOS Swift 侧 print 不经此门控"
+
+    - title: "Developer Tools"                   # 开发测试工具
+      build: debug_only                          # 仅 DEBUG 构建显示整区
+      items:
+        - image_download:
+            type: nav_row
+            title: "Image Download"
+            ios_state: implemented               # → DebugScreenView（已有）
+        - search_test:
+            type: nav_row
+            title: "Search Test"
+            ios_state: disabled_android_only
+        - jsbridge:
+            type: nav_row
+            title: "JSBridge"
+            ios_state: disabled_android_only     # iOS JS 沙盒 Tier1-3 已具备但无调试页
+        - accessibility:
+            type: nav_row
+            title: "Accessibility Service"
+            ios_state: disabled_android_only     # Android 系统无障碍设置跳转，iOS 无等价
+
+# ============================================================================
+# 6.6 诊断日志查看器（DiagnosticLogView，自开发者选项进入，2026-08-15）
+# ============================================================================
+# 基准：Android features/debug/LlmCallLogScreen.kt（Room polang_llm_log.db 三表）。
+# iOS 存储等价物：JSONL 文件（Application Support/llm_log/ 下 llm_calls.jsonl /
+# tool_calls.jsonl / js_runs.jsonl），每行一条 JSON 记录，字段与 Android 实体一一对应；
+# 单文件 >4MB 时截断保留尾部 ~2MB；shared iosMain 三层 recorder 注入点与 Android 相同
+# （RemoteModelFactory.recorder / CommandExecutor.recorder / JsRuntime.recorder）。
+# captureContent：DEBUG 构建记全文（request/response/script/resultPreview），
+# Release 仅纯指标（隐私红线，双端一致）。
+diagnostic_log_viewer:
+  navigation_title: "LLM Call Log"
+  tabs: [LLM, Tool, JS]                          # 顶部 segmented，对标 Android TabRow
+  toolbar:
+    refresh: { icon: arrow.clockwise }
+    clear_all: { icon: trash, confirm: dialog }  # 清空三个 JSONL 文件
+  list_row:                                      # 卡片行，倒序（最新在上）
+    left_icon: "checkmark.circle.fill(green #2E7D32) / xmark.circle.fill(red #C62828)"
+    time: { format: "MM-dd HH:mm:ss", font: label }
+    source_chip: { bg: "primaryContainer", text: "onPrimaryContainer", corner: 8 }
+    title: "LLM: model；Tool: commandType；JS: kind + 脚本首行 60 字符"
+    subtitle: "latency ms + in/out tokens（LLM）| code/error 前 40 字符（失败时）"
+    background: "surfaceVariant"
+    corner_radius: 12
+  detail:                                        # 点行进入，滚动页
+    header: "完整时间 yyyy-MM-dd HH:mm:ss.SSS + model/kind + source"
+    status_line: "成功/失败(绿/红) + latency + in/out tokens | code"
+    sections:
+      - { key: requestJson, title: "Request", show_when: "captureContent", pretty_json: true }
+      - { key: responseJson, title: "Response", show_when: "captureContent && != null", pretty_json: true }
+      - { key: script, title: "Script", tab: JS, show_when: "captureContent && != null" }
+      - { key: resultPreview, title: "Result", tab: JS, show_when: "captureContent && != null", pretty_json: true }
+      - { key: errorMessage, title: "Error", show_when: "!= null" }
+      - { key: traceId, title: "Trace", mono: true, show_when: "!= null" }
+    section_card: { title_row: "titleSmall + copy 按钮", body: "monospace 12pt" }
+    release_no_content_hint: "captureContent=false 时内容区显示「Release 构建仅记录指标」说明卡"
+  trace_pager: not_applicable                    # Android 有同 traceId 三层横滑 pager；iOS 首版详情仅单条，台账登记
+
+# ============================================================================
 # 7. iOS 当前阶段实现范围
 # ============================================================================
 ios_scope:
@@ -220,9 +333,8 @@ ios_scope:
     - "Floating Chat Bubble（Android 悬浮窗，iOS 无等价）"
     - "Battery Optimization（Android 专属）"
     - "MIUI Auto Start / Permission Editor（小米专属）"
-    - "Accessibility Service（Android 专属）"
-    - "Developer Options → Image Download Test / Search Test / JS Bridge（Android debug 专属）"
-    - "LLM Call Log viewer（Android Room DB 专属）"
+    - "Accessibility Service（Android 专属；开发者选项页内灰显标注 Android only）"
+    - "Developer Options → Search Test / JS Bridge（Android debug 专属，iOS 行灰显标注；Image Download iOS 已实现；LLM Call Log/Log Modules iOS 已实现——见 §6.5/§6.6）"
 
 # ============================================================================
 # 8. 通用组件规格
@@ -269,6 +381,10 @@ allowed_differences:
   - "卡片材质（Material elevation vs SwiftUI background）"
   - "Switch 控件原生外观"
   - "导航转场动画"
-  - "开发者选项（iOS 暂不做 Debug 页面）"
+  - "开发者选项入口：Android 连点 7 次解锁门控，iOS 直接显示（2026-08-15 用户定）"
+  - "开发者选项 Shader Debug Mode 双端 persistence-only（Android CameraScreen 硬编码 0；iOS Metal shader 无 uDebugMode 分支），chips 仅持久化不消费"
+  - "开发者选项部分开发工具 iOS 灰显标注 Android only（Search Test/JSBridge/Accessibility 无对应页）"
+  - "诊断日志：Android 存 Room 三表 + 同 traceId 横滑 pager；iOS 存 JSONL 文件 + 单条详情（pager 台账登记）"
+  - "Log Modules 门控范围：双端均只门控 shared/平台 Logger 通道；iOS Swift 侧 print 不经门控"
   - "语音控制（iOS 暂无 sherpa-onnx）"
   - "相册 TAG 控制页（iOS Phase 6.1 未落地）"

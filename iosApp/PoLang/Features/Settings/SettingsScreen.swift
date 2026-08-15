@@ -14,11 +14,7 @@ struct SettingsScreen: View {
     /// M3 语义色（对标 Android MaterialTheme.colorScheme）
     private var s: SchemeColors { appScheme(cs) }
 
-    /// 开发者选项解锁态（连点版本号 7 次解锁，持久化；对标 Android developer_options_unlocked）
-    @AppStorage("developer_options_unlocked") private var developerUnlocked: Bool = false
-    @State private var unlockTapCount: Int = 0
-    @State private var lastUnlockTap: Date = .distantPast
-    @State private var unlockHint: String?
+    // 2026-08-15 用户定：iOS 开发者选项卡片直接显示，无 7 连点解锁门控（与 Android 差异已登记 settings.yaml 台账）
     /// 相册设置（扫描控制台）以 fullScreenCover 呈现（TagScanScreen 既有模式）
     @State private var showGalleryConsole = false
     /// 账号登录态 + hero 额度（对齐 Android AccountHeroCard 外显登录态）
@@ -71,44 +67,11 @@ struct SettingsScreen: View {
     }
 
     private var versionFooter: some View {
-        VStack(spacing: 4) {
-            Text(appVersionText)
-                .font(.system(size: 12))
-                .foregroundColor(.secondary.opacity(0.6))
-                .contentShape(Rectangle())
-                .onTapGesture { handleVersionTap() }
-            if let hint = unlockHint {
-                Text(hint)
-                    .font(.system(size: 12))
-                    .foregroundColor(.accentColor)
-                    .transition(.opacity)
-            }
-        }
-        .padding(.top, 16)
-        .padding(.bottom, 8)
-        .animation(.easeInOut(duration: 0.2), value: unlockHint)
-    }
-
-    private func handleVersionTap() {
-        let now = Date()
-        // 距上次点击超 4 秒则归零（防误触累积）
-        if now.timeIntervalSince(lastUnlockTap) > 4 {
-            unlockTapCount = 0
-        }
-        unlockTapCount += 1
-        lastUnlockTap = now
-        if unlockTapCount >= 7 {
-            unlockTapCount = 0
-            developerUnlocked = true
-            unlockHint = L("Developer options enabled.")
-        } else {
-            unlockHint = String(format: NSLocalizedString("Tap %d more times to enable developer options.", comment: ""), 7 - unlockTapCount)
-        }
-        // 2 秒后清空提示
-        let hint = unlockHint
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            if unlockHint == hint { withAnimation { unlockHint = nil } }
-        }
+        Text(appVersionText)
+            .font(.system(size: 12))
+            .foregroundColor(.secondary.opacity(0.6))
+            .padding(.top, 16)
+            .padding(.bottom, 8)
     }
 
     // MARK: - ① Account Hero Card
@@ -242,8 +205,10 @@ struct SettingsScreen: View {
                 .foregroundColor(cat.isPlaceholder ? .secondary.opacity(0.5) : .secondary)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
+                // 描述恒占 2 行高，保证所有卡片高度一致（短文案卡片不再偏矮）
+                .frame(minHeight: 30, alignment: .topLeading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(16)
         .background(s.surfaceContainerHighest)
         .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -294,10 +259,8 @@ struct SettingsScreen: View {
             // Row 5
             .init(icon: "privacy_tip", title: L("Data & Privacy"), desc: L("Privacy policy, data retention, deletion"), target: .dataPrivacy, isPlaceholder: false),
         ]
-        // 开发者选项仅在连点解锁后出现（对标 Android developer_options_unlocked 门控）
-        if developerUnlocked {
-            items.append(.init(icon: "terminal", title: L("Developer Options"), desc: L("Debug overlays and advanced diagnostics."), target: .developer, isPlaceholder: false))
-        }
+        // 开发者选项直接显示（2026-08-15 用户定：iOS 不做 7 连点门控，与 Android 差异登记台账）
+        items.append(.init(icon: "terminal", title: L("Developer Options"), desc: L("Debug overlays and advanced diagnostics."), target: .developer, isPlaceholder: false))
         return items
     }
 }

@@ -284,6 +284,64 @@ struct DeveloperSettingsView: View {
     @AppStorage("show_camera_info_in_preview") private var showCameraInfo = true
     @AppStorage("show_face_debug_overlay") private var showFaceDebug = true
     @AppStorage("show_log_overlay") private var showLogOverlay = true
+    @AppStorage("debug_shader_mode") private var debugShaderMode = 0
+
+    /// Log Modules 多选（spec §6.5 log_modules）：UserDefaults `log_module_config`
+    /// JSON `{"enabledModules":[...]}`，与 Android/`IosModuleGatedLogger` 同构消费。
+    /// 成员为枚举名大写下划线；key 缺失时默认 AGENT/ORCHESTRATOR/DOWNLOAD/SETTINGS/CHAT/SEMANTIC。
+    private struct LogModule: Identifiable {
+        let rawValue: String   // 枚举名（持久化值）
+        let displayName: String
+        var id: String { rawValue }
+    }
+
+    private static let logModules: [LogModule] = [
+        .init(rawValue: "FACE_DETECTION", displayName: "Face Detection"),
+        .init(rawValue: "RENDERING", displayName: "Rendering"),
+        .init(rawValue: "BEAUTY", displayName: "Beauty"),
+        .init(rawValue: "AGENT", displayName: "Agent"),
+        .init(rawValue: "CAMERA", displayName: "Camera"),
+        .init(rawValue: "DOWNLOAD", displayName: "Download"),
+        .init(rawValue: "SETTINGS", displayName: "Settings"),
+        .init(rawValue: "ORCHESTRATOR", displayName: "Orchestrator"),
+        .init(rawValue: "CHAT", displayName: "Chat"),
+        .init(rawValue: "SEMANTIC", displayName: "Semantic Search"),
+    ]
+
+    private static let defaultEnabledModules: Set<String> = [
+        "AGENT", "ORCHESTRATOR", "DOWNLOAD", "SETTINGS", "CHAT", "SEMANTIC",
+    ]
+
+    @State private var enabledModules: Set<String> = Self.defaultEnabledModules
+
+    /// 读取 UserDefaults `log_module_config`；key 缺失/解析失败 → 默认启用集。
+    private static func loadEnabledModules() -> Set<String> {
+        guard let raw = UserDefaults.standard.string(forKey: "log_module_config"),
+              let data = raw.data(using: .utf8),
+              let decoded = try? JSONDecoder().decode(ModuleConfig.self, from: data) else {
+            return defaultEnabledModules
+        }
+        return Set(decoded.enabledModules)
+    }
+
+    /// 与 Android `toJson()` 同构：`{"enabledModules":[...]}`（保持插入序稳定）。
+    private func persistEnabledModules() {
+        let ordered = Self.logModules.map(\.rawValue).filter { enabledModules.contains($0) }
+        let payload = ["enabledModules": ordered]
+        if let data = try? JSONSerialization.data(withJSONObject: payload),
+           let json = String(data: data, encoding: .utf8) {
+            UserDefaults.standard.set(json, forKey: "log_module_config")
+        }
+    }
+
+    private struct ModuleConfig: Codable {
+        let enabledModules: [String]
+    }
+
+    /// Shader Debug Mode 单选 chips（值 0-5，持久化 debug_shader_mode；预览暂不消费）
+    private let shaderDebugModes: [String] = [
+        "Normal", "Skin Mask", "Warp Offset", "BigEye Radius", "ThinFace Radius", "All Warp"
+    ]
 
     var body: some View {
         ScrollView {
@@ -299,37 +357,83 @@ struct DeveloperSettingsView: View {
                             toggleRow(L("Show Face Debug"), isOn: $showFaceDebug)
                             Divider()
                             toggleRow(L("Show Log Overlay"), isOn: $showLogOverlay)
+                            Divider()
+                            // Shader Debug Mode 单选 chips
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(L("Shader Debug Mode"))
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                                FlowLayout(spacing: 8) {
+                                    ForEach(0..<shaderDebugModes.count, id: \.self) { mode in
+                                        shaderModeChip(mode)
+                                    }
+                                }
+                                Text(L("Stored only; preview rendering does not consume this setting yet."))
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 8)
                         }
                     }
                 }
 
-                // ── 2. 诊断与日志（iOS 占位）──
+                // ── 2. 诊断与日志 ──
                 settingsSection(L("Diagnostics & Logs")) {
-                    Text(L("LLM call log and per-module log switches are not yet available on iOS."))
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    VStack(spacing: 0) {
+                        NavigationLink {
+                            DiagnosticLogView()
+                        } label: {
+                            HStack {
+                                Text(L("LLM Call Log")).foregroundColor(.primary)
+                                Spacer()
+                                Text(L("Enter")).font(.system(size: 13)).foregroundColor(.secondary)
+                                Image(systemName: "chevron.right").font(.system(size: 13)).foregroundColor(.secondary)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        Divider()
+                        // Log Modules 多选 chips
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(L("Log Modules"))
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                            FlowLayout(spacing: 8) {
+                                ForEach(Self.logModules) { module in
+                                    logModuleChip(module)
+                                }
+                            }
+                            Text(L("Only gates Agent (Kotlin-side) log output."))
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 8)
+                    }
                 }
 
                 // ── 3. 开发测试工具（仅 DEBUG）──
                 #if DEBUG
                 settingsSection(L("Developer Tools")) {
-                    NavigationLink {
-                        DebugScreenView()
-                    } label: {
-                        HStack {
-                            Text(L("Image Download")).foregroundColor(.primary)
-                            Spacer()
-                            Text(L("Enter")).font(.system(size: 13)).foregroundColor(.secondary)
-                            Image(systemName: "chevron.right").font(.system(size: 13)).foregroundColor(.secondary)
+                    VStack(spacing: 0) {
+                        NavigationLink {
+                            DebugScreenView()
+                        } label: {
+                            HStack {
+                                Text(L("Image Download")).foregroundColor(.primary)
+                                Spacer()
+                                Text(L("Enter")).font(.system(size: 13)).foregroundColor(.secondary)
+                                Image(systemName: "chevron.right").font(.system(size: 13)).foregroundColor(.secondary)
+                            }
+                            .contentShape(Rectangle())
                         }
-                        .contentShape(Rectangle())
+                        .buttonStyle(.plain)
+                        Divider()
+                        disabledRow(title: L("Search Test"), subtitle: nil)
+                        Divider()
+                        disabledRow(title: L("JSBridge"), subtitle: nil)
+                        Divider()
+                        disabledRow(title: L("Accessibility Service"), subtitle: nil)
                     }
-                    .buttonStyle(.plain)
-                    Divider()
-                    Text(L("Search test, JSBridge and accessibility tools are Android-only."))
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
                 }
                 #endif
             }
@@ -339,6 +443,57 @@ struct DeveloperSettingsView: View {
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationTitle(L("Developer Options"))
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear { enabledModules = Self.loadEnabledModules() }
+    }
+
+    private func logModuleChip(_ module: LogModule) -> some View {
+        let selected = enabledModules.contains(module.rawValue)
+        return Button {
+            if selected {
+                enabledModules.remove(module.rawValue)
+            } else {
+                enabledModules.insert(module.rawValue)
+            }
+            persistEnabledModules()
+        } label: {
+            Text(L(module.displayName))
+                .font(.system(size: 13, weight: selected ? .semibold : .regular))
+                .foregroundColor(selected ? .white : .primary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(selected ? Color.accentColor : Color(.tertiarySystemBackground))
+                .clipShape(Capsule())
+        }
+    }
+
+    private func shaderModeChip(_ mode: Int) -> some View {
+        let selected = debugShaderMode == mode
+        return Button { debugShaderMode = mode } label: {
+            Text(L(shaderDebugModes[mode]))
+                .font(.system(size: 13, weight: selected ? .semibold : .regular))
+                .foregroundColor(selected ? .white : .primary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(selected ? Color.accentColor : Color(.tertiarySystemBackground))
+                .clipShape(Capsule())
+        }
+    }
+
+    /// Android 专属功能行：整体灰显、不可点击，右值标注 "Android only"
+    private func disabledRow(title: String, subtitle: String?) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).font(.system(size: 14))
+                if let subtitle {
+                    Text(subtitle).font(.system(size: 12))
+                }
+            }
+            Spacer()
+            Text(L("Android only"))
+                .font(.system(size: 13))
+        }
+        .foregroundColor(.secondary)
+        .padding(.vertical, 8)
     }
 }
 

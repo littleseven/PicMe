@@ -77,18 +77,24 @@ object IosAgentComposition {
      *                   draw_chart 命令不可用（IosChartCapability.isAvailable=false）
      * @param runScriptBridge Swift 侧脚本执行桥（RunScriptBridge → JsRuntime+JsCoreEngine）；null 时
      *                        run_gallery_script 命令不可用（IosRunScriptCapability.isAvailable=false）
+     * @param debugBuild Swift `#if DEBUG` 传入；true 时诊断日志记全文（captureContent），
+     *                   false 仅纯指标（隐私红线，对标 Android BuildConfig.DEBUG 注入）
      */
     fun initialize(
         bridge: IosMediaRepositoryBridge,
         deviceId: String,
         searchBridge: IosChatSearchBridge? = null,
         chartBridge: IosChartBridge? = null,
-        runScriptBridge: IosRunScriptBridge? = null
+        runScriptBridge: IosRunScriptBridge? = null,
+        debugBuild: Boolean = false
     ) {
         if (!initialized.compareAndSet(false, true)) {
             Logger.w(TAG, "initialize called twice, skipping")
             return
         }
+
+        // 诊断日志三层 recorder + 模块门控 Logger（对标 Android PoLangApplication 安装段）
+        com.mamba.picme.agent.core.platform.logging.IosDiagnosticLogStore.install(debugBuild)
 
         val dispatcherProvider = DispatcherProvider()
         val mediaRepository = IosMediaRepository(bridge)
