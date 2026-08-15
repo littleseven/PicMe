@@ -13,9 +13,9 @@
 #
 # ── SSOT 分工（2026-08-15 起，Phase E 瘦身，设计见 docs/superpowers/specs/2026-08-14-figma-ui-spec-completeness-design.md）──
 # 本文件只留：行为/状态机/交互规则/内容数据（色板等）+ 触发与绑定。
-# 结构与样式（布局/尺寸/颜色/圆角/间距）SSOT = Figma「PoLang UI Spec」
-#   fileKey V4qGxkpPgflZ4XK61X7bq9,页 Camera,帧名 camera/<state_id>(如 camera/panel_beauty_face);
-#   token 值仍在 design-tokens.json(样式可改处:改 Figma Variables → 导出再生 JSON)。
+# 结构与样式（布局/尺寸/颜色/圆角/间距）SSOT = Arbot/Ardot「PoLang UI Spec」
+#   文件 polang-ui-spec, 页 Camera, 帧名 camera/<state_id>(如 camera/panel_beauty_face);
+#   token 值仍在 design-tokens.json(样式可改处:改 Arbot Variables → 导出再生 JSON)。
 # 地面真值:specs/screens/refs/android/camera-<state>.{png,txt}(真机截图+a11y 实测)。
 # ⚠️ 教训:文案/结构以 a11y 实测为准,勿从本 yaml 推测(曾致 FULL/三分/黄金 全错)。
 # 瘦身进度:beauty_panel 段已完成(模板),其余段随对齐推进逐步瘦身。
@@ -454,6 +454,7 @@ bottom_area:
     # ── 左侧：相册缩略图 ──
     # 🔴 iOS 完全缺失
     - id: gallery_thumbnail
+      label: "相册"                  # "相册" / "Gallery"
       shape: circle
       size: 48                       # 48dp 圆形
       background: "dark_gray"        # Color.DarkGray 底（无媒体时）
@@ -493,6 +494,7 @@ bottom_area:
     # ── 右侧：翻转摄像头 ──
     # 🔴 iOS 完全缺失
     - id: flip_camera
+      label: "翻转"                  # "翻转" / "Flip"
       shape: circle
       size: 48                       # 48dp 圆形
       background: "white_alpha_20"   # 白 20% 透明底
@@ -523,11 +525,18 @@ beauty_panel:
   animation:
     enter: slide_in_vertically + fade_in   # 从底部滑入 + 淡入
     exit: slide_out_vertically + fade_out
-  # ── 视觉已移 Figma:高度35%/clamp、容器圆角/底色/渐变/边框/阴影、内边距/间距
-  #    (Figma 帧 camera/panel_beauty_face + token beautyPanel/bottomSheet)──
+  # ── 视觉已固化为 Arbot 源文件:高度30%/clamp、容器圆角/底色/渐变/边框/阴影、内边距/间距
+  #    (Arbot 帧 camera/panel_beauty_face + token beautyPanel/bottomSheet)──
   scrollable: true                   # 内容可垂直滚动(行为)
 
-  # ── 拖拽手柄(行为:存在且可点关闭;形状 36×4 → Figma)──
+  container:
+    top_corner_radius: 20
+    shadow_elevation: 16
+    panel_height_ratio: 0.30         # 30% 屏高（紧凑面板）
+    padding_horizontal: 24
+    padding_vertical: 12
+
+  # ── 拖拽手柄(行为:存在且可点关闭;形状 36×4 → Arbot)──
   drag_handle:
     position: top_center
     on_tap: close_panel
@@ -639,14 +648,14 @@ filter_panel:
   anchor: bottom_sheet               # 复用通用 ControlPanel 容器
   container:
     # 与美颜面板容器样式一致（渐变遮罩 + Surface 面板 + 圆角 + 阴影 + 手柄）
-    top_corner_radius: 24
+    top_corner_radius: 20
     shadow_elevation: 16
     border: "0.5dp outlineVariant_alpha_25"
     drag_handle:
       width: 36
       height: 4
       color: "onSurface_alpha_20"
-    panel_height_ratio: 0.5          # ControlPanel 使用 50% 屏高（非美颜的 35%）
+    panel_height_ratio: 0.30         # 30% 屏高（紧凑面板）
     padding_horizontal: 24
     padding_vertical: 12
 
@@ -758,9 +767,9 @@ ratio_panel:
   anchor: bottom_sheet               # 复用 ControlPanel
   container:
     # 同滤镜面板容器样式
-    top_corner_radius: 24
+    top_corner_radius: 20
     shadow_elevation: 16
-    panel_height_ratio: 0.5
+    panel_height_ratio: 0.22         # 22% 屏高（紧凑面板）
     drag_handle: standard
     padding_horizontal: 24
     padding_vertical: 12
@@ -798,9 +807,9 @@ scene_panel:
   trigger: scene_mode
   anchor: bottom_sheet               # 复用 ControlPanel
   container:
-    top_corner_radius: 24
+    top_corner_radius: 20
     shadow_elevation: 16
-    panel_height_ratio: 0.5
+    panel_height_ratio: 0.22         # 22% 屏高（紧凑面板）
     drag_handle: standard
     padding_horizontal: 24
     padding_vertical: 12
@@ -821,10 +830,6 @@ scene_panel:
     - id: scene_night
       label: "夜景"                  # "夜景" / "Night"
       value: NIGHT                   # ScenePreset.NIGHT
-
-    - id: scene_moon
-      label: "月亮"                  # "月亮" / "Moon"
-      value: MOON                    # ScenePreset.MOON
   behavior:
     on_select: "set_scene + close_panel"
 
@@ -835,9 +840,9 @@ grid_panel:
   trigger: grid_toggle
   anchor: bottom_sheet               # 复用 ControlPanel
   container:
-    top_corner_radius: 24
+    top_corner_radius: 20
     shadow_elevation: 16
-    panel_height_ratio: 0.5
+    panel_height_ratio: 0.22         # 22% 屏高（紧凑面板）
     drag_handle: standard
     padding_horizontal: 24
     padding_vertical: 12
@@ -878,10 +883,10 @@ pro_mode_panel:
     # 🔴 可见性条件：isProPanelOpen && !isAnyPanelOpen
     # 即：当 Filter/Ratio/Scene/Grid 任一面板打开时，ProMode 面板不渲染
   container:
-    top_corner_radius: 24
+    top_corner_radius: 20
     shadow_elevation: 16
     border: "0.5dp outlineVariant_alpha_25"
-    panel_height_ratio: 0.5          # 50% 屏高
+    panel_height_ratio: 0.38         # 38% 屏高（紧凑面板）
     padding_horizontal: 24
     padding_top: 0
     padding_bottom: 16
@@ -1263,3 +1268,66 @@ allowed_differences:
 
   - dimension: preview_zoom_gesture
     note: "iOS 可保留 pinch-to-zoom（MagnificationGesture）作为原生增强，但必须同时有底部预设按钮条"
+
+# ============================================================================
+# 21. 平台差异台账（ios-follow 契约层）
+# ============================================================================
+platform_differences:
+  permission:
+    android:
+      - "android.permission.CAMERA"
+      - "android.permission.RECORD_AUDIO"              # 录像模式
+      - "android.permission.WRITE_EXTERNAL_STORAGE"    # Android 9 及以下保存媒体
+      - "android.permission.READ_MEDIA_IMAGES"         # Android 13+ 读取媒体
+      - "android.permission.READ_MEDIA_VIDEO"          # Android 13+ 读取媒体
+    ios:
+      - "NSCameraUsageDescription"                     # 相机预览/拍照/录像
+      - "NSMicrophoneUsageDescription"                 # 录像收音
+      - "NSPhotoLibraryAddUsageDescription"            # 仅保存照片/视频
+      - "NSPhotoLibraryUsageDescription"               # 若需读取最近缩略图
+    note: "iOS 权限粒度为 Full/Limited/AddOnly/Denied；相册缩略图读取需 PHPhotoLibrary 授权，保存仅需 AddOnly。"
+
+  capabilities:
+    - capability: camera_preview
+      android: "CameraX Preview use case + OpenGL/Engines 美颜管线"
+      ios: "AVFoundation AVCaptureVideoPreviewLayer + Metal 4-pass 美颜管线"
+      note: "预览框架差异可接受，取景比例/控件层级/面板行为必须按本 spec 对齐。"
+
+    - capability: face_detection
+      android: "MNN RetinaFace / MediaPipe Face Mesh（ engines 模块）"
+      ios: "MNN RetinaFace / MediaPipe Face Mesh（ Frameworks _embed）"
+      note: "双端共用 106pt 关键点规范，坐标系按 coordinate-system-standard 换算。"
+
+    - capability: photo_capture
+      android: "CameraX ImageCapture"
+      ios: "AVCapturePhotoOutput"
+      note: "快门交互、闪屏动画、防抖行为按本 spec 对齐。"
+
+    - capability: video_capture
+      android: "CameraX VideoCapture"
+      ios: "AVCaptureMovieFileOutput"
+      note: "iOS 当前版本如未实现录像，需在台账中标记为后续版本支持。"
+
+    - capability: beauty_adjustment
+      android: "OpenGL beauty pass + 滑杆参数绑定"
+      ios: "Metal beauty pass + 滑杆参数绑定"
+      note: "参数语义与默认值双端一致，具体算法实现可平台原生。"
+
+    - capability: gallery_thumbnail
+      android: "读取 MediaStore 最近一张媒体作为缩略图"
+      ios: "读取 PHPhotoLibrary 最近一张资源作为缩略图"
+      note: "无媒体时均显示 dark_gray 占位圆。"
+
+    - capability: camera_switch
+      android: "CameraSelector LENS_FACING_FRONT/BACK"
+      ios: "AVCaptureDevice.DiscoverySession + AVCaptureDevicePosition"
+      note: "切换动画与按钮状态按本 spec 对齐。"
+
+  privacy_disclosure:
+    android:
+      - manifest: "上述权限声明于 AndroidManifest.xml"
+      - data_safety: "相机/麦克风/存储用途在 Play Data Safety 表单披露"
+    ios:
+      - plist: "上述 purpose strings 声明于 Info.plist"
+      - xcprivacy: "相机、麦克风、照片库访问类别声明于 PrivacyInfo.xcprivacy"
+    note: "用户媒体不上传远程服务器（[PRIVACY] 红线），端侧处理。"
