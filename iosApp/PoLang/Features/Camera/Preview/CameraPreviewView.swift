@@ -383,15 +383,19 @@ struct CameraPreviewView: View {
 
     private func cameraOverlay(screenHeight: CGFloat, safeTop: CGFloat) -> some View {
         ZStack {
-            // 手势层
+            // 手势层(面板开启时禁用——点按语义变为收起面板,对标 Android;修复 Pro 点外部不收起)
             CameraGesturesView(controller: controller)
-                .allowsHitTesting(activePanel == nil)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    // ProMode 独立轨道：开则单关 Pro；否则关 primary 面板（对标 Android 空白点击语义）
-                    if showProPanel { withAnimation { showProPanel = false } }
-                    else if activePanel != nil { withAnimation { activePanel = nil } }
-                }
+                .allowsHitTesting(activePanel == nil && !showProPanel)
+
+            // 空白点击收起层:任何面板开启时,点预览空白收起全部(位于按钮/面板层之下,不挡右列按钮)
+            // 对标 Android click_blank_area dismiss(isAnyPanelOpen||Pro||Beauty → closeAll)
+            if activePanel != nil || showProPanel {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation { activePanel = nil; showProPanel = false }
+                    }
+            }
 
             // 顶部控件
             topControls(screenHeight: screenHeight, safeTop: safeTop)
