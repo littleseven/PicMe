@@ -947,12 +947,9 @@ voiceCoordinator.stopPushToTalk()
         }
         captureMode = memoryState.captureMode
         selectedFilter = memoryState.selectedFilter
-        beautySettings = resolveNextBeautySettings(
-            currentSettings = beautySettings,
-            updatedSettings = memoryState.beautySettings.copy(
-                colorFilter = memoryState.selectedFilter,
-                styleFilter = memoryState.selectedStyleFilter
-            )
+        beautySettings = memoryState.beautySettings.copy(
+            colorFilter = memoryState.selectedFilter,
+            styleFilter = memoryState.selectedStyleFilter
         )
         aspectRatio = memoryState.aspectRatio.toAspectRatio()
         zoomRatio = memoryState.zoomRatio
@@ -1599,35 +1596,6 @@ CameraPreviewContent(
                 val currentView = LocalView.current
                 buildCameraPreviewActions(
                 onNavigateBack = onNavigateBack,
-                onResetCameraMemoryState = {
-                    val defaultState = CameraMemoryState()
-                    lensFacing = if (defaultState.useFrontCamera) {
-                        CameraSelector.LENS_FACING_FRONT
-                    } else {
-                        CameraSelector.LENS_FACING_BACK
-                    }
-                    captureMode = defaultState.captureMode
-                    selectedFilter = defaultState.selectedFilter
-                    beautySettings = resolveNextBeautySettings(
-                        currentSettings = beautySettings,
-                        updatedSettings = defaultState.beautySettings.copy(
-                            colorFilter = defaultState.selectedFilter,
-                            styleFilter = defaultState.selectedStyleFilter
-                        )
-                    )
-                    aspectRatio = defaultState.aspectRatio.toAspectRatio()
-                    zoomRatio = defaultState.zoomRatio
-                    exposureCompensation = defaultState.exposureCompensation
-                    whiteBalanceMode = defaultState.whiteBalanceMode
-                    currentScene = defaultState.sceneMode.toScenePreset()
-                    currentGrid = defaultState.gridMode.toGridType()
-                    panelState.closeAllPanels()
-                    isCameraMemoryHydrated = true
-
-                    coroutineScope.launch {
-                        userPreferencesRepository.resetCameraMemoryState()
-                    }
-                },
                 lensFacing = lensFacing,
 
         onLensFacingChanged = { updatedLensFacing -> lensFacing = updatedLensFacing },
@@ -1636,7 +1604,6 @@ CameraPreviewContent(
         },
         panelState = panelState,
         cameraControl = cameraControl,
-        onCurrentSceneChanged = { scene -> currentScene = scene },
         onCurrentGridChanged = { grid -> currentGrid = grid },
         onNavigateToGallery = onNavigateToGallery,
         onCaptureClick = {
@@ -1700,6 +1667,11 @@ CameraPreviewContent(
         onAspectRatioChanged = { ratio -> aspectRatio = ratio },
         onExposureCompensationChanged = { exposure -> exposureCompensation = exposure },
         onWhiteBalanceModeChanged = { wb -> whiteBalanceMode = wb },
+        onWhiteBalanceTemperatureChanged = { temperature ->
+            // WB 预设经 GL 色温生效（whiteBalanceTemperatureKelvin，camera.yaml §13）；
+            // 直写不经 resolveNextBeautySettings，避免 temperature!=5000 触发美颜总开关自动开启
+            beautySettings = beautySettings.copy(temperature = temperature)
+        },
         onToggleVoiceControl = onToggleVoiceControl,
         onToggleAiAgentPanel = {
             aiAgentChatVisible = !aiAgentChatVisible

@@ -33,10 +33,11 @@ import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.PrivacyTip
 import androidx.compose.material.icons.rounded.Psychology
+import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.SmartToy
 import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.material.icons.rounded.VerifiedUser
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,6 +47,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -99,6 +101,7 @@ enum class SettingsCategory {
     MAIN,           // 设置主菜单
     ACCOUNT,        // 账号
     GALLERY,        // 相册功能
+    CAMERA,         // 相机（状态记忆与重置）
     SYSTEM,         // 系统与权限
     REMOTE_MODEL,   // 远程模型（用户侧一级入口）
     LOCAL_MODEL,    // 本地模型（用户侧一级入口）
@@ -296,7 +299,8 @@ fun SettingsScreen(
             onNavigateToDataPrivacy = onNavigateToDataPrivacy,
             onNavigateToMemoryFacts = onNavigateToMemoryFacts,
             onNavigateToCommunicationChannel = onNavigateToCommunicationChannel,
-            onNavigateToPeople = onNavigateToPeople
+            onNavigateToPeople = onNavigateToPeople,
+            onResetCameraMemoryState = { viewModel.resetCameraMemoryState() }
         )
     }
 }
@@ -378,12 +382,14 @@ private fun SettingsContent(
     onNavigateToDataPrivacy: () -> Unit = {},
     onNavigateToMemoryFacts: () -> Unit = {},
     onNavigateToCommunicationChannel: () -> Unit = {},
-    onNavigateToPeople: () -> Unit = {}
+    onNavigateToPeople: () -> Unit = {},
+    onResetCameraMemoryState: () -> Unit = {}
 ) {
     val titleRes = when (category) {
         SettingsCategory.MAIN -> R.string.settings
         SettingsCategory.ACCOUNT -> R.string.account
         SettingsCategory.GALLERY -> R.string.gallery_features
+        SettingsCategory.CAMERA -> R.string.camera_settings
         SettingsCategory.SYSTEM -> R.string.system_and_permissions
         SettingsCategory.REMOTE_MODEL -> R.string.remote_models
         SettingsCategory.LOCAL_MODEL -> R.string.local_models
@@ -680,8 +686,44 @@ private fun SettingsContent(
                 }
             }
 
-            // 「相机与美颜」分类已取消：人脸检测引擎配置收口至「开发者选项」，
-            // 语音入口开关迁入「语音控制」一级入口（语音入口属语音行为）。
+            // ── 相机（状态记忆与重置；2026-08-16 相机页改版后重置入口迁入此处）──
+            if (category == SettingsCategory.CAMERA) {
+                SettingsSection(
+                    title = stringResource(R.string.camera_memory),
+                    description = stringResource(R.string.camera_memory_desc)
+                ) {
+                    var showResetConfirm by remember { mutableStateOf(false) }
+                    SettingsClickableRow(
+                        title = stringResource(R.string.reset_camera_to_default),
+                        subtitle = stringResource(R.string.reset_camera_to_default_desc),
+                        leadingIcon = Icons.Rounded.RestartAlt,
+                        onClick = { showResetConfirm = true }
+                    )
+                    if (showResetConfirm) {
+                        AlertDialog(
+                            onDismissRequest = { showResetConfirm = false },
+                            title = { Text(stringResource(R.string.reset_camera_confirm_title)) },
+                            text = { Text(stringResource(R.string.reset_camera_confirm_message)) },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    showResetConfirm = false
+                                    onResetCameraMemoryState()
+                                }) {
+                                    Text(stringResource(R.string.ok))
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showResetConfirm = false }) {
+                                    Text(stringResource(R.string.cancel))
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+
+            // 人脸检测引擎配置收口至「本地模型」/「开发者选项」，
+            // 语音入口开关迁入「沙盒与权限」一级入口（语音入口属语音行为）。
 
             // ── 5. 系统与权限 ─────────────────────────────────────
             if (category == SettingsCategory.SYSTEM) {
@@ -1135,6 +1177,9 @@ private fun SettingsCategoryGrid(
         },
         // 备份与恢复已并入「数据与隐私」页
         CategoryGridItem(R.string.data_privacy_entry, R.string.data_privacy_desc, Icons.Rounded.PrivacyTip, onNavigateToDataPrivacy),
+        CategoryGridItem(R.string.camera_settings, R.string.camera_settings_desc, Icons.Rounded.CameraAlt) {
+            onNavigateToCategory(SettingsCategory.CAMERA)
+        },
     )
     val devItem = CategoryGridItem(R.string.developer_options, R.string.developer_options_desc, Icons.Rounded.Terminal) {
         onNavigateToCategory(SettingsCategory.DEVELOPER)

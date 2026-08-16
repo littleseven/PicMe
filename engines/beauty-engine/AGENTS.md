@@ -36,10 +36,10 @@
 
 ### 2.1 模块包结构规范
 
-> **注意**：纯 API 契约类型（`BeautySettings`、`FilterType`、`StyleFilter`、`Face`、`FaceDetector`、`FrameSyncConfig` 等）已提取到独立的 `:engines:beauty-api` 模块（`engines/beauty-api/src/main/java/com/picme/beauty/api/`），供 `:androidApp` 和 `:engines:beauty-engine` 共同依赖。`beauty-engine` 内的 `api/` 包仅保留 `:engines:beauty-api` 不可承载的实现相关接口。
+> **注意**：纯 API 契约类型（`BeautySettings`、`FilterType`、`StyleFilter`、`Face`、`FaceDetector`、`FrameSyncConfig` 等）已提取到独立的 `:engines:beauty-api` 模块（`engines/beauty-api/src/main/java/com/mamba/picme/beauty/api/`），供 `:androidApp` 和 `:engines:beauty-engine` 共同依赖。`beauty-engine` 内的 `api/` 包仅保留 `:engines:beauty-api` 不可承载的实现相关接口。
 
 ```
-engines/beauty-engine/src/main/java/com/picme/beauty/
+engines/beauty-engine/src/main/java/com/mamba/picme/beauty/
 ├── api/                               # 实现层 API（依赖 :engines:beauty-api 共享类型）
 │   ├── BeautyParams.kt                # 美颜参数数据类（Shader 归一化值）
 │   ├── BeautyParamsConverter.kt       # BeautySettings → BeautyParams 转换
@@ -333,7 +333,7 @@ if (fps < 25 || processingMs > 20) {
 
 - GLSL 源码集中管理在 `engines/beauty-engine/src/main/assets/shaders/`，通过 `ShaderModuleLoader` 按需加载，而非硬编码在 `BeautyShaders.kt` 中
 - BeautyShaders.kt 仅保留 Shader 常量定义和调试 Shader（`FRAGMENT_SHADER_DEBUG_RED`、`FRAGMENT_SHADER_DEBUG_TEXTURE_R`）
-- Shader 模块划分：`header.glsl`（OES 扩展）、`pass_smoothing.glsl`（磨皮）、`main.glsl`（主美颜）、`warp.glsl`（美型）、`lip.glsl`（唇色）、`blush.glsl`（腮红）、`makeup_*.glsl`（妆容）、`style/*.glsl`（风格特效 7 个）
+- Shader 模块划分：`header.glsl`（OES 扩展）、`pass_smoothing.glsl`（磨皮）、`main.glsl`（主美颜）、`warp.glsl`（美型）、`lip.glsl`（唇色）、`blush.glsl`（腮红）、`makeup_*.glsl`（妆容）、`colorgrade.glsl`（调色/色温 tint，uniform `uTemperature`——白平衡预设与专业模式色温滑杆的唯一生效通道，`BeautySettings.temperature` 经系数 0.05 映射）、`style/*.glsl`（风格特效 7 个）
 - Shader 必须声明 `precision mediump float;`
 - 外部纹理 Shader 必须包含 `#extension GL_OES_EGL_image_external : require`
 - 新增 Shader 必须附带性能注释（复杂度、采样次数、适用机型）
@@ -533,6 +533,6 @@ CameraPreviewRenderer（渲染线程）
 - `docs/01-PRODUCT/FEATURES.md` - 功能交互规范
 - `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md` - 大美丽 渲染链路、容灾回退、冷却恢复与观测指标
 - `docs/06-QA/QA_EXECUTION_CHECKLIST.md` - QA 验收测试清单
-- `androidApp/src/main/java/com/picme/features/camera/AGENTS.md` - Camera 模块实现规范
-- `engines/beauty-engine/src/main/java/com/picme/beauty/api/` - 对外稳定 API
-- `engines/beauty-engine/src/main/java/com/picme/beauty/render/` - OpenGL ES 渲染管线实现
+- `androidApp/src/main/java/com/mamba/picme/features/camera/AGENTS.md` - Camera 模块实现规范
+- `engines/beauty-engine/src/main/java/com/mamba/picme/beauty/api/` - 对外稳定 API
+- `engines/beauty-engine/src/main/java/com/mamba/picme/beauty/render/` - OpenGL ES 渲染管线实现

@@ -994,11 +994,11 @@ OFF 模式直接返回「AI Agent 已关闭」，不发远程调用。
 
 #### 3.7 语音入口 ✅
 
-仅相机页、**默认隐藏**（`voiceEntryEnabled` DataStore 默认 `false`）；由设置「相机与美颜→语音控制→语音控制入口」开关控制。FAB 用 `RecordVoiceOver`（区别于 Chat 的 `KeyboardVoice`）。模式 `VoiceCommandMode` 默认 `DISABLED`，三档：DISABLED / PUSH_TO_TALK / WAKE_WORD。**Push-to-Talk 无模型基线**（系统 ASR）；**WakeWord(KWS) 需下载模型，不默认下载**。
+仅相机页、**默认隐藏**（`voiceEntryEnabled` DataStore 默认 `false`）；由设置「沙盒与权限 → 设备访问 → 语音控制入口」开关控制（2026-08-16 自「相机与美颜」迁入）。FAB 用 `RecordVoiceOver`（区别于 Chat 的 `KeyboardVoice`）。模式 `VoiceCommandMode` 默认 `DISABLED`，三档：DISABLED / PUSH_TO_TALK / WAKE_WORD。**Push-to-Talk 无模型基线**（系统 ASR）；**WakeWord(KWS) 需下载模型，不默认下载**。
 
-#### 3.8 场景识别 🔄（手动，非自动）
+#### 3.8 场景识别 🔄（仅 Agent 链路，无手动入口）
 
-`ScenePreset = { NONE, NIGHT, MOON }`。**无自动光照检测**：`CameraFrameAnalyzer` 不含亮度/lux/夜景判定逻辑。NIGHT/MOON 仅由手动选择器或 Agent/语音命令设置。
+`ScenePreset = { NONE, NIGHT, MOON }`。**无自动光照检测**：`CameraFrameAnalyzer` 不含亮度/lux/夜景判定逻辑。手动场景选择器 UI 已于 2026-08-15 相机页改版时下线；NIGHT/MOON 仅由 Agent/语音命令（`switch_scene`）设置。
 
 #### 3.9 对焦 / 变焦 / 翻转 ✅
 
@@ -1018,7 +1018,7 @@ OFF 模式直接返回「AI Agent 已关闭」，不发远程调用。
 
 - 实时预览参数生效延迟 < 100ms（`[PERF]` 红线）。
 - 快门捕获延迟 < 50ms（`[PERF]` 红线）。
-- 美颜/滤镜面板半屏底部滑出（`PANEL_HEIGHT_RATIO=0.35f`），主面板互斥（开一个关其他）。
+- 面板结构（2026-08-15 改版）：美颜为底部抽屉（最大高度约 **0.40** 屏高，覆盖预览、不顶起其他 UI）；比例/辅助线/滤镜/专业面板从顶部工具栏下方**内联滑出**（`InlineControlPanel`，非半屏 Sheet）。主面板互斥（开一个关其他）。
 
 ### 6. 数据模型概要
 
@@ -1035,7 +1035,7 @@ OFF 模式直接返回「AI Agent 已关闭」，不发远程调用。
 
 Phase 5.4 已落地：AVFoundation + Metal 4-pass（yuv→smoothing→lut→beauty）+ MediaPipe 468→106 warp 形变（+ MNN 2d106 双引擎运行时切换，`FaceEngineRouter`/`MnnFaceLandmarkService`，`9cb910e1`）+ 美颜 MVP（磨皮/美白/瘦脸/大眼）+ 9 ColorMatrix LUT + 5 风格占位 + 对焦/变焦/曝光 + 拍照离屏美颜存 PHPhotoLibrary。
 
-**Phase 6 增量补全**：美颜默认值统一为 **0**（勿照搬 FEATURES 的 35/25/20/40/20）+ 唇色/腮红色板；总开关三分支语义复刻；滤镜色调/风格**互斥**；快门反馈触感+音效+黑场（**80ms**，按钮缩放可补齐）；十字星时序；场景模式**手动+Agent**；录像线；语音入口默认隐藏。
+**Phase 6 增量补全**：美颜默认值统一为 **0**（勿照搬历史版本的 35/25/20/40/20）+ 唇色/腮红色板；总开关三分支语义复刻；滤镜色调/风格**互斥**；快门反馈触感+音效+黑场（**80ms**，按钮缩放可补齐）；十字星时序；场景模式仅 **Agent/语音指令**（手动入口已下线）；录像线；语音入口默认隐藏。
 
 ---
 
@@ -1043,15 +1043,15 @@ Phase 5.4 已落地：AVFoundation + Metal 4-pass（yuv→smoothing→lut→beau
 
 ### 1. 功能定位
 
-设置页是全局二级页，入口为主页右上角设置图标，路由到 `SettingsScreen`（`SettingsCategory` 枚举驱动 MAIN/ACCOUNT/AI_AGENT/GALLERY/CAMERA_BEAUTY/SYSTEM/DEVELOPER 七子页切换）。设置主页 = 账号置顶 Hero 卡 + 主题/语言快选卡 + 2 列功能网格（10 项）。模型中心、数据与隐私、备份与恢复、通信通道、AI 记忆均为独立子页/独立 Activity。
+设置页是全局二级页，入口为主页右上角设置图标，路由到 `SettingsScreen`（`SettingsCategory` 枚举驱动九子页切换：MAIN/ACCOUNT/GALLERY/CAMERA/SYSTEM/REMOTE_MODEL/LOCAL_MODEL/SANDBOX/DEVELOPER；2026-08-16 `CAMERA_BEAUTY` 更名 `CAMERA`，承载相机状态记忆与重置）。设置主页 = 账号置顶 Hero 卡 + 主题/语言快选卡 + 2 列功能网格（10 项 + 解锁后的开发者选项）。模型中心、数据与隐私、通信通道、AI 记忆均为独立子页/独立 Activity。
 
 > **iOS 落点**：🔄 `SettingsScreen.swift` + `SettingsSubPages.swift` + `ModelCenterView.swift` + `ModelDownloadCenterView.swift` + `ModelConfigStore.swift` 骨架已有（Phase 5/6.3）；账号邮箱验证登录、server quota 接入尚未落地。
 
 ### 2. 入口与导航
 
-设置主页网格（2 列 chunked）：① AI 助手 → ② AI 记忆 → ③ 人物 → ④ 通信通道 → ⑤ 相册功能 → ⑥ 相机与美颜 → ⑦ 模型中心 → ⑧ 开发者选项 → ⑨ 备份与恢复 → ⑩ 数据与隐私。顶部账号 Hero 卡 + 主题/语言快选卡。
+设置主页网格（2 列 chunked，baseItems 10 项）：① AI 记忆 → ② 人物 → ③ 通信通道 → ④ 相册功能 → ⑤ 远程模型 → ⑥ 本地模型 → ⑦ 模型中心 → ⑧ 沙盒与权限 → ⑨ 数据与隐私 → ⑩ 相机；开发者选项为解锁后附加项（`developerOptionsUnlocked`）。顶部账号 Hero 卡 + 主题/语言快选卡。
 
-> **漂移**：**模型中心是独立网格卡**（不在 AI 助手内）；相似/大文件去重入口在「相册功能」子页（`gallery_features` → `manage_duplicates`）；**无「关于」卡片**（无版本号展示，`BuildConfig` 仅 DEBUG 判定）。AI 助手子页 = 自动执行计划开关 + Agent 模式单选 + 远程模型配置 + 语音控制。
+> **漂移**：**模型中心是独立网格卡**；相似/大文件去重入口在「相册功能」子页（`gallery_features` → `manage_duplicates`）；**无「关于」卡片**（无版本号展示，`BuildConfig` 仅 DEBUG 判定）；备份与恢复已并入「数据与隐私」页，非独立网格项；**无「AI 助手」网格项**（远程/本地模型配置已拆为一级入口）。
 
 ### 3. 功能项清单
 
@@ -1071,7 +1071,7 @@ Phase 5.4 已落地：AVFoundation + Metal 4-pass（yuv→smoothing→lut→beau
 
 **账号（Guest vs 邮箱注册）**：Guest = 未登录（`serverAuthToken` 空），由 `DeviceIdProvider` 生成 deviceId（默认即 Guest，无显式「以访客登录」）。邮箱注册：`EmailCodeAuthForm` → 发码 → 验码 → `repo.updateServerAuth`。已登录态：账户头像+邮箱、额度卡、刷新/登出、危险区「清除访客数据」+「删除账号」二次确认。
 
-**数据与隐私页**（`DataPrivacyScreen`）：**纯说明页**（7 个 `PrivacySection` 文本块 + 隐私政策链接 `https://polang.net/privacy-policy/`）。**无任何开关**。**无 cloud_optimize 开关**。
+**数据与隐私页**（`DataPrivacyScreen`）：说明页（`PrivacySection` 文本块 + 隐私政策链接 `https://polang.net/privacy-policy/`）+ **备份与恢复入口行**（点击跳 `BackupRestoreActivity`，SAF 导出/导入 TAG JSON；2026-08 并入本页，不再是独立网格项）。**无 cloud_optimize 开关**。
 
 **通信通道**（`CommunicationChannelScreen`）：单通道选择 `RemoteChannelType{FEISHU, TELEGRAM, NONE}`（FilterChip）+ 双通道凭据输入 + 连接状态文案。Telegram 区显示安全提示（error 色）。属用户自配置 IM 通道，不在隐私红线内。
 
@@ -1086,16 +1086,17 @@ SettingsScreen (MAIN)
 ├── [Hero] 账号卡 ──────────► ACCOUNT (EmailCodeAuthForm / QuotaDisplay)
 ├── [快选] 主题 / 语言
 └── [Grid 2 列]
-    ├── AI 助手 ──────────► AI_AGENT (自动执行计划 / Agent 模式[仅 REMOTE] / 远程模型配置 / 语音控制)
     ├── AI 记忆 ──────────► MemoryFactsScreen (memory_facts CRUD)
     ├── 人物 ─────────────► People (人物/关系图谱)
     ├── 通信通道 ─────────► CommunicationChannelScreen (飞书/Telegram/NONE)
     ├── 相册功能 ─────────► GALLERY (TAG 控制/查看器/去重/打标模型选择/GPU 加速)
-    ├── 相机与美颜 ───────► CAMERA_BEAUTY (语音入口/ROI-Landmark StageConfig/人脸检测高级)
+    ├── 远程模型 ─────────► REMOTE_MODEL (远程模型配置/Agent 模式)
+    ├── 本地模型 ─────────► LOCAL_MODEL (人脸检测引擎等本地模型配置)
     ├── 模型中心 ─────────► ModelCenterScreen (Pager: must-have/recommended/photo-tagging/beauty-camera/chat)
-    ├── 开发者选项 ───────► DEVELOPER (调试浮层/诊断[LLM日志]/测试工具[debug]/日志模块配置)
-    ├── 备份与恢复 ───────► BackupRestoreActivity (SAF 导出/导入 TAG JSON v5)
-    └── 数据与隐私 ───────► DataPrivacyScreen (纯说明 + 隐私政策链接)
+    ├── 沙盒与权限 ───────► SANDBOX (设备访问[含语音入口开关]/JS 沙盒权限)
+    ├── 数据与隐私 ───────► DataPrivacyScreen (纯说明 + 隐私政策链接 + 备份与恢复)
+    ├── 相机 ─────────────► CAMERA (相机状态记忆与重置[二次确认]；2026-08-16 由 CAMERA_BEAUTY 更名)
+    └── 开发者选项 ───────► DEVELOPER (解锁后附加；调试浮层/诊断[LLM日志]/测试工具[debug]/日志模块配置)
 ```
 
 ### 5. 关键 UX 规则
@@ -1322,7 +1323,7 @@ SettingsScreen (MAIN)
 
 ### 4.5 已移除（iOS 勿复刻）
 
-端侧文本 LLM（`qwen3_5_2b`，2026-08 移除）；GPUPixel（自研引擎替代）；InsightFace ONNX/NCNN（MediaPipe+MNN 替代）；langchain4j fork（Koog 替代）；`PrivacyGuard.isRemoteAllowed()` 死代码；`AiAgentMode.LOCAL`（仅留作离线兜底枚举）。
+端侧文本 LLM（`qwen3_5_2b`，2026-08 移除）；GPUPixel（自研引擎替代）；InsightFace ONNX/NCNN（MediaPipe+MNN 替代）；langchain4j fork（Koog 替代）；`PrivacyGuard.isRemoteAllowed()` 死代码；shared 侧 `AiAgentMode.LOCAL`（已删，仅 app 层 `UserPreferences.AiAgentMode` 保留 LOCAL 遗留枚举值，iOS 勿复刻）。
 
 ---
 

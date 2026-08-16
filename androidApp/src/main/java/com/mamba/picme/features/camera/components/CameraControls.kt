@@ -41,6 +41,7 @@ import coil.request.ImageRequest
 import com.mamba.picme.R
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.agent.core.model.context.MediaType
+import com.mamba.picme.core.designsystem.CameraTokens
 
 @Composable
 fun CameraBottomControls(
@@ -50,7 +51,6 @@ fun CameraBottomControls(
     maxZoomRatio: Float,
     captureMode: MediaType,
     isRecording: Boolean,
-    isAnyPanelOpen: Boolean,
     onZoomPresetClick: (Float) -> Unit,
     onGalleryClick: () -> Unit,
     onCaptureClick: () -> Unit,
@@ -66,14 +66,13 @@ fun CameraBottomControls(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        if (!isAnyPanelOpen) {
-            ZoomControls(
-                zoomRatio = zoomRatio,
-                minZoomRatio = minZoomRatio,
-                maxZoomRatio = maxZoomRatio,
-                onZoomClick = onZoomPresetClick
-            )
-        }
+        // 变焦条常驻（2026-08-15 改版：面板均为顶部内联/底部覆盖，不再隐藏底栏控件）
+        ZoomControls(
+            zoomRatio = zoomRatio,
+            minZoomRatio = minZoomRatio,
+            maxZoomRatio = maxZoomRatio,
+            onZoomClick = onZoomPresetClick
+        )
 
         ModeSelector(
             currentMode = captureMode,
@@ -103,11 +102,11 @@ private fun ZoomControls(
     onZoomClick: (Float) -> Unit
 ) {
     Row(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(CameraTokens.zoomBarSpacing),
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
             .background(Color.Black.copy(alpha = 0.4f))
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .padding(horizontal = CameraTokens.zoomCapsulePaddingH, vertical = 6.dp)
     ) {
         // 0.6x 按钮：仅在设备支持最小变焦比 <= 0.6 时显示
         if (minZoomRatio <= 0.6f) {
@@ -142,7 +141,7 @@ private fun ZoomControls(
 private fun ZoomButton(label: String, isSelected: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .size(32.dp)
+            .size(CameraTokens.zoomCapsuleHeight)
             .clip(CircleShape)
             .background(if (isSelected) Color.White else Color.Transparent)
             .clickable { onClick() },

@@ -118,7 +118,7 @@
 
 ## §5 已移除（iOS 勿复刻）
 
-端侧文本 LLM（`qwen3_5_2b`，2026-08 移除）· GPUPixel（自研引擎替代）· InsightFace ONNX / NCNN（MediaPipe+MNN 替代）· langchain4j fork（Koog 替代）· `PrivacyGuard.isRemoteAllowed()` 死代码 · `AiAgentMode.LOCAL`（仅留作离线兜底枚举）。
+端侧文本 LLM（`qwen3_5_2b`，2026-08 移除）· GPUPixel（自研引擎替代）· InsightFace ONNX / NCNN（MediaPipe+MNN 替代）· langchain4j fork（Koog 替代）· `PrivacyGuard.isRemoteAllowed()` 死代码 · shared 侧 `AiAgentMode.LOCAL`（已删；仅 app 层 `UserPreferences.AiAgentMode` 保留 LOCAL 遗留枚举值，iOS 勿复刻）。
 
 ---
 

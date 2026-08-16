@@ -9,7 +9,7 @@
 
 > **2026-06-17 IM 远程控制产品线新增**：新增 IM 远程控制产品线，通过飞书等 IM + LLM 实现 App 远程控制。智能相册功能全量规划完成（智能分类、相册管理、AI 编辑进阶、视频管理等）。
 
-> **2026-06-19 架构升级（ADR-005）**：本地/远程推理协议正式分离。本地模型使用精简自定义 JSON 数组协议；远程模型使用标准 OpenAI Chat Completions API 协议（含原生 tool_calls、流式、多轮对话）。远程链路引入 langchain4j 1.13.0 标准化，`LangChain4jOpenAiClient` 使用 `OpenAiChatModel` 消费标准 OpenAI 协议。DeepSeek 适配完成（禁用 thinking、strict 模式兼容）。同时产品重心从相机迁移至相册与图片编辑。
+> **2026-06-19 架构升级（ADR-005）**：本地/远程推理协议正式分离。本地模型使用精简自定义 JSON 数组协议；远程模型使用标准 OpenAI Chat Completions API 协议（含原生 tool_calls、流式、多轮对话）。远程链路曾引入 langchain4j 1.13.0 标准化（2026-08 已迁移至 JetBrains Koog，`OpenAILLMClient` 消费标准 OpenAI 协议，langchain4j fork 已删除）。DeepSeek 适配完成（禁用 thinking、strict 模式兼容）。同时产品重心从相机迁移至相册与图片编辑。
 
 > **2026-08-16 产品决策：相机线冻结 + 聚焦对话式相册管理与后处理智能编辑**：拍照线在**双端相机页 UI 一致性问题收敛**（差异清零或登记为平台差异）后**冻结**，对齐视频线待遇——代码保留不删、不新增功能、冻结后不再投入双端 parity 打磨。相机对系统保留两项职责：**自研实时渲染引擎（帧同步/EGL/实时管线）的试验场**、**编辑流的内容采集入口**（拍照后自动进编辑）。产品方向聚焦 **Chat 式相册管理与搜索 + 图片后处理智能编辑**；效果型能力（智能消除/AI 优化等）不与大厂计算摄影正面军备赛，差异化锚定**对话式 Agent + 事实记忆/人物图谱 + 端侧隐私**。G5 相机功能深化（录像/十字星接脸/MAKEUP·风格滤镜接线/语音入口）不再投入。
 
@@ -58,7 +58,7 @@ PoLang 的实验目标是探索**右侧范式的工程可行性**。
 
 **关键架构更新（2026-06-19）**：
 1. **本地/远程推理协议彻底分离**（ADR-005）：本地使用自定义 JSON 数组协议（method + args 平铺），远程使用标准 OpenAI Chat Completions API 协议（原生 tool_calls·流式·多轮对话）。两条链路完全独立，无共享路由逻辑。
-2. **LangChain4j 标准化**：远程推理链路引入 langchain4j 1.13.0，`LangChain4jOpenAiClient` 使用 `OpenAiChatModel` 消费标准 OpenAI 协议。`UnifiedRemoteClient` 根据协议自动路由（OPENAI → langchain4j / CLAUDE → Retrofit）。
+2. **LangChain4j 标准化（2026-08 已被 Koog 取代）**：远程推理链路曾引入 langchain4j 1.13.0（`LangChain4jOpenAiClient` / `UnifiedRemoteClient`）；2026-08 全面迁移至 JetBrains Koog（`ai.koog:koog-agents`），经 Koog `OpenAILLMClient` 消费标准 OpenAI 协议，langchain4j vendored fork 已整体删除。
 3. **DeepSeek 适配**：API 请求自动禁用 thinking 模式；ToolSpec 自动添加 `additionalProperties: false` 兼容 strict 模式；`tool_choice: REQUIRED` 正确映射为 `"required"`。
 4. **冗余代码清理**：移除 InferenceRouter、ToolCallingChatLanguageModel、ToolCallingOutputParser、ToolPromptBuilder、ToolCallingMode、ToolCallingConfig、AdaptiveStrategySelector、ToolOrchestrator 等 ~1500 行代码。
 5. **产品重心迁移**：相册（Gallery）和图片编辑（Editor）从「能力验证」升级为「核心产品」，相机降级为「辅助入口」。
@@ -116,9 +116,10 @@ PoLang 的实验目标是探索**右侧范式的工程可行性**。
 
 **相机能力层（辅助入口 · ❄️ 冻结待生效）**
 - 实时美颜（磨皮、美白、瘦脸、大眼、唇色、腮红）
-- 风格滤镜（色调调整 + GPU 特效）
+- 风格滤镜（色调调整 + GPU 特效，色调与风格互斥）
+- 专业模式（曝光/白平衡/对比度/饱和度/色温，顶部工具栏进入；白平衡预设经 GL 色温映射实时生效）
 - 拍照/录像（GPU 离屏处理确保预览/输出一致）
-- 从相册首页底部 Tab 进入，拍照后自动进入相册编辑流程
+- 从相册首页底部 Tab 进入，拍照后存入相册（缩略图实时刷新），可手动进入编辑
 - **AI 相机功能降级为 P2**：语音拍照、实时调节等 Agent 功能不新增投入
 - **❄️ 相机线冻结（2026-08-16 决策）**：双端相机页 UI 一致性问题收敛后冻结——代码保留、不新增功能（原 Phase 2/3 规划全部取消，见 §6.3）。冻结前收尾待办：Android 场景面板按产品方案移除（`SceneSelector`/`ScenePreset`/`scene_*` strings）。冻结后相机继续承担：实时渲染引擎试验场 + 编辑流内容采集入口
 
@@ -326,14 +327,17 @@ PoLang 以技术探索与能力验证为核心目标，**聚焦 Gallery/Editor +
 |------|------|--------|------|
 | 实时美颜预览 | ✅ 已落地 | P1 | 磨皮/美白/瘦脸/大眼/唇色/腮红，106点驱动 |
 | 零延迟快门 | ✅ 已落地 | P1 | < 50ms 快门延迟 |
-| 场景识别（场景面板） | 🗑️ 移除中 | — | 2026-08 产品决策移除：iOS 已删；Android `SceneSelector`/`ScenePreset`/`scene_*` strings 待删（冻结前收尾项） |
-| 风格特效 | ✅ 已落地 | P1 | 卡通/素描/浮雕/色块/交叉线 |
+| 场景识别（场景面板） | 🗑️ 移除中 | — | 2026-08 产品决策移除：iOS 已删；Android 手动入口已于 2026-08-15 改版时下线，`SceneSelector`/`ScenePreset`/`scene_*` strings 待删（冻结前收尾项）；当前仅 Agent/语音 `switch_scene` 链路可设置夜景/月亮预设 |
+| 风格特效 | ✅ 已落地 | P1 | 卡通/素描/浮雕/海报/交叉线 |
 | 帧同步美妆 | ✅ 已落地 | P1 | 解决妆容甩飞 |
 | 基础拍摄 | ✅ 已落地 | P1 | 作为相册内容采集入口 |
+| 专业模式参数 | ✅ 已落地 | P1 | 曝光/白平衡/对比度/饱和度/色温；WB 预设映射 GL 色温（5000/5600/6200/3600/4400K），实时预览生效 |
+| 相机页工具栏改版 | ✅ 已落地 | P1 | 2026-08-15/16：顶部居中五胶囊（美颜/比例/辅助线/滤镜/专业）+ 内联滑出面板 + 美颜底部抽屉，详见 `specs/screens/camera.yaml` |
+| 相机状态记忆 | ✅ 已落地 | P1 | 滤镜/美颜/比例/变焦/曝光等状态持久化；重置入口在「设置 → 相机」（二次确认） |
 
 **演进路线**：
-- **Phase 1（近期）✅**：现有能力已落地，从相册首页底部 Tab 进入，拍照后自动进入相册编辑
-- **Phase 2 / Phase 3 规划取消（2026-08-16 冻结决策）**：~~智能场景模板；美颜参数记忆~~、~~证件照模式（相机内）；连拍优选；RAW 格式支持~~ 均不再投入。注：编辑侧证件照制作（`features/idphoto`）属相册编辑线且已落地，不受本决策影响（见 §6.5）
+- **Phase 1（近期）✅**：现有能力已落地，从相册首页底部 Tab 进入，拍照后存入相册、可手动进入编辑
+- **Phase 2 / Phase 3 规划取消（2026-08-16 冻结决策）**：~~智能场景模板；美颜参数记忆~~、~~证件照模式（相机内）；连拍优选；RAW 格式支持~~ 均不再投入。注：美颜参数记忆实际已提前落地（见上表「相机状态记忆」）；编辑侧证件照制作（`features/idphoto`）属相册编辑线且已落地，不受本决策影响（见 §6.5）
 
 ### 6.4 视频线（Video）— ❄️ 冻结（Phase 3+ 按需解冻）
 

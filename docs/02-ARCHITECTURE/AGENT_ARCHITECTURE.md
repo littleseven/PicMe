@@ -10,7 +10,7 @@
 > - 本文档定义 Agent 的运行时架构、Capability 模型与推理模式选型。
 > - 产品目标与验收口径以 [`../01-PRODUCT/FEATURES.md`](../01-PRODUCT/FEATURES.md) 为准。
 > - 顶层治理规则（角色协作、全局红线、文档流程）以根目录 [`AGENTS.md`](../../AGENTS.md) 为准。
-> - **重要：原 `:agent-core` Java 基础库已删除**（2026-08 迁移至 JetBrains Koog 外部依赖），Agent 编排层（AgentOrchestrator、CapabilityRegistry、PrivacyGuard、MemoryManager、SceneManager 等）在 `:shared` KMP 模块的 `shared/src/commonMain/kotlin/com/mamba/picme/agent/core/` 目录下（平台实现 androidMain；Android 组合根 `androidApp/agent/AndroidAgentComposition.kt`）。详见 [`MODULE_ARCHITECTURE.md`](MODULE_ARCHITECTURE.md)。
+> - **重要：原 `:agent-core` Java 基础库已删除**（2026-08 迁移至 JetBrains Koog 外部依赖），Agent 编排层（AgentOrchestrator、CapabilityRegistry、PrivacyGuard、MemoryManager、SceneManager 等）在 `:shared` KMP 模块的 `shared/src/commonMain/kotlin/com/mamba/picme/agent/core/` 目录下（平台实现 androidMain；Android 组合根 `androidApp/src/main/java/com/mamba/picme/agent/AndroidAgentComposition.kt`）。详见 [`MODULE_ARCHITECTURE.md`](MODULE_ARCHITECTURE.md)。
 
 **模块定位**: AI Agent 运行时架构与推理模式选型（基础库 polang + Demo 工程 PoLang）  
 **阅读对象**: RD、AI Agent

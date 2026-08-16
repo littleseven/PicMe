@@ -6,7 +6,7 @@
 > - 顶层治理规则（角色协作、全局红线、文档流程）以根目录 `AGENTS.md` 为准。
 > - 禁止将模块级实现细节回填到顶层 `AGENTS.md`；跨模块或专项技术内容应下沉到对应模块文档或 `docs/*_TECH_SPEC.md`。
 
-**模块定位**：确保 PoLang 的相机模块实现零延迟拍摄、智能场景识别和实时 HDR 处理。
+**模块定位**：确保 PoLang 的相机模块实现零延迟拍摄、实时美颜预览与专业模式参数调节。场景识别（夜景/月亮）UI 入口已于 2026-08-15 下线，场景状态仅保留 Agent/语音指令链路。
 
 **主要维护者**：项目开发者
 
@@ -32,16 +32,25 @@
 - **Preview**：锁定目标帧率 30fps，避免帧率波动导致卡顿
 - **闪光灯**：默认使用自动模式（FLASH_MODE_AUTO）
 
-### 2.2 场景识别实现逻辑
+### 2.2 场景识别实现逻辑（2026-08-15 起：仅 Agent 链路）
 
-- **夜景模式触发条件**：当环境光照度 (Lux) < 10.0 时建议自动触发
-  - 曝光补偿：+1.0 to +2.0
-  - ISO 限制：自动提升至 1600+
-- **月亮模式检测**：需同时满足三个条件：
-  - 变焦倍率 > 3.0x
-  - 检测到高对比度圆形物体
-  - 场景为逆光环境
-  - 锁定最大焦距，避免过度放大导致模糊
+- **无自动场景检测**：`CameraFrameAnalyzer` 不含 lux/亮度判定；以下历史自动触发规则均未实现，仅作未来重启参考：
+  - 夜景模式：环境光照度 (Lux) < 10.0 时触发（未实现）
+  - 月亮模式：变焦 > 3.0x + 高对比度圆形物体 + 逆光（未实现）
+- **现状**：`ScenePreset = { NONE, NIGHT, MOON }` 仅经 Agent/语音指令（`switch_scene`）设置；相机页手动场景选择器 UI 已下线（`CameraPreviewContent.kt` 注释「场景面板已下线」，状态保留给 Agent 链路）。
+
+### 2.2a 相机页 UI 结构（2026-08-15/16 顶部工具栏改版）
+
+> 结构与数值 SSOT 为 `specs/screens/camera.yaml`（§4 工具栏 / §8 美颜抽屉 / §13 白平衡 / §17 状态记忆），本节只列实现落点。
+
+- **顶部居中文字工具栏** `CameraTopToolBar`（`CameraControlButtons.kt`）：五个胶囊 chip——**美颜 / 比例 / 辅助线 / 滤镜 / 专业**；左上角独立「返回」幽灵按钮 `CameraBackButton`；相机页无设置入口。
+- **内联滑出面板**：比例/辅助线/滤镜/专业面板经 `InlineControlPanel` 挂工具栏下方从**顶部**滑入（`CameraPreviewContent.kt`），不再使用底部半屏 Sheet；主面板互斥。
+- **美颜抽屉**：`BeautyPanel` 底部抽屉（最大高度约 0.40 屏高，`BeautyPanelTokens.heightRatio`），覆盖预览、**不顶起其他 UI**（实时预览不遮挡人脸）；「面部精修 / 妆容」双 tab，面部精修四行滑杆：磨皮 0-100 / 美白 0-100 / 瘦脸 -50..50 / 大眼 0-100；妆容 tab 为唇色 + 腮红（无眉毛参数）。美颜参数默认值全 0。
+- **底部一排**：相册缩略图 + 快门 + 翻转，保持原版样式不变。
+- **专业模式面板**（`ProModeControls.kt`）：曝光补偿、白平衡预设（自动/晴天/多云/白炽灯/荧光灯）、对比度、饱和度、色温滑杆。
+- **白平衡机制（2026-08-16）**：WB 预设映射 GL 色温——自动=中性 5000K / 晴天 5600K / 多云 6200K / 白炽灯 3600K / 荧光灯 4400K（`CameraScreenActions.kt` `whiteBalanceTemperatureKelvin()`），写入 `BeautySettings.temperature`，经 `colorgrade.glsl` `uTemperature`（系数 0.05）实时生效；**不走 Camera2 AWB**（小米 HyperOS HAL 实测忽略，CameraX 报 applied 但像素无变化）。手动拖色温滑杆退出 WB 预设选中态（`onTemperatureManualChange`），色温直写 `beautySettings`（绕开 `resolveNextBeautySettings`，不顶开美颜总开关）。
+- **状态记忆与重置**：滤镜/美颜/比例/变焦/曝光等约 30 键持久化（`camera_memory_*`）；重置入口在「设置 → 相机」分类页，AlertDialog 二次确认（`SettingsScreen.kt`）。**防反馈环**：记忆水合直写 `beautySettings.copy(colorFilter/styleFilter)`，不过 `resolveNextBeautySettings`，避免水合顶开美颜总开关。
+- **调试浮层**：美颜状态覆层 / 引擎信息等均受 `debugUiEnabled` 门控（默认关闭）；MNN/MediaPipe 引擎展示浮动 tab 已移除。
 
 ### 2.3 OCR 引擎集成
 
@@ -269,7 +278,7 @@ val screenY = adjustedY * previewHeight
 
 **AI 指令链路（远程 tool_calls）**
 - 端侧文本 LLM 已移除，相机 AI 指令统一走远程 tool_calls：
-  `CameraScreen` → `AiAgentUseCase` → `AgentOrchestrator.processCameraInput()` → 远程 LLM + `CameraToolService`（@Tool 工具集，scene=CAMERA）→ `ToolCallCommandParser` 解析 → `CapabilityRegistry` 执行
+  `CameraScreen` → `AiAgentUseCase` → `AgentOrchestrator.processCameraInput()` → 远程 LLM + `CameraToolService`（commonMain 纯 @Tool 类）→ Koog agent 循环内 @Tool 方法直接 `CapabilityRegistry.dispatch` 执行（`ToolCallCommandParser` 已随 Phase 5 删除，解析往返已内联消除）
 - 协议与 chat 场景一致（标准 OpenAI tool_calls，ADR-005），不新造协议
 - AI 输入 UI 保留（`AiChatScreen` 浮动面板），但不再有端侧文本模型加载/卸载逻辑
 

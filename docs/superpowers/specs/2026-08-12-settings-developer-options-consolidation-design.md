@@ -1,9 +1,11 @@
 # 设置页开发者选项收口（Android pace-setter）
 
 - 日期：2026-08-12
-- 状态：**Design — 自主推进稿（用户离线，已标注所有假设待 review）**
+- 状态：**已落地（2026-08-16 回写执行结果）**
 - 适用：Android 先行（pace-setter）→ iOS 经 `/ios-follow` 对等跟随
 - 架构契约：ADR-013（§2.1 UI 各端原生、§2.6 不共享代码共享设计规范 SSOT、§2.7 Android 为 pace-setter）
+
+> **执行结果注记（2026-08-16）**：本文方案中的「枚举 `CAMERA_BEAUTY` 删除」实际执行为**更名** `CAMERA`；落地后 `SettingsCategory` 九分类为 MAIN/ACCOUNT/GALLERY/CAMERA/SYSTEM/REMOTE_MODEL/LOCAL_MODEL/SANDBOX/DEVELOPER（无 `AI_AGENT`/`PERSONALIZATION`）。相机页改版后重置入口迁入 `CAMERA` 分类页（二次确认），语音入口开关在 `SANDBOX`。
 
 ---
 

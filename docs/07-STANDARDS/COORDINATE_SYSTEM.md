@@ -410,8 +410,8 @@ grep -r "leftEye\|rightEye" androidApp/src/ --include="*.kt" | grep -v "imageLef
 #### 优先级 2: 代码注释
 
 **文件列表**：
-- `engines/beauty-engine/src/main/java/com/picme/beauty/egl/BeautyRenderer.kt`
-- `androidApp/src/main/java/com/picme/core/image/ImageProcessor.kt`
+- `engines/beauty-engine/src/main/java/com/mamba/picme/beauty/render/BeautyRenderer.kt`
+- `androidApp/src/main/java/com/mamba/picme/core/image/ImageProcessor.kt`
 
 **修改示例**：
 
