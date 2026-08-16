@@ -82,7 +82,7 @@ main_menu:
       - { icon: account_circle, title: "People", desc: "Face clusters and relationships", target: people }
       - { icon: forum, title: "Channels", desc: "Feishu, Telegram remote control", target: channels }
       - { icon: photo_library, title: "Gallery", desc: "Tags, duplicates, search engine", target: gallery }
-      - { icon: camera_alt, title: "Camera & Beauty", desc: "Face detection, landmarks", target: camera_beauty }
+      - { icon: camera_alt, title: "Camera", desc: "State memory and reset", target: camera }
       - { icon: cloud_download, title: "Model Center", desc: "Download AI models", target: model_center }
       - { icon: api_key, title: "API Models", desc: "Remote LLM configuration", target: api_models }
       - { icon: privacy_tip, title: "Data & Privacy", desc: "Privacy policy and data control", target: data_privacy }
@@ -163,6 +163,23 @@ account:
       buttons:
         - { text: "Send Code", action: send_verification }
         - { text: "Register / Login", action: verify_code }
+
+# ============================================================================
+# 4b. 相机分类页（camera，2026-08-16 新增：相机页改版后重置入口迁入）
+# ============================================================================
+camera:
+  sections:
+    - title: "Camera State Memory"                       # 相机状态记忆
+      desc: "Remember the last camera parameters and toggles on next launch."
+      items:
+        - reset_camera_to_default:
+            type: clickable_row
+            title: "Reset Camera to First-Install Defaults"
+            desc: "Restore all camera parameters to first-install defaults, effective immediately."
+            leading_icon: restart_alt
+            confirm_dialog: true                          # AlertDialog 二次确认（OK/Cancel）
+            action: resetCameraMemoryState                # 经 cameraMemoryStateFlow 即时水合生效
+            note: "iOS 对等实现待定（iOS 暂无相机状态记忆持久化）"
 
 # ============================================================================
 # 5. 数据与隐私（data_privacy）

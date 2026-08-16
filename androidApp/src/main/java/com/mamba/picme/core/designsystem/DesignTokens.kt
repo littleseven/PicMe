@@ -104,7 +104,7 @@ object BeautyPanelTokens {
     val iconSize = 24.dp
     val sliderThumbSize = 18.dp
     val sliderTrackHeight = 6.dp
-    val heightRatio = 0.35f
+    val heightRatio = 0.4f
     val heightRatioMin = 0.2f
     val heightRatioMax = 0.75f
 }
@@ -192,6 +192,27 @@ object CameraTokens {
     val filterSelectorHeight = 280.dp
     val filterSelectedScale = 1.08f
     val filterSelectedBorderWidth = 2.5.dp
+    val panelBackground = Color(0xF21C1A1F)
+    val cameraAccentOn = Color.White
+    val toolBarUnselectedBg = Color(0x00000000)
+    val inlineFilterPanelHeight = 200.dp
+    val panelCornerRadius = 20.dp
+    val panelMaxWidth = 420.dp
+    val panelPaddingH = 16.dp
+    val panelPaddingV = 10.dp
+    val panelShadowElevation = 12.dp
+    val chipHeight = 40.dp
+    val chipPaddingH = 18.dp
+    val chipSpacing = 12.dp
+    val topToolBarPaddingTop = 8.dp
+    val topToolBarItemPaddingH = 14.dp
+    val topToolBarItemPaddingV = 8.dp
+    val topToolBarItemRadius = 10.dp
+    val topToolBarSpacing = 8.dp
+    val modeSwitcherSpacing = 24.dp
+    val zoomBarSpacing = 12.dp
+    val zoomCapsulePaddingH = 12.dp
+    val zoomCapsuleHeight = 32.dp
 }
 
 /** 聊天气泡。两套：ChatScreen(M3 浅色 DeepSeek 白卡输入) vs AiChatScreen(深色 overlay 黑底)。bubble 不对称圆角（tail 侧小）。 */

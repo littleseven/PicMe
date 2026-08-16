@@ -191,6 +191,7 @@ internal class CameraPanelState {
     fun closeAllPanels() {
         closePrimaryPanels()
         closeBeautySubPanels()
+        showProPanel = false
     }
 
     fun toggleFacialRefinement() {

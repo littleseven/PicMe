@@ -44,8 +44,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mamba.picme.R
 import com.mamba.picme.beauty.api.BeautySettings
-
-private const val PANEL_HEIGHT_RATIO = 0.35f
+import com.mamba.picme.core.designsystem.BeautyPanelTokens
 
 internal enum class BeautyTab(val labelRes: Int, val icon: ImageVector) {
     FACE(R.string.facial_refinement, Icons.Rounded.FaceRetouchingNatural),
@@ -57,10 +56,13 @@ fun BeautyPanel(
     settings: BeautySettings,
     onSettingsChanged: (BeautySettings) -> Unit,
     onDismiss: () -> Unit,
-    maxHeightRatio: Float = PANEL_HEIGHT_RATIO
+    maxHeightRatio: Float = BeautyPanelTokens.heightRatio
 ) {
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-    val panelMaxHeight = screenHeight * maxHeightRatio.coerceIn(0.2f, 0.75f)
+    val panelMaxHeight = screenHeight * maxHeightRatio.coerceIn(
+        BeautyPanelTokens.heightRatioMin,
+        BeautyPanelTokens.heightRatioMax
+    )
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = BeautyTab.values()
 
@@ -99,7 +101,7 @@ fun BeautyPanel(
                 Box(
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
-                        .padding(top = 10.dp, bottom = 4.dp)
+                        .padding(top = 6.dp, bottom = 2.dp)
                         .size(width = 36.dp, height = 4.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
@@ -110,8 +112,8 @@ fun BeautyPanel(
                         .fillMaxWidth()
                         .weight(1f)
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 24.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(horizontal = 24.dp, vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     when (tabs[selectedTab]) {
                         BeautyTab.FACE -> FacialRefinementContent(settings, onSettingsChanged)
@@ -123,7 +125,7 @@ fun BeautyPanel(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(MaterialTheme.colorScheme.surface)
-                        .padding(vertical = 8.dp)
+                        .padding(vertical = 4.dp)
                 ) {
                     tabs.forEach { tab ->
                         val index = tab.ordinal

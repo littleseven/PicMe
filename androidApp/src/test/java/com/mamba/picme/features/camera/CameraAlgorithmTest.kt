@@ -114,3 +114,28 @@ class ToCameraAspectRatioTest(
         assertEquals(testName, expected, toCameraAspectRatio(input))
     }
 }
+
+@RunWith(Parameterized::class)
+class WhiteBalanceTemperatureKelvinTest(
+    private val testName: String,
+    private val input: Int,
+    private val expected: Float
+) {
+    companion object {
+        @JvmStatic
+        @Parameterized.Parameters(name = "{0}")
+        fun data(): Collection<Array<Any>> = listOf(
+            arrayOf("auto maps to neutral 5000K", 0, 5000f),
+            arrayOf("sunny maps to slightly warm 5600K", 1, 5600f),
+            arrayOf("cloudy maps to warm 6200K", 2, 6200f),
+            arrayOf("incandescent maps to cool 3600K", 3, 3600f),
+            arrayOf("fluorescent maps to slightly cool 4400K", 4, 4400f),
+            arrayOf("unknown mode falls back to neutral 5000K", 99, 5000f),
+        )
+    }
+
+    @Test
+    fun `whiteBalanceTemperatureKelvin maps WB preset to expected color temperature`() {
+        assertEquals(testName, expected, whiteBalanceTemperatureKelvin(input), 0.001f)
+    }
+}

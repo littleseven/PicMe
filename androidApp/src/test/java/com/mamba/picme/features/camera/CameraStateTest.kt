@@ -110,6 +110,7 @@ class CameraStateTest {
         panelState.showFacialRefinement = true
         panelState.showMakeupAdjustment = true
         panelState.showBodyManagement = true
+        panelState.showProPanel = true
 
         panelState.closeAllPanels()
 
@@ -121,6 +122,7 @@ class CameraStateTest {
         assertFalse(panelState.showFacialRefinement)
         assertFalse(panelState.showMakeupAdjustment)
         assertFalse(panelState.showBodyManagement)
+        assertFalse("showProPanel should be closed", panelState.showProPanel)
     }
 
     // --- toggleFacialRefinement() ---
@@ -282,6 +284,51 @@ class CameraStateTest {
 
         assertTrue("toggleMakeupAdjustment should reopen with active entry", panelState.showMakeupAdjustment)
         assertTrue("Active entry should still be BLUSH", panelState.activeMakeupEntry == MakeupEntry.BLUSH)
+    }
+
+    // --- togglePrimaryPanel() 统一互斥（camera.yaml §17，2026-08-15 改版） ---
+
+    @Test
+    fun `togglePrimaryPanel - opening a panel closes all others including pro`() {
+        panelState.showBeautySelector = true
+        panelState.showProPanel = true
+
+        togglePrimaryPanel(
+            isCurrentlyVisible = panelState.showRatioSelector,
+            closeAllPanels = panelState::closeAllPanels,
+            onPanelVisibilityChanged = { isVisible -> panelState.showRatioSelector = isVisible }
+        )
+
+        assertTrue("Ratio panel should be open", panelState.showRatioSelector)
+        assertFalse("Beauty panel should be closed", panelState.showBeautySelector)
+        assertFalse("Pro panel should be closed", panelState.showProPanel)
+    }
+
+    @Test
+    fun `togglePrimaryPanel - opening filter while ratio open leaves only filter`() {
+        panelState.showRatioSelector = true
+
+        togglePrimaryPanel(
+            isCurrentlyVisible = panelState.showFilterSelector,
+            closeAllPanels = panelState::closeAllPanels,
+            onPanelVisibilityChanged = { isVisible -> panelState.showFilterSelector = isVisible }
+        )
+
+        assertTrue("Filter panel should be open", panelState.showFilterSelector)
+        assertFalse("Ratio panel should be closed", panelState.showRatioSelector)
+    }
+
+    @Test
+    fun `togglePrimaryPanel - toggling an open panel closes everything`() {
+        panelState.showGridSelector = true
+
+        togglePrimaryPanel(
+            isCurrentlyVisible = panelState.showGridSelector,
+            closeAllPanels = panelState::closeAllPanels,
+            onPanelVisibilityChanged = { isVisible -> panelState.showGridSelector = isVisible }
+        )
+
+        assertFalse("Grid panel should be closed after second toggle", panelState.showGridSelector)
     }
 }
 

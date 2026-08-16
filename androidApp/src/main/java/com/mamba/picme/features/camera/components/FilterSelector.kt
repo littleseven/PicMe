@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import com.mamba.picme.beauty.api.FilterType
 import com.mamba.picme.beauty.api.StyleFilter
 import com.mamba.picme.beauty.api.displayNameRes
+import com.mamba.picme.core.designsystem.CameraTokens
 import com.mamba.picme.core.image.BitmapSampling
 
 /** 滤镜缩略图降采样最长边（原图 512px，列表显示 ~72dp，2x 清晰度足够）。 */
@@ -55,7 +56,8 @@ fun UnifiedFilterSelector(
     selectedFilter: FilterType,
     selectedStyleFilter: StyleFilter,
     onFilterSelected: (FilterType) -> Unit,
-    onStyleFilterSelected: (StyleFilter) -> Unit
+    onStyleFilterSelected: (StyleFilter) -> Unit,
+    gridHeight: Dp = CameraTokens.filterSelectorHeight
 ) {
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
@@ -85,7 +87,7 @@ fun UnifiedFilterSelector(
         state = rememberLazyGridState(),
         modifier = Modifier
             .fillMaxWidth()
-            .height(280.dp)
+            .height(gridHeight)
             .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),

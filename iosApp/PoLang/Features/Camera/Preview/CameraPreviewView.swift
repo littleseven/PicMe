@@ -379,7 +379,7 @@ struct CameraPreviewView: View {
             if activePanel == .beauty {
                 VStack(spacing: 0) {
                     Spacer()
-                    ControlPanel(heightRatio: CameraTokens.beautyPanelHeightRatio) {
+                    ControlPanel(heightRatio: BeautyPanelTokens.heightRatio) {
                         BeautyPanelView(params: $container.beautyParams)
                     }
                     .transition(.move(edge: .bottom).combined(with: .opacity))

@@ -198,7 +198,6 @@
     <string name="camera_memory">相机状态记忆</string>
     <string name="camera_memory_desc">进入相机时恢复上次参数和开关状态。</string>
     <string name="reset_camera_to_default">重置相机为首次安装默认状态</string>
-    <string name="aspect_ratio">画面比例</string>
     <string name="ratio_4_3">4:3</string>
     <string name="ratio_16_9">16:9</string>
     <string name="ratio_1_1">1:1</string>
@@ -239,9 +238,6 @@
 
     <!-- Scene & Composition -->
     <string name="scene">场景</string>
-    <string name="scene_none">无</string>
-    <string name="scene_night">夜景</string>
-    <string name="scene_moon">拍月亮</string>
     <string name="grid">辅助线</string>
     <string name="grid_none">关闭</string>
     <string name="grid_thirds">九宫格</string>
@@ -701,7 +697,6 @@
     <string name="a11y_release_face">释放人脸检测</string>
     <string name="a11y_filter">滤镜</string>
     <string name="a11y_switch_camera">切换镜头</string>
-    <string name="a11y_reset_camera">重置相机状态</string>
     <string name="a11y_photo_desc">照片</string>
     <string name="a11y_video_desc">视频</string>
     <!-- Tag 生成阶段进度(消除 X/Y 分数式歧义) -->

@@ -1,7 +1,7 @@
 {
   "_comment": "PoLang 双端 Design Token SSOT。Android/iOS 各自从此文件同步到代码常量。修改 token 时先改此文件，再两端同步。完整提取方法学/漂移记录见 docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md。",
-  "_version": "2.0.0",
-  "_updated": "2026-08-09",
+  "_version": "2.1.0",
+  "_updated": "2026-08-15",
 
   "spacing": {
     "_comment": "语义间距阶梯。屏幕级 padding 多为 md(12)/lg(16)，组件内 gap 多为 sm(8)。",
@@ -58,7 +58,7 @@
     "iconSize": 24,
     "sliderThumbSize": 18,
     "sliderTrackHeight": 6,
-    "heightRatio": 0.35,
+    "heightRatio": 0.4,
     "heightRatioMin": 0.2,
     "heightRatioMax": 0.75
   },
@@ -352,7 +352,30 @@
     "filterSelectorColumns": 5,
     "filterSelectorHeight": 280,
     "filterSelectedScale": 1.08,
-    "filterSelectedBorderWidth": 2.5
+    "filterSelectedBorderWidth": 2.5,
+    "panelBackground": "#F21C1A1F",
+    "cameraAccent": "@accentColor",
+    "cameraAccentOn": "#FFFFFFFF",
+    "toolBarSelectedBg": "@cameraAccent",
+    "toolBarUnselectedBg": "#00000000",
+    "inlineFilterPanelHeight": 200,
+    "panelCornerRadius": 20,
+    "panelMaxWidth": 420,
+    "panelPaddingH": 16,
+    "panelPaddingV": 10,
+    "panelShadowElevation": 12,
+    "chipHeight": 40,
+    "chipPaddingH": 18,
+    "chipSpacing": 12,
+    "topToolBarPaddingTop": 8,
+    "topToolBarItemPaddingH": 14,
+    "topToolBarItemPaddingV": 8,
+    "topToolBarItemRadius": 10,
+    "topToolBarSpacing": 8,
+    "modeSwitcherSpacing": 24,
+    "zoomBarSpacing": 12,
+    "zoomCapsulePaddingH": 12,
+    "zoomCapsuleHeight": 32
   },
 
   "chatBubble": {

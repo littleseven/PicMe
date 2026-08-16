@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -17,12 +18,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -53,19 +59,20 @@ import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.agent.core.platform.voice.AudioRecorder
 import com.mamba.picme.agent.core.platform.voice.InputAudioDevice
 import com.mamba.picme.beauty.api.facedetect.FaceDetectionSource
+import com.mamba.picme.core.designsystem.CameraTokens
 import com.mamba.picme.domain.model.AiAgentCommand
 import com.mamba.picme.domain.usecase.AiAgentUseCase
 import com.mamba.picme.features.camera.components.BeautyPanel
+import com.mamba.picme.features.camera.components.CameraBackButton
 import com.mamba.picme.features.camera.components.CameraBottomControls
 import com.mamba.picme.features.camera.components.CameraLeftControls
 import com.mamba.picme.features.camera.components.CameraOverlays
-import com.mamba.picme.features.camera.components.CameraRightControls
-import com.mamba.picme.features.camera.components.ControlPanel
+import com.mamba.picme.features.camera.components.CameraTopToolBar
 import com.mamba.picme.features.camera.components.DocumentDetectionOverlay
-import com.mamba.picme.features.camera.components.GridSelector
-import com.mamba.picme.features.camera.components.ProModeControls
-import com.mamba.picme.features.camera.components.RatioSelector
-import com.mamba.picme.features.camera.components.SceneSelector
+import com.mamba.picme.features.camera.components.InlineControlPanel
+import com.mamba.picme.features.camera.components.ProModeControlsContent
+import com.mamba.picme.features.camera.components.SelectorChip
+import com.mamba.picme.features.camera.components.SelectorChipRow
 import com.mamba.picme.features.camera.components.UnifiedFilterSelector
 import com.mamba.picme.features.camera.voice.VoiceCommandCoordinator
 import com.mamba.picme.features.camera.voice.VoiceWakeIndicator
@@ -97,11 +104,15 @@ internal fun CameraPreviewContent(
     onAiAgentCommand: ((AiAgentCommand) -> Unit)? = null,
     onUpdateVoiceCoordinatorState: (() -> Unit)? = null
 ) {
-    // 非美颜类面板开启状态（美颜面板用独立的 BeautyPanel 渲染，不走 PrimaryControlPanels）
-    val isAnyPanelOpen = uiState.showFilterSelector || uiState.showRatioSelector ||
-        uiState.showSceneSelector || uiState.showGridSelector
+    // 非美颜类面板开启状态（美颜面板用独立的 BeautyPanel 底部抽屉渲染；场景面板已下线）
+    val isAnyPanelOpen = uiState.showFilterSelector || uiState.showRatioSelector || uiState.showGridSelector
     val isBeautyPanelOpen = uiState.showBeautySelector
     val isProPanelOpen = uiState.showProPanel
+
+    // Back 键优先关闭已打开的面板（camera.yaml §2/§17 back_button → close_all_panels）
+    BackHandler(enabled = isAnyPanelOpen || isBeautyPanelOpen || isProPanelOpen) {
+        actions.onDismissPanels()
+    }
 
     Box(
         modifier = Modifier
@@ -110,13 +121,7 @@ internal fun CameraPreviewContent(
             // 点击取景区空白处关闭所有面板
             .clickable(
                 enabled = isAnyPanelOpen || isBeautyPanelOpen || isProPanelOpen,
-                onClick = {
-                    if (isProPanelOpen) {
-                        actions.onToggleProPanel()
-                    } else {
-                        actions.onDismissPanels()
-                    }
-                }
+                onClick = actions.onDismissPanels
             ),
         contentAlignment = Alignment.Center
     ) {
@@ -155,6 +160,7 @@ internal fun CameraPreviewContent(
 
         CameraPreviewDebugStatus(uiState = uiState)
         CameraPreviewSideControls(uiState = uiState, actions = actions)
+        CameraTopControls(uiState = uiState, actions = actions)
 
         CameraBottomControls(
             lastMedia = uiState.lastMedia,
@@ -163,7 +169,6 @@ internal fun CameraPreviewContent(
             maxZoomRatio = uiState.maxZoomRatio,
             captureMode = uiState.captureMode,
             isRecording = uiState.isRecording,
-            isAnyPanelOpen = isAnyPanelOpen,
             onZoomPresetClick = actions.onZoomPresetClick,
             onGalleryClick = actions.onGalleryClick,
             onCaptureClick = actions.onCaptureClick,
@@ -172,27 +177,7 @@ internal fun CameraPreviewContent(
             modifier = Modifier.align(Alignment.BottomCenter)
         )
 
-        // Pro Mode Controls - 底部 Sheet 风格，与其他面板保持一致
-        // 必须在 CameraBottomControls 之后声明，确保浮层盖在固定按钮之上
-        AnimatedVisibility(
-            visible = isProPanelOpen && !isAnyPanelOpen,
-            enter = slideInVertically(initialOffsetY = { offsetY -> offsetY }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { offsetY -> offsetY }) + fadeOut(),
-            modifier = Modifier.align(Alignment.BottomCenter)
-        ) {
-            ProModeControls(
-                exposure = uiState.exposureCompensation,
-                exposureRange = uiState.exposureRange,
-                onExposureChange = actions.onExposureChange,
-                whiteBalance = uiState.whiteBalanceMode,
-                onWhiteBalanceChange = actions.onWhiteBalanceChange,
-                onClose = { actions.onToggleProPanel() },
-                beautySettings = uiState.beautySettings,
-                onBeautySettingsChanged = actions.onBeautySettingsChanged,
-            )
-        }
-
-        // 美颜面板（统一入口：使用美图秀秀风格 Tab 标签页）
+        // 美颜面板（底部矮抽屉：覆盖底栏而非顶起；统一入口：美图秀秀风格 Tab 标签页）
         AnimatedVisibility(
             visible = isBeautyPanelOpen,
             enter = slideInVertically(initialOffsetY = { offsetY -> offsetY }) + fadeIn(),
@@ -212,12 +197,6 @@ internal fun CameraPreviewContent(
                 modifier = Modifier.fillMaxSize()
             )
         }
-
-        PrimaryControlPanels(
-            uiState = uiState,
-            actions = actions,
-            isAnyPanelOpen = isAnyPanelOpen
-        )
 
         // 同步语音协调器状态
         onUpdateVoiceCoordinatorState?.invoke()
@@ -458,95 +437,130 @@ private fun mapProviderFailReason(reason: String): String {
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun BoxScope.CameraPreviewSideControls(
     uiState: CameraPreviewUiState,
     actions: CameraPreviewActions
 ) {
+    // 返回箭头：与顶部工具栏同基线（statusBar inset + topToolBarPaddingTop）
+    CameraBackButton(
+        onClick = actions.onNavigateBack,
+        modifier = Modifier
+            .align(Alignment.TopStart)
+            .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility)
+            .padding(top = CameraTokens.topToolBarPaddingTop, start = 8.dp)
+    )
     CameraLeftControls(
-        onResetCameraMemoryState = actions.onResetCameraMemoryState,
         onToggleLogOverlay = actions.onToggleLogs,
         debugUiEnabled = uiState.debugUiEnabled,
         showLogOverlay = uiState.showLogOverlay,
         onLlmRelease = actions.onLlmRelease,
         onFaceDetectRelease = actions.onFaceDetectRelease,
-        onNavigateBack = actions.onNavigateBack,
-        modifier = Modifier.align(Alignment.TopStart)
-    )
-
-    CameraRightControls(
-        onToggleBeauty = actions.onToggleBeauty,
-        onToggleFilter = actions.onToggleFilter,
-        onToggleRatio = actions.onToggleRatio,
-        onToggleScene = actions.onToggleScene,
-        onToggleGrid = actions.onToggleGrid,
-        onToggleProPanel = actions.onToggleProPanel,
-        onToggleBeautyEnabled = {
-            actions.onBeautySettingsChanged(
-                uiState.beautySettings.copy(enabled = !uiState.beautySettings.enabled)
-            )
-        },
-        isBeautySelected = uiState.showBeautySelector,
-        isFilterSelected = uiState.showFilterSelector,
-        isRatioSelected = uiState.showRatioSelector,
-        isSceneActive = uiState.currentScene != ScenePreset.NONE,
-        isGridActive = uiState.showGridSelector,
-        isProPanelOpen = uiState.showProPanel,
-        isBeautyEnabled = uiState.beautySettings.enabled,
-        currentRatio = uiState.aspectRatio,
-        modifier = Modifier.align(Alignment.TopEnd)
+        // 向下避让顶部工具栏+返回箭头（camera.yaml §3 top_clearance_below_toolbar = 48）
+        modifier = Modifier
+            .align(Alignment.TopStart)
+            .padding(top = 48.dp)
     )
 }
 
+/**
+ * 顶部居中工具栏 + 内联面板宿主（camera.yaml §4）。
+ * 工具栏常驻；ratio/grid/filter/pro 面板以 InlineControlPanel 形式挂在工具栏下方，
+ * 从顶部滑入；与美颜底部抽屉全互斥（见面板状态机 §17）。
+ */
+@OptIn(ExperimentalLayoutApi::class) // statusBarsIgnoringVisibility：沉浸式下仍避让刘海
 @Composable
-private fun BoxScope.PrimaryControlPanels(
+private fun BoxScope.CameraTopControls(
     uiState: CameraPreviewUiState,
-    actions: CameraPreviewActions,
-    isAnyPanelOpen: Boolean
+    actions: CameraPreviewActions
 ) {
-    AnimatedVisibility(
-        visible = isAnyPanelOpen,
-        enter = slideInVertically(initialOffsetY = { offsetY -> offsetY }) + fadeIn(),
-        exit = slideOutVertically(targetOffsetY = { offsetY -> offsetY }) + fadeOut(),
-        modifier = Modifier.align(Alignment.BottomCenter)
+    val isInlinePanelOpen = uiState.showRatioSelector || uiState.showGridSelector ||
+        uiState.showFilterSelector || uiState.showProPanel
+
+    Column(
+        modifier = Modifier
+            .align(Alignment.TopCenter)
+            .fillMaxWidth()
+            // 🔴 同左列：沉浸式下 statusBarsPadding 归零，改用 IgnoringVisibility 避让刘海
+            .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility)
+            .padding(top = CameraTokens.topToolBarPaddingTop),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(CameraTokens.topToolBarSpacing)
     ) {
-        ControlPanel(onDismiss = actions.onDismissPanels) {
-            when {
-                uiState.showFilterSelector -> {
-                    UnifiedFilterSelector(
+        CameraTopToolBar(
+            isBeautySelected = uiState.showBeautySelector,
+            isRatioSelected = uiState.showRatioSelector,
+            isGridSelected = uiState.showGridSelector,
+            isFilterSelected = uiState.showFilterSelector,
+            isProSelected = uiState.showProPanel,
+            onToggleBeauty = actions.onToggleBeauty,
+            onToggleRatio = actions.onToggleRatio,
+            onToggleGrid = actions.onToggleGrid,
+            onToggleFilter = actions.onToggleFilter,
+            onToggleProPanel = actions.onToggleProPanel
+        )
+
+        AnimatedVisibility(
+            visible = isInlinePanelOpen,
+            enter = slideInVertically(initialOffsetY = { offsetY -> -offsetY }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { offsetY -> -offsetY }) + fadeOut()
+        ) {
+            InlineControlPanel {
+                when {
+                    uiState.showRatioSelector -> SelectorChipRow(
+                        SelectorChip(
+                            label = stringResource(R.string.ratio_4_3),
+                            isSelected = uiState.aspectRatio == AspectRatio.RATIO_4_3,
+                            onClick = { actions.onRatioSelected(AspectRatio.RATIO_4_3) }
+                        ),
+                        SelectorChip(
+                            label = stringResource(R.string.ratio_16_9),
+                            isSelected = uiState.aspectRatio == AspectRatio.RATIO_16_9,
+                            onClick = { actions.onRatioSelected(AspectRatio.RATIO_16_9) }
+                        ),
+                        SelectorChip(
+                            label = stringResource(R.string.ratio_full),
+                            isSelected = uiState.aspectRatio == AspectRatio.RATIO_FULL,
+                            onClick = { actions.onRatioSelected(AspectRatio.RATIO_FULL) }
+                        )
+                    )
+
+                    uiState.showGridSelector -> SelectorChipRow(
+                        SelectorChip(
+                            label = stringResource(R.string.grid_none),
+                            isSelected = uiState.currentGrid == GridType.NONE,
+                            onClick = { actions.onGridSelected(GridType.NONE) }
+                        ),
+                        SelectorChip(
+                            label = stringResource(R.string.grid_thirds),
+                            isSelected = uiState.currentGrid == GridType.THIRDS,
+                            onClick = { actions.onGridSelected(GridType.THIRDS) }
+                        ),
+                        SelectorChip(
+                            label = stringResource(R.string.grid_golden),
+                            isSelected = uiState.currentGrid == GridType.GOLDEN,
+                            onClick = { actions.onGridSelected(GridType.GOLDEN) }
+                        )
+                    )
+
+                    uiState.showFilterSelector -> UnifiedFilterSelector(
                         selectedFilter = uiState.selectedFilter,
                         selectedStyleFilter = uiState.selectedStyleFilter,
                         onFilterSelected = actions.onFilterSelected,
-                        onStyleFilterSelected = actions.onStyleFilterSelected
+                        onStyleFilterSelected = actions.onStyleFilterSelected,
+                        gridHeight = CameraTokens.inlineFilterPanelHeight
                     )
-                }
-                uiState.showRatioSelector -> {
-                    RatioSelector(
-                        selectedRatio = when (uiState.aspectRatio) {
-                            AspectRatio.RATIO_4_3 -> CameraAspectRatio.RATIO_4_3
-                            AspectRatio.RATIO_16_9 -> CameraAspectRatio.RATIO_16_9
-                            AspectRatio.RATIO_FULL -> CameraAspectRatio.RATIO_FULL
-                            else -> CameraAspectRatio.RATIO_FULL
-                        },
-                        onRatioSelected = { selectedRatio ->
-                            actions.onRatioSelected(
-                                when (selectedRatio) {
-                                    CameraAspectRatio.RATIO_4_3 -> AspectRatio.RATIO_4_3
-                                    CameraAspectRatio.RATIO_16_9 -> AspectRatio.RATIO_16_9
-                                    CameraAspectRatio.RATIO_FULL -> AspectRatio.RATIO_FULL
-                                }
-                            )
-                        }
+
+                    uiState.showProPanel -> ProModeControlsContent(
+                        exposure = uiState.exposureCompensation,
+                        exposureRange = uiState.exposureRange,
+                        onExposureChange = actions.onExposureChange,
+                        whiteBalance = uiState.whiteBalanceMode,
+                        onWhiteBalanceChange = actions.onWhiteBalanceChange,
+                        onTemperatureManualChange = actions.onTemperatureManualChange,
+                        beautySettings = uiState.beautySettings,
+                        onBeautySettingsChanged = actions.onBeautySettingsChanged
                     )
-                }
-                uiState.showSceneSelector -> {
-                    SceneSelector(uiState.currentScene) { selectedScene ->
-                        actions.onSceneSelected(selectedScene)
-                    }
-                }
-                uiState.showGridSelector -> {
-                    GridSelector(uiState.currentGrid) { selectedGrid ->
-                        actions.onGridSelected(selectedGrid)
-                    }
                 }
             }
         }

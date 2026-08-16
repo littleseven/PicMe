@@ -124,14 +124,12 @@ internal data class CameraPreviewUiState(
 )
 
 internal data class CameraPreviewActions(
-    val onResetCameraMemoryState: () -> Unit,
     val onNavigateToDebug: () -> Unit,
     val onFlipCamera: () -> Unit,
     val onToggleBeauty: () -> Unit,
     val onToggleFilter: () -> Unit,
     val onToggleRatio: () -> Unit,
     val onToggleCameraInfo: () -> Unit,
-    val onToggleScene: () -> Unit,
     val onToggleGrid: () -> Unit,
     val onToggleLogs: () -> Unit,
     val onToggleFaceDebugOverlay: () -> Unit,
@@ -143,7 +141,8 @@ internal data class CameraPreviewActions(
     val onZoomPresetClick: (Float) -> Unit,
     val onExposureChange: (Int) -> Unit,
     val onWhiteBalanceChange: (Int) -> Unit,
-    val onSceneSelected: (ScenePreset) -> Unit,
+    // 手动拖动色温滑杆时退出 WB 预设选中态（不写 temperature，避免覆盖手动值）
+    val onTemperatureManualChange: () -> Unit,
     val onGridSelected: (GridType) -> Unit,
     val onGalleryClick: () -> Unit,
     val onCaptureClick: () -> Unit,
@@ -247,13 +246,11 @@ internal fun buildCameraPreviewUiState(
 }
 
 internal fun buildCameraPreviewActions(
-    onResetCameraMemoryState: () -> Unit,
     lensFacing: Int,
     onLensFacingChanged: (Int) -> Unit,
     onActualLensFacingChanged: (Int) -> Unit,
     panelState: CameraPanelState,
     cameraControl: androidx.camera.core.CameraControl?,
-    onCurrentSceneChanged: (ScenePreset) -> Unit,
     onCurrentGridChanged: (GridType) -> Unit,
     onNavigateToGallery: () -> Unit,
     onCaptureClick: () -> Unit,
@@ -264,6 +261,7 @@ internal fun buildCameraPreviewActions(
     onAspectRatioChanged: (Int) -> Unit,
     onExposureCompensationChanged: (Int) -> Unit,
     onWhiteBalanceModeChanged: (Int) -> Unit,
+    onWhiteBalanceTemperatureChanged: (Float) -> Unit,
     onToggleVoiceControl: () -> Unit,
     onToggleAiAgentPanel: () -> Unit,
     onToggleLogs: () -> Unit,
@@ -272,7 +270,6 @@ internal fun buildCameraPreviewActions(
     onNavigateBack: () -> Unit = {}
 ): CameraPreviewActions {
     return CameraPreviewActions(
-        onResetCameraMemoryState = onResetCameraMemoryState,
         onNavigateToDebug = {},
         onNavigateBack = onNavigateBack,
         onFlipCamera = {
@@ -283,36 +280,29 @@ internal fun buildCameraPreviewActions(
         onToggleBeauty = {
             togglePrimaryPanel(
                 isCurrentlyVisible = panelState.showBeautySelector,
-                closePrimaryPanels = panelState::closePrimaryPanels,
+                closeAllPanels = panelState::closeAllPanels,
                 onPanelVisibilityChanged = { isVisible -> panelState.showBeautySelector = isVisible }
             )
         },
         onToggleFilter = {
             togglePrimaryPanel(
                 isCurrentlyVisible = panelState.showFilterSelector,
-                closePrimaryPanels = panelState::closePrimaryPanels,
+                closeAllPanels = panelState::closeAllPanels,
                 onPanelVisibilityChanged = { isVisible -> panelState.showFilterSelector = isVisible }
             )
         },
         onToggleRatio = {
             togglePrimaryPanel(
                 isCurrentlyVisible = panelState.showRatioSelector,
-                closePrimaryPanels = panelState::closePrimaryPanels,
+                closeAllPanels = panelState::closeAllPanels,
                 onPanelVisibilityChanged = { isVisible -> panelState.showRatioSelector = isVisible }
             )
         },
         onToggleCameraInfo = {},
-        onToggleScene = {
-            togglePrimaryPanel(
-                isCurrentlyVisible = panelState.showSceneSelector,
-                closePrimaryPanels = panelState::closePrimaryPanels,
-                onPanelVisibilityChanged = { isVisible -> panelState.showSceneSelector = isVisible }
-            )
-        },
         onToggleGrid = {
             togglePrimaryPanel(
                 isCurrentlyVisible = panelState.showGridSelector,
-                closePrimaryPanels = panelState::closePrimaryPanels,
+                closeAllPanels = panelState::closeAllPanels,
                 onPanelVisibilityChanged = { isVisible -> panelState.showGridSelector = isVisible }
             )
         },
@@ -332,11 +322,11 @@ internal fun buildCameraPreviewActions(
         },
         onWhiteBalanceChange = { wb ->
             onWhiteBalanceModeChanged(wb)
+            // WB 预设即写入对应色温（camera.yaml §13）；手动拖色温滑杆走 onTemperatureManualChange，
+            // 只退 chip 选中态、不写 temperature，避免覆盖手动值
+            onWhiteBalanceTemperatureChanged(whiteBalanceTemperatureKelvin(wb))
         },
-        onSceneSelected = { scene ->
-            onCurrentSceneChanged(scene)
-            panelState.showSceneSelector = false
-        },
+        onTemperatureManualChange = { onWhiteBalanceModeChanged(0) },
         onGridSelected = { grid ->
             onCurrentGridChanged(grid)
             panelState.showGridSelector = false
@@ -355,7 +345,10 @@ internal fun buildCameraPreviewActions(
         onToggleVoiceControl = onToggleVoiceControl,
         onToggleAiAgentPanel = onToggleAiAgentPanel,
         onToggleProPanel = {
-            panelState.showProPanel = !panelState.showProPanel
+            // 统一互斥（camera.yaml §17）：开 Pro 面板前关闭其余全部面板
+            val nextVisibility = !panelState.showProPanel
+            panelState.closeAllPanels()
+            panelState.showProPanel = nextVisibility
         }
     )
 }
