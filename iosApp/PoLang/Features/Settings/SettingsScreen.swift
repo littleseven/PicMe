@@ -331,6 +331,13 @@ final class PoLangAuthClient {
         let (data, resp) = try await URLSession.shared.data(for:request("/auth/account", method: "DELETE", token: token))
         if !(200..<300).contains(statusCode(resp)) { throw AuthError(code: statusCode(resp), message: errMsg(data)) }
     }
+    /// 清除访客数据（对齐 Android PoLangAuthClient.clearGuestData：DELETE /guest/device + X-Device-Id）
+    func clearGuestData(deviceId: String) async throws {
+        var req = request("/guest/device", method: "DELETE")
+        req.setValue(deviceId, forHTTPHeaderField: "X-Device-Id")
+        let (data, resp) = try await URLSession.shared.data(for: req)
+        if !(200..<300).contains(statusCode(resp)) { throw AuthError(code: statusCode(resp), message: errMsg(data)) }
+    }
 }
 
 // MARK: - Account Settings（邮箱验证码注册/登录 + 额度，对齐 Android ServerAuthSection）
@@ -459,6 +466,9 @@ struct DataPrivacyView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var cs
     private var s: SchemeColors { appScheme(cs) }
+    /// 清除访客数据（对齐 Android ClearGuestDataButton，DELETE /guest/device）
+    @State private var clearingGuest = false
+    @State private var guestClearToast: String?
 
     private let sections: [(title: String, body: String)] = [
         (L("Account Data"), L("Your email is used only for authentication and LLM free trial usage counting (default 100 times). No passwords are collected — login uses email verification codes.")),
@@ -484,6 +494,33 @@ struct DataPrivacyView: View {
                 }
                 .padding(.vertical, 4)
 
+                // 清除访客数据（对齐 Android ClearGuestDataButton，数据隐私段）
+                Button {
+                    guard !clearingGuest else { return }
+                    clearingGuest = true
+                    Task {
+                        do {
+                            try await PoLangAuthClient.shared.clearGuestData(
+                                deviceId: DeviceIdStore.shared.getOrCreate())
+                            guestClearToast = L("Guest data cleared")
+                        } catch {
+                            guestClearToast = L("Failed to clear guest data")
+                        }
+                        clearingGuest = false
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "trash.slash")
+                            .font(.system(size: 16))
+                        Text(L("Clear Guest Data"))
+                            .font(.system(size: 15, weight: .semibold))
+                        Spacer()
+                        if clearingGuest { ProgressView() }
+                    }
+                }
+                .disabled(clearingGuest)
+                .padding(.vertical, 4)
+
                 ForEach(sections, id: \.title) { section in
                     VStack(alignment: .leading, spacing: 6) {
                         Text(section.title)
@@ -504,6 +541,21 @@ struct DataPrivacyView: View {
             .padding(20)
         }
         .background(s.background.ignoresSafeArea())
+        .overlay(alignment: .bottom) {
+            if let toast = guestClearToast {
+                Text(toast)
+                    .font(.system(size: 14))
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(Color.black.opacity(0.8))
+                    .foregroundStyle(.white)
+                    .clipShape(Capsule())
+                    .padding(.bottom, 24)
+                    .transition(.opacity)
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { guestClearToast = nil }
+                    }
+            }
+        }
         .navigationTitle(L("Data & Privacy"))
         .navigationBarTitleDisplayMode(.inline)
         // back 由 NavigationStack 系统提供，无需手动 toolbar

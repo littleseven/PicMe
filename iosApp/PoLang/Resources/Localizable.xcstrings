@@ -610,6 +610,29 @@
         }
       }
     },
+    "Clear Guest Data": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear Guest Data"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除访客数据"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除訪客資料"
+          }
+        }
+      }
+    },
     "Clear Test Data": {
       "extractionState": "manual",
       "localizations": {
@@ -4232,6 +4255,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "分組"
+          }
+        }
+      }
+    },
+    "Guest data cleared": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guest data cleared"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "访客数据已清除"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "訪客資料已清除"
           }
         }
       }
@@ -9324,6 +9370,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "圖片預覽"
+          }
+        }
+      }
+    },
+    "Failed to clear guest data": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed to clear guest data"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除访客数据失败"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除訪客資料失敗"
           }
         }
       }
