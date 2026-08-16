@@ -1,54 +1,67 @@
 {
   "endpoint": "http://127.0.0.1:50501/api/v1/mcp",
-  "exportedAt": "2026-08-16T09:48:51+08:00",
+  "exportedAt": "2026-08-16T11:23:27+08:00",
   "file": {
     "id": "715061534788814",
     "name": "polang-ui-spec",
     "permission": "readwrite",
     "url": "cocraft://localhost/file/715061534788814?node_id=6%3A2"
   },
-  "frames": [
+  "note": "云端画布为编辑工作区；本目录快照由 export-ardot-snapshot.py 生成（多页聚合，2026-08-16 起），重跑覆盖。变量 SSOT=shared/src/commonMain/resources/design-tokens.json，不在本快照内。",
+  "pages": [
     {
-      "id": "9:2",
-      "name": "camera/idle",
-      "png": "camera-idle.png"
+      "frames": [
+        {
+          "id": "9:2",
+          "name": "camera/idle",
+          "png": "camera-idle.png"
+        },
+        {
+          "id": "95:37",
+          "name": "camera/panel_beauty_face",
+          "png": "camera-panel_beauty_face.png"
+        },
+        {
+          "id": "95:107",
+          "name": "camera/panel_ratio",
+          "png": "camera-panel_ratio.png"
+        },
+        {
+          "id": "95:152",
+          "name": "camera/panel_grid",
+          "png": "camera-panel_grid.png"
+        },
+        {
+          "id": "95:197",
+          "name": "camera/panel_filter",
+          "png": "camera-panel_filter.png"
+        },
+        {
+          "id": "95:235",
+          "name": "camera/panel_pro",
+          "png": "camera-panel_pro.png"
+        },
+        {
+          "id": "95:322",
+          "name": "camera/focusing",
+          "png": "camera-focusing.png"
+        }
+      ],
+      "id": "6:2",
+      "name": "Camera"
     },
     {
-      "id": "95:37",
-      "name": "camera/panel_beauty_face",
-      "png": "camera-panel_beauty_face.png"
-    },
-    {
-      "id": "95:107",
-      "name": "camera/panel_ratio",
-      "png": "camera-panel_ratio.png"
-    },
-    {
-      "id": "95:152",
-      "name": "camera/panel_grid",
-      "png": "camera-panel_grid.png"
-    },
-    {
-      "id": "95:197",
-      "name": "camera/panel_filter",
-      "png": "camera-panel_filter.png"
-    },
-    {
-      "id": "95:235",
-      "name": "camera/panel_pro",
-      "png": "camera-panel_pro.png"
-    },
-    {
-      "id": "95:322",
-      "name": "camera/focusing",
-      "png": "camera-focusing.png"
+      "frames": [
+        {
+          "id": "103:3",
+          "name": "gallery/empty",
+          "png": "gallery-empty.png"
+        }
+      ],
+      "id": "103:1",
+      "name": "Gallery"
     }
   ],
-  "note": "云端画布为编辑工作区；本目录快照由 export-ardot-snapshot.py 生成，重跑覆盖。变量 SSOT=shared/src/commonMain/resources/design-tokens.json，不在本快照内。",
-  "page": {
-    "id": "6:2",
-    "name": "Camera"
-  },
   "scale": 1,
-  "structureSha256": "b19fcc93b494be0f0a506402eb19f030cb95ebc19c732aa6a16c8331c166e2c1"
+  "structureSha256": "b0a87b520aa7ac29c3581db5c963b799e08535a9f0acbddb01cf27ed0fcbf18b"
 }

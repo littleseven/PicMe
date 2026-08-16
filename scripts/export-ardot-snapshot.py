@@ -96,39 +96,52 @@ def main():
     except Exception:
         pass  # notification 无响应属正常
 
-    # 1. 文件信息（fileUrl 供 export_nodes 绑定）+ 顶层帧清单
+    # 1. 文件信息（fileUrl 供 export_nodes 绑定）+ 全部页面顶层帧清单
+    #    （2026-08-16 起多页聚合：不再只导「当前页」，遍历 pageList，新增页面自动包含）
     info = call_tool(args.endpoint, sid, "fetch_file_info", {}, rid=10)
     file_url = info["fileUrl"]
     state = call_tool(args.endpoint, sid, "fetch_editor_state", {}, rid=11)
-    page = state["currentPage"]
-    frames = page["topLevelNodes"] if "topLevelNodes" in page \
-        else state["currentPageTopLevelNodes"]
-    if not frames:
-        raise SystemExit("❌ 当前页面没有顶层帧")
-    print(f"📄 {info['fileName']}（{info['fileId']}）页面「{page['name']}」共 {len(frames)} 帧")
+    rid = 11
+    pages = []
+    for pg in state.get("pageList", [state["currentPage"]]):
+        rid += 1
+        pg_data = call_tool(args.endpoint, sid, "batch_read",
+                            {"nodeIds": [pg["id"]], "readDepth": 1}, rid=rid)
+        pg_node = pg_data["nodes"][0] if pg_data.get("nodes") else {}
+        frames = [child for child in pg_node.get("children", [])
+                  if isinstance(child, dict) and child.get("type") == "FRAME"]
+        if frames:
+            pages.append({"id": pg["id"], "name": pg["name"], "frames": frames})
+    if not pages:
+        raise SystemExit("❌ 所有页面均没有顶层帧")
+    total = sum(len(pg["frames"]) for pg in pages)
+    print(f"📄 {info['fileName']}（{info['fileId']}）共 {len(pages)} 页 {total} 帧："
+          + "，".join(f"「{pg['name']}」{len(pg['frames'])} 帧" for pg in pages))
 
     # 2. 逐帧结构 dump（readDepth 取深，保证叶子可 diff）
     structures = {}
     rid = 20
-    for fr in frames:
-        rid += 1
-        structures[fr["id"]] = call_tool(args.endpoint, sid, "batch_read",
-                                         {"nodeIds": [fr["id"]], "readDepth": 12}, rid=rid)
+    for pg in pages:
+        for fr in pg["frames"]:
+            rid += 1
+            structures[fr["id"]] = call_tool(args.endpoint, sid, "batch_read",
+                                             {"nodeIds": [fr["id"]], "readDepth": 12}, rid=rid)
     structure_doc = {
         "source": "ardot-canvas",
         "file": {"id": info["fileId"], "name": info["fileName"], "url": file_url},
-        "page": {"id": page["id"], "name": page["name"]},
-        "frames": {fr["id"]: {"name": fr["name"], "tree": structures[fr["id"]]}
-                   for fr in frames},
+        "pages": [{"id": pg["id"], "name": pg["name"],
+                   "frames": {fr["id"]: {"name": fr["name"], "tree": structures[fr["id"]]}
+                              for fr in pg["frames"]}} for pg in pages],
     }
     structure_text = json.dumps(structure_doc, ensure_ascii=False,
                                 indent=2, sort_keys=True) + "\n"
 
     # 3. PNG 渲染快照（分批；显式 fileUrl；解析纯文本 "nodeId → path"）
+    all_frames = [fr for pg in pages for fr in pg["frames"]]
     png_paths = {}
-    for i in range(0, len(frames), PNG_BATCH):
+    for i in range(0, len(all_frames), PNG_BATCH):
         rid += 1
-        batch = frames[i:i + PNG_BATCH]
+        batch = all_frames[i:i + PNG_BATCH]
         data = call_tool(args.endpoint, sid, "export_nodes", {
             "nodeIds": [fr["id"] for fr in batch],
             "outputDir": out,
@@ -142,14 +155,17 @@ def main():
                 png_paths[m.group(1)] = m.group(2)
 
     # 4. 落盘：语义命名 PNG + structure.json + manifest.json
-    manifest_frames = []
-    for fr in frames:
-        slug = frame_slug(fr["name"])
-        src = png_paths.get(fr["id"])
-        dst = f"{out}/{slug}.png"
-        if src:
-            shutil.copyfile(src, dst)
-        manifest_frames.append({"id": fr["id"], "name": fr["name"], "png": f"{slug}.png"})
+    manifest_pages = []
+    for pg in pages:
+        manifest_frames = []
+        for fr in pg["frames"]:
+            slug = frame_slug(fr["name"])
+            src = png_paths.get(fr["id"])
+            dst = f"{out}/{slug}.png"
+            if src:
+                shutil.copyfile(src, dst)
+            manifest_frames.append({"id": fr["id"], "name": fr["name"], "png": f"{slug}.png"})
+        manifest_pages.append({"id": pg["id"], "name": pg["name"], "frames": manifest_frames})
 
     with open(f"{out}/structure.json", "w", encoding="utf-8") as f:
         f.write(structure_text)
@@ -159,11 +175,10 @@ def main():
         "endpoint": args.endpoint,
         "file": {"id": info["fileId"], "name": info["fileName"], "url": file_url,
                  "permission": info.get("permission", "")},
-        "page": {"id": page["id"], "name": page["name"]},
-        "frames": manifest_frames,
+        "pages": manifest_pages,
         "structureSha256": hashlib.sha256(structure_text.encode()).hexdigest(),
         "scale": args.scale,
-        "note": "云端画布为编辑工作区；本目录快照由 export-ardot-snapshot.py 生成，重跑覆盖。"
+        "note": "云端画布为编辑工作区；本目录快照由 export-ardot-snapshot.py 生成（多页聚合，2026-08-16 起），重跑覆盖。"
                 "变量 SSOT=shared/src/commonMain/resources/design-tokens.json，不在本快照内。",
     }
     with open(f"{out}/manifest.json", "w", encoding="utf-8") as f:

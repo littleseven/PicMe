@@ -360,15 +360,14 @@ grid_page:
 
   # ── 9. 空态 EmptyGalleryMessage ──
   # 🔴 gap #41 / P1-8：有权限但无媒体文件时必须显示提示。
+  # ⚠️ 2026-08-16 spec 漂移修正：Android 定稿实际复用 GallerySplashPlaceholder（格言占位，
+  # GalleryScreen.kt:765-767），非纯文本 EmptyGalleryMessage——以代码为准反向修正。
 
   empty_gallery:
     visible_when: permission_granted_and_media_list_empty
-    type: EmptyGalleryMessage
-    anchor: full_screen_center
-    content:
-      text: "未找到任何媒体文件"
-      font: bodyLarge
-      color: colorScheme.secondary
+    type: GallerySplashPlaceholder        # 与 splash_placeholder 同组件（quote_display 格言池）
+    reuse: splash_placeholder             # 布局/字体/留白全部同 §splash_placeholder（top_padding_ratio 0.28 等）
+    fallback_text: "未找到任何媒体文件"    # 仅格言池不可用时兜底
 
   # ── 10. 搜索无结果态 ──
   # 🔴 gap #42：搜索结果为空时必须显示提示。
