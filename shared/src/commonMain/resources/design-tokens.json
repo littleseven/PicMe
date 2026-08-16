@@ -492,5 +492,20 @@
     "nameFontSize": 16,
     "photoCountFontSize": 13,
     "relationChipRadius": 8
+  },
+  "idphoto": {
+    "_comment": "证照屏（IDPhoto）。强制深色屏：内容底近黑硬编码，Android PoLangForcedDarkTheme / iOS .preferredColorScheme(.dark)+AppColorScheme.dark 对齐 scheme。colorBlue/Red/White 为合成内容色（既作底色数据也作色板 UI 色，双端像素一致）。",
+    "screenBackground": "#FF101010",
+    "tabUnselectedContainer": "#FF2A2A2A",
+    "frameWidth": 220,
+    "frameRadius": 4,
+    "frameBackground": "#FFFFFFFF",
+    "swatchSize": 40,
+    "swatchSelectedBorderWidth": 3,
+    "swatchUnselectedBorderWidth": 1,
+    "sizeChipUnselectedBorderAlpha": 0.5,
+    "colorBlue": "#FF438EDB",
+    "colorRed": "#FFD9001B",
+    "colorWhite": "#FFFFFFFF"
   }
 }

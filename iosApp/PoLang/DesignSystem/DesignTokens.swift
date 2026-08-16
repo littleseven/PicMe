@@ -576,6 +576,23 @@ enum PersonTokens {
     static let relationChipRadius: CGFloat = 8
 }
 
+// MARK: - ID Photo（证照屏，强制深色）
+
+enum IdPhotoTokens {
+    static let screenBackground = Color(hex: "FF101010")
+    static let tabUnselectedContainer = Color(hex: "FF2A2A2A")
+    static let frameWidth: CGFloat = 220
+    static let frameRadius: CGFloat = 4
+    static let frameBackground = Color.white
+    static let swatchSize: CGFloat = 40
+    static let swatchSelectedBorderWidth: CGFloat = 3
+    static let swatchUnselectedBorderWidth: CGFloat = 1
+    static let sizeChipUnselectedBorderAlpha: Double = 0.5
+    static let colorBlue = Color(hex: "FF438EDB")
+    static let colorRed = Color(hex: "FFD9001B")
+    static let colorWhite = Color.white
+}
+
 // MARK: - Color(hex:) 工具（ARGB 十六进制，与 JSON 一致）
 
 private extension Color {

@@ -66,7 +66,8 @@
 | `settings.yaml` | 390 | ✅ 已建 |
 | `model-download-center.yaml` | 390 | ✅ 已建 |
 | `person.yaml` | 319 | ✅ 已建 |
-| `idphoto` / `tag(photo-info)` / `memory` | — | ❌ 按需待建（对应屏启动 iOS 对齐时先补 spec） |
+| `idphoto.yaml` | 418 | ✅ 已建（2026-08-16 /ios-follow idphoto 反向提取；含 FUSION 抠图管线/构图数学/修补契约全量） |
+| `tag(photo-info)` / `memory` | — | ❌ 按需待建（对应屏启动 iOS 对齐时先补 spec） |
 
 ### 4.2 Spec 质量标准
 
