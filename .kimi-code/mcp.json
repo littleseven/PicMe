@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "ardot": {
+      "url": "http://127.0.0.1:50501/api/v1/mcp",
+      "enabled": true,
+      "startupTimeoutMs": 5000,
+      "toolTimeoutMs": 120000
+    }
+  }
+}

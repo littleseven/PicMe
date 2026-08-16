@@ -42,6 +42,8 @@
 | [`IM_REMOTE_CONTROL_TECH_SPEC.md`](./03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md) | IM（飞书）远程控制（实验性） |
 | [`CHAT_UI_UNIFICATION.md`](./03-TECHNICAL-SPECS/CHAT_UI_UNIFICATION.md) | Chat UI 统一化改造 |
 | [`JS_ENGINE_TECH_SPEC.md`](./03-TECHNICAL-SPECS/JS_ENGINE_TECH_SPEC.md) | JS 沙盒引擎（QuickJS + JSBridge，对话内运行相册分析脚本） |
+| [`DESIGN_TOKENS_SPEC.md`](./03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md) | Design Token SSOT（codegen 双端镜像 + CI 门禁 + Ardot 预览层） |
+| [`IOS_ANDROID_UI_PARITY.md`](./03-TECHNICAL-SPECS/IOS_ANDROID_UI_PARITY.md) | 双端 UI 对齐方法论（度量体系 / 系统栏 / 无障碍 / 深色 / 动效 / 验证闭环） |
 
 ---
 

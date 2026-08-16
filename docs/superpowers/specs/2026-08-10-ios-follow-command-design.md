@@ -46,7 +46,7 @@
 
 对 follow-plan 中每一项：
 
-1. **UI Spec**：`specs/screens/<screen>.yaml` 新建或更新（参照 `camera.yaml` / `gallery-grid.yaml` 格式）；新尺寸/颜色/圆角提取进 `design-tokens.json` 并同步 Android（`Spacing.kt`/`AppShapes.kt`/`Color.kt`）与 iOS（`DesignTokens.swift`）；`adb exec-out screencap` 采集定稿截图到 `tmp/ui-reference/<screen>.png`（设备不在线则复用已有截图并在报告中标记）
+1. **UI Spec**：`specs/screens/<screen>.yaml` 新建或更新（参照 `camera.yaml` / `gallery-grid.yaml` 格式）；新尺寸/颜色/圆角提取进 `design-tokens.json` → 跑 `python3 scripts/gen-design-tokens.py` 重新生成双端镜像（Android `Spacing.kt` 等 / iOS `DesignTokens.swift` 均为生成物，禁止手改，见 `DESIGN_TOKENS_SPEC.md`）；`adb exec-out screencap` 采集定稿截图到 `tmp/ui-reference/<screen>.png`（设备不在线则复用已有截图并在报告中标记）
 2. **平台差异台账**（本设计新增的契约层）：spec 内新增 `platform_differences` 节，登记：
    - `permission`：双端权限模型与状态机映射（如 Android 单次授权 vs iOS Full/Limited/AddOnly/Denied 四态）→ shared 语义对齐点
    - `capabilities`：API 能力矩阵（功能 × 端 → 支持 / 替代方案 / 平台独有流程），shared 接口只暴露业务语义

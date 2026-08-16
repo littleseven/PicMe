@@ -2,7 +2,7 @@
 
 > Claude Code 命令索引。所有命令定义在 `.claude/commands/*.md`，对话中通过 `/command-name` 调用。历史命令曾从 `.qoder/skills/` 迁移而来，当前以 `.claude/commands/` 为唯一事实来源。
 
-## 可用 Commands（共 28 个）
+## 可用 Commands（共 30 个）
 
 ### 🔧 开发与构建
 | Command | 说明 |
@@ -44,6 +44,7 @@
 | Command | 说明 |
 |---------|------|
 | `/compose-ui-expert` | Jetpack Compose UI（布局/状态/重组/HyperOS） |
+| `/ui-parity-guard` | 双端 UI 一致性守卫（spec → token → 截图闭环硬规则） |
 | `/layout-inspector-expert` | Layout Inspector 调试 Compose UI 问题 |
 | `/mediapipe-landmark-mapping` | MediaPipe 468/106 点人脸关键点映射 |
 
@@ -53,6 +54,7 @@
 | `/doc-sync-guardian` | 三层文档体系一致性维护 |
 | `/intent-router` | 意图路由：自然语言需求→技术任务 |
 | `/perf-optimizer` | 性能优化（内存泄漏/卡顿/帧率） |
+| `/ios-follow` | Android 完成后 iOS 一键对等跟随（六阶段编排管线，spec/token/平台差异台账契约化） |
 | `/rd-reflection` | RD 自我进化系统（复盘/经验/检查清单） |
 
 ### 🍎 iOS 开发与渲染
@@ -84,4 +86,4 @@
 > 命令源文件：`.claude/commands/*.md`
 > 历史源文件：`.qoder/skills/*/SKILL.md`（已迁出，`.qoder/` 已删除）
 > Canonical skills 源（SSOT）：`skills/`（经 `.kimi/skills` 软链供 kimi/OpenCode 共享）；`.claude/commands/` 为 Claude Code 专用镜像（无 frontmatter），由 `scripts/check-skill-sync.sh` 校验、从 `skills/` 同步
-> 最近整理：2026-08-08（补充 iOS 部分 7 个 skill：ios-build-debug / ios-dev-loop / swiftui-expert / metal-render-expert / mnn-ios-integration / kmp-ios-interop / ios-i18n-validator；命令数 21→28）。2026-08-03 整理记录：移除已下线 `ncnn-integration` 条目；清理 InsightFace→MNN、`/agent-test`→`/ui-driver`、`/qa-acceptance` 等过时引用；去掉易过期的「行数」列。
+> 最近整理：2026-08-16（补录 `/ios-follow`、新增 `/ui-parity-guard` 镜像；命令数 28→30，与 `skills/` SSOT 对齐，`./scripts/check-skill-sync.sh` 无漂移）。2026-08-08（补充 iOS 部分 7 个 skill：ios-build-debug / ios-dev-loop / swiftui-expert / metal-render-expert / mnn-ios-integration / kmp-ios-interop / ios-i18n-validator；命令数 21→28）。2026-08-03 整理记录：移除已下线 `ncnn-integration` 条目；清理 InsightFace→MNN、`/agent-test`→`/ui-driver`、`/qa-acceptance` 等过时引用；去掉易过期的「行数」列。
