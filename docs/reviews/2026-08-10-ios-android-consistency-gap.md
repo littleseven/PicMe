@@ -14,6 +14,10 @@
 > - 聊天多会话侧栏 + 「新建会话」丢历史 bug → ✅（`54799952`）— 关闭聊-3/聊-6；流式文本经 `onText` 逐字吐已 live（聊-1 部分）
 >
 > **仍未解决**：相-3/4 分组模式 · 相-5 长按编辑触感 · 相-6 视频播放 · 相-8 证件照 · 聊-1 节奏器精细化 · 聊-4/5 富消息类型 · §3 录像/十字星接脸/MAKEUP/风格滤镜 · §4 账号/AI记忆/ASR。**🔴 人脸聚类质量阻塞**（MNN3.5 Apple bug）见 [`IOS_TASK_STATUS.md`](../01-PRODUCT/IOS_TASK_STATUS.md) §6.1。
+>
+> **🔄 2026-08-16 更新（全量代码复核，3 并行审计 vs main `412e8f288`）**：08-13~08-16 三大批次合并 main——**Chat 富交互批次①②**（`015b59495`：流式节奏器 `b0b58dff2` / Markdown·表格·代码块 `bbe2b16dc`+`f2381d101` / CHART 图表卡 / 媒体反馈+模型胶囊 `4f32c30ff` / 图片消息子系统+编辑回链+全屏预览 `ccbbfe80a`→`c40445e30` / JS 沙盒 12 只读 handler `9c9621c30`）；**设置**（账号邮箱登录+quota+登出+删号 `85b686ae3` / 开发者选项+诊断日志 `c75767953`+`f3023b302`）；**相机**（Figma 6 面板还原 Phase F/F2 + Arbot 系统相机风格 `b6c486d3a`+`80776e0a4`，布局层）。相-3/4 分组 FACE/PERSON 已实做。人脸聚类 embedder 已回退 ONNX 合入 main（`ed248304`）规避 MNN3.5 bug，阈值 0.45 + 调优归零（`ac04eed19`）。
+> ✅ **场景面板移除为产品方案**（2026-08-16 用户确认，非倒退）：iOS 已随 `80776e0a4` 移除 UI+内核，残留 stale 注释与 4 个 i18n key（Night/Moon/Scene Off/Moon Shot）已清；**Android 侧 `SceneSelector` 面板 + `ScenePreset` 内核 + `scene_*` strings 仍在，待按方案移除（反向 gap，机-10 翻转）**。
+> **仍未解决（08-16 复核后清单）**：§3 录像 · 十字星接脸 · MAKEUP/风格滤镜接线 · 语音/AI Chat FAB · 变焦条条件显隐 · 相-6 视频播放 · 相-8 证件照 · 相-4 拖拽多选 · 相-5 长按编辑触感 · LANDSCAPE/LOCATION 分组 · 设-2 AI 记忆 · 设-3 语音控制 · 设-5 相机美颜设置分叉 · JS 沙盒写操作 · success/error 可见反馈 · 语音输入 · 抽卡/Claude 模式 · i18n 544/1011≈54%。
 
 ---
 
@@ -35,12 +39,12 @@
 | 12 | **聊天流式节奏器缺失**（一次性甩全文 vs Android 50ms/字逐字吐） | 聊天 | 高 | 中 | 聊天最大体感差；复刻 StreamingPacingController |
 | 13 | **聊天两个 bug**：`default:break` 丢弃 text_reply/success/error + 「新建会话」=「清空」**销毁历史** | 聊天 | 高 | **极低** | 补 handleUiAction 分支 + 改 newSession 不销毁 |
 | 14 | 聊天多会话侧边栏 + 9/11 消息类型 + Markdown/表格/代码渲染 | 聊天 | 高 | 高 | 大功能建，需先重构 ChatMessage 模型 |
-| 15 | i18n key 覆盖 ~~239~~ 417/981（大量回退英文，双端字面不一致） | 全局 | 中 | 中（机械） | 持续补 |
+| 15 | i18n key 覆盖 ~~239~~ ~~417~~ 544/1011≈54%（三语内部全配齐无缺漏） | 全局 | 中 | 中（机械） | 持续补 |
 | 16 | 相册页悬浮 Tab 双重渲染（iOS 内部缺陷，材质/阴影加倍） | 主页 | 低 | 极低 | 删冗余 overlay |
 | 17 | 美颜角标绿≠accent / 面板高 38%≠35% / 滤镜面板 53%≠50% | 相机 | 低 | 极低 | token 已有正确值 |
 | 18 | 相机左列 返回/Reset no-op | 相机 | 中（返回断链） | 低 | 接线 dismiss/重置 |
 
-> **策略**：~~相机是下一步重点~~ ✅ **相机高 ROI 项 #1（快门 token+黑闪+反馈）/ #3（右列 4 面板）已于 2026-08-10 对齐合并 main**（`f050d6ea`/`262bf406`/`0267b62f`/`19ae5942`/`04b912fa`/`e965445e`）。剩 #8（十字星接人脸）→ #9（makeup/滤镜）→ #6（录像，大工程留后）属 **G5 功能深化**（见 `IOS_TASK_STATUS.md` §6.6）。**聊天的两个 bug（#13）代价极低、有数据丢失风险，应速修**。相册/设置的「整块功能缺失」(#4/#5/#7) 与聊天大功能(#14) 属 Phase 6 功能建，单列计划，不混入纯对齐批次。
+> **策略**：~~相机是下一步重点~~ ✅ **相机高 ROI 项 #1（快门 token+黑闪+反馈）/ #3（右列 4 面板）已于 2026-08-10 对齐合并 main**（`f050d6ea`/`262bf406`/`0267b62f`/`19ae5942`/`04b912fa`/`e965445e`）。剩 #8（十字星接人脸）→ #9（makeup/滤镜）→ #6（录像，大工程留后）属 **G5 功能深化**（见 `IOS_TASK_STATUS.md` §6.6）。~~聊天的两个 bug（#13）~~ ✅ 已修（08-12 批次）。~~#12 流式节奏器~~ ✅（`b0b58dff2`）。#14 聊天富消息 🔄 6/11 在用（08-15 批次①②）；#7 设置账号 🔄 大部分落地（`85b686ae3`，缺清除访客）；#10 AI 记忆仍非功能骨架。**08-16 后下一步建议**：① **Android 场景面板按产品方案移除**（对齐 iOS：SceneSelector + ScenePreset + Agent 场景命令通道 + scene_* strings）→ ② #8/#9 相机深化 → ③ 相册分组尾部（LANDSCAPE/LOCATION）→ ④ 设-2/3。相册/设置的「整块功能缺失」(#4/#5) 与 #6 录像属 Phase 6 功能建，单列计划，不混入纯对齐批次。
 
 ---
 
@@ -49,6 +53,8 @@
 骨架（页顺序/初始页=相册/4 Tab 语义/设置入口）**已对齐**。差异集中在横滑体感与状态保留。
 
 > ✅ **2026-08-12 解决**：主-1 跟手 Pager + 主-2 4 页常驻 + 主-5 悬浮 Tab 双渲染 bug 全部修复（`e8582301`，`TabView(.page)` 替换 ZStack 条件渲染）。剩主-3 局部手势禁用 / 主-4 人物页多显 Tab / 主-6 打标 Tab 占位 / 主-7 返回语义。
+>
+> ✅ **2026-08-16 复核**：主-6 打标 Tab → 已进真实 `TagScanScreen`（`MainTabView.swift:56-61`）；主-4 悬浮 Tab「相册/人物页显示」为**有意设计**（`MainTabView.swift:81` 注释：相机沉浸式、聊天避让输入栏而隐藏）——与 Android「仅相册」是登记过的平台差异而非 bug。仍缺：主-3 局部手势禁用上报 · 主-7 相机返回 dismiss（左列按钮随 Arbot 重构移除后仍无接线，见 §3 机-20）。
 
 | # | 层 | 差异 | 证据 | 体感 |
 |---|---|---|---|---|
@@ -69,6 +75,8 @@
 网格骨架（3 列等比方块/人脸感知对齐/长按进选择/缩略图勾选/双指缩放/单击切栏/冷启动格言 366 条同源）**已对齐**。差异主要是「智能功能未接通」+「高频交互缺失」。
 
 > ✅ **2026-08-12 解决**：相-1 NL 搜索（`bb1839de`，`MediaSearchEngine` 全链路 live）/ 相-2 TAG 扫描（`b78d7081`，3-Pass 全通）/ 相-7 大图页 VLM 图像理解 + OCR 提取文字（`51f85cde`）/ 相-8 大图底栏「编辑」入口（`dc021070` 编辑器 lite）。**仍缺**：相-3/4 分组模式 · 相-5 长按编辑触感 · 相-6 视频播放 · 相-8 证件照 · 相-9 PhotoInfo 字段断层。
+>
+> 🔄 **2026-08-16 复核**：相-3 分组模式 **FACE/PERSON 已实做**（`GalleryViewModel.swift:174-210`，hasFace 两分组 + faceId 分组；`489bf503f`+`7b674428b`），**LANDSCAPE/LOCATION 可点但仍为「待扫描」占位组、不筛选**（`GalleryViewModel.swift:211-216`，Android 按 labels/city 真分组）；相-9 PhotoInfo 补 Location 纯文本地名（`MediaPagerView.swift:541-543`，无 lat/lon、不可点跳地图）。**Gallery 目录 08-12 后零提交**，以下仍缺：相-4 拖拽多选（仅逐格点击+长按 0.4s 进选择，`GalleryGridView.swift:293-318`）· 相-5 长按编辑+触感（无 onLongPressGesture，haptic 仅存在于快门）· 相-6 视频播放（全 app 无 AVPlayer，视频恒静态取帧）· 相-8 证件照（ID 按钮弹「敬请期待」toast）· 相-10 双重删除确认 · 相-13 预加载（`startCaching` 死代码零调用）· 相-14 空态格言（仍纯文本）。
 
 | # | 子区 | 差异 | 证据 | 体感 |
 |---|---|---|---|---|
@@ -94,6 +102,10 @@
 ## §3 相机（重点屏，下一步对齐对象）
 
 骨架（顶/底/快门/美颜面板布局）**高度对齐**，但功能可用率约 40%。**~~最关键发现：`DesignTokens.swift` 已定义正确 token 却全是死代码~~** ✅ **死代码已启用**（2026-08-10 相机对齐 B1 合并 main，`f050d6ea`：快门 76/58pt、闪屏 0.6/80ms 等 token 已生效）。§3.1 快门/§3.2 右列面板的 gap 已关；§3.3-3.5 录像/十字星/makeup 仍属 G5。
+
+> 🔄 **2026-08-16 复核（Figma 6 面板还原 Phase F/F2 + Arbot 系统相机风格批次后）**：布局已重构为**顶部 5 项工具栏**（Beauty/Ratio/Grid/Filter/Pro，`CameraPreviewView.swift:402-421`）+ 底部三行，原「右列」形态不存在。快门三件套 ✅ 保持未被破坏（haptic/音效/黑闪 token 均在）。面板功能真实度：网格 ✅（Canvas 真绘三分/黄金虚线）· EV/对比度/饱和度/色温 ✅（`setExposureTargetBias`+shader）· 比例 🔄（仅拍照裁剪生效，预览不切 ScaleType）· WB chips 仅 UI 无消费。
+> ✅ **机-10 场景面板：移除为产品方案**（2026-08-16 用户确认）。iOS UI+内核已随 `80776e0a4` 全删（残留注释与 Night/Moon/Scene Off/Moon Shot 四个 i18n key 已清理）；**Android 侧待移除**——`SceneSelector` 仍在渲染（`CameraPreviewContent.kt:541-542`）、`ScenePreset` 内核与 Agent 场景命令通道仍在（`CameraScreenModels.kt:18` 等 5 文件）、`scene_none/night/moon` strings 三语仍在（`strings.xml:271-273`）。
+> **仍全部未动**：机-12/13 录像（零实现，token 死代码）· 机-14/15/16 十字星（仍点击对焦触发 1.5s 单态，106 点只喂渲染器不驱动十字星）· 机-17 MAKEUP（「Phase 6」占位；**但 lip/blush/makeup GLSL 资产已 bundle 进 `Assets/shaders/`，无 Swift/Metal 接线**）· 机-18 风格滤镜（lock 占位 onTap 空闭包；style GLSL 资产同上已 bundle）· 机-20 左列返回/Reset（按钮随重构整体移除，返回仍无 dismiss 接线，仅横滑切页）· 机-21 变焦条 4 档硬编码常显 · 机-22 语音/AI Chat FAB 全缺 · DOCUMENT 模式仅枚举+文案壳。
 
 ### 3.1 快门（最该先治，代价极低）
 
@@ -169,6 +181,8 @@
 
 **体感总评**：主页框架是双端对齐标杆；二级页两梯队——「完全空白」（账号/AI记忆）与「部分实现关键缺失」（语音/开发者/相机美颜设置分叉）。**模型中心（除 Recommended 卡）是 1:1 对齐的参照基准**。
 
+> 🔄 **2026-08-16 复核**：设-1 账号 🔄 **大部分落地**——邮箱验证码登录/quota 外显+进度条/登出/删除账号 ✅（`85b686ae3`，`PoLangAuthClient` 四方法），**仍缺清除访客**（无 clearGuestData，对照 Android `SettingsServerAuth.kt:364`）；设-4 开发者 🔄 **大部分对齐**——直显（2026-08-15 用户定不做 7 连点，差异已登记）+ 诊断日志查看器（llm/tool/js 三份 JSONL 同构 Android Room 三表）+ Log Modules 多选 ✅（`c75767953`+`f3023b302`），Shader 调试仅存值不消费、测试工具仅 Image Download（Search/JSBridge/Accessibility 灰显 Android only）；设-6 Hero 登录态 ✅（`c749c2d5f`）；设-7 远程模型编辑 ✅（`7aa9a24e2`）；设-9 模型中心补自绘返回键（`053d607de`）；设-10 Gallery 卡已真入口（直开 TagScanScreen）✅、Backup 仍 Coming Soon；设-11 ModelCenterView 已可达 ✅，AboutView 仍死代码 + **新增** `AiAgentSettingsView`/`CameraBeautySettingsView` 两个死代码。**仍缺**：设-2 AI 记忆（`facts` 空 State + 空闭包，无数据源，GRDB 8 表无 memory_facts）· 设-3 语音控制（三 chip 全禁用占位，无模式切换/ASR 管理）· 设-5 相机美颜设置仍诊断向**且已不可达**（Android 的 Stage/模型配置向无对应）。
+
 ---
 
 ## §5 聊天
@@ -176,6 +190,8 @@
 骨架阶段，约 Android 基准端 ~20% 功能面。输入卡 24dp 圆角、thinking 三点（6dp/400ms/160ms stagger）、BlinkCursor（">" 500ms）、空态布局、示例 chip 点击**已对齐**。
 
 > ✅ **2026-08-12 解决**：聊-3「新建会话」丢历史 bug（`newSession()` 改为建新 thread + `switchSession`，不再调 `clearHistory`）/ 聊-6 多会话侧栏（`54799952`，`ChatThreadSidebarView`）。聊-2 流式文本经 `onText` 逐字吐已 live（`handleUiAction` 的 `default:break` 仅分发 UI 动作 kind，不丢流式文本）；`success`/`error` 工具确认反馈仍待补（轻微）。**仍缺**：聊-1 节奏器精细化 · 聊-4/5 富消息类型（图片/图表/表格/代码，需重构 `ChatMessage`）· 聊-7/8 媒体反馈与附件。
+>
+> 🔄 **2026-08-16 复核（富交互批次①②合并 `015b59495` 后，功能面 ~20%→~70%）**：聊-1 节奏器 ✅（`b0b58dff2` 接 commonMain `StreamingPacingController`，iosMain 工厂）；聊-4/5 富消息 🔄 **6/11 在用**——Markdown 分段+表格网格+代码块折叠复制 ✅（`bbe2b16dc`+`f2381d101`，commonMain `MarkdownSegmenter`）、CHART 图表卡 ✅（ChartSvgCard+触发链）、图片消息 ✅（userImageText 上图下文 + agentEditResult 编辑回链 + 捏合 1-5x 全屏预览），缺 userImage/agentImage/command/planPreview/optimizeCandidates 产生源；聊-7 媒体反馈 👍👎🔄 ✅（`4f32c30ff`）；聊-8 模型胶囊 + 相册选图带图发送 ✅；聊-9 JS 沙盒 12 只读 handler + run_gallery_script 产图链 ✅（`9c9621c30`+`1436640d8`），**写操作/确认弹窗 ❌**；聊-10「查看全部」横滑卡 ✅（`55739c258`）；工具轮渲染+气泡宽度对齐（`fdec78e41`/`f504c55a7`）。**仍缺**：聊-2 success/error 可见反馈（iOS 静默 break，Android 有气泡）· 语音输入（诚实占位 toast）· 停止生成 UI（`cancelCurrent` 已导出无入口，**Android 也没有——双端共同缺**）· AI 优化抽卡（仅 token 预留）· Claude 工程师模式（零实现）· ChatViewModel 图表/脚本 demo 失败文案硬编码中文。
 
 | # | 子区 | 差异 | 证据 | 体感 |
 |---|---|---|---|---|
@@ -199,6 +215,7 @@
 - **契约 SSOT**：`specs/screens/*.yaml`（camera/gallery-grid/chat/settings/model-download-center）。对齐 = iOS 实现 → yaml 契约（yaml 镜像 Android）。
 - **真机验证**：`./scripts/ios-auto-dev-loop.sh --quick --screenshot <name>`（baseline 已采，iPhone 15）。相机视觉类改动用 before/after 截图 + syslog 崩溃检查。
 - **下一步**：~~相机页对齐（T7b）~~ ✅ **已完成并合并 main（2026-08-10）**——快门 token 启用+黑闪+反馈（`f050d6ea`）+ 右列 4 面板（比例/网格/场景/ProMode + 面板互斥状态机，`262bf406`/`0267b62f`/`19ae5942`/`04b912fa`/`e965445e`）。§3 剩余 #8 十字星接人脸 / #9 makeup·风格滤镜 / #6 录像属 **G5 功能深化**（见 [`IOS_TASK_STATUS.md`](../01-PRODUCT/IOS_TASK_STATUS.md) §6.6 / [`plans/2026-08-10-ios-implementation-tasks.md`](../superpowers/plans/2026-08-10-ios-implementation-tasks.md) T9）。
+- **2026-08-16 下一步**：① **Android 侧场景面板按产品方案移除**（对齐 iOS，含 SceneSelector/ScenePreset/Agent 命令通道/scene_* strings）· ② #8 十字星接人脸 · ③ #9 MAKEUP/风格滤镜接线（GLSL 资产已 bundle，只差 Swift/Metal 接线）· ④ 相册 LANDSCAPE/LOCATION 分组真实现 · ⑤ 设-2 AI 记忆接数据源（G4）· ⑥ JS 沙盒写操作+确认弹窗（批次③）。
 - **不混入本批**：相册/设置的「整块功能缺失」（搜索/编辑/账号/录像等 Phase 6 大功能）单列计划，不在纯对齐批次内。
 
 ---
