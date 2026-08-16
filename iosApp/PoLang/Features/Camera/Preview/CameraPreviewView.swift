@@ -227,7 +227,7 @@ struct CameraPreviewView: View {
             showLandmarks = v
         }
         .onChange(of: exposureComp) { ev in
-            // ProMode EV → AVCapture 曝光补偿（-2..2；场景模式也写 EV，后到者覆盖，对标 Android）
+            // ProMode EV → AVCapture 曝光补偿（-2..2）
             controller.setExposureBias(Float(ev))
         }
         // 相机 stop 改由 isActive 门控（见 .task(id: isActive)）：全常驻 pager 下相机页不会 disappear，
