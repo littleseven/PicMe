@@ -1146,8 +1146,8 @@ platform_differences:
 
     - capability: white_balance
       android: "WB 预设 → BeautySettings.temperature 色温映射（5000/5600/6200/3600/4400K），经 GL colorgrade uTemperature 生效（系数 0.05）"
-      ios: "同一机制：色温值写入 Metal 调色管线（双端共用 colorgrade.glsl 源，iOS 副本同步系数 0.05）；WB chips UI 待实装"
-      note: "WB 模式枚举与默认值双端一致（0 自动/1 晴天/2 阴天/3 白炽灯/4 荧光灯）。2026-08-16 弃用 Camera2 CONTROL_AWB_MODE（小米 HyperOS HAL 实测忽略），统一走调色管线保证跨设备一致与 [PARITY]。"
+      ios: "同一机制：WB chip → whiteBalanceTemperatureKelvin() 写入 BeautyRenderer.Params.temperature，经 Metal lut.metal applyColorGrade uTemperature 生效（系数 0.05，2026-08-16 同步）；手动拖色温滑杆退出预设选中态；WB 模式（camera_wb_mode）与色温（camera_color_temperature）UserDefaults 持久化"
+      note: "WB 模式枚举与默认值双端一致（0 自动/1 晴天/2 阴天/3 白炽灯/4 荧光灯）。2026-08-16 弃用 Camera2 CONTROL_AWB_MODE（小米 HyperOS HAL 实测忽略），统一走调色管线保证跨设备一致与 [PARITY]。iOS 侧实际编译运行的是 lut.metal，Assets/shaders/colorgrade.glsl 为同源参考副本。"
 
   privacy_disclosure:
     android:

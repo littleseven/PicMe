@@ -92,7 +92,8 @@ struct CameraPreviewView: View {
     @State private var currentGrid: GridType = .off
     @State private var currentRatio: AspectMode = Self.resolveRatio()
     @State private var exposureComp: Double = 0      // EV -2..2（AVCapture setExposureBias）
-    @State private var whiteBalanceMode = 0          // 0=auto/1=sunny/2=cloudy/3=incandescent/4=fluorescent
+    // WB 模式持久化（对标 Android CameraMemoryState.whiteBalanceMode；色温值经 camera_color_temperature 持久化）
+    @AppStorage("camera_wb_mode") private var whiteBalanceMode = 0  // 0=auto/1=sunny/2=cloudy/3=incandescent/4=fluorescent
 
     enum ActivePanel: Equatable { case beauty, filter, grid, ratio, pro }
     enum CameraMode: String, CaseIterable {
@@ -208,6 +209,10 @@ struct CameraPreviewView: View {
             if let ws = Self.parseLaunchFloat("-warpStrength") {
                 container.beautyParams.warpStrength = ws
             }
+            // WB 色温记忆恢复（对标 Android 相机状态记忆水合；WB 模式本身由 @AppStorage 直持）
+            if let savedTemp = UserDefaults.standard.object(forKey: "camera_color_temperature") as? Float {
+                container.beautyParams.temperature = savedTemp
+            }
             DebugOverlayState.shared.set("face.engine.active", faceRouter.activeLabel)
             print("[PoLang] launch.args: mnnEngine=\(useMnnEngine) slim=\(Self.parseLaunchFloat("-slim") ?? -1) " +
                   "persistedSlim=\(UserDefaults.standard.object(forKey: "beauty_slim_debug") as? Float ?? -1) " +
@@ -229,6 +234,10 @@ struct CameraPreviewView: View {
         .onChange(of: exposureComp) { ev in
             // ProMode EV → AVCapture 曝光补偿（-2..2）
             controller.setExposureBias(Float(ev))
+        }
+        .onChange(of: container.beautyParams.temperature) { temp in
+            // 色温持久化（WB chip 映射与手动滑杆共用此通路；恢复时写入同值，幂等无环）
+            UserDefaults.standard.set(temp, forKey: "camera_color_temperature")
         }
         // 相机 stop 改由 isActive 门控（见 .task(id: isActive)）：全常驻 pager 下相机页不会 disappear，
         // onDisappear 不触发，故移除——滑离相机页由 isActive=false → controller.stop()。
@@ -693,6 +702,18 @@ private struct ProModePanel: View {
         ("Auto", 0), ("Sunny", 1), ("Cloudy", 2), ("Incandescent", 3), ("Fluorescent", 4)
     ]
 
+    /// WB 预设 → 色温（K）映射，与 Android `whiteBalanceTemperatureKelvin`（CameraScreenActions.kt）同源，
+    /// 契约见 specs/screens/camera.yaml §13；弃用 AVCapture 设备 AWB 锁定，统一走 GL/Metal 色温 tint。
+    private func whiteBalanceTemperatureKelvin(_ mode: Int) -> Double {
+        switch mode {
+        case 1: return 5600   // Sunny
+        case 2: return 6200   // Cloudy
+        case 3: return 3600   // Incandescent
+        case 4: return 4400   // Fluorescent
+        default: return 5000  // Auto = 中性
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 8) {
@@ -702,6 +723,7 @@ private struct ProModePanel: View {
                         ForEach(wbOptions, id: \.value) { opt in
                             OptionButton(titleKey: LocalizedStringKey(opt.label), isSelected: whiteBalance == opt.value) {
                                 whiteBalance = opt.value
+                                temperature = whiteBalanceTemperatureKelvin(opt.value)
                             }
                         }
                     }
@@ -710,7 +732,12 @@ private struct ProModePanel: View {
             sliderRow(label: "Exposure", value: $exposure, range: -2...2, step: 1, display: String(format: "%+.0f", exposure))
             sliderRow(label: "Contrast", value: $contrast, range: 0...200, step: 1, display: "\(Int(contrast))")
             sliderRow(label: "Saturation", value: $saturation, range: 0...200, step: 1, display: "\(Int(saturation))")
-            sliderRow(label: "Color Temperature", value: $temperature, range: 2000...8000, step: 50, display: "\(Int(temperature))K")
+            // 手动拖色温退出 WB 预设选中态（对标 Android onTemperatureManualChange：chip 回「自动」）
+            // 默认态显示 "--"（对标 Android ProModeControls：偏差 ≤50K 视为中性；spec §13 color_temperature.default_display）
+            sliderRow(label: "Color Temperature",
+                      value: Binding(get: { temperature }, set: { temperature = $0; whiteBalance = 0 }),
+                      range: 2000...8000, step: 50,
+                      display: abs(temperature - 5000) > 50 ? "\(Int(temperature))K" : "--")
         }
     }
 

@@ -59,8 +59,9 @@ static float3 applyColorGrade(float3 color, constant ColorGradeUniforms& uni) {
     color = (color - 0.5) * uni.contrast + 0.5;
     float luma = dot(color, float3(0.299, 0.587, 0.114));
     color = mix(float3(luma), color, uni.saturation);
-    color.r += uni.temperature * 0.01;
-    color.b -= uni.temperature * 0.01;
+    // 色温系数 0.05：与 Android colorgrade.glsl 同源（2026-08-16 同步；此前 0.01 为 1/5 强度偏差）
+    color.r += uni.temperature * 0.05;
+    color.b -= uni.temperature * 0.05;
     color.g += uni.tint * 0.005;
     color.b -= uni.tint * 0.005;
     color += uni.brightness;
