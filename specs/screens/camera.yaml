@@ -183,7 +183,8 @@ inline_panels:
   anchor: below_top_tool_bar
   container:
     max_width: 420
-    corner_radius: 16             # camera.panelCornerRadius
+    width_behavior: "filter/pro=fill(≤420)；ratio/grid chip 行=hug_content 包裹内容宽（2026-08-16：3 个 chip 撑满 420 过宽）"
+    corner_radius: 16             # camera.panelCornerRadius（🔴 双端必须引用 token；iOS 曾硬编码 20 漂移，2026-08-16 修正）
     border: "0.5dp outlineVariant_alpha_25"
     shadow_elevation: 12
     padding_horizontal: 16

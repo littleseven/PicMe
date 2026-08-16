@@ -545,7 +545,7 @@ struct CameraPreviewView: View {
 
     @ViewBuilder
     private func inlinePanel(for panel: ActivePanel) -> some View {
-        InlineControlPanel {
+        InlineControlPanel(fillWidth: panel != .ratio && panel != .grid) {
             switch panel {
             case .ratio:
                 selectorChipRow([
@@ -604,18 +604,20 @@ private struct ShutterSideButton<Icon: View>: View {
 }
 
 // MARK: - 顶部内联面板外壳（iOS 系统相机 HUD 风格：material 玻璃 + 紧凑圆角 + 轻阴影）
+// fillWidth=false 时包裹内容宽度（chip 行面板选项少，撑满 420 显得过宽）；filter/pro 保持满宽。
 
 private struct InlineControlPanel<Content: View>: View {
+    var fillWidth: Bool = true
     @ViewBuilder let content: () -> Content
 
     var body: some View {
         VStack(spacing: 0) {
             content()
-                .frame(maxWidth: .infinity, alignment: .center)
+                .frame(maxWidth: fillWidth ? .infinity : nil, alignment: .center)
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, 10)
         }
-        .frame(maxWidth: 420)
+        .frame(maxWidth: fillWidth ? CameraTokens.panelMaxWidth : nil)
         .background(
             RoundedRectangle(cornerRadius: CameraTokens.panelCornerRadius, style: .continuous)
                 .fill(.ultraThinMaterial)
