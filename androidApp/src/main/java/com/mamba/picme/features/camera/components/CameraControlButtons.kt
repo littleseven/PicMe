@@ -168,19 +168,21 @@ private fun TopToolBarItem(label: String, isSelected: Boolean, onClick: () -> Un
 
 /**
  * 顶部内联面板外壳（camera.yaml §4 inline_panels）：
- * maxWidth 420、圆角 camera.panelCornerRadius(20)、surface@0.85 + 0.5dp 描边 + 12dp 阴影
+ * maxWidth 420、圆角 camera.panelCornerRadius(16)、surface@0.85 + 0.5dp 描边 + 12dp 阴影
  * （iOS 侧为 ultraThinMaterial 玻璃，平台材质差异见 spec allowed_differences.panel_material）。
+ * fillWidth=false 时包裹内容宽度（chip 行面板选项少，撑满 420 显得过宽）；filter/pro 保持满宽。
  */
 @Composable
 fun InlineControlPanel(
     modifier: Modifier = Modifier,
+    fillWidth: Boolean = true,
     content: @Composable () -> Unit
 ) {
     Surface(
         modifier = modifier
             .padding(horizontal = CameraTokens.panelPaddingH)
             .widthIn(max = CameraTokens.panelMaxWidth)
-            .fillMaxWidth(),
+            .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier),
         shape = RoundedCornerShape(CameraTokens.panelCornerRadius),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
         shadowElevation = CameraTokens.panelShadowElevation,
@@ -188,7 +190,7 @@ fun InlineControlPanel(
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
+                .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
                 .padding(horizontal = CameraTokens.panelPaddingH, vertical = CameraTokens.panelPaddingV),
             contentAlignment = Alignment.Center
         ) {
@@ -206,7 +208,7 @@ class SelectorChip(
 
 /**
  * 顶部内联选项 chip 胶囊行（camera.yaml §4 inline_panels chip 行样式）：
- * 尺寸全走 token（camera.chipHeight/chipPaddingH/chipSpacing），字号 15 Medium；
+ * 尺寸全走 token（camera.chipHeight/chipPaddingH/chipSpacing），字号 13 Medium；
  * 选中 = primary 底 + cameraAccentOn 字，未选中 = cameraAccentOn 15% 底 + cameraAccentOn 字。
  */
 @Composable
@@ -231,7 +233,7 @@ fun SelectorChipRow(vararg chips: SelectorChip) {
                 Text(
                     text = chip.label,
                     color = CameraTokens.cameraAccentOn,
-                    fontSize = 15.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
                     maxLines = 1
                 )

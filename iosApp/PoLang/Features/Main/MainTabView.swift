@@ -27,7 +27,12 @@ struct MainTabView: View {
             // 手指拖动 offset 实时跟随、松手物理吸附。替换原「ZStack 条件渲染 + 仅 onEnded 手势」
             // （拖动期零位移、松手才跳 → 不跟手）。全 4 页常驻组合（对标 beyondViewportPageCount=N-1）。
             TabView(selection: $currentPage) {
-                CameraPreviewView(isActive: currentPage == 0)
+                // onGalleryTap：相机页左下相册入口（camera_gallery_thumb）→ 切回相册页。
+                // 🔴 不可省——缺省落 CameraPreviewView 默认空闭包，点击无响应（e85823015 重写时丢过一次）。
+                CameraPreviewView(
+                    onGalleryTap: { withAnimation(.easeInOut(duration: 0.25)) { currentPage = 1 } },
+                    isActive: currentPage == 0
+                )
                     .environmentObject(container)
                     .tag(0)
                 GalleryGridView(repository: container.mediaRepository, pendingQuery: $pendingGalleryQuery)

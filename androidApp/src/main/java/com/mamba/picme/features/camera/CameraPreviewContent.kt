@@ -505,7 +505,7 @@ private fun BoxScope.CameraTopControls(
             enter = slideInVertically(initialOffsetY = { offsetY -> -offsetY }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { offsetY -> -offsetY }) + fadeOut()
         ) {
-            InlineControlPanel {
+            InlineControlPanel(fillWidth = uiState.showFilterSelector || uiState.showProPanel) {
                 when {
                     uiState.showRatioSelector -> SelectorChipRow(
                         SelectorChip(
