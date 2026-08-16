@@ -32,7 +32,6 @@ struct MediaPagerView: View {
     @State private var isZoomed = false
     @State private var showInfo = false
     @State private var sharePayload: SharePayload? = nil
-    @State private var showDeleteConfirm = false
     /// 编辑器 fullScreenCover 载体（Edit 按钮 → PhotoEditorScreen）
     @State private var editTarget: EditorTarget?
     /// 证照入口「敬请期待」toast（iOS 无 ID-photo 流程，Phase 6）
@@ -72,6 +71,11 @@ struct MediaPagerView: View {
                         isActive: i == index,
                         showFaceOverlay: showFaceOverlay,
                         onTap: { withAnimation(.easeInOut(duration: 0.2)) { barsVisible.toggle() } },
+                        onLongPress: asset.type == .video ? nil : {
+                            // 长按进编辑器 + 触感（对齐 Android MediaPager onLongClick，相-5）
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            editTarget = EditorTarget(localIdentifier: asset.uri)
+                        },
                         onZoomChange: { zoomed in
                             if zoomed { isZoomed = true } else if i == index { isZoomed = false }
                         })
@@ -104,11 +108,7 @@ struct MediaPagerView: View {
         .sheet(item: $shareTextPayload) { st in
             ActivityView(activityItems: [st.text])
         }
-        .confirmationDialog(String(localized: "Delete this photo?"),
-                            isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-            Button(String(localized: "Delete"), role: .destructive) { deleteCurrent() }
-            Button(String(localized: "Cancel"), role: .cancel) {}
-        }
+        // 删除确认收敛为仅系统 PHAsset 窗（对齐 Android，相-10）
         .fullScreenCover(item: $editTarget) { target in
             PhotoEditorScreen(localIdentifier: target.id)
         }
@@ -139,6 +139,17 @@ struct MediaPagerView: View {
             guard onset else { return }
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { showCopiedToast = false }
         }
+        // 相邻页缩略图预热（相-13，对齐 Android ±3 页预加载；PHCachingImageManager 窗口取 ±2 页）
+        .onAppear { preloadAround() }
+        .onChange(of: index) { _ in preloadAround() }
+    }
+
+    /// 当前页 ±2 页预热 1600×1600 aspectFill 请求（与 ZoomablePagerPage 实际加载参数一致），
+    /// 降低翻页首帧白块。
+    private func preloadAround() {
+        let ids = items.indices.filter { abs($0 - index) <= 2 }.map { items[$0].uri }
+        guard !ids.isEmpty else { return }
+        ThumbnailLoader.shared.startCaching(identifiers: ids, size: CGSize(width: 1600, height: 1600))
     }
 
     /// 顶栏（对齐 Android `mediaPagerTopControls`：黑 0.85 底、h16/v10 padding（内容高 68dp）、
@@ -233,7 +244,7 @@ struct MediaPagerView: View {
             Spacer()
             bottomBarItem(icon: "mat_delete",
                           title: String(localized: "Delete"),
-                          accessibilityID: "pager_delete") { showDeleteConfirm = true }
+                          accessibilityID: "pager_delete") { deleteCurrent() }
             Spacer()
         }
         .padding(.horizontal, 8)
@@ -383,6 +394,8 @@ private struct ZoomablePagerPage: View {
     let isActive: Bool
     let showFaceOverlay: Bool
     let onTap: () -> Void
+    /// 长按进编辑器（视频页外层不传闭包 → 无长按）；触感由外层统一触发
+    let onLongPress: (() -> Void)?
     let onZoomChange: (Bool) -> Void
 
     @State private var image: UIImage?
@@ -426,6 +439,10 @@ private struct ZoomablePagerPage: View {
             .offset(offset)
             .contentShape(Rectangle())
             .onTapGesture { onTap() }
+            // 长按 → 编辑器（对齐 Android MediaPager onLongClick，相-5；视频页无长按）
+            .onLongPressGesture(minimumDuration: 0.4) {
+                onLongPress?()
+            }
             .gesture(magnify(in: geo.size))
             // 缩放态高优先级平移：压过 TabView 横滑；非缩放态禁用，翻页手势不受影响
             .highPriorityGesture(pan(in: geo.size), isEnabled: scale > 1.02)

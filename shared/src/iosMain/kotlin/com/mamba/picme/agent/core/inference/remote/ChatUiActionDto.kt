@@ -1,5 +1,6 @@
 package com.mamba.picme.agent.core.inference.remote
 
+import com.mamba.picme.agent.core.model.command.AgentCommand
 import com.mamba.picme.agent.core.model.context.AgentAction
 
 /**
@@ -14,7 +15,7 @@ import com.mamba.picme.agent.core.model.context.AgentAction
  * `IosMediaRepositoryBridge.fetchAllMedia()` 本地取图，纯端侧渲染。
  *
  * @property kind 动作类型："media_results" | "text_reply" | "success" | "error"
- * @property message 文本内容（TextReply.message / Error.message / 空串）
+ * @property message 文本内容（TextReply.message / Error.message / Success.command 的 method 名 / 空串）
  * @property query 搜索关键词（仅 media_results 有值）
  * @property totalCount 命中数量（仅 media_results）
  * @property mediaIds 命中媒体 id 列表（仅 media_results，用于 Swift 取缩略图）
@@ -49,7 +50,10 @@ data class ChatUiActionDto(
                 message = action.message
             )
             is AgentAction.Success -> ChatUiActionDto(
-                kind = KIND_SUCCESS
+                // command 的 method 名（如 "navigate_to"），Swift 端映射「✅ 已执行 …」可见反馈
+                // （对齐 Android describeCommandResult 兜底分支）
+                kind = KIND_SUCCESS,
+                message = AgentCommand.getMethodName(action.command)
             )
             is AgentAction.Error -> ChatUiActionDto(
                 kind = KIND_ERROR,

@@ -323,11 +323,17 @@ final class ChatViewModel: ObservableObject {
             //（对齐 Android uiActions 收集器 TextReply → else{} 忽略，修复回复被切成多条）
             break
         case "error":
-            // 同 text_reply：错误经 "Error: ..." observation 回传，由 LLM 总结呈现
-            break
+            // 对齐 Android：错误以 ❌ 气泡可见（ChatViewModel.kt:1419），不由 LLM 总结掩盖
+            let text = "❌ \(dto.message)"
+            messages.append(ChatMessage(role: .assistant, text: text))
+            touchThread(preview: text)
+            persist()
         case "success":
-            // 命令成功：无用户可见文本载荷，静默（对齐 Android Success 不追加气泡）
-            break
+            // 对齐 Android describeCommandResult（ChatViewModel.kt:1409）：✅ 已执行 {command}
+            let text = String(format: String(localized: "chat.command_executed"), dto.message)
+            messages.append(ChatMessage(role: .assistant, text: text))
+            touchThread(preview: text)
+            persist()
         default:
             break
         }
@@ -423,7 +429,9 @@ final class ChatViewModel: ObservableObject {
             Task { @MainActor in
                 guard let self, let errorMessage, !errorMessage.isEmpty else { return }
                 self.messages.append(
-                    ChatMessage(role: .assistant, text: "图表生成失败：\(errorMessage)", error: errorMessage)
+                    ChatMessage(role: .assistant,
+                                text: String(format: String(localized: "chat.chart_failed"), errorMessage),
+                                error: errorMessage)
                 )
                 self.persist()
             }
@@ -447,7 +455,9 @@ final class ChatViewModel: ObservableObject {
                 guard let self else { return }
                 if let errorMessage, !errorMessage.isEmpty {
                     self.messages.append(
-                        ChatMessage(role: .assistant, text: "脚本执行失败：\(errorMessage)", error: errorMessage)
+                        ChatMessage(role: .assistant,
+                                    text: String(format: String(localized: "chat.script_failed"), errorMessage),
+                                    error: errorMessage)
                     )
                 } else {
                     self.messages.append(ChatMessage(role: .assistant, text: result))

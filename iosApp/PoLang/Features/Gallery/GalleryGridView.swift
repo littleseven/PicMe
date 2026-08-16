@@ -20,7 +20,6 @@ struct GalleryGridView: View {
     @State private var isSelectionMode = false
     @State private var selected: Set<String> = []
     @State private var sharePayload: SharePayload? = nil
-    @State private var showDeleteConfirm = false
     @State private var showSettings = false
     @State private var showModelCenter = false
     /// TAG 扫描页（SP-B）：相册顶栏扫描图标进入
@@ -93,11 +92,7 @@ struct GalleryGridView: View {
         .fullScreenCover(isPresented: $showScanScreen) {
             TagScanScreen(onDismiss: { showScanScreen = false })
         }
-        .confirmationDialog(deleteConfirmTitle, isPresented: $showDeleteConfirm,
-                            titleVisibility: .visible) {
-            Button(String(localized: "Delete"), role: .destructive) { deleteSelected() }
-            Button(String(localized: "Cancel"), role: .cancel) {}
-        }
+        // 删除确认收敛为仅系统 PHAsset 窗（对齐 Android：无 app 层二次确认，相-10）
         .onAppear {
             if permissionOverride == nil { permission.refresh() }
             vm.start()
@@ -148,7 +143,7 @@ struct GalleryGridView: View {
                             isEnabled: !selected.isEmpty) { shareSelected() }
             AppTopBarAction(systemName: "trash",
                             accessibilityID: "topbar_delete",
-                            isEnabled: !selected.isEmpty) { showDeleteConfirm = true }
+                            isEnabled: !selected.isEmpty) { deleteSelected() }
         }
     }
 
@@ -200,7 +195,9 @@ struct GalleryGridView: View {
                 if vm.isLoading {
                     SplashPlaceholder()
                 } else if vm.groups.isEmpty {
-                    EmptyGalleryMessage(text: String(localized: "No media found"))
+                    // 空相册同冷启动格言占位（spec empty_gallery → reuse splash_placeholder；
+                    // Android GalleryScreen 同走 GallerySplashPlaceholder，相-14）
+                    SplashPlaceholder()
                 } else {
                     // 显式 VStack 容器：防 ScrollView 贪婪占满把 Limited banner 挤出可视区（🟡-6）
                     VStack(spacing: 0) {
@@ -365,12 +362,6 @@ struct GalleryGridView: View {
         } else {
             selected = Set(allItems.map(\.uri))
         }
-    }
-
-    private var deleteConfirmTitle: String {
-        selected.count == 1
-            ? String(localized: "Delete this photo?")
-            : String(format: String(localized: "Delete %lld photos?"), selected.count)
     }
 
     private func shareSelected() {

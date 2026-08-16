@@ -46,6 +46,72 @@
         }
       }
     },
+    "chat.chart_failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chart generation failed: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图表生成失败：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "圖表生成失敗：%@"
+          }
+        }
+      }
+    },
+    "chat.command_executed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "✅ Executed %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "✅ 已执行 %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "✅ 已執行 %@"
+          }
+        }
+      }
+    },
+    "chat.script_failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Script execution failed: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本执行失败：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "腳本執行失敗：%@"
+          }
+        }
+      }
+    },
     "analysis.low.memory": {
       "localizations": {
         "en": {
@@ -3049,29 +3115,6 @@
         }
       }
     },
-    "Delete %lld photos?": {
-      "extractionState": "manual",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "删除 %lld 张照片？"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete %lld photos?"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "刪除 %lld 張照片？"
-          }
-        }
-      }
-    },
     "Delete Person": {
       "extractionState": "manual",
       "localizations": {
@@ -3158,29 +3201,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "刪除此人物？"
-          }
-        }
-      }
-    },
-    "Delete this photo?": {
-      "extractionState": "manual",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "删除这张照片？"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete this photo?"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "刪除這張照片？"
           }
         }
       }
@@ -4599,29 +4619,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "名稱"
-          }
-        }
-      }
-    },
-    "No media found": {
-      "extractionState": "manual",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未找到媒体文件"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No media found"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未找到媒體文件"
           }
         }
       }
