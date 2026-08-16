@@ -137,7 +137,7 @@ User Input ("找出去年夏天的照片" / "磨皮50")
     → ImageEditCapability / NavigationCapability / SystemCapability + Chat*Capability (execute)
 ```
 
-- **Module**: `:shared` — KMP module containing all Agent orchestration components (package `com.mamba.picme.agent.core`; Android composition root `androidApp/agent/AndroidAgentComposition.kt`).
+- **Module**: `:shared` — KMP module containing all Agent orchestration components (package `com.mamba.picme.agent.core`; Android composition root `androidApp/src/main/java/com/mamba/picme/agent/AndroidAgentComposition.kt`).
 - **Local model**: on-device text LLM removed (2026-08); MNN-LLM runtime only hosts VLM tagging (Qwen3-VL-2B). Local inference pipeline (`LocalInferencePipeline`) deleted with it.
 - **Remote protocol**: Standard OpenAI Chat Completions API (tool_calls, streaming, multi-turn dialogue). Koog (JetBrains KMP Agent 框架) as consumer layer — `shared/src/commonMain/.../inference/remote/koog/` (KoogChatAgent / KoogReActAgent / RemoteModelFactory).
 - **Capabilities**: Registered `Capability` classes (14) — app/chat-scoped: `ImageEditCapability` (conversational `edit_image`), `GalleryCapability`, `SettingsCapability`, `AiOptimizeCapability`, `ChatSearchCapability` / `ChatGallerySummaryCapability` / `ChatStartTagScanCapability` / `ChatRunScriptCapability` / `ChatMediaWriteCapability`, `PersonRelationCapability`, `MemoryCapability`; activity-scoped: `NavigationCapability`, `SystemCapability` (app/settings launch + cross-app a11y); page-scoped: `CameraCapability` (camera screen register/unregister). (`AutoTagCapability` / `RemoteControlCapability` / `BeautyCapability` exist in code but are NOT registered — see registry doc.) Command→Capability routing SSOT: `docs/04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md`.

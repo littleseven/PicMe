@@ -51,7 +51,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | `PhotoEditor` | `photo_editor/{sourceUri}?recipeUri={recipeUri}&autoOptimize={autoOptimize}` | 图片编辑器 — 从相册 MediaPager 进入；`recipeUri` 重新编辑已保存副本，`autoOptimize` 进入时自动触发 AI 一键优化 |
 | `IDPhoto` | `id_photo/{sourceUri}` | 证件照制作 |
 | `Settings` | `settings` | 设置 — 主菜单，展示 6 个分类入口 |
-| `SettingsCategory` | `settings/{category}` | 设置二级分类页 — `personalization`、`ai_agent`、`gallery`、`camera_beauty`、`system`、`developer` |
+| `SettingsCategory` | `settings/{category}` | 设置二级分类页 — `personalization`、`ai_agent`、`gallery`、`camera`、`system`、`developer`（2026-08-16 `camera_beauty` 更名 `camera`，承载相机状态记忆与重置） |
 | `ModelCenter` | `model_center/{categoryTag}` | 模型中心 — 按服务功能分类管理本地模型 |
 | `DuplicateManager` | `duplicate_manager` | 相册功能子页 — 重复/相似照片扫描与删除，从 Settings「相册功能」卡片进入 |
 | `TagControl` | `tag_control` | TAG 生成控制 — 3-Pass 进度、按类别/时间范围重新生成 |
@@ -99,7 +99,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | **IDPhoto** | `features/idphoto/` | `IDPhotoScreen`, `IDPhotoViewModel` | 证件照制作二级页（`id_photo/{sourceUri}`）；底部 4-tab（底色/尺寸/边缘/修补），修补 tab 涂抹手势 + 覆盖层，边缘 tab 三滑块（对比度/收缩扩张/羽化）松手触发预览更新 |
 | **Main** | `features/main/` | `MainPagerHost` | 主页面 Pager 容器（Camera/Gallery/Chat/People 4 页横滑） |
 | **Person** | `features/person/` | `PersonScreen`, `PersonViewModel`, `PersonCoverResolver` | 人物聚类独立页 |
-| **Settings** | `features/settings/` | `SettingsScreen`, `SettingsViewModel`, `ModelCenterScreen`, `MemoryFactsScreen` | 设置与模型管理；`MemoryFactsScreen` 为「AI 记忆」管理二级页（人物关系区查看/编辑/删除 + 事实记忆区查看/编辑/删除/清空） |
+| **Settings** | `features/settings/` | `SettingsScreen`, `SettingsViewModel`, `LlmModelManagerScreen`（含 `ModelCenterScreen` composable）, `MemoryFactsScreen` | 设置与模型管理；`MemoryFactsScreen` 为「AI 记忆」管理二级页（人物关系区查看/编辑/删除 + 事实记忆区查看/编辑/删除/清空） |
 | **TagViewer** | `features/tagviewer/` | `TagViewerTestScreen`, `TagAggregator`, `TagJsonParser` | 标签查看页 |
 | **Translation** | `features/translation/` | `SentencePieceTestScreen` | SentencePiece 翻译测试页 |
 | **Debug** | `features/debug/` | `DebugScreen`, `LogOverlay`, `ScreenshotUtil` | 开发调试工具 |

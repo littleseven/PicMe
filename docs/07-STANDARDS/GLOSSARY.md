@@ -234,7 +234,7 @@ sceneManager.transitionTo(Scene.GALLERY)
 | **人脸十字星** | Face Crosshair | 锁定人脸且设备运动时显示的辅助标记 | 对焦框、锁定标记 |
 | **美颜总开关** | Beauty Master Switch | 控制美颜系统开启/关闭的主开关 | 美颜开关、美颜总控 |
 | **画幅比例** | Aspect Ratio | 照片宽高比（4:3、16:9、FULL） | 比例、裁剪比例 |
-| **场景模式** | Scene Mode | 拍摄场景预设（正常、夜景、人像、专业） | 模式、拍摄模式 |
+| **场景模式** | Scene Mode | 拍摄场景预设（无/夜景/月亮；手动入口已下线，仅 Agent/语音指令可切换） | 模式、拍摄模式 |
 
 ### 4.1 详细定义
 

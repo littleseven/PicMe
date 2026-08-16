@@ -99,7 +99,7 @@
 ### 2.6 模型管理（2026-05 新增，2026-06 按服务功能重分类）
 
 **统一模型中心**
-- **入口**：`ModelCenterScreen`，从设置页「AI 助手」卡片「模型中心」进入
+- **入口**：`ModelCenterScreen`（composable 定义于 `LlmModelManagerScreen.kt`），从设置页「模型中心」网格卡进入
 - **顶部分类（按 PoLang 服务功能划分）**：
   - **必须**：核心运行必须模型，提供一键下载缺失模型队列
   - **相册打标**：MobileCLIP、OPUS-MT 等语义标签/搜索模型
@@ -161,14 +161,18 @@
 
 **目标**：解决设置页内容过多、单屏无法看完的问题，主菜单一屏可见，功能分组进入二级页。
 
-**分类枚举**：`SettingsCategory`
-- `MAIN` — 设置主菜单，6 个分类卡片 + 重复照片快速入口
-- `PERSONALIZATION` — 主题、语言
-- `AI_AGENT` — 模型中心、Agent 模式、飞书通信通道、语音交互
-- `GALLERY` — 重复照片管理、TAG 生成控制、Debug 相册调试工具
-- `CAMERA_BEAUTY` — ROI / Landmark 阶段配置、高级人脸检测选项
+**分类枚举**：`SettingsCategory`（2026-08-16 现状，九分类）
+- `MAIN` — 设置主菜单：账号 Hero 卡 + 主题/语言快选卡 + 2 列分类卡片网格（baseItems 10 项）
+- `ACCOUNT` — 账号（邮箱验证登录 / 额度卡）
+- `GALLERY` — 相册功能：TAG 生成控制、标签查看、重复照片管理、打标模型选择、GPU 加速
+- `CAMERA` — 相机状态记忆与重置（重置入口 2026-08-16 自相机页迁入，带 AlertDialog 二次确认）
 - `SYSTEM` — 悬浮窗 AI 聊天气泡、电池优化与 MIUI 权限
-- `DEVELOPER` — Debug 总开关、相机/人脸/日志浮层、Shader 调试、日志模块
+- `REMOTE_MODEL` — 远程模型配置、Agent 模式（用户侧一级入口）
+- `LOCAL_MODEL` — 本地模型配置（含人脸检测引擎收口）（用户侧一级入口）
+- `SANDBOX` — 沙盒与权限：设备访问（含语音入口开关）、JS 沙盒权限（用户侧一级入口）
+- `DEVELOPER` — Debug 总开关、相机/人脸/日志浮层、Shader 调试、日志模块（解锁后附加网格项）
+
+> 历史分类 `PERSONALIZATION`/`AI_AGENT` 已删除；`CAMERA_BEAUTY` 已更名 `CAMERA`。
 
 **导航实现**
 - 主菜单路由：`Screen.Settings.route = "settings"`
@@ -178,9 +182,8 @@
 - 所有二级页共用同一个 `SettingsScreen` Composable，通过 `category` 条件渲染对应区块
 
 **UI 约定**
-- 主菜单使用 2 列卡片网格（3 行，一屏可显示完）
+- 主菜单使用 2 列卡片网格（baseItems 10 项，5 行；开发者选项解锁后附加第 11 项）
 - 每个分类卡片包含：图标、标题、两行描述
-- 重复照片管理在主菜单底部以单行可点击入口形式保留，方便从相册迁移后的老用户习惯
 
 ### 2.9 Agent 集成（2026-05 新增）
 

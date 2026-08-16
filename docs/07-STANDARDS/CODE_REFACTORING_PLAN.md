@@ -1,6 +1,6 @@
 # PoLang 代码拆分与架构重构计划
 
-> ⚠️ **历史方案（2026-08-03 标注）**：本文将 Agent Runtime 归于 `:agent-core`（`com.picme`）的表述已被取代——Agent Runtime 实际位于 `:runtime-core`（`com.mamba.picme`），`:agent-core` 为纯 Java langchain4j 适配层。本文仅作历史参考。
+> ⚠️ **历史方案（2026-08-03 标注；2026-08-16 更新）**：本文将 Agent Runtime 归于 `:agent-core`（`com.picme`）的表述已被取代——Agent Runtime 现位于 `:shared` KMP 模块（`shared/src/commonMain/kotlin/com/mamba/picme/agent/core/`）；`:runtime-core`（已并入 `:shared`）与 `:agent-core`（langchain4j 适配层，已被 Koog 取代）均已删除。本文仅作历史参考。
 
 > 本文档基于 2026-06-07 的代码扫描结果，识别项目中超过 1000 行的大文件，分析架构问题，并给出拆分建议。
 > 重点关注 Agent 模块的独立库提取可行性。

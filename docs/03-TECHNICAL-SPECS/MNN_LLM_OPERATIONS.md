@@ -1228,7 +1228,7 @@ echo "Full log: $LOG_FILE"
 | 文件 | 说明 |
 |------|------|
 | `shared/src/commonMain/kotlin/com/mamba/picme/agent/core/facade/AgentOrchestrator.kt` | Agent 编排器 |
-| `shared/src/commonMain/kotlin/com/mamba/picme/agent/core/facade/AgentConfigurator.kt` | 配置器；`LocalLlmEngine` 由 Android 组合根（`androidApp/agent/AndroidAgentComposition.kt`）直构注入 |
+| `shared/src/commonMain/kotlin/com/mamba/picme/agent/core/facade/AgentConfigurator.kt` | 配置器；`LocalLlmEngine` 由 Android 组合根（`androidApp/src/main/java/com/mamba/picme/agent/AndroidAgentComposition.kt`）直构注入 |
 | `shared/src/androidMain/kotlin/com/mamba/picme/agent/core/inference/local/llm/LocalLlmEngine.kt` | VLM 打标引擎（仅 `imageInference`） |
 | `shared/src/androidMain/kotlin/com/mamba/picme/agent/core/inference/local/llm/MnnLlmClient.kt` | MNN LLM 客户端（VLM 打标 JNI 桥，`libagent_native.so` 由 `:engines:agent-native` 构建） |
 | `engines/mnn-core/src/main/java/com/mamba/picme/mnn/MnnResourceManager.kt` | 资源协调管理器（含 `MnnGlobalReleaseLock`） |

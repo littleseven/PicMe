@@ -49,6 +49,11 @@
 
 **修正：** `shutter` 补全录制态（inner 28dp/4r）、`beautyPanel` 补全 heightRatio 边界、`topBar` 补 titleFontWeight。
 
+**v2.1.0（2026-08-15，相机顶部工具栏改版）：**
+- `camera` 组收编原 iOS 手写 CameraTokens：`topToolBar*`（padding/radius/spacing）、`panelCornerRadius`、`inlineFilterPanelHeight`、`panelBackground`(#F21C1A1F)、`cameraAccentOn`、`toolBarUnselectedBg`、`modeSwitcherSpacing`、`zoomBar*`/`zoomCapsule*`；删除死 token（`bottomActionButton*`、各底部面板 heightRatio——面板已改顶部内联）。
+- 美颜面板高度唯一 SSOT = `beautyPanel.heightRatio`（0.35 → **0.40**，容下磨皮/美白/瘦脸/大眼 4 行 + Tab 栏）；iOS 由 `CameraTokens.beautyPanelHeightRatio`（手写）切换到 `BeautyPanelTokens.heightRatio`（生成）。
+- 生成器新增 `RAW_SWIFT_VALUES` 直出表：JSON 中 `"@xxx"` 占位字符串（语义引用，classify=skip）可经该表为 Swift 生成原始属性行（如 `cameraAccent = Color.accentColor`——系统动态色不可冻结为 hex）；Android 侧不生成（对应语义走 colorScheme 角色，如相机 accent=primary）。`SWIFT_CG_FLOAT_KEYS` 增补 `beautyPanel.heightRatio`（iOS `ControlPanel(heightRatio:)` 形参为 CGFloat）。
+
 ---
 
 ## 3. ⚠️ Android 代码缺陷（动态取色掩盖，iOS 须规避）

@@ -59,7 +59,7 @@ Gradle target：`android`（KMP android library 插件）+ `jvm()` + `iosX64()` 
 :engines:beauty-api ──→ :shared（api，BeautySettings 等公开 API 面需要）
 ```
 
-Android 组合根：`androidApp/agent/AndroidAgentComposition.kt`（平台实现唯一直构点，`AgentOrchestrator.initialize(AgentDependencies)` 注入；commonMain 无 `getInstance(context)` 旧签名）。
+Android 组合根：`androidApp/src/main/java/com/mamba/picme/agent/AndroidAgentComposition.kt`（平台实现唯一直构点，`AgentOrchestrator.initialize(AgentDependencies)` 注入；commonMain 无 `getInstance(context)` 旧签名）。
 
 ## 4. 编译与测试验证
 
