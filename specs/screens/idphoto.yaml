@@ -1,0 +1,418 @@
+# ============================================================================
+# 证照屏完整产品规格书（ID Photo Screen Spec）
+# ============================================================================
+# 基准端：Android features/idphoto/（IDPhotoScreen/IDPhotoViewModel/IdPhotoTab/
+#        components/{IdPhotoTabRow,ColorSwatchRow,SizeChipRow,EdgePanel,RepairPanel}）
+#        + domain/matting/（纯逻辑域）
+# 用途：iOS 实现的唯一输入，不读 Android 源码
+# 值引用：尺寸/颜色引用 design-tokens.json `idphoto.*` token（IdPhotoTokens），
+#        数值在注释标注；通用值引用既有组（spacing/radius/topBar/typography/…）
+# 定稿截图：tmp/ui-reference/idphoto-02-screen.png（底色）/ 03（尺寸）/
+#          04（边缘）/ 05（修补）
+# 数据流：源图 URI 经导航传入 → 端侧抠图（100% on-device）→ 预览合成 → 保存相册
+
+# ============================================================================
+# 1. 总体结构
+# ============================================================================
+idphoto:
+  type: full_screen                             # iOS: fullScreenCover（PhotoEditorScreen 同款）
+  theme: forced_dark                            # 全屏强制深色（§8）
+  background: "idphoto.screenBackground=#FF101010"
+  layout: vstack                                # 顶栏 + [状态内容] + 底部控制区
+  entry_points:
+    - gallery_pager_bottom_bar                  # 照片详情（MediaPager）底栏「证件照」按钮
+      # Android 另有 chat 照片预览入口；iOS chat 无 MediaPager（登记 allowed gap，见 §12）
+  input: photo_uri                              # 唯一入参=源图（无应用内选图器）
+  on_enter: "load(uri)：解码→抠图→Ready/Error（§7 状态机）"
+
+  system_bars:
+    status_bar: "AppTopBar 处理 inset；深色屏 → 浅色图标"
+    home_indicator: 默认
+
+  back_stack:
+    priority: "无面板拦截——系统返回/顶栏返回 恒等于退出本屏回照片详情"
+    detail: "tab 选择/滑杆/描边等状态不消费 Back；退出即丢弃（重进=重新 load）"
+
+# ── 顶栏（AppTopBar，48dp 通用顶栏）──
+  top_bar:
+    height: "topBar.height=48"
+    title:
+      text: "id_photo_title"                    # ID Photo / 证件照 / 證件照
+      style: "topBar.titleFontSize=17 / Medium"
+    nav_back:
+      icon: { material: arrow_back, sf: "chevron.left" }
+      click: "退出本屏（不保存）"
+    actions:
+      - id: save_button                         # 右侧唯一动作
+        icon: { material: check_rounded, sf: "checkmark" }
+        desc: "done"                            # Done / 完成 / 完成
+        enabled_when: "State==Ready && !isSaving"
+        click: "save()（§7.5）"
+
+# ── 内容区（按状态）──
+  content:
+    loading:
+      layout: center
+      element: { type: circular_progress, tint: primary }   # 无文字
+    error:
+      layout: center
+      element:
+        type: text
+        text: "state.message（editor_load_failed / id_photo_matting_failed / editor_load_failed_with_reason(%s)）"
+        color: White
+        padding: "spacing.lg=16"
+      # 无重试按钮——返回重进即重试（模型下载完成后自然成功）
+    ready:                                      # §2
+
+# ============================================================================
+# 2. Ready 态布局
+# ============================================================================
+ready_layout:
+  container:
+    layout: column
+    padding: "spacing.lg=16 四边"
+    spacing: "spacing.lg=16 元素间"
+    align: center_horizontal
+
+  # ── 2.1 预览框（视觉核心）──
+  preview_frame:
+    area: "weight(1f) 垂直弹性区（顶栏与提示行之间），内容居中"
+    frame:
+      width: "idphoto.frameWidth=220"
+      height: "220 × (当前尺寸规格 heightPx/widthPx)"   # 随「尺寸」tab 选择联动
+      background: "idphoto.frameBackground=#FFFFFFFF"
+      shape: "RoundedCornerShape(idphoto.frameRadius=4) + clip"
+    render_contract:                    # 🔴 白边回归契约（Android 曾出 153px 底部白边）
+      rule: "整框 = 从合成底图裁 cropRect（§6.4）后**精确拉伸填满**，零留边零白条"
+      forbidden: "Image+scale/translation 组合（子内容溢出父框产生白边，历史 bug 235281d5b）"
+      android_impl: "Canvas.drawImage(srcOffset=cropRect, srcSize=cropW/H, dstSize=frame)"
+      ios_impl: "Canvas/GraphicsContext draw cgImage(cropRect) 拉伸到 frame 尺寸"
+    rebuild_retention: "重算底图期间保留上一帧显示（防闪白）；新底图就绪才替换并清空修补 overlay 点"
+
+  # ── 2.2 构图提示行 ──
+  hint:
+    normal_tab: "id_photo_drag_hint"             # Drag or pinch to adjust framing
+    repair_tab: "id_photo_repair_hint"           # Paint on the photo to restore or erase areas
+    style: "typography.bodySmall / White alpha 0.6"
+
+  # ── 2.3 Tab 行（IdPhotoTabRow）──
+  tab_row:
+    layout: row_fillWidth_spaceEvenly
+    tabs: [ BG_COLOR, SIZE, EDGE, REPAIR ]      # 默认 BG_COLOR
+    item:
+      type: filter_chip                          # M3 FilterChip
+      label:
+        BG_COLOR: "id_photo_tab_color"           # Color / 底色 / 底色
+        SIZE: "id_photo_tab_size"                # Size / 尺寸 / 尺寸
+        EDGE: "id_photo_tab_edge"                # Edge / 边缘 / 邊緣
+        REPAIR: "id_photo_tab_repair"            # Repair / 修补 / 修補
+      container:
+        unselected: "idphoto.tabUnselectedContainer=#FF2A2A2A"
+        selected: "colorScheme.primary（dark）"
+      label_color:
+        selected: "onPrimary"
+        unselected: "White"
+
+  # ── 2.4 面板区（按 tab 单选显示）──
+  panels:
+    BG_COLOR: color_swatch_row                   # §3
+    SIZE: size_chip_row                          # §4
+    EDGE: edge_panel                             # §5
+    REPAIR: repair_panel                         # §6
+
+# ============================================================================
+# 3. 底色面板（ColorSwatchRow）
+# ============================================================================
+color_swatch_row:
+  layout: row                                    # 左对齐，间距 spacing.lg=16
+  data: "IDPhotoSpecs.COLORS（§9.2），默认选中 index 0（标准蓝）"
+  swatch:
+    size: "idphoto.swatchSize=40"
+    shape: circle
+    background: "色板颜色本身（token idphoto.colorBlue/Red/White）"
+    border:
+      selected: "idphoto.swatchSelectedBorderWidth=3 / colorScheme.primary"
+      unselected: "idphoto.swatchUnselectedBorderWidth=1 / Gray"
+    interaction: "点选 → selectColor(index)（即时重算底图）"
+    a11y: "颜色名（id_photo_color_blue/red/white）"
+
+# ============================================================================
+# 4. 尺寸面板（SizeChipRow）
+# ============================================================================
+size_chip_row:
+  layout: row                                    # 间距 spacing.sm=8
+  data: "IDPhotoSpecs.SIZES（§9.1），默认选中 index 0（1寸）"
+  chip:
+    type: assist_chip
+    label: "尺寸名（id_photo_size_*）"
+    selected: { container: "primaryContainer", label: "onPrimaryContainer", border: none }
+    unselected:
+      container: transparent
+      label: White
+      border: "1dp White alpha idphoto.sizeChipUnselectedBorderAlpha=0.5"
+    interaction: "点选 → selectSize(index)（预览框宽高比随之变化，§2.1）"
+
+# ============================================================================
+# 5. 边缘面板（EdgePanel）
+# ============================================================================
+edge_panel:
+  sliders:                                       # 三个 AppSlider 行
+    - id: feather                                # 羽化
+      label: "id_photo_edge_feather"
+      range: [0, 20] px                          # 步进连续（steps=0）
+      default: 0
+      display: "'%d px'"
+    - id: shrink_expand                          # 收缩 / 扩张
+      label: "id_photo_edge_shrink_expand"
+      range: [-20, 20] px
+      default: 0
+      display: "'%d px'"
+    - id: edge_contrast                          # 边缘对比度
+      label: "id_photo_edge_contrast"
+      range: [1.0, 4.0]
+      default: 2.5
+      display: "'%.1f'"
+  row_layout: "label(typography.bodySmall, White, weight 1f) + value(bodySmall, White alpha 0.6) 右对齐；滑杆行间距按面板内默认（参考截图 04）"
+  slider_component: "AppSlider（全 app 统一组件；iOS 版需在调用点补 drag-end 提交语义）"
+  commit_contract:                               # 🔴 提交语义
+    rule: "拖动中仅更新本地浮点显示；**任一滑杆 release 时一次性提交全部三项** setEdgeParams"
+    reason: "重算底图成本高（全图 alpha 变换），逐帧提交会卡"
+  reset_button:
+    type: text_button
+    label: "id_photo_edge_reset"                 # Reset / 重置参数 / 重設參數
+    align: end
+    color: primary
+    click: "resetEdgeParams()（回到 2.5/0/0）"
+
+# ============================================================================
+# 6. 修补面板（RepairPanel）
+# ============================================================================
+repair_panel:
+  mode_toggle:                                   # 行1：两 FilterChip（同 tab 样式）
+    - { id: restore, label: "id_photo_repair_restore", stroke_mode: RESTORE }
+    - { id: erase,   label: "id_photo_repair_erase",   stroke_mode: ERASE, default: true }
+  brush_size:                                    # 行2
+    label: "id_photo_repair_brush_size"
+    slider: { range: [8, 80] px, default: 32, display: "'%d px'", commit: 实时（拖动即生效） }
+  soft_edge:                                     # 行3
+    label: "id_photo_repair_soft_edge"
+    control: switch
+    default: false
+    semantics: "softness=0.5（开）/0（关）"
+  actions_row:                                   # 行4：三 TextButton SpaceEvenly
+    - { id: undo,  label: "id_photo_repair_undo",  enabled: canUndoStroke }
+    - { id: redo,  label: "id_photo_repair_redo",  enabled: canRedoStroke }
+    - { id: clear, label: "id_photo_repair_clear", enabled: hasStrokes }
+  painting_contract:                             # 🔴 预览框上的手势切换
+    gesture_switch: "REPAIR tab 激活时预览框=单指拖动画笔；其余 tab=拖拽平移+双指缩放（§6.4）"
+    stroke_capture:
+      drag_start: "清空 overlay 点；光标=触点；半径换算 frameRadiusToSource(brushSize/2)（仅按宽度轴缩放）"
+      drag_move: "逐点 appendStrokePoint(frameToSource(p))（源图坐标系）"
+      drag_end: "endStroke() → strokeVersion++（触发底图重算缓存失效）"
+      cancel_safety: "手势取消路径也必须 endStroke（finally 兜底）"
+    in_progress_overlay:                         # 重算前的即时视觉反馈
+      stroke_line: "白色(RESTORE)/黑色(ERASE) alpha 0.4，线宽=brushSize(px)，圆头帽"
+      brush_cursor: "白色 alpha 0.8 圆圈描边（宽 2），半径 brushSize/2，仅拖动中显示"
+    thread_contract: "描边列表快照在主线程取 → 后台线程重放（StrokeLayer.replay 纯函数，输入不可变）"
+
+# ============================================================================
+# 7. 状态机与数据流
+# ============================================================================
+# ── 7.1 ViewModel 状态 ──
+state_machine:
+  states: [ Loading, Error(message), Ready ]
+  ready_fields:
+    - originalBitmap                             # 解码后源图（≤1024px 长边）
+    - alpha[] + alphaWidth/Height                # 抠图 alpha 掩码（与源图同尺寸）
+    - subject: SubjectBounds?                    # 头顶行+水平中心（§6.3），null=无人
+    - offsetX/offsetY: Float = 0/0               # 归一化用户构图偏移
+    - zoom: Float = 1f                           # 1..4
+    - selectedColorIndex = 0
+    - selectedSizeIndex = 0
+    - activeTab = BG_COLOR
+    - edgeParams = EdgeParams(2.5, 0, 0)
+    - strokeVersion = 0; canUndoStroke/canRedoStroke = false
+    - isSaving = false; error = null
+  transitions:
+    load: "Loading → (成功) Ready / (失败) Error；错误映射：解码失败=editor_load_failed、抠图失败=id_photo_matting_failed、带原因=editor_load_failed_with_reason(%s)"
+    save: "Ready → isSaving=true → 完成 pop 屏 / 失败 editor_save_failed[_with_reason]（isSaving 必须复位）"
+
+# ── 7.2 抠图管线（100% 端侧，FUSION 固定路由）──
+matting_pipeline:
+  route: FUSION                                  # 固定；不按人脸有无路由
+  steps:
+    - "源图解码：长边降采样 ≤1024px（DECODE_MAX_DIM）"
+    - "selfie 分割：MediaPipe ImageSegmenter（selfie_segmenter.tflite，256×256 输入，confidence mask index 0=person）→ 双线性上采样到源图尺寸"
+    - "MODNet：ORT 推理 modnet.onnx（1024×1024，NCHW float，归一化 (x/255−0.5)/0.5，输出幂等 sigmoid）→ 双线性上采样到源图尺寸"
+    - "融合：fused[i] = max(selfie[i], modnet[i])（逐像素取大，无锐化）"
+    - "VM 参数层：adjustEdges(alpha, edgeParams)（§7.3）→ StrokeLayer.replay → BackgroundComposer(alpha over 纯色) → IDPhotoComposer 裁切"
+  threading: "推理与全图变换在后台线程；UI 主线程仅状态拷贝"
+  model_resolution:                              # 🔴 模型获取契约（双端一致）
+    modnet: "下载中心 modnet-onnx（~25MB）；未下载 → enqueue 下载 + 本次 Error（返回重进重试）"
+    selfie_segmenter: "selfie_segmenter.tflite（~244KB）应用内随包（Android assets/matting/；iOS Resources bundle 同文件）"
+    runtime_dir: "llm_models/<modelId>/<file>（Android filesDir / iOS Documents）"
+  u2netp: "目录中存在 u2netp-onnx 后端与路由器，但证照路径不使用（通用抠图储备）"
+
+# ── 7.3 边缘参数管线（MaskPostProcessor.adjustEdges，纯函数）──
+edge_adjust:
+  order: "sharpenAlpha(contrast) → (shrinkExpandPx>0 ? dilate : erode)(|px|) → feather(radiusPx)"
+  sharpen: "v' = clamp((v−0.5)×contrast+0.5, 0..1)；contrast=1 → 恒等"
+  erode_dilate: "可分离滑窗 min/max，边缘钳位"
+  feather: "可分离 box 模糊 radius"
+  default: "EdgeParams(contrast=2.5, shrinkExpandPx=0, featherRadiusPx=0) → 仅锐化"
+
+# ── 7.4 底色合成（BackgroundComposer）──
+compose:
+  formula: "out = round(lerp(bg, src, alpha)) 逐通道（alpha=1 前景 / 0 底色，半透明线性混合，结果不透明）"
+  bg_colors: "idphoto.colorBlue/Red/White（§9.2）"
+
+# ── 7.5 保存（WYSIWYG 契约）──
+save:
+  trigger: "顶栏完成按钮（Ready 且非保存中）"
+  steps:
+    - "composePreview()：从缓存底图按当前 cropRect cropAndScale 到规格像素尺寸（与预览同源同参数——所见即所得）"
+    - "写相册：JPEG quality 95；Android=MediaStore Pictures/PoLang，文件名 IDPHOTO_<ts>_<W>x<H>.jpg；iOS=PhotoSaver（addOnly 授权，PHAsset 系统命名）"
+    - "成功 → 刷新媒体库（Android 显式；iOS 系统自动）→ 退出本屏"
+    - "isSaving 守卫防重入；完成态读最新 state（不吞保存期间的操作）"
+
+# ============================================================================
+# 8. 主题（强制深色契约）
+# ============================================================================
+forced_dark:
+  reason: "内容底为近黑（0xFF101010），若随用户浅色主题，onSurface 派生色（如滑杆 inactive 轨道 alpha 12%）不可见"
+  android: "PoLangForcedDarkTheme 包内容区（dynamic dark or DarkColorScheme）"
+  ios: ".preferredColorScheme(.dark) 于 fullScreenCover + 组件色取 AppColorScheme.dark（cover 不继承根 scheme，必须显式）"
+  scope: "本屏全部内容（含面板/滑杆/chip 默认色）"
+
+# ============================================================================
+# 9. 数据规格（IDPhotoSpecs，国标 @300dpi）
+# ============================================================================
+# ── 9.1 尺寸 ──
+sizes:
+  - { index: 0, id: 1in,     label: id_photo_size_1in,         w: 295, h: 413, mm: "25×35" }
+  - { index: 1, id: 2in,     label: id_photo_size_2in,         w: 413, h: 579, mm: "35×49" }
+  - { index: 2, id: small_1in, label: id_photo_size_small_1in, w: 260, h: 378, mm: "22×32" }
+  - { index: 3, id: small_2in, label: id_photo_size_small_2in, w: 354, h: 472, mm: "30×40" }
+
+# ── 9.2 底色 ──
+colors:
+  - { index: 0, id: blue,  label: id_photo_color_blue,  argb: "idphoto.colorBlue=#FF438EDB" }
+  - { index: 1, id: red,   label: id_photo_color_red,   argb: "idphoto.colorRed=#FFD9001B" }
+  - { index: 2, id: white, label: id_photo_color_white, argb: "idphoto.colorWhite=#FFFFFFFF" }
+
+# ============================================================================
+# 10. 构图数学（IDPhotoComposer 纯函数契约——砍头修复回归基线）
+# ============================================================================
+framing_math:
+  constants:
+    subject_alpha_threshold: 0.5                 # 前景判定
+    headroom_ratio: 0.08                         # 头顶留白占裁切高比例
+    zoom_range: [1.0, 4.0]
+  subject_bounds:
+    top: "首个含 alpha≥0.5 像素的行（头顶）"
+    centerX: "全部前景像素 x 均值"
+    empty: "无前景 → null（构图回退居中）"
+  cover_crop: "居中 cover 裁切（宽图裁左右/高图裁上下，中心对齐）——无主体时的基准"
+  subject_aware_crop:                            # 🔴 砍头修复（425122995）
+    cropW: "coverW / zoom（clamp 1..srcW）"
+    autoLeft: "subject.centerX − cropW/2（无 subject → 居中）"
+    autoTop: "subject.top − cropH×0.08（无 subject → 居中）"
+    final: "left = clamp(autoLeft + offsetX×cropW, 0, srcW−cropW)；top 同理"
+  user_gesture:                                  # 非 REPAIR tab 预览框手势
+    pan: "单指拖动 → offset 归一化增减（内容跟手：右拖=取景窗左移）"
+    pinch: "双指缩放 → zoom×Δ，clamp 1..4"
+    clamp_framing: "offset 钳位在可行域 [−auto/crop, (src−crop−auto)/crop]，防过拖死区累积"
+  coordinate_bridge:                             # 修补笔触 ↔ 源图坐标
+    frame_to_source: "预览框像素 → 源图像素（按 cropRect 线性映射）"
+    frame_radius_to_source: "半径仅按宽度轴缩放（屏幕上圆形笔刷）"
+
+# ============================================================================
+# 11. 字符串表（三语全量；iOS 键名=Android 键名，下划线风格）
+# ============================================================================
+strings:
+  #            key                          en                              zh-CN                  zh-TW
+  - { key: id_photo_title,               en: "ID Photo",                          cn: "证件照",                tw: "證件照" }
+  - { key: id_photo_action,              en: "ID Photo",                          cn: "证件照",                tw: "證件照" }
+  - { key: id_photo_action_short,        en: "ID",                                cn: "证照",                  tw: "證照" }
+  - { key: id_photo_matting_failed,      en: "Portrait matting failed",           cn: "人像抠图失败",          tw: "人像去背失敗" }
+  - { key: id_photo_drag_hint,           en: "Drag or pinch to adjust framing",   cn: "拖动或双指缩放调整构图", tw: "拖動或雙指縮放調整構圖" }
+  - { key: id_photo_size_1in,            en: "1 inch",                            cn: "1寸",                   tw: "1寸" }
+  - { key: id_photo_size_2in,            en: "2 inch",                            cn: "2寸",                   tw: "2寸" }
+  - { key: id_photo_size_small_1in,      en: "Small 1 inch",                      cn: "小1寸",                 tw: "小1寸" }
+  - { key: id_photo_size_small_2in,      en: "Small 2 inch",                      cn: "小2寸",                 tw: "小2寸" }
+  - { key: id_photo_color_blue,          en: "Blue",                              cn: "标准蓝",                tw: "標準藍" }
+  - { key: id_photo_color_red,           en: "Red",                               cn: "标准红",                tw: "標準紅" }
+  - { key: id_photo_color_white,         en: "White",                             cn: "白",                    tw: "白" }
+  - { key: id_photo_tab_color,           en: "Color",                             cn: "底色",                  tw: "底色" }
+  - { key: id_photo_tab_size,            en: "Size",                              cn: "尺寸",                  tw: "尺寸" }
+  - { key: id_photo_tab_edge,            en: "Edge",                              cn: "边缘",                  tw: "邊緣" }
+  - { key: id_photo_tab_repair,          en: "Repair",                            cn: "修补",                  tw: "修補" }
+  - { key: id_photo_edge_feather,        en: "Feather",                           cn: "羽化",                  tw: "羽化" }
+  - { key: id_photo_edge_shrink_expand,  en: "Shrink / Expand",                   cn: "收缩 / 扩张",           tw: "收縮 / 擴張" }
+  - { key: id_photo_edge_contrast,       en: "Edge contrast",                     cn: "边缘对比度",            tw: "邊緣對比度" }
+  - { key: id_photo_edge_reset,          en: "Reset",                             cn: "重置参数",              tw: "重設參數" }
+  - { key: id_photo_repair_restore,      en: "Restore",                           cn: "恢复",                  tw: "恢復" }
+  - { key: id_photo_repair_erase,        en: "Erase",                             cn: "擦除",                  tw: "擦除" }
+  - { key: id_photo_repair_brush_size,   en: "Brush size",                        cn: "笔刷大小",              tw: "筆刷大小" }
+  - { key: id_photo_repair_soft_edge,    en: "Soft edge",                         cn: "软边",                  tw: "軟邊" }
+  - { key: id_photo_repair_undo,         en: "Undo",                              cn: "撤销",                  tw: "復原" }
+  - { key: id_photo_repair_redo,         en: "Redo",                              cn: "重做",                  tw: "重做" }
+  - { key: id_photo_repair_clear,        en: "Clear strokes",                     cn: "清除描边",              tw: "清除筆畫" }
+  - { key: id_photo_repair_hint,         en: "Paint on the photo to restore or erase areas", cn: "在照片上涂抹，恢复或擦除局部区域", tw: "在照片上塗抹，恢復或擦除局部區域" }
+  reused:                                        # 复用既有键（iOS 已有或需补）
+    - { key: done,   en: "Done",   cn: "完成", tw: "完成" }
+    - { key: editor_load_failed,             en: "Failed to load image", cn: "图片加载失败", tw: "圖片載入失敗" }
+    - { key: editor_load_failed_with_reason, en: "Failed to load image: %1$s", cn: "图片加载失败：%1$s", tw: "圖片載入失敗：%1$s" }
+    - { key: editor_save_failed,             en: "Save failed", cn: "保存失败", tw: "儲存失敗" }
+    - { key: editor_save_failed_with_reason, en: "Save failed: %1$s", cn: "保存失败：%1$s", tw: "儲存失敗：%1$s" }
+
+# ============================================================================
+# 12. 允许的平台差异 / 平台差异台账
+# ============================================================================
+allowed_differences:
+  - { dimension: icon_set, android: "Material Icons Rounded", ios: "SF Symbols / mat_* 资产", note: "语义一致" }
+  - { dimension: save_filename, android: "IDPHOTO_<ts>_<W>x<H>.jpg 自定义名", ios: "PHAsset 系统命名（PHAssetCreationRequest 不支持自定义文件名）", note: "保存语义一致：JPEG 95 入相册" }
+  - { dimension: media_refresh, android: "保存后显式 refreshMediaLibrary()", ios: "PHPhotoLibrary 自动", note: "无行为差异" }
+  - { dimension: mediapipe_version, android: "tasks-vision 0.10.26", ios: "MediaPipeTasksVision 0.10.14", note: "ImageSegmenter API 同形；输出 mask index 0=person 需真机验证" }
+  - { dimension: chat_entry, android: "Chat 照片预览底栏可进证照", ios: "无（chat 无 MediaPager）", note: "登记 gap，chat 图片消息子系统另行追齐" }
+
+platform_differences:
+  permission:
+    photo_add: "Android=MediaStore 写无需运行时权限；iOS=PHPhotoLibrary addOnly 授权（PhotoSaver 先例，拒绝时失败提示）"
+    photo_read: "两端相册读权限已由入口屏持有，本屏无新增"
+  capabilities:
+    onnx_runtime: "Android=onnxruntime-android 1.24.3 Java API；iOS=onnxruntime-objc 1.28.0（ORTSharedEnv 共享 env，多 session 单 env 契约）"
+    model_center: "同一 llm_models.json 目录：modnet-onnx/u2netp-onnx 已在双端目录（ModelScope budaoshou/*）；下载/断点/进度 UI 复用各自 Model Center"
+    mediapipe_segmenter: "selfie_segmenter.tflite 双端随包（Android assets/matting/ ⇄ iOS bundle 同一文件，~244KB）"
+  privacy_disclosure:
+    summary: "无新隐私面——抠图/合成 100% 端侧（[PRIVACY] 红线符合）；仅模型文件从 ModelScope 下载（与既有模型中心一致）"
+    android: "无 Manifest 变更；Play Data Safety 无新增收集"
+    ios: "无 purpose string 新增（相册 addOnly 已有）；PrivacyInfo.xcprivacy 无变更"
+
+# ============================================================================
+# 13. iOS 实现落点（基础设施映射，避免实现期再探索）
+# ============================================================================
+ios_impl_map:
+  new_files: "Features/IdPhoto/{IDPhotoScreen, IDPhotoViewModel, IdPhotoDomain(纯逻辑), components/*}.swift"
+  entry: "MediaPagerView 底栏 pager_id_photo 按钮：替换 coming-soon toast → fullScreenCover(IDPhotoScreen(source:))"
+  source_image: "ThumbnailLoader.fullResolution(PHAsset) → 长边 ≤1024 降采样"
+  ort: "ORTSharedEnv.env + ORTFaceEmbedder 同款 session 形态（modnet.onnx, Documents/llm_models/modnet-onnx/）"
+  mediapipe: "MediaPipeTasksVision ImageSegmenter（bundle selfie_segmenter.tflite）"
+  model_fallback: "ModelDownloadManager.isModelDownloaded('modnet-onnx') 缺失 → enqueueDownload + Error 态（Android 语义）"
+  slider: "DesignSystem/AppSlider（无 onFinished → 调用点 DragGesture 结束时 commit；边缘三滑杆共用）"
+  top_bar: "Features/Gallery/Components/AppTopBar + AppTopBarAction（48/17Medium 对齐）"
+  tokens: "IdPhotoTokens（DesignTokens.swift 已生成）+ Spacing/AppRadius/AppColorScheme.dark"
+  save: "PhotoSaver.saveToLibrary(UIImage)（JPEG 0.95，传 UIImage 保 EXIF 方向先例）"
+  i18n: "Localizable.xcstrings 三语（en/zh-Hans/zh-Hant），键名=§11 下划线键"
+  tests: "纯逻辑域（framing_math/edge_adjust/compose/stroke replay/specs 表）移植 Android JVM 测试语义 → PoLangTests"
+
+# ============================================================================
+# 14. 红线规则（实现期硬约束）
+# ============================================================================
+hard_rules:
+  - "布局结构零容差对齐定稿截图（信息层级/元素顺序/默认值）"
+  - "预览框渲染禁止子视图 scale 组合（§2.1 render_contract）"
+  - "抠图 100% 端侧（[PRIVACY]）；模型缺失走下载中心，不做远程兜底"
+  - "所有新尺寸/颜色引用 IdPhotoTokens / 既有 token；禁止内联 hex/dp"
+  - "全部用户可见文案走 xcstrings 三语（§11 全量键表）"
+  - "shared 模块零改动（本功能无 KMP 参与契约）"

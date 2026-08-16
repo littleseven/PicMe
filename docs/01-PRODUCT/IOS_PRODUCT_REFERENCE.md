@@ -143,7 +143,7 @@ PoLang（破浪相册）是一个 **Agent 驱动的智能相册**实验场，核
 | **图片编辑** | 静态美颜编辑（磨皮/美白/瘦脸/大眼/唇色/腮红，默认全 0） | ✅ | iOS 缺口（相机侧仅 MVP） | `BeautySettings` | §2.3 |
 | 图片编辑 | 裁剪 / 调色（6 滑块） / 滤镜（色调9+风格5）/ 涂鸦标记 | ✅ | iOS 缺口 | `FilterType`/`StyleFilter` | §2.3 |
 | 图片编辑 | 智能抠图（U2NETP/MODNET/FUSION/SELFIE_SEG） | ✅ | iOS 缺口 | — | §2.3 |
-| 图片编辑 | 证件照（4 尺寸国标 + 3 色 + 智能构图 + 手动修复） | ✅ | iOS 缺口 | — | §2.3 |
+| 图片编辑 | 证件照（4 尺寸国标 + 3 色 + 智能构图 + 手动修复） | ✅ | ✅ 已对齐（2026-08-16 /ios-follow；FUSION 抠图 + 四 tab 全量，spec `specs/screens/idphoto.yaml`） | — | §2.3 |
 | 图片编辑 | AI 一键优化（抽卡：4 候选 + NIMA 评分 + 技术护栏） | ✅ | iOS 缺口 | — | §2.3 |
 | 图片编辑 | 对话式编辑（`edit_image` recipe 后台渲染回图） | ✅ | iOS 缺口 | `ImageEditCapability` | §2.3 |
 | 图片编辑 | 局部美颜 / 智能消除（AI 填充） / 专业调色（曲线/HSL） | 📋 未实现 | — | — | §2.3 |
@@ -366,7 +366,7 @@ Chat 路径绕过分词/规则：LLM `SearchIntent` → `StructuredFilter` → `
 ### 2. 入口与导航
 
 - **全功能编辑器**：相册详情底栏「编辑」/ Chat 对话式编辑（`edit_image` recipe）→ `photo_editor/{sourceUri}?recipeUri&autoOptimize`。
-- **证件照**：相册详情底栏「证件照」/ Chat `id_photo` 命令 → `id_photo/{sourceUri}`。
+- **证件照**：相册详情底栏「证件照」/ Chat `id_photo` 命令 → `id_photo/{sourceUri}`。**iOS 已对齐**（2026-08-16：`Features/IdPhoto/` 全量——FUSION 抠图(modnet-onnx 下载 + selfie_segmenter 随包)/四 tab/修补画笔/WYSIWYG 保存；chat 入口 iOS 无 MediaPager 暂缺，见 reviews/2026-08-16-ios-follow-idphoto.md 技术债）。
 - **轻量涂鸦**：相册快捷入口 → `ImageEditScreen`。
 
 ### 3. 功能项清单

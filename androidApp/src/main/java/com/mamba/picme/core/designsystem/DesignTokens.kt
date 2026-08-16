@@ -357,3 +357,19 @@ object PersonTokens {
     val photoCountFontSize = 13.dp
     val relationChipRadius = 8.dp
 }
+
+/** 证照屏（IDPhoto）。强制深色屏：内容底近黑硬编码，Android PoLangForcedDarkTheme / iOS .preferredColorScheme(.dark)+AppColorScheme.dark 对齐 scheme。colorBlue/Red/White 为合成内容色（既作底色数据也作色板 UI 色，双端像素一致）。 */
+object IdPhotoTokens {
+    val screenBackground = Color(0xFF101010)
+    val tabUnselectedContainer = Color(0xFF2A2A2A)
+    val frameWidth = 220.dp
+    val frameRadius = 4.dp
+    val frameBackground = Color.White
+    val swatchSize = 40.dp
+    val swatchSelectedBorderWidth = 3.dp
+    val swatchUnselectedBorderWidth = 1.dp
+    val sizeChipUnselectedBorderAlpha = 0.5f
+    val colorBlue = Color(0xFF438EDB)
+    val colorRed = Color(0xFFD9001B)
+    val colorWhite = Color.White
+}

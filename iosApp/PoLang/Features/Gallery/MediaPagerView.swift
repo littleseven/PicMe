@@ -35,8 +35,8 @@ struct MediaPagerView: View {
     @State private var sharePayload: SharePayload? = nil
     /// 编辑器 fullScreenCover 载体（Edit 按钮 → PhotoEditorScreen）
     @State private var editTarget: EditorTarget?
-    /// 证照入口「敬请期待」toast（iOS 无 ID-photo 流程，Phase 6）
-    @State private var showIdComingSoon = false
+    /// 证照入口 fullScreenCover 载体（ID 按钮 → IDPhotoScreen，对齐 Android 证照路由）
+    @State private var idPhotoTarget: EditorTarget?
     /// 按需分析状态：图像理解 / OCR（同时只一条活跃；复用 AnalysisState）。
     /// 图像理解 → Florence-2 caption（端侧，对齐 Android describeImage）；
     /// OCR → Apple Vision（端侧，对齐 Android ML Kit）。
@@ -113,12 +113,14 @@ struct MediaPagerView: View {
         .fullScreenCover(item: $editTarget) { target in
             PhotoEditorScreen(localIdentifier: target.id)
         }
+        // 证照屏（对齐 Android id_photo/{sourceUri} 路由；spec specs/screens/idphoto.yaml）
+        .fullScreenCover(item: $idPhotoTarget) { target in
+            IDPhotoScreen(localIdentifier: target.id)
+        }
         .overlay {
-            // 顶部瞬时 toast：证照「敬请期待」/ 「已复制」
-            if showIdComingSoon || showCopiedToast {
-                Text(showIdComingSoon
-                     ? String(localized: "feature.coming.soon")
-                     : String(localized: "copied.toast"))
+            // 顶部瞬时 toast：「已复制」
+            if showCopiedToast {
+                Text(String(localized: "copied.toast"))
                     .font(.system(size: 14))
                     .padding(.horizontal, 16).padding(.vertical, 10)
                     .background(Color.black.opacity(0.8))
@@ -130,12 +132,7 @@ struct MediaPagerView: View {
             // 按需分析结果卡（图像理解 / OCR；同时只一条活跃）
             analysisOverlay
         }
-        .animation(.easeInOut(duration: 0.2), value: showIdComingSoon)
         .animation(.easeInOut(duration: 0.2), value: showCopiedToast)
-        .onChange(of: showIdComingSoon) { onset in
-            guard onset else { return }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { showIdComingSoon = false }
-        }
         .onChange(of: showCopiedToast) { onset in
             guard onset else { return }
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { showCopiedToast = false }
@@ -223,7 +220,7 @@ struct MediaPagerView: View {
     /// 底栏（对齐 Android `mediaPagerBottomBar`：4 位 SpaceEvenly、h8/v4 padding、
     /// 按钮 48dp、icon 22dp/白 0.9 + label 10sp/白 0.7）：
     /// 发送/删除实做；编辑→PhotoEditorScreen（fullScreenCover）；
-    /// 证照（ID-photo）iOS 无流程（Phase 6 matting），点出「敬请期待」toast
+    /// 证照→IDPhotoScreen（fullScreenCover，2026-08-16 对齐 Android id_photo 路由）
     private var bottomBar: some View {
         HStack(spacing: 0) {
             Spacer()
@@ -241,7 +238,9 @@ struct MediaPagerView: View {
             bottomBarItem(icon: "mat_badge",
                           title: String(localized: "ID"),
                           accessibilityID: "pager_id_photo",
-                          isEnabled: true) { showIdComingSoon = true }
+                          isEnabled: true) {
+                if let uri = currentAsset?.uri { idPhotoTarget = EditorTarget(localIdentifier: uri) }
+            }
             Spacer()
             bottomBarItem(icon: "mat_delete",
                           title: String(localized: "Delete"),

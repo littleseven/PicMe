@@ -68,18 +68,20 @@ ENUM_NAMES = {
     "camera": "CameraTokens", "chatBubble": "ChatBubbleTokens", "chatCarousel": "ChatCarouselTokens",
     "chatContext": "ChatContextTokens", "settings": "SettingsTokens", "editor": "EditorTokens",
     "modelCenter": "ModelCenterTokens", "person": "PersonTokens", "motion": "AppMotion",
+    "idphoto": "IdPhotoTokens",
 }
 # iOS 文件中的枚举输出顺序（含专用模板位置）
 IOS_ORDER = ["spacing", "radius", "icon", "color", "typography", "colorScheme", "alpha",
              "statusColor", "motion", "elevation", "topBar", "shutter", "beautyPanel",
              "appSlider", "bottomTab", "bottomSheet", "chip", "badge", "camera",
              "chatBubble", "chatCarousel", "chatContext", "settings", "editor",
-             "grid", "searchField", "pager", "modelCenter", "person"]
+             "grid", "searchField", "pager", "modelCenter", "person", "idphoto"]
 # Android 组件 token 文件的 object 顺序（spacing/radius/color/typography/colorScheme 有独立文件，不重复）
 ANDROID_TOKENS_ORDER = ["icon", "alpha", "statusColor", "motion", "elevation", "topBar",
                         "shutter", "beautyPanel", "appSlider", "bottomTab", "bottomSheet",
                         "chip", "badge", "camera", "chatBubble", "chatCarousel", "chatContext",
-                        "settings", "editor", "grid", "searchField", "pager", "modelCenter", "person"]
+                        "settings", "editor", "grid", "searchField", "pager", "modelCenter", "person",
+                        "idphoto"]
 
 SWIFT_WEIGHTS = {"Normal": ".regular", "Medium": ".medium", "SemiBold": ".semibold", "Bold": ".bold"}
 KOTLIN_WEIGHTS = {"Normal": "FontWeight.Normal", "Medium": "FontWeight.Medium",
@@ -328,6 +330,7 @@ MARK_NAMES = {
     "settings": "Settings", "editor": "Editor", "grid": "Grid",
     "searchField": "SearchField（SearchTopBar 内嵌胶囊搜索框）", "pager": "Pager",
     "modelCenter": "Model Center", "person": "Person（人物页列表+详情，聚类模型）",
+    "idphoto": "ID Photo（证照屏，强制深色）",
 }
 
 
