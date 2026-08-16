@@ -25,6 +25,8 @@ struct GalleryGridView: View {
     @State private var cellFrames: [String: CGRect] = [:]
     @State private var dragVisited: Set<String> = []
     @State private var dragTargetSelected = true
+    /// 方向守卫：本次手势判为竖向滚动则忽略（防选择模式下滚屏误选竖列）
+    @State private var dragIsScrollLike = false
     @State private var showModelCenter = false
     /// TAG 扫描页（SP-B）：相册顶栏扫描图标进入
     @State private var showScanScreen = false
@@ -289,11 +291,22 @@ struct GalleryGridView: View {
             .padding(2)  // dump：边距 7px≈2dp
         }
         .coordinateSpace(name: "galleryGrid")
-        // 选择模式下直接拖拽扫格（对齐 Android detectDragGestures 分支）
+        // 选择模式下直接拖拽扫格（对齐 Android detectDragGestures 分支）。
+        // 方向守卫：首段位移竖直主导 → 判为滚动（选择模式下仍需可滚列表），本次手势忽略
         .gesture(
             DragGesture(minimumDistance: 8, coordinateSpace: .named("galleryGrid"))
-                .onChanged { value in handleDragSelect(at: value.location) }
-                .onEnded { _ in dragVisited.removeAll() },
+                .onChanged { value in
+                    if !dragIsScrollLike {
+                        let t = value.translation
+                        if abs(t.height) > abs(t.width) + 4 { dragIsScrollLike = true }
+                    }
+                    guard !dragIsScrollLike else { return }
+                    handleDragSelect(at: value.location)
+                }
+                .onEnded { _ in
+                    dragVisited.removeAll()
+                    dragIsScrollLike = false
+                },
             isEnabled: isSelectionMode
         )
         .accessibilityIdentifier("gallery_grid")
@@ -322,22 +335,14 @@ struct GalleryGridView: View {
                     cellFrames[asset.uri] = geo.frame(in: .named("galleryGrid"))
                 }
             })
-            // 长按 →（不松手）拖拽扫格：对齐 Android detectDragGesturesAfterLongPress
-            .simultaneousGesture(
-                LongPressGesture(minimumDuration: 0.4)
-                    .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named("galleryGrid")))
-                    .onChanged { value in
-                        switch value {
-                        case .first(true):
-                            dragSelectionStart(uri: asset.uri)
-                        case .second(true, let drag):
-                            if let drag { handleDragSelect(at: drag.location) }
-                        default:
-                            break
-                        }
-                    }
-                    .onEnded { _ in dragVisited.removeAll() }
-            )
+            // 仅长按进选择（0.4s）。不挂 sequenced 拖选：与 ScrollView 滚动并行识别时，
+            // 滚动起手停顿 ≥0.4s 会被吞成拖选（回归实测）；拖选统一走网格层手势（见 gridBody）
+            .simultaneousGesture(LongPressGesture(minimumDuration: 0.4).onEnded { _ in
+                if !isSelectionMode {
+                    isSelectionMode = true
+                    selected = [asset.uri]
+                }
+            })
             .accessibilityIdentifier("cell_\(asset.uri)")
         }
     }
@@ -381,23 +386,13 @@ struct GalleryGridView: View {
 
     // MARK: - 拖拽批量选择（对齐 Android onDragSelectionStart/Item/End）
 
-    /// 拖选起点：起始格未选中 → 加模式（并选中起始格）；已选中 → 减模式（取消起始格）
-    private func dragSelectionStart(uri: String) {
-        if !isSelectionMode { isSelectionMode = true }
-        dragVisited.removeAll()
-        dragTargetSelected = !selected.contains(uri)
-        if dragTargetSelected {
-            selected.insert(uri)
-        } else {
-            selected.remove(uri)
-        }
-        dragVisited.insert(uri)
-    }
-
-    /// 拖选扫格：hit-test 命中格按当前模式加/减（visited 去重）
+    /// 拖选扫格：首格状态定加/减模式（对齐 onDragSelectionStart），后续 visited 去重
     private func handleDragSelect(at point: CGPoint) {
-        guard let uri = cellFrames.first(where: { $0.value.contains(point) })?.key,
-              dragVisited.insert(uri).inserted else { return }
+        guard let uri = cellFrames.first(where: { $0.value.contains(point) })?.key else { return }
+        if dragVisited.isEmpty {
+            dragTargetSelected = !selected.contains(uri)
+        }
+        guard dragVisited.insert(uri).inserted else { return }
         if dragTargetSelected {
             selected.insert(uri)
         } else {
