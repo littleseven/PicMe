@@ -40,7 +40,8 @@ final class IdPhotoDomainTests: XCTestCase {
     }
 
     func testCoverCrop_sameAspect_fullSource() {
-        let crop = IDPhotoComposer.coverCropRect(srcW: 300, srcH: 400, dstW: 295, dstH: 413)
+        // 比例精确一致（0.75）→ 全源
+        let crop = IDPhotoComposer.coverCropRect(srcW: 300, srcH: 400, dstW: 150, dstH: 200)
         XCTAssertEqual(crop, CropRect(left: 0, top: 0, width: 300, height: 400))
     }
 
@@ -93,13 +94,14 @@ final class IdPhotoDomainTests: XCTestCase {
     }
 
     func testSubjectAwareCrop_horizontalSubjectCentering() {
-        // 主体偏左（centerX=300）→ 取景窗水平左移（left = 300 − cropW/2）
+        // 方源→竖版目的：cropW = 2000×1000/1400 = 1428；主体偏右 centerX=1200
+        // → left = 1200 − 714 = 486（区间 [0, 572] 内）
         let crop = IDPhotoComposer.subjectAwareCropRect(
-            subject: (top: 500, centerX: 300),
+            subject: (top: 500, centerX: 1200),
             offsetX: 0, offsetY: 0, zoom: 1,
-            srcW: 2000, srcH: 2000, dstW: 1000, dstH: 1000)
-        XCTAssertEqual(crop.left, 300 - 500)
-        XCTAssertEqual(crop.width, 1000)
+            srcW: 2000, srcH: 2000, dstW: 1000, dstH: 1400)
+        XCTAssertEqual(crop.width, 1428)
+        XCTAssertEqual(crop.left, 486)
     }
 
     func testSubjectAwareCrop_userOffsetAppliedAndClamped() {
@@ -183,12 +185,13 @@ final class IdPhotoDomainTests: XCTestCase {
     }
 
     func testUpsample_bilinearAndEdgeClamp() {
-        // 2×2 → 4×4：角点保持原值，中心为四点混合
+        // 2×2 → 4×4：角点保持原值；(1,1) 半像素中心采样 src=(0.25,0.25)
+        // → (v00·0.75+v10·0.25)·0.75 + (v01·0.75+v11·0.25)·0.25 = 0.25·0.75 + 1·0.25 = 0.4375
         let src: [Float] = [0, 1, 1, 1]
         let out = MaskPostProcessor.upsample(src, srcW: 2, srcH: 2, dstW: 4, dstH: 4)
         XCTAssertEqual(out[0], 0, accuracy: 0.01)                 // 左上角
         XCTAssertEqual(out[15], 1, accuracy: 0.01)                // 右下角
-        XCTAssertEqual(out[5], 0.625, accuracy: 0.01)             // 近中心混合
+        XCTAssertEqual(out[5], 0.4375, accuracy: 0.01)            // 双线性混合
         XCTAssertEqual(out.count, 16)
     }
 
@@ -221,7 +224,8 @@ final class IdPhotoDomainTests: XCTestCase {
         let eroded = MaskPostProcessor.erode(m, w: 8, h: 1, radius: 1)
         XCTAssertEqual(Array(eroded[0..<8]), [0, 0, 0, 1, 1, 0, 0, 0])
         let dilated = MaskPostProcessor.dilate(m, w: 8, h: 1, radius: 1)
-        XCTAssertEqual(Array(dilated[0..<8]), [0, 1, 1, 1, 1, 1, 0, 0])
+        // x=6 窗口 [5..7]=max(1,0,0)=1 → 扩到 7 格
+        XCTAssertEqual(Array(dilated[0..<8]), [0, 1, 1, 1, 1, 1, 1, 0])
     }
 
     func testAdjustEdges_default_sharpenOnly() {
@@ -292,9 +296,9 @@ final class IdPhotoDomainTests: XCTestCase {
         let empty = BackgroundComposer.composeOnColor(pixels: pixels, alpha: [0], bgColor: blue)
         XCTAssertEqual(Array(empty[0..<4]), [0x43, 0x8E, 0xDB, 255])
         let half = BackgroundComposer.composeOnColor(pixels: pixels, alpha: [0.5], bgColor: blue)
-        XCTAssertEqual(half[0], 159)   // round(0x43*0.5 + 255*0.5)
-        XCTAssertEqual(half[1], 71)    // round(0x8E*0.5)
-        XCTAssertEqual(half[2], 237)   // round(0xDB*0.5)
+        XCTAssertEqual(half[0], 161)   // round(67×0.5 + 255×0.5) = 161
+        XCTAssertEqual(half[1], 71)    // round(142×0.5)
+        XCTAssertEqual(half[2], 110)   // round(219×0.5) = 109.5 → 110（away from zero）
         XCTAssertEqual(half[3], 255)   // 输出不透明
     }
 
