@@ -13,11 +13,11 @@
 > - 图片编辑器 lite（CROP/ADJUST/FILTER/MARKUP）→ ✅（`dc021070`）— 相-8「编辑」部分
 > - 聊天多会话侧栏 + 「新建会话」丢历史 bug → ✅（`54799952`）— 关闭聊-3/聊-6；流式文本经 `onText` 逐字吐已 live（聊-1 部分）
 >
-> **仍未解决**：相-3/4 分组模式 · 相-5 长按编辑触感 · 相-6 视频播放 · 相-8 证件照 · 聊-1 节奏器精细化 · 聊-4/5 富消息类型 · §3 录像/十字星接脸/MAKEUP/风格滤镜 · §4 账号/AI记忆/ASR。**🔴 人脸聚类质量阻塞**（MNN3.5 Apple bug）见 [`IOS_TASK_STATUS.md`](../01-PRODUCT/IOS_TASK_STATUS.md) §6.1。
+> **仍未解决**：相-3/4 分组模式 · 相-5 长按编辑触感 · 相-6 视频播放 · ~~相-8 证件照~~（✅ 08-16 `feat/ios-idphoto` 全量对齐） · 聊-1 节奏器精细化 · 聊-4/5 富消息类型 · §3 录像/十字星接脸/MAKEUP/风格滤镜 · §4 账号/AI记忆/ASR。**🔴 人脸聚类质量阻塞**（MNN3.5 Apple bug）见 [`IOS_TASK_STATUS.md`](../01-PRODUCT/IOS_TASK_STATUS.md) §6.1。
 >
 > **🔄 2026-08-16 更新（全量代码复核，3 并行审计 vs main `412e8f288`）**：08-13~08-16 三大批次合并 main——**Chat 富交互批次①②**（`015b59495`：流式节奏器 `b0b58dff2` / Markdown·表格·代码块 `bbe2b16dc`+`f2381d101` / CHART 图表卡 / 媒体反馈+模型胶囊 `4f32c30ff` / 图片消息子系统+编辑回链+全屏预览 `ccbbfe80a`→`c40445e30` / JS 沙盒 12 只读 handler `9c9621c30`）；**设置**（账号邮箱登录+quota+登出+删号 `85b686ae3` / 开发者选项+诊断日志 `c75767953`+`f3023b302`）；**相机**（Figma 6 面板还原 Phase F/F2 + Arbot 系统相机风格 `b6c486d3a`+`80776e0a4`，布局层）。相-3/4 分组 FACE/PERSON 已实做。人脸聚类 embedder 已回退 ONNX 合入 main（`ed248304`）规避 MNN3.5 bug，阈值 0.45 + 调优归零（`ac04eed19`）。
 > ✅ **场景面板移除为产品方案**（2026-08-16 用户确认，非倒退）：iOS 已随 `80776e0a4` 移除 UI+内核，残留 stale 注释与 4 个 i18n key（Night/Moon/Scene Off/Moon Shot）已清；**Android 侧 `SceneSelector` 面板 + `ScenePreset` 内核 + `scene_*` strings 仍在，待按方案移除（反向 gap，机-10 翻转）**。
-> **仍未解决（08-16 复核后清单）**：§3 录像 · 十字星接脸 · MAKEUP/风格滤镜接线 · 语音/AI Chat FAB · 变焦条条件显隐 · 相-6 视频播放 · 相-8 证件照 · 相-4 拖拽多选 · 相-5 长按编辑触感 · LANDSCAPE/LOCATION 分组 · 设-2 AI 记忆 · 设-3 语音控制 · 设-5 相机美颜设置分叉 · JS 沙盒写操作 · success/error 可见反馈 · 语音输入 · 抽卡/Claude 模式 · i18n 544/1011≈54%。
+> **仍未解决（08-16 复核后清单）**：§3 录像 · 十字星接脸 · MAKEUP/风格滤镜接线 · 语音/AI Chat FAB · 变焦条条件显隐 · 相-6 视频播放 · ~~相-8 证件照~~（✅ 08-16 `/ios-follow idphoto` 全量对齐，chat 入口暂缺） · 相-4 拖拽多选 · 相-5 长按编辑触感 · LANDSCAPE/LOCATION 分组 · 设-2 AI 记忆 · 设-3 语音控制 · 设-5 相机美颜设置分叉 · JS 沙盒写操作 · success/error 可见反馈 · 语音输入 · 抽卡/Claude 模式 · i18n 544/1011≈54%。
 
 ---
 
@@ -78,7 +78,7 @@
 >
 > 🔄 **2026-08-16 复核**：相-3 分组模式 **FACE/PERSON 已实做**（`GalleryViewModel.swift:174-210`，hasFace 两分组 + faceId 分组；`489bf503f`+`7b674428b`），**LANDSCAPE/LOCATION 可点但仍为「待扫描」占位组、不筛选**（`GalleryViewModel.swift:211-216`，Android 按 labels/city 真分组）；相-9 PhotoInfo 补 Location 纯文本地名（`MediaPagerView.swift:541-543`，无 lat/lon、不可点跳地图）。
 > ✅ **2026-08-16 批次A速赢已落地**：相-5 长按大图→编辑器+medium 触感（视频页无长按）· 相-10 删除确认收敛为仅系统 PHAsset 窗（app 层 confirmationDialog 两处移除+孤儿 key 清理）· 相-13 相邻页预热激活（`preloadAround()` ±2 页 1600²，PHCachingImageManager）· 相-14 空相册格言占位（复用 `SplashPlaceholder`；spec 漂移同步修正+**Ardot 画布 Gallery 页 `gallery/empty` 预览已建并快照入库**）。
-> ✅ **2026-08-16 批次B相册功能深化已落地**（真机验证绿）：相-3 尾部 **LANDSCAPE 关键词筛选单组（74 词同源 Android LANDSCAPE_SCENES）+ LOCATION 按城市分组+无位置兜底组**（spec 同步修正：LANDSCAPE 实为筛选非按标签分组；`TagDatabase` 新增 labels/city 查询）· 相-4 **拖拽批量选择**（`69dd8c8d7` 修正版：纯 0.4s 长按进选择 + 选择模式网格层拖拽扫格+方向守卫——首版 sequenced 手势与滚动并行识别致上下滑误触，已回退该路径；取舍：失去「长按后不松手连续拖」）· 相-9 **PhotoInfo 补齐至 spec 全字段**（+来源/美学评分/人脸三行/标签 FlowRow/OCR 段；位置行可点 MKMapItem 跳地图）。**Ardot 画布 Gallery 页补 `gallery/info`+`gallery/grid` 两帧**（快照入库，共 3 帧）。**仍缺**：相-6 视频播放（全 app 无 AVPlayer）· 相-8 证件照（toast 占位）。
+> ✅ **2026-08-16 批次B相册功能深化已落地**（真机验证绿）：相-3 尾部 **LANDSCAPE 关键词筛选单组（74 词同源 Android LANDSCAPE_SCENES）+ LOCATION 按城市分组+无位置兜底组**（spec 同步修正：LANDSCAPE 实为筛选非按标签分组；`TagDatabase` 新增 labels/city 查询）· 相-4 **拖拽批量选择**（`69dd8c8d7` 修正版：纯 0.4s 长按进选择 + 选择模式网格层拖拽扫格+方向守卫——首版 sequenced 手势与滚动并行识别致上下滑误触，已回退该路径；取舍：失去「长按后不松手连续拖」）· 相-9 **PhotoInfo 补齐至 spec 全字段**（+来源/美学评分/人脸三行/标签 FlowRow/OCR 段；位置行可点 MKMapItem 跳地图）。**Ardot 画布 Gallery 页补 `gallery/info`+`gallery/grid` 两帧**（快照入库，共 3 帧）。**仍缺**：相-6 视频播放（全 app 无 AVPlayer）· ~~相-8 证件照~~（✅ 08-16 `/ios-follow idphoto`：toast 占位已替换为 fullScreenCover 全流程，spec `specs/screens/idphoto.yaml`；chat 入口待 chat MediaPager）。
 
 | # | 子区 | 差异 | 证据 | 体感 |
 |---|---|---|---|---|
