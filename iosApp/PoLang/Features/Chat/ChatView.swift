@@ -494,6 +494,13 @@ private struct MessageBubble: View {
                                 .padding(.bottom, 6)
                         }
 
+                        // AGENT_IMAGE：agent 单发结果图（gacha 确认/降级；FillWidth 240 完整显示，
+                        // chat.yaml §5 image_content.agent_image）
+                        if message.type == .agentImage, let path = message.imageUri {
+                            AgentImageAttachment(imagePath: path, onTap: { onImageTap?($0) })
+                                .padding(.bottom, 6)
+                        }
+
                         // AGENT_EDIT_RESULT：编辑结果图卡（文件路径 + 失效占位），说明文字走下方文本渲染
                         if message.type == .agentEditResult, let path = message.imageUri {
                             ChatEditImageCard(imagePath: path, onTap: { onImageTap?($0) })
@@ -538,13 +545,16 @@ private struct MessageBubble: View {
                 }
                 // 宽度上限（对齐 Android Column.widthIn）：内容收缩包裹，超 cap 才换行。
                 // 图+文气泡 240，其余 360（对齐 Android isImage/isImageText 分支）。
-                .widthCap(message.type == .userImageText
+                // 图类气泡（用户图+文 / agent 单发图）：240 上限 + padding 6/6
+                // （Android isImage||isImageText 分支）；文本/编辑结果 360 上限 + 16/12。
+                // 常量未入 DesignTokens（生成物，门禁修复前禁手改——技术债：待 tokens JSON 统一）
+                .widthCap((message.type == .userImageText || message.type == .agentImage)
                     ? ChatBubbleTokens.imageMaxWidth
                     : ChatBubbleTokens.bubbleMaxWidth)
-                // 图+文气泡 padding 6/6（Android isImage||isImageText 分支）；文本/编辑结果 16/12。
-                // 常量未入 DesignTokens（生成物，门禁修复前禁手改——技术债：待 tokens JSON 统一）
-                .padding(.horizontal, message.type == .userImageText ? 6 : ChatBubbleTokens.paddingH)
-                .padding(.vertical, message.type == .userImageText ? 6 : ChatBubbleTokens.paddingV)
+                .padding(.horizontal,
+                         (message.type == .userImageText || message.type == .agentImage) ? 6 : ChatBubbleTokens.paddingH)
+                .padding(.vertical,
+                         (message.type == .userImageText || message.type == .agentImage) ? 6 : ChatBubbleTokens.paddingV)
                 .background(bubbleBackground)
                 .clipShape(bubbleShape)
                 .contentShape(Rectangle())
@@ -596,6 +606,11 @@ private struct MessageBubble: View {
     }
 
     private var bubbleBackground: Color {
+        // 图类气泡（用户图+文）保持 primary 0.9；agent 单发图 → surfaceVariant 0.4
+        // （Android isImage/isUser 分支，chat.yaml §5 background）
+        if message.type == .agentImage {
+            return Color(.secondarySystemBackground).opacity(0.4)
+        }
         if message.role == .user {
             return Color.accentColor.opacity(0.9)
         } else {

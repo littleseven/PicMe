@@ -416,10 +416,11 @@ final class ChatViewModel: ObservableObject {
                 persist()
             case .fallback(let imagePath, let explanation):
                 // 降级单发：含图（固定预设全尺寸渲染落盘）或纯文本解释
+                // 图消息走 AGENT_IMAGE 契约（FillWidth 240 完整显示，chat.yaml §5 image_content.agent_image）
                 if let imagePath {
                     messages.append(ChatMessage(
                         role: .assistant, text: explanation,
-                        type: .agentEditResult, imageUri: imagePath))
+                        type: .agentImage, imageUri: imagePath))
                 } else {
                     messages.append(ChatMessage(role: .assistant, text: explanation))
                 }
@@ -478,7 +479,8 @@ final class ChatViewModel: ObservableObject {
             guard currentSessionId == sessionId else { return }
             if let idx = messages.firstIndex(where: { $0.id == messageId }) {
                 // 原地改写：气泡正文保留场景解释句，图换为全尺寸渲染结果
-                messages[idx].type = .agentEditResult
+                // （AGENT_IMAGE 契约：对齐 Android confirm 改写 type="agent_image"）
+                messages[idx].type = .agentImage
                 messages[idx].imageUri = path
                 messages[idx].gacha = nil
                 gachaSelections.removeValue(forKey: messageId)
@@ -487,7 +489,7 @@ final class ChatViewModel: ObservableObject {
             } else {
                 messages.append(ChatMessage(
                     role: .assistant, text: explanation,
-                    type: .agentEditResult, imageUri: path))
+                    type: .agentImage, imageUri: path))
                 persist()
             }
         }

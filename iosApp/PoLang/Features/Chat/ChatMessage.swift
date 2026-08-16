@@ -50,6 +50,8 @@ struct ChatMessage: Identifiable, Codable {
     enum MessageType: String, Codable {
         case userText, agentText, userImageText, mediaResults, chart, agentEditResult
         case optimizeCandidates
+        /// agent 单发结果图（Android AGENT_IMAGE：gacha 确认/降级单发；FillWidth 240 完整显示）
+        case agentImage
     }
 
     /// 单张抽卡候选卡（结构照 chat.yaml §17 message_model.payload.candidates）。
