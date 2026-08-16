@@ -14,18 +14,21 @@ class IosChatPromptTest {
     private val prompt = IosChatPrompt.build(ChatToolManifest.buildDescriptors())
 
     @Test
-    fun `prompt contains tool inventory for the 8 registered tools`() {
-        assertTrue(prompt.contains("可用工具（8）"), "应含 8 工具清单头，实际 prompt 头部：${prompt.take(200)}")
+    fun `prompt contains tool inventory for the 9 registered tools`() {
+        // 2026-08-16 抽卡追齐：8 相册工具 + ai_optimize（ChatToolManifest 第 9 工具）
+        assertTrue(prompt.contains("可用工具（9）"), "应含 9 工具清单头，实际 prompt 头部：${prompt.take(200)}")
         assertTrue(prompt.contains("search_media"))
         assertTrue(prompt.contains("refine_media_search"))
         assertTrue(prompt.contains("delete_media"))
+        assertTrue(prompt.contains("ai_optimize"))
     }
 
     @Test
     fun `prompt does not reference unregistered capabilities`() {
         val banned = listOf(
+            // ai_optimize 已注册（2026-08-16 抽卡追齐），从禁用清单移除
             "run_gallery_script", "draw_chart", "capability.dispatch",
-            "ai_optimize", "adjust_image", "edit_image",
+            "adjust_image", "edit_image",
             "remember_fact", "recall_memory", "remember_person_relation",
             "start_tag_scan", "bridge.callAsync",
         )

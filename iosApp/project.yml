@@ -93,3 +93,14 @@ schemes:
       targets:
         - PoLangTests
         - PoLangUITests
+  # 单测专用 scheme：不构建 PoLangUITests（UI 测试 runner 需现场派生 *.xctrunner
+  # provisioning profile，CLI 无 Apple ID 会话时会阻塞；单测 bundle 无此需求）。
+  # 供 CI / ios-auto-dev-loop Phase 1 在签名受限环境跑 PoLangTests。
+  PoLangUnitTests:
+    build:
+      targets:
+        PoLang: all
+        PoLangTests: [test]
+    test:
+      targets:
+        - PoLangTests

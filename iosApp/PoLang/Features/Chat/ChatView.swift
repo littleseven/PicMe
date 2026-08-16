@@ -196,7 +196,22 @@ struct ChatView: View {
                             onImageTap: { img in
                                 if let img { previewImage = img }
                             },
-                            onMediaTap: { lid in openPreview(localIdentifier: lid) }
+                            onMediaTap: { lid in openPreview(localIdentifier: lid) },
+                            gachaInteractive: viewModel.isGachaInteractive(msg.id),
+                            gachaSelectedIndex: viewModel.gachaSelections[msg.id],
+                            gachaRerolling: viewModel.gachaRerolling.contains(msg.id),
+                            onGachaSelection: { index in
+                                viewModel.selectGachaCard(messageId: msg.id, index: index)
+                            },
+                            onGachaReroll: {
+                                viewModel.rerollGacha(messageId: msg.id)
+                            },
+                            onGachaConfirm: {
+                                viewModel.confirmGacha(messageId: msg.id)
+                            },
+                            onGachaCardTap: { thumbPath in
+                                openGachaPreview(thumbPath: thumbPath)
+                            }
                         )
                         .id(msg.id)
                     }
@@ -226,6 +241,13 @@ struct ChatView: View {
             let image = await ThumbnailLoader.shared.fullResolution(for: localIdentifier)
             await MainActor.run { if let image { previewImage = image } }
         }
+    }
+
+    /// 抽卡候选卡全屏预览（chat.yaml §17：512px 候选缩略图落盘路径直接解码；
+    /// 复用 ChatImagePreview——本入口无保存按钮，rejected 卡不可点已由卡条拒）。
+    private func openGachaPreview(thumbPath: String?) {
+        guard let thumbPath, let image = UIImage(contentsOfFile: thumbPath) else { return }
+        previewImage = image
     }
 
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
@@ -442,92 +464,129 @@ private struct MessageBubble: View {
     var onNavigateToGallery: ((String) -> Void)? = nil
     var onImageTap: ((UIImage?) -> Void)? = nil
     var onMediaTap: ((String) -> Void)? = nil
+    // AI 优化抽卡（chat.yaml §17）：卡条状态与回调（仅 optimizeCandidates 消息消费）
+    var gachaInteractive: Bool = false
+    var gachaSelectedIndex: Int? = nil
+    var gachaRerolling: Bool = false
+    var onGachaSelection: ((Int) -> Void)? = nil
+    var onGachaReroll: (() -> Void)? = nil
+    var onGachaConfirm: (() -> Void)? = nil
+    var onGachaCardTap: ((String?) -> Void)? = nil
 
     var body: some View {
-        HStack {
-            if message.role == .user { Spacer(minLength: 40) }
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                if message.role == .user { Spacer(minLength: 40) }
 
-            VStack(alignment: .leading, spacing: 0) {
-                if message.isThinking {
-                    // 思考态：3 点动画（首 token 前）
-                    ThinkingIndicator()
-                } else if message.isToolCalling {
-                    // 工具调用态：状态文案
-                    Text(message.text)
-                        .font(.system(size: ChatBubbleTokens.textSize))
-                        .foregroundColor(Color(.secondaryLabel))
-                } else if !message.text.isEmpty || !message.mediaIds.isEmpty || message.imageUri != nil {
-                    // USER_IMAGE_TEXT：上图下文（图在文本上方，对齐 Android）
-                    if message.type == .userImageText, let uri = message.imageUri {
-                        UserImageAttachment(localIdentifier: uri, onTap: { onImageTap?($0) })
-                            .padding(.bottom, 6)
-                    }
+                VStack(alignment: .leading, spacing: 0) {
+                    if message.isThinking {
+                        // 思考态：3 点动画（首 token 前）
+                        ThinkingIndicator()
+                    } else if message.isToolCalling {
+                        // 工具调用态：状态文案
+                        Text(message.text)
+                            .font(.system(size: ChatBubbleTokens.textSize))
+                            .foregroundColor(Color(.secondaryLabel))
+                    } else if !message.text.isEmpty || !message.mediaIds.isEmpty || message.imageUri != nil {
+                        // USER_IMAGE_TEXT：上图下文（图在文本上方，对齐 Android）
+                        if message.type == .userImageText, let uri = message.imageUri {
+                            UserImageAttachment(localIdentifier: uri, onTap: { onImageTap?($0) })
+                                .padding(.bottom, 6)
+                        }
 
-                    // AGENT_EDIT_RESULT：编辑结果图卡（文件路径 + 失效占位），说明文字走下方文本渲染
-                    if message.type == .agentEditResult, let path = message.imageUri {
-                        ChatEditImageCard(imagePath: path, onTap: { onImageTap?($0) })
-                            .padding(.bottom, 6)
-                    }
+                        // AGENT_IMAGE：agent 单发结果图（gacha 确认/降级；FillWidth 240 完整显示，
+                        // chat.yaml §5 image_content.agent_image）
+                        if message.type == .agentImage, let path = message.imageUri {
+                            AgentImageAttachment(imagePath: path, onTap: { onImageTap?($0) })
+                                .padding(.bottom, 6)
+                        }
 
-                    // 正常文本（agent → Markdown 渲染；user → 纯文本；流式光标内联右侧，对齐 Android）
-                    if !message.text.isEmpty {
-                        HStack(alignment: .bottom, spacing: 2) {
-                            Group {
-                                if message.role == .user {
-                                    Text(message.text)
-                                } else {
-                                    AgentTextView(content: message.text)
+                        // AGENT_EDIT_RESULT：编辑结果图卡（文件路径 + 失效占位），说明文字走下方文本渲染
+                        if message.type == .agentEditResult, let path = message.imageUri {
+                            ChatEditImageCard(imagePath: path, onTap: { onImageTap?($0) })
+                                .padding(.bottom, 6)
+                        }
+
+                        // 正常文本（agent → Markdown 渲染；user → 纯文本；流式光标内联右侧，对齐 Android）
+                        if !message.text.isEmpty {
+                            HStack(alignment: .bottom, spacing: 2) {
+                                Group {
+                                    if message.role == .user {
+                                        Text(message.text)
+                                    } else {
+                                        AgentTextView(content: message.text)
+                                    }
+                                }
+                                .font(.system(size: ChatBubbleTokens.textSize))
+                                .lineSpacing(ChatBubbleTokens.textLineHeight - ChatBubbleTokens.textSize)
+                                .foregroundColor(message.role == .user ? .white : Color(.label))
+                                .fixedSize(horizontal: false, vertical: true)
+                                .accessibilityIdentifier(message.role == .user ? "chat_user_bubble" : "chat_ai_bubble")
+
+                                // 流式光标（内联右侧，由节奏器 showCursor 驱动：吐字中可见 / 完成隐藏）
+                                if message.showCursor {
+                                    BlinkCursor()
+                                        .padding(.bottom, 3)
                                 }
                             }
-                            .font(.system(size: ChatBubbleTokens.textSize))
-                            .lineSpacing(ChatBubbleTokens.textLineHeight - ChatBubbleTokens.textSize)
-                            .foregroundColor(message.role == .user ? .white : Color(.label))
-                            .fixedSize(horizontal: false, vertical: true)
-                            .accessibilityIdentifier(message.role == .user ? "chat_user_bubble" : "chat_ai_bubble")
+                        }
 
-                            // 流式光标（内联右侧，由节奏器 showCursor 驱动：吐字中可见 / 完成隐藏）
-                            if message.showCursor {
-                                BlinkCursor()
-                                    .padding(.bottom, 3)
-                            }
+                        // 媒体卡片（独立消息项）
+                        if !message.mediaIds.isEmpty {
+                            MediaCardRow(
+                                mediaIds: message.mediaIds,
+                                totalCount: message.mediaTotalCount ?? message.mediaIds.count,
+                                onViewAll: { onNavigateToGallery?(message.mediaQuery ?? "") },
+                                onMediaTap: onMediaTap
+                            )
+                            .padding(.top, 6)
                         }
                     }
-
-                    // 媒体卡片（独立消息项）
-                    if !message.mediaIds.isEmpty {
-                        MediaCardRow(
-                            mediaIds: message.mediaIds,
-                            totalCount: message.mediaTotalCount ?? message.mediaIds.count,
-                            onViewAll: { onNavigateToGallery?(message.mediaQuery ?? "") },
-                            onMediaTap: onMediaTap
-                        )
-                        .padding(.top, 6)
-                    }
                 }
-            }
-            // 宽度上限（对齐 Android Column.widthIn）：内容收缩包裹，超 cap 才换行。
-            // 图+文气泡 240，其余 360（对齐 Android isImage/isImageText 分支）。
-            .widthCap(message.type == .userImageText
-                ? ChatBubbleTokens.imageMaxWidth
-                : ChatBubbleTokens.bubbleMaxWidth)
-            .padding(.horizontal, ChatBubbleTokens.paddingH)
-            .padding(.vertical, ChatBubbleTokens.paddingV)
-            .background(bubbleBackground)
-            .clipShape(bubbleShape)
-            .contentShape(Rectangle())
-            .onLongPressGesture {
-                // 长按复制（对齐 Android）
-                UIPasteboard.general.string = message.text
+                // 宽度上限（对齐 Android Column.widthIn）：内容收缩包裹，超 cap 才换行。
+                // 图+文气泡 240，其余 360（对齐 Android isImage/isImageText 分支）。
+                // 图类气泡（用户图+文 / agent 单发图）：240 上限 + padding 6/6
+                // （Android isImage||isImageText 分支）；文本/编辑结果 360 上限 + 16/12。
+                // 常量未入 DesignTokens（生成物，门禁修复前禁手改——技术债：待 tokens JSON 统一）
+                .widthCap((message.type == .userImageText || message.type == .agentImage)
+                    ? ChatBubbleTokens.imageMaxWidth
+                    : ChatBubbleTokens.bubbleMaxWidth)
+                .padding(.horizontal,
+                         (message.type == .userImageText || message.type == .agentImage) ? 6 : ChatBubbleTokens.paddingH)
+                .padding(.vertical,
+                         (message.type == .userImageText || message.type == .agentImage) ? 6 : ChatBubbleTokens.paddingV)
+                .background(bubbleBackground)
+                .clipShape(bubbleShape)
+                .contentShape(Rectangle())
+                .onLongPressGesture {
+                    // 长按复制（对齐 Android）
+                    UIPasteboard.general.string = message.text
+                }
+
+                // CHART 图卡（draw_chart 端侧 JS 生成的 SVG，ChartJsEngine 渲染）
+                if let svg = message.chartSvg {
+                    ChartSvgCard(svg: svg)
+                        .padding(.top, 6)
+                        .frame(maxWidth: ChatBubbleTokens.bubbleMaxWidth)
+                }
+
+                if message.role == .assistant { Spacer(minLength: 40) }
             }
 
-            // CHART 图卡（draw_chart 端侧 JS 生成的 SVG，ChartJsEngine 渲染）
-            if let svg = message.chartSvg {
-                ChartSvgCard(svg: svg)
-                    .padding(.top, 6)
-                    .frame(maxWidth: ChatBubbleTokens.bubbleMaxWidth)
+            // OPTIMIZE_CANDIDATES 候选卡条（chat.yaml §17 strip_ui）：独立全宽块，
+            // 伴随上方 agent 文本气泡（场景解释句）；pending 过期 → interactive=false
+            // 只读（expired 文案、无按钮行、无选中态）
+            if message.type == .optimizeCandidates, let payload = message.gacha {
+                GachaCandidateStrip(
+                    payload: payload,
+                    selectedIndex: gachaSelectedIndex,
+                    interactive: gachaInteractive,
+                    rerolling: gachaRerolling,
+                    onSelection: { index in onGachaSelection?(index) },
+                    onReroll: { onGachaReroll?() },
+                    onConfirm: { onGachaConfirm?() },
+                    onCardTap: { thumbPath in onGachaCardTap?(thumbPath) })
             }
-
-            if message.role == .assistant { Spacer(minLength: 40) }
         }
     }
 
@@ -547,6 +606,11 @@ private struct MessageBubble: View {
     }
 
     private var bubbleBackground: Color {
+        // 图类气泡（用户图+文）保持 primary 0.9；agent 单发图 → surfaceVariant 0.4
+        // （Android isImage/isUser 分支，chat.yaml §5 background）
+        if message.type == .agentImage {
+            return Color(.secondarySystemBackground).opacity(0.4)
+        }
         if message.role == .user {
             return Color.accentColor.opacity(0.9)
         } else {

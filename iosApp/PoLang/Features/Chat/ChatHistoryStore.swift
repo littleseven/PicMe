@@ -102,6 +102,9 @@ final class ChatHistoryStore {
 
     // MARK: - 消息（每会话文件）
 
+    /// 消息编解码经 ChatMessage 自定义 init(from:)：optimize_candidates 消息的 gacha payload
+    /// 随消息整体 Codable 落盘；老 JSON 无该字段（decodeIfPresent）或结构漂移时
+    /// 该字段被静默丢弃（nil）——消息退化为普通文本气泡，不崩（chat.yaml §17 persistence）。
     func loadMessages(sessionId: String) -> [ChatMessage] {
         guard let data = try? Data(contentsOf: messagesFileURL(sessionId: sessionId)) else { return [] }
         return (try? JSONDecoder().decode([ChatMessage].self, from: data)) ?? []

@@ -1,6 +1,7 @@
 package com.mamba.picme.agent
 
 import ai.koog.agents.core.tools.ToolRegistry
+import com.mamba.picme.agent.core.capability.IosAiOptimizeCapability
 import com.mamba.picme.agent.core.capability.IosChartCapability
 import com.mamba.picme.agent.core.capability.IosChatGalleryCapability
 import com.mamba.picme.agent.core.capability.IosRunScriptCapability
@@ -14,6 +15,7 @@ import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.platform.storage.ChatHistoryCleaner
 import com.mamba.picme.agent.core.platform.thread.DispatcherProvider
 import com.mamba.picme.agent.core.runtime.state.SceneManager
+import com.mamba.picme.data.IosAiOptimizeBridge
 import com.mamba.picme.data.IosChartBridge
 import com.mamba.picme.data.IosChatSearchBridge
 import com.mamba.picme.data.IosMediaRepository
@@ -77,6 +79,8 @@ object IosAgentComposition {
      *                   draw_chart 命令不可用（IosChartCapability.isAvailable=false）
      * @param runScriptBridge Swift 侧脚本执行桥（RunScriptBridge → JsRuntime+JsCoreEngine）；null 时
      *                        run_gallery_script 命令不可用（IosRunScriptCapability.isAvailable=false）
+     * @param aiOptimizeBridge Swift 侧 AI 优化桥（AiOptimizeBridge → AiOptimizeService 固定预设路径）；
+     *                         null 时 ai_optimize 命令不可用（IosAiOptimizeCapability.isAvailable=false）
      * @param debugBuild Swift `#if DEBUG` 传入；true 时诊断日志记全文（captureContent），
      *                   false 仅纯指标（隐私红线，对标 Android BuildConfig.DEBUG 注入）
      */
@@ -86,6 +90,7 @@ object IosAgentComposition {
         searchBridge: IosChatSearchBridge? = null,
         chartBridge: IosChartBridge? = null,
         runScriptBridge: IosRunScriptBridge? = null,
+        aiOptimizeBridge: IosAiOptimizeBridge? = null,
         debugBuild: Boolean = false
     ) {
         if (!initialized.compareAndSet(false, true)) {
@@ -136,6 +141,9 @@ object IosAgentComposition {
 
         // 注册 iOS chat 脚本能力（run_gallery_script 执行端 → JsRuntime+JsCoreEngine 端侧沙箱）
         orchestrator.registerCapability(IosRunScriptCapability(runScriptBridge))
+
+        // 注册 iOS AI 优化能力（ai_optimize 执行端 → AiOptimizeService 固定预设；gacha 由 Swift UI 层分流）
+        orchestrator.registerCapability(IosAiOptimizeCapability(aiOptimizeBridge))
 
         // 创建 chat 桥
         chatBridge = ChatAgentBridge(orchestrator)

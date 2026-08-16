@@ -1,0 +1,202 @@
+[
+  {
+    "scene": "SELFIE",
+    "beauty": {
+      "enabled": true,
+      "smoothing": 35,
+      "whitening": 25,
+      "slimFace": 10,
+      "bigEyes": 15,
+      "lipColor": 25,
+      "blush": 10,
+      "eyebrow": 10
+    },
+    "filter": {
+      "colorFilter": "NONE",
+      "styleFilter": "NONE"
+    },
+    "adjustment": {
+      "brightness": 5,
+      "exposure": 0,
+      "contrast": 52,
+      "saturation": 102,
+      "temperature": 5200,
+      "tint": 2
+    }
+  },
+  {
+    "scene": "PORTRAIT",
+    "beauty": {
+      "enabled": true,
+      "smoothing": 25,
+      "whitening": 20,
+      "slimFace": 5,
+      "bigEyes": 10,
+      "lipColor": 20,
+      "blush": 8,
+      "eyebrow": 8
+    },
+    "filter": {
+      "colorFilter": "NONE",
+      "styleFilter": "NONE"
+    },
+    "adjustment": {
+      "brightness": 3,
+      "exposure": 0,
+      "contrast": 53,
+      "saturation": 103,
+      "temperature": 5300,
+      "tint": 2
+    }
+  },
+  {
+    "scene": "GROUP",
+    "beauty": {
+      "enabled": true,
+      "smoothing": 20,
+      "whitening": 15,
+      "slimFace": 0,
+      "bigEyes": 0,
+      "lipColor": 10,
+      "blush": 5,
+      "eyebrow": 5
+    },
+    "filter": {
+      "colorFilter": "NONE",
+      "styleFilter": "NONE"
+    },
+    "adjustment": {
+      "brightness": 3,
+      "exposure": 0,
+      "contrast": 52,
+      "saturation": 102,
+      "temperature": 5200,
+      "tint": 1
+    }
+  },
+  {
+    "scene": "FOOD",
+    "beauty": {
+      "enabled": false,
+      "smoothing": 0,
+      "whitening": 0,
+      "slimFace": 0,
+      "bigEyes": 0,
+      "lipColor": 0,
+      "blush": 0,
+      "eyebrow": 0
+    },
+    "filter": {
+      "colorFilter": "LEICA_VIBRANT",
+      "styleFilter": "NONE"
+    },
+    "adjustment": {
+      "brightness": 2,
+      "exposure": 0,
+      "contrast": 55,
+      "saturation": 110,
+      "temperature": 5400,
+      "tint": 3
+    }
+  },
+  {
+    "scene": "LANDSCAPE",
+    "beauty": {
+      "enabled": false,
+      "smoothing": 0,
+      "whitening": 0,
+      "slimFace": 0,
+      "bigEyes": 0,
+      "lipColor": 0,
+      "blush": 0,
+      "eyebrow": 0
+    },
+    "filter": {
+      "colorFilter": "LEICA_VIBRANT",
+      "styleFilter": "NONE"
+    },
+    "adjustment": {
+      "brightness": 0,
+      "exposure": 0,
+      "contrast": 58,
+      "saturation": 110,
+      "temperature": 5000,
+      "tint": 0
+    }
+  },
+  {
+    "scene": "LOW_LIGHT",
+    "beauty": {
+      "enabled": true,
+      "smoothing": 15,
+      "whitening": 10,
+      "slimFace": 0,
+      "bigEyes": 0,
+      "lipColor": 0,
+      "blush": 0,
+      "eyebrow": 0
+    },
+    "filter": {
+      "colorFilter": "WARM",
+      "styleFilter": "NONE"
+    },
+    "adjustment": {
+      "brightness": 12,
+      "exposure": 5,
+      "contrast": 55,
+      "saturation": 100,
+      "temperature": 5600,
+      "tint": 3
+    }
+  },
+  {
+    "scene": "DOCUMENT",
+    "beauty": {
+      "enabled": false,
+      "smoothing": 0,
+      "whitening": 0,
+      "slimFace": 0,
+      "bigEyes": 0,
+      "lipColor": 0,
+      "blush": 0,
+      "eyebrow": 0
+    },
+    "filter": {
+      "colorFilter": "NONE",
+      "styleFilter": "NONE"
+    },
+    "adjustment": {
+      "brightness": 8,
+      "exposure": 0,
+      "contrast": 60,
+      "saturation": 95,
+      "temperature": 5000,
+      "tint": 0
+    }
+  },
+  {
+    "scene": "GENERAL",
+    "beauty": {
+      "enabled": true,
+      "smoothing": 15,
+      "whitening": 10,
+      "slimFace": 0,
+      "bigEyes": 0,
+      "lipColor": 0,
+      "blush": 0,
+      "eyebrow": 0
+    },
+    "filter": {
+      "colorFilter": "NONE",
+      "styleFilter": "NONE"
+    },
+    "adjustment": {
+      "brightness": 2,
+      "exposure": 0,
+      "contrast": 52,
+      "saturation": 100,
+      "temperature": 5000,
+      "tint": 0
+    }
+  }
+]

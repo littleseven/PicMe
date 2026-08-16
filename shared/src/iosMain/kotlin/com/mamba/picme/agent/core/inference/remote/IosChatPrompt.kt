@@ -8,8 +8,8 @@ import com.mamba.picme.agent.core.inference.remote.tool.ToolInventory
  *
  * 背景：Android `RemoteChatEngine.buildChatSystemPrompt` 大量引用 JS 沙箱
  * （run_gallery_script/draw_chart/capability.dispatch）、修图、记忆、设置工具——
- * iOS v1 只注册 8 个相册工具（见 ChatToolManifest），沿用全量 prompt 会诱使 LLM
- * 幻觉调用不存在的工具。本 prompt 只保留与 8 工具匹配的规则段：
+ * iOS v1 只注册 8 个相册工具 + ai_optimize（见 ChatToolManifest），沿用全量 prompt
+ * 会诱使 LLM 幻觉调用不存在的工具。本 prompt 只保留与已注册工具匹配的规则段：
  * - 角色一句 + ToolInventory 确定性清单段（与 Android 同生成器、同格式）；
  * - 多轮窄化规则（refine vs search）逐字保留（去掉 JS 的 gallery.query 指引行）；
  * - 收敛规则（无画图场景版：取数 1 次即总结）；
@@ -36,6 +36,8 @@ object IosChatPrompt {
         ② 上一轮"海边的照片"→ 用户"找猫的照片"→ search_media("猫的照片")（全新主题）。
 
         【写操作】收藏/取消收藏（favorite_media）、选择（select_media）、分享（share_media）、删除（delete_media）按用户指令直接执行对应工具。删除不可恢复：执行前先用 search_media/refine_media_search 拿到准确的目标 id；删除时系统会弹确认窗，用户可在系统弹窗中取消，若用户取消如实告知"操作已取消"。
+
+        【AI 一键优化】用户想优化/美化一张图片（"帮我优化这张图""调好看点""美化一下"）时调 ai_optimize，imageUri 传该图片的 URI（优先取最近一次用户发送/查看/搜索结果中的图片 URI；用户没指定图且上下文无图时，先用 search_media 找图或让用户选图，不要凭空调用）。优化在设备端完成，结果会以候选卡片展示给用户挑选。
 
         【搜索能力边界】搜索基于本地相册搜索引擎（标签/OCR 文字/地点/时间多路召回）；索引覆盖度取决于打标扫描进度，人物/场景类查询在索引未覆盖时结果可能偏少。找不到结果时如实说明，不要编造照片内容。
 
