@@ -217,6 +217,23 @@ message_bubble:
     action: copy_to_clipboard
     toast: "Copied"
 
+  # 图片内容布局（2026-08-16 补：修复 iOS「砍头2/大小不对齐」时反向提取 Android 定稿）
+  image_content:
+    user_image_text:                     # 上图下文（USER_IMAGE_TEXT）
+      scale: fill_width                  # ContentScale.FillWidth：宽撑满气泡内容区，高随原始宽高比，零裁切
+      fixed_height: none                 # ⚠️ 禁固定高 + Crop（会砍头；2026-08-16 真机反馈回归点）
+      corner_radius: 12                  # 图自身圆角（≠气泡圆角 20）
+      text_below: { color: white, size: 14, line_height: 20, top_padding: 6 }
+    agent_image:                         # AGENT_IMAGE（单发结果图）
+      scale: fill_width                  # 同上；过期 → ExpiredImagePlaceholder
+      corner_radius: 12
+    edit_result:                         # AGENT_EDIT_RESULT（编辑结果卡）
+      scale: fill_height                 # ContentScale.FillHeight：高定 200，超宽横向居中裁切
+      height: 200
+      max_width: 260
+      corner_radius: 12
+      expired_placeholder_height: 200
+
 # ============================================================================
 # 6. 流式指示器
 # ============================================================================

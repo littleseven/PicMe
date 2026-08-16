@@ -541,8 +541,10 @@ private struct MessageBubble: View {
                 .widthCap(message.type == .userImageText
                     ? ChatBubbleTokens.imageMaxWidth
                     : ChatBubbleTokens.bubbleMaxWidth)
-                .padding(.horizontal, ChatBubbleTokens.paddingH)
-                .padding(.vertical, ChatBubbleTokens.paddingV)
+                // 图+文气泡 padding 6/6（Android isImage||isImageText 分支）；文本/编辑结果 16/12。
+                // 常量未入 DesignTokens（生成物，门禁修复前禁手改——技术债：待 tokens JSON 统一）
+                .padding(.horizontal, message.type == .userImageText ? 6 : ChatBubbleTokens.paddingH)
+                .padding(.vertical, message.type == .userImageText ? 6 : ChatBubbleTokens.paddingV)
                 .background(bubbleBackground)
                 .clipShape(bubbleShape)
                 .contentShape(Rectangle())
