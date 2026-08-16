@@ -18,7 +18,7 @@
 
 ## 核心铁律（不可违反）
 
-1. **不动 Android 已验证的业务/UI 代码**。唯一例外：token 常量文件（`Spacing.kt`/`AppShapes.kt`/`Color.kt`）**纯新增**常量属契约固化的一部分；禁止改既有引用与逻辑。Android 侧未收敛到接口的平台调用 → 台账登记技术债，iOS 侧按业务语义写 actual，不回头重构 Android。
+1. **不动 Android 已验证的业务/UI 代码**。唯一例外：token 契约固化——改 `design-tokens.json` 后跑 `python3 scripts/gen-design-tokens.py` 重新生成双端镜像（`Spacing.kt`/`AppShapes.kt`/`Color.kt`/`DesignTokens.swift` 均为**生成物，由生成器整体重写，禁止手改**；`--check` 门禁拦截不一致）；Android 既有引用与逻辑仍不动。Android 侧未收敛到接口的平台调用 → 台账登记技术债，iOS 侧按业务语义写 actual，不回头重构 Android。
 2. **iOS 实现读 spec 不读 Android 源码**（[PARITY] 红线）。尺寸/颜色必须引用 `DesignTokens.swift` 常量。
 3. **shared 接口 iOS 零重写**：commonMain 变更经 XCFramework 重建直接获得；新 Flow/suspend 桥用 SKIE 形态（suspend→`async throws` / sealed→`onEnum` 穷举 / Flow→`for await`），不再新增 FlowWatcher 式手写桥（**REQUIRED BACKGROUND:** `skills/kmp-ios-interop/SKILL.md`）。
 4. **模型分工**（根 AGENTS.md §3.5）：Stage 2 契约固化 = K3（决定天花板的事）；Stage 3 UI 翻译可 GLM coder 子 agent、平台 actual/复杂管线必须 `model="primary"`(K3)；**审查与实现模型交叉**——GLM 写的 K3 审，K3 写的 GLM 审。
@@ -58,7 +58,7 @@
 
 1. **UI Spec**：`specs/screens/<screen>.yaml` 新建或更新（参照 `camera.yaml`/`gallery-grid.yaml` 格式；质量标准见 `specs/PARITY_MASTER_PLAN.md` §4.2——自包含/到元素粒度/状态机完整/Back 栈显式/allowed_differences 登记）。
    - 模式 B 且 spec 缺失时：从 Android 定稿代码 + 截图**反向提取**（`specs/README.md` ②步方式 B：读实现代码 + 定稿截图输出 yaml，新尺寸归一化进 tokens）。
-   - 新尺寸/颜色/圆角提取进 `shared/src/commonMain/resources/design-tokens.json`，并同步 Android（`Spacing.kt` 等，**纯新增**）与 iOS（`DesignTokens.swift`）。
+   - 新尺寸/颜色/圆角提取进 `shared/src/commonMain/resources/design-tokens.json` → 跑 `python3 scripts/gen-design-tokens.py` 自动重新生成 Android/iOS 镜像（生成物禁止手改，详见 `docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md`）。
    - `adb exec-out screencap` 采集定稿截图到 `tmp/ui-reference/<screen>.png`（设备不在线则复用已有截图并在报告中标记）。
 2. **平台差异台账**（spec 内 `platform_differences` 节，本管线的契约层新增）：
    - `permission`：双端权限模型与状态机映射（如 Android 单次授权 vs iOS Full/Limited/AddOnly/Denied 四态）→ shared 语义对齐点

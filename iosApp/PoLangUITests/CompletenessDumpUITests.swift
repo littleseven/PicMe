@@ -35,9 +35,26 @@ final class CompletenessDumpUITests: XCTestCase {
         XCTAssertTrue(nodes.count > 0, "未采集到任何 a11y 节点")
     }
 
-    /// dump 美颜面板态(点 mat_autofix 开美颜面板 → FACE tab)
-    func testDumpCameraBeautyFace() throws {
+    /// 仅截图 idle 态（Ardot 预览地面真值）：-openPanel none → 无面板启动，相机 idle。
+    func testShotIdle() throws {
+        app.terminate()
+        app.launchArguments = ["-openPanel", "none"]
+        app.launch()
         let cameraTab = app.buttons["tab_camera"]
+        if cameraTab.waitForExistence(timeout: 10) { cameraTab.tap() }
+        XCTAssertTrue(
+            app.descendants(matching: .any)["camera_preview"].firstMatch.waitForExistence(timeout: 15),
+            "相机预览未出现(idle shot)"
+        )
+        sleep(2)
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        attachment.name = "ios-shot-idle"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    /// dump 美颜面板态(点 mat_autofix 开美颜面板 → FACE tab)
+    func testDumpCameraBeautyFace() throws {        let cameraTab = app.buttons["tab_camera"]
         if cameraTab.waitForExistence(timeout: 10) { cameraTab.tap() }
         XCTAssertTrue(
             app.descendants(matching: .any)["camera_preview"].firstMatch.waitForExistence(timeout: 15),

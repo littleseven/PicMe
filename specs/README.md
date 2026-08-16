@@ -65,9 +65,9 @@ allowed_differences:  # 允许的平台原生差异
 
 给 AI（K3）指令：「读 `CameraPreviewContent.kt` 和这张定稿截图，输出 `specs/screens/camera.yaml`，尺寸引用 `design-tokens.json` 的 token 名。新出现的尺寸加到 tokens 里。」AI 做提取 + 归一化比从零写更快。
 
-**无论哪种方式，②的产出是三件套**：
+**无论哪种方式，②的产出是四件套**：
 1. `specs/screens/<new>.yaml` — 结构化规格
-2. `design-tokens.json` 新增 token（如有）+ 同步到 Android（`Spacing.kt` 等）和 iOS（`DesignTokens.swift`）
+2. `design-tokens.json` 新增 token（如有）→ 跑 `python3 scripts/gen-design-tokens.py` **自动重新生成**双端镜像（Android `Spacing.kt` 等 / iOS `DesignTokens.swift` 均为生成物，禁止手改；详见 `docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md`）
 3. 定稿截图（如尚未采集）
 4. **Android 代码中的硬编码值建议替换为 token 引用**（可选，但强烈推荐——否则后续改 token 时 Android 不生效）
 
@@ -111,7 +111,7 @@ UI 定稿后，后续的改动（加功能、调尺寸）走**三同步**：
      ↓
 同步改 Android（Compose 代码，引用 token）
 同步改 iOS（SwiftUI 代码，引用 token）
-同步改 token（design-tokens.json → 两端常量，如有新值）
+同步改 token（如有新值：改 design-tokens.json → python3 scripts/gen-design-tokens.py 重新生成双端镜像）
 ```
 
 spec 是"当前事实的记录"。改的时候三处一起改，不允许只改一端代码。
@@ -163,6 +163,7 @@ spec 是"当前事实的记录"。改的时候三处一起改，不允许只改�
 
 ## 相关文件
 
+- `docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md` — Token 工作流 SSOT（codegen + Ardot 预览层）
 - `shared/src/commonMain/resources/design-tokens.json` — Token SSOT
 - `specs/screens/camera.yaml` / `gallery-grid.yaml` — spec 示例（从 Android 反向提取的）
 - `skills/ui-parity-guard/SKILL.md` — 5 步硬规则

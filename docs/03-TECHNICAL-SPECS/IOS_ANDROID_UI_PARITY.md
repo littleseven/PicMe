@@ -96,6 +96,8 @@
 - `specs/screens/chat.yaml` — 聊天屏
 - `specs/screens/settings.yaml` — 设置屏
 - `specs/screens/model-download-center.yaml` — 模型下载中心
+- `specs/screens/editor.yaml` — 图片编辑器
+- `specs/screens/person.yaml` — 人物页
 
 ### 2.2 实现后：视觉 + 量化地面真值
 
@@ -111,7 +113,7 @@
 
 ## 3. 设计令牌（Design Tokens）作为 SSOT
 
-从基准端提取一份 token 表，双端各自实现——**对齐收敛为 token 对齐**：
+**Token SSOT = `shared/src/commonMain/resources/design-tokens.json`**（v2.0.0）；双端镜像（Android `Spacing`/`AppShapes`/`Color`/`Typography`、iOS `DesignTokens.swift`）由 `scripts/gen-design-tokens.py` 生成，**禁止手改**，`ai-gate.sh --check` 门禁拦截。完整工作流与消费规则见 [`DESIGN_TOKENS_SPEC.md`](DESIGN_TOKENS_SPEC.md)。spec 中尺寸一律引用 token 名，不写裸数值——**对齐收敛为 token 对齐**：
 
 | Token 类 | 示例 |
 |---|---|
@@ -122,7 +124,7 @@
 | 字阶 | 标题 17sp/label 12sp（sp≈pt 同迁移；字体各自原生） |
 | 面板比例 | 美颜面板 35% 屏高、滤镜网格 5 列 |
 
-Token 表放 `docs/reviews/` 或本文件附录，改动走 [DOC-SYNC]。
+Ardot/Figma 画布为 token **可视化预览层**（非 SSOT），由 `sync-ardot-variables.py` 从生成物推送。
 
 ## 4. 平台差异的显式处理
 

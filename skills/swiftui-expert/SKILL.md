@@ -106,8 +106,8 @@ ForEach(items) { item in
 
 **核心约束**：
 1. **先读 `specs/screens/<screen>.yaml`**——不存在则要求 Android 端先固化 spec。**禁止通过读 Android 源码翻译布局**（此路线已被两轮真机验收证伪）。
-2. **引用 design token 常量**（`Spacing` / `AppShapes` / `AppColors`），禁止硬编码 `.frame(width:)` / `Color(red:)`。Token SSOT: `shared/src/commonMain/resources/design-tokens.json`。
+2. **引用 design token 常量**（`Spacing` / `AppShapes` / `AppColors`），禁止硬编码 `.frame(width:)` / `Color(red:)`。Token SSOT: `shared/src/commonMain/resources/design-tokens.json`；`DesignTokens.swift` 为**生成物**（`gen-design-tokens.py` 产出，禁止手改）。
 3. **定稿截图作视觉参照**（`tmp/ui-reference/`）——看"长什么样"，但代码参照是 spec 不是 Android 源码。
-4. 后续修改走三同步：改 spec → 同步改两端代码 → 同步改 token。
+4. 后续修改走三同步：改 spec → 同步改两端代码 → 同步改 token（改 JSON → 跑生成器）。
 
-详见：[`ui-parity-guard`](/ui-parity-guard) · [`specs/README.md`](/specs/README.md) · [`IOS_ANDROID_UI_PARITY.md`](/docs/03-TECHNICAL-SPECS/IOS_ANDROID_UI_PARITY.md)
+详见：[`ui-parity-guard`](/ui-parity-guard) · [`specs/README.md`](/specs/README.md) · [`DESIGN_TOKENS_SPEC.md`](/docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md) · [`IOS_ANDROID_UI_PARITY.md`](/docs/03-TECHNICAL-SPECS/IOS_ANDROID_UI_PARITY.md)

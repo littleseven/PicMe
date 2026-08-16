@@ -1243,13 +1243,13 @@ SettingsScreen (MAIN)
 
 ### 3.6 设计系统
 
-**Token SSOT**：`shared/src/commonMain/resources/design-tokens.json`（v1.0.0），Android `core/designsystem/*` 与 iOS `DesignSystem/DesignTokens.swift` 各自镜像同步。
+**Token SSOT**：`shared/src/commonMain/resources/design-tokens.json`（v2.0.0）。双端镜像**全部由 `scripts/gen-design-tokens.py` 生成，禁止手改**（Android `core/designsystem/*` 生成物 + 手写 `Theme.kt`；iOS `DesignSystem/DesignTokens.swift`）；`ai-gate.sh --check` 门禁拦截不一致。规范见 `docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md`。
 
 - **间距 Spacing**：xs/sm/md/lg/xl/xxl = 4/8/12/16/24/32。
-- **圆角 Radius**：panel=24 / card=12 / button=10 / small=8 / thumbnail=2。底部悬浮 Tab 容器圆角为 **28dp**（独立硬编码，iOS 已对齐）。
-- **色彩**：**主题色板 = Material 3 基线 + 动态取色（Material You），非 HyperOS 自定义品牌色**。Light primary `#6750A4`、Dark primary `#D0BCFF`；`dynamicColor = true`（Android S+）。固定功能色：focusRing `#00E5FF`、panelBackground `#CC000000`、shutterRing `#FFFFFF`、vibrantGreen `#00E676`/Blue `#2979FF`/Orange `#FF9100`/Pink `#FF4081`。模型中心专属色：mustHave `#E53935` 等。
-- **字体**：仅显式定义 `bodyLarge`（16sp/24lh），其余回落 Material 3 默认。
-- **iOS 对齐**：`DesignTokens.swift` 已 1:1 镜像全部 token，`iOS 已有`。但 iOS 尚未建立 Material You 动态取色等价体系（用 SwiftUI `.accentColor` + `.ultraThinMaterial` 毛玻璃）。
+- **圆角 Radius**：panel=24 / card=12 / button=10 / small=8 / thumbnail=2。底部悬浮 Tab 容器圆角 **28dp**（`bottomTab.cornerRadius`，v2 已入 token）。
+- **色彩**：**主题色板 = Material 3 基线 + 动态取色（Material You），非 HyperOS 自定义品牌色**。Light primary `#6750A4`、Dark primary `#D0BCFF`；`dynamicColor = true`（Android S+）。固定功能色：focusRing `#00E5FF`、panelBackground `#CC000000`、shutterRing `#FFFFFF`、vibrantGreen `#00E676`/Blue `#2979FF`/Orange `#FF9100`/Pink `#FF4081`。模型中心专属色：mustHave `#E53935` 等。v2.0.0 新增 `colorScheme`（M3 baseline light/dark 58 色）/`alpha`/`statusColor`/`motion`/`elevation` 等全局组——iOS 直接用 SSOT 修正值（规避 Android 动态取色掩盖的代码缺陷，见 DESIGN_TOKENS_SPEC §3）。
+- **字体**：v2.0.0 含完整 `typography` 15 role（size/lineHeight/weight/letterSpacing），iOS 经 `AppTypography` 产出 SwiftUI `Font`。
+- **iOS 对齐**：`DesignTokens.swift` 与 SSOT 全量同步（codegen），`iOS 已有`。iOS 无 Material You 动态取色——按 `AppSettings.colorScheme`（system/light/dark）切换 `AppColorScheme.light/.dark`。
 
 ### 3.7 性能红线（NFR 摘要）
 
@@ -1288,7 +1288,7 @@ SettingsScreen (MAIN)
 | Chat 流式文本链路 | `ChatAgentBridge.kt` + `ChatViewModel.swift` + `ChatView.swift` | iOS 已有（文本/媒体卡/空态）；多消息类型/多会话待补 |
 | Agent 编排（shared） | `IosAgentComposition.kt`（commonMain 全复用） | iOS 已有（编排层）；仅注册 1 Capability |
 | 设置主页 + 模型中心骨架 | `SettingsScreen.swift` / `ModelCenterView.swift` / `ModelConfigStore.swift`（消费 KMP `RemoteModelConfigs`） | iOS 已有（骨架）；账号/quota/预下载待补 |
-| 设计系统 token 镜像 | `DesignTokens.swift`（1:1） | iOS 已有 |
+| 设计系统 token 镜像 | `DesignTokens.swift`（codegen 生成物） | iOS 已有 |
 | 场景同步（onMainPageChanged） | `MainTabView.swift:60-66`（onAppear + onChange(of: currentPage) 调 `IosAgentComposition`） | iOS 已有 |
 
 ### 4.2 进行中 / 待对齐（Phase 6.x）

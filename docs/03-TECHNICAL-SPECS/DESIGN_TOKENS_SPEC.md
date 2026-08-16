@@ -1,10 +1,12 @@
 # PoLang Design Tokens 规范（双端还原 SSOT）
 
-> **工作流（2026-08-15 起，codegen 版）**：`design-tokens.json` 是唯一 SSOT；双端镜像**全部由 `scripts/gen-design-tokens.py` 生成，禁止手改**。改 token = 改 JSON → 重跑生成器 → CI（`ai-gate.sh`）跑 `--check` 门禁（生成物与 JSON 不一致即 fail）。可视化预览：生成器输出 `build/design-tokens/ardot-variables.json`，经 Ardot MCP `apply_variables` 推入画布当「token 活体预览」（预览层，非 SSOT）。
+> **工作流（2026-08-15 起，codegen 版）**：`design-tokens.json` 是唯一 SSOT；双端镜像**全部由 `scripts/gen-design-tokens.py` 生成，禁止手改**。改 token = 改 JSON → 重跑生成器 → CI（`ai-gate.sh`）跑 `--check` 门禁（生成物与 JSON 不一致即 fail）。可视化预览：生成器输出 `build/design-tokens/ardot-variables.json`，由 `scripts/sync-ardot-variables.py` 直连本地 MCP 推入 Ardot 画布当「token 活体预览」（预览层，非 SSOT；300+ 变量勿经 agent 手抄内联 `apply_variables`，易错）。
 >
 > 配套文件：
 > - SSOT：`shared/src/commonMain/resources/design-tokens.json`（v2.0.0）
 > - 生成器：`scripts/gen-design-tokens.py`（含 `--check` 校验模式）
+> - Ardot 预览同步：`scripts/sync-ardot-variables.py`（用法/故障排查见 `.kimi-code/ARDOT_MCP.md` §Token 同步工作流）
+> - Ardot 快照入库：`scripts/export-ardot-snapshot.py` → `specs/screens/refs/ardot/`（云端文档导不出可编辑源文件，结构 JSON + PNG 快照是本地 git 管理形态；改画布后重跑、diff 审查）
 > - Android 生成物：`androidApp/.../core/designsystem/`（`Spacing` / `AppShapes` / `Color` / `Typography` / `DesignTokens.kt` 组件级 token）
 > - Android 手写保留：`Theme.kt`（主题装配逻辑；引用 Color.kt 生成值，色值随 SSOT 自动同步）
 > - iOS 生成物：`iosApp/PoLang/DesignSystem/DesignTokens.swift`
@@ -160,7 +162,7 @@ photo-info tag chip `primary@0.2`/corner6/12sp/White/8h-4v；section header 14sp
 - [ ] 颜色：随主题→`AppColorScheme`+`AppAlpha`；固定功能→`AppColors`/`StatusColor`；内容色→§6 附录
 - [ ] 动效用 `AppMotion`，禁线性
 - [ ] 字体用 `AppTypography` role
-- [ ] （可选）改完色值/尺寸后跑 Ardot 同步预览：agent 读 `build/design-tokens/ardot-variables.json` 调 `apply_variables`，`capture_screenshot` 留档
+- [ ] （可选）改完色值/尺寸后跑 Ardot 同步预览：`python3 scripts/sync-ardot-variables.py`（前置：Ardot 桌面端已开云端文档 `polang-ui-spec`；变量集 `PoLang Tokens`，Dark/Light 双模式）；`capture_screenshot` 留档；反向漂移校验（`fetch_variables` 对比 JSON）以 JSON 为准回写；画布结构变更另跑 `python3 scripts/export-ardot-snapshot.py` 快照入库
 - [ ] 用户可见文本三语同步（Android `values`/`values-zh-rCN`/`values-zh-rTW`；iOS `Localizable`/`*.xcstrings`，注意 iOS 当前缺 zh-Hant）
 
 ---

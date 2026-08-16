@@ -1,22 +1,3 @@
----
-name: ui-parity-guard
-description: |
-  双端 UI 一致性守卫。实现/修改任何 UI 屏幕前，强制走 spec → token → 截图闭环，
-  替代已证伪的"读对端源码翻译"路线。双端共用（Android Compose + iOS SwiftUI）。
-version: 1.1.0
-created: 2026-08-09
-updated: 2026-08-16
-maintainer: "[RD] 全栈工程师"
-tags:
-  - ui
-  - parity
-  - design-tokens
-  - spec
-  - android
-  - ios
-  - compose
-  - swiftui
----
 
 # UI Parity Guard Skill
 
