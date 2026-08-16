@@ -232,7 +232,10 @@ struct IDPhotoScreen: View {
     }
 
     /// 平移：增量结算（本次 translation − 上次 translation），保证连续拖动连续生效；
-    /// 符号语义（右拖=取景窗左移）由 VM 内部处理，UI 原样传
+    /// 符号语义（右拖=取景窗左移）由 VM 内部处理，UI 原样传。
+    /// ⚠️ 视图失效依赖：VM 的 offsetX/zoom 非 @Published——本函数对 lastDragTranslation 的
+    /// @State 写入（及 magnifyGesture 对 lastMagnification 的写入）承担了驱动重渲染的职责，
+    /// 二者不可「清理」掉，否则拖拽静默失灵（审查 Y4 登记）。
     private func panChanged(_ value: DragGesture.Value, frameHeight: CGFloat) {
         let dx = value.translation.width - lastDragTranslation.width
         let dy = value.translation.height - lastDragTranslation.height

@@ -44,8 +44,7 @@ final class IDPhotoViewModel: ObservableObject {
     private let localIdentifier: String
     private let engine = IDPhotoMattingEngine()
 
-    // Ready 数据（非 UI 投影部分）
-    private var original: CGImage?
+    // Ready 数据（非 UI 投影部分；就绪哨兵 = sourceW > 0，解码位图不常驻 CGImage 形态）
     private var originalPixels: [UInt8] = []
     private var sourceW = 0
     private var sourceH = 0
@@ -70,8 +69,12 @@ final class IDPhotoViewModel: ObservableObject {
         var edgeParams: EdgeParams
         var strokeVersion: Int
     }
-    private var adjustedAlphaCacheKey: AdjustKey?
-    private var adjustedAlphaCache: [Float] = []
+    /// adjusted alpha 缓存——computeQueue 专属（let 引用跨线程安全；全部读写只发生在该串行队列内）
+    private final class AlphaCacheBox {
+        var key: AdjustKey?
+        var value: [Float] = []
+    }
+    private let alphaCache = AlphaCacheBox()
     private var previewCacheKey: PreviewKey?
     private var previewCache: CGImage?
 
@@ -103,7 +106,7 @@ final class IDPhotoViewModel: ObservableObject {
 
     private func load() async {
         guard let uiImage = await ThumbnailLoader.shared.fullResolution(for: localIdentifier),
-              let fullCg = uiImage.cgImage else {
+              let fullCg = Self.normalizedCGImage(from: uiImage) else {
             state = .error(L("editor_load_failed"))
             return
         }
@@ -115,14 +118,15 @@ final class IDPhotoViewModel: ObservableObject {
             let result = try await runCompute { [engine] in
                 try engine.removeBackground(cg, modnetModelPath: modnetPath)
             }
-            guard let buffer = IdPhotoBitmap.rgbaBuffer(from: cg) else {
+            // 全图解码+绘制属「全图变换」——进 compute 队列（spec §7.2 threading）
+            guard let buffer = try? await runCompute({
+                IdPhotoBitmap.rgbaBuffer(from: cg)
+            }), let bounds = try? await runCompute({
+                IDPhotoComposer.subjectBounds(result.alpha, w: result.width, h: result.height)
+            }) else {
                 state = .error(L("editor_load_failed"))
                 return
             }
-            let bounds = try? await runCompute {
-                IDPhotoComposer.subjectBounds(result.alpha, w: result.width, h: result.height)
-            }
-            original = cg
             originalPixels = buffer.pixels
             sourceW = buffer.width
             sourceH = buffer.height
@@ -131,7 +135,6 @@ final class IDPhotoViewModel: ObservableObject {
             offsetX = 0
             offsetY = 0
             zoom = 1
-            adjustedAlphaCacheKey = nil
             previewCacheKey = nil
             state = .ready(IdPhotoState.Ready())
         } catch MattingError.modelMissing(let modelId) {
@@ -140,6 +143,20 @@ final class IDPhotoViewModel: ObservableObject {
         } catch {
             state = .error(L("id_photo_matting_failed"))
         }
+    }
+
+    /// EXIF 方向归一化（审查 R1）：`UIImage.cgImage` 是未旋转的原始像素，竖拍=横位图，
+    /// 方向只挂在 imageOrientation 上——直接取会让整条管线（抠图/构图/预览/保存）跑在横图上。
+    /// 与 MobileClipEncoder.normalizedCGImage 同款：渲染烘焙方向。
+    private static func normalizedCGImage(from image: UIImage) -> CGImage? {
+        if image.imageOrientation == .up, let cg = image.cgImage {
+            return cg
+        }
+        let renderer = UIGraphicsImageRenderer(size: image.size)
+        let rendered = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: image.size))
+        }
+        return rendered.cgImage
     }
 
     // MARK: - 面板操作（Main 同步状态拷贝）
@@ -252,28 +269,40 @@ final class IDPhotoViewModel: ObservableObject {
 
     /// 合成底图；nil = 构建中/失败（UI 保留上一帧防闪白）
     func previewBase() async -> CGImage? {
-        guard case .ready(let ready) = state, original != nil else { return nil }
+        guard case .ready(let ready) = state, sourceW > 0 else { return nil }
         let key = PreviewKey(colorIndex: ready.selectedColorIndex,
                              edgeParams: ready.edgeParams,
                              strokeVersion: ready.strokeVersion)
         if let cached = previewCache, previewCacheKey == key {
             return cached
         }
-        // Main 取快照（线程契约）
+        // Main 取快照（线程契约）；alphaCache 为队列专属引用，读写在 compute 闭包内完成
         let colorIndex = ready.selectedColorIndex
         let edgeParams = ready.edgeParams
+        let strokeVersion = ready.strokeVersion
         let strokeSnapshot = strokes
         let raw = rawAlpha
         let pixels = originalPixels
         let w = sourceW
         let h = sourceH
+        let cache = alphaCache
+        let adjustKey = AdjustKey(edgeParams: edgeParams, strokeVersion: strokeVersion)
+
         let cg = (try? await runCompute { () -> CGImage? in
-            var alpha = raw
-            alpha = MaskPostProcessor.adjustEdges(alpha, w: w, h: h, params: edgeParams)
-            alpha = StrokeLayer.replay(strokes: strokeSnapshot, base: alpha, w: w, h: h)
+            // adjusted alpha 缓存命中（换底色不重付 adjustEdges+replay，审查 Y1）
+            let adjusted: [Float]
+            if cache.key == adjustKey {
+                adjusted = cache.value
+            } else {
+                var a = MaskPostProcessor.adjustEdges(raw, w: w, h: h, params: edgeParams)
+                a = StrokeLayer.replay(strokes: strokeSnapshot, base: a, w: w, h: h)
+                cache.key = adjustKey
+                cache.value = a
+                adjusted = a
+            }
             guard IDPhotoColorSpec.allCases.indices.contains(colorIndex) else { return nil }
             let color = IDPhotoColorSpec.allCases[colorIndex].rgb
-            let composed = BackgroundComposer.composeOnColor(pixels: pixels, alpha: alpha, bgColor: color)
+            let composed = BackgroundComposer.composeOnColor(pixels: pixels, alpha: adjusted, bgColor: color)
             return IdPhotoBitmap.cgImage(from: composed, width: w, height: h)
         })
         guard let image = cg else { return nil }
