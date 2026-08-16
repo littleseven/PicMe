@@ -21,6 +21,10 @@ struct GalleryGridView: View {
     @State private var selected: Set<String> = []
     @State private var sharePayload: SharePayload? = nil
     @State private var showSettings = false
+    // 拖拽批量选择（相-4，对齐 Android MediaGrid detectDragGestures(AfterLongPress)）
+    @State private var cellFrames: [String: CGRect] = [:]
+    @State private var dragVisited: Set<String> = []
+    @State private var dragTargetSelected = true
     @State private var showModelCenter = false
     /// TAG 扫描页（SP-B）：相册顶栏扫描图标进入
     @State private var showScanScreen = false
@@ -284,6 +288,14 @@ struct GalleryGridView: View {
             }
             .padding(2)  // dump：边距 7px≈2dp
         }
+        .coordinateSpace(name: "galleryGrid")
+        // 选择模式下直接拖拽扫格（对齐 Android detectDragGestures 分支）
+        .gesture(
+            DragGesture(minimumDistance: 8, coordinateSpace: .named("galleryGrid"))
+                .onChanged { value in handleDragSelect(at: value.location) }
+                .onEnded { _ in dragVisited.removeAll() },
+            isEnabled: isSelectionMode
+        )
         .accessibilityIdentifier("gallery_grid")
     }
 
@@ -304,12 +316,28 @@ struct GalleryGridView: View {
                     .overlay { selectionOverlay(for: asset.uri) }
             }
             .buttonStyle(.plain)
-            .simultaneousGesture(LongPressGesture(minimumDuration: 0.4).onEnded { _ in
-                if !isSelectionMode {
-                    isSelectionMode = true
-                    selected = [asset.uri]
+            .background(GeometryReader { geo in
+                // 帧上报（galleryGrid 坐标空间；LazyVGrid 复用/首布局时刷新）
+                Color.clear.onAppear {
+                    cellFrames[asset.uri] = geo.frame(in: .named("galleryGrid"))
                 }
             })
+            // 长按 →（不松手）拖拽扫格：对齐 Android detectDragGesturesAfterLongPress
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.4)
+                    .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named("galleryGrid")))
+                    .onChanged { value in
+                        switch value {
+                        case .first(true):
+                            dragSelectionStart(uri: asset.uri)
+                        case .second(true, let drag):
+                            if let drag { handleDragSelect(at: drag.location) }
+                        default:
+                            break
+                        }
+                    }
+                    .onEnded { _ in dragVisited.removeAll() }
+            )
             .accessibilityIdentifier("cell_\(asset.uri)")
         }
     }
@@ -348,6 +376,32 @@ struct GalleryGridView: View {
             selected.remove(uri)
         } else {
             selected.insert(uri)
+        }
+    }
+
+    // MARK: - 拖拽批量选择（对齐 Android onDragSelectionStart/Item/End）
+
+    /// 拖选起点：起始格未选中 → 加模式（并选中起始格）；已选中 → 减模式（取消起始格）
+    private func dragSelectionStart(uri: String) {
+        if !isSelectionMode { isSelectionMode = true }
+        dragVisited.removeAll()
+        dragTargetSelected = !selected.contains(uri)
+        if dragTargetSelected {
+            selected.insert(uri)
+        } else {
+            selected.remove(uri)
+        }
+        dragVisited.insert(uri)
+    }
+
+    /// 拖选扫格：hit-test 命中格按当前模式加/减（visited 去重）
+    private func handleDragSelect(at point: CGPoint) {
+        guard let uri = cellFrames.first(where: { $0.value.contains(point) })?.key,
+              dragVisited.insert(uri).inserted else { return }
+        if dragTargetSelected {
+            selected.insert(uri)
+        } else {
+            selected.remove(uri)
         }
     }
 

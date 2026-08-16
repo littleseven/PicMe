@@ -513,6 +513,86 @@ extension TagDatabase {
         }
     }
 
+    /// localIdentifier(=uri) → labels JSON 原文（{scene,activity,objects[],tags[]}），
+    /// 供相册「按风景分组」关键词匹配（对齐 Android GetGroupedMediaUseCase）。
+    func labelsByLocalIdentifier() -> [String: String] {
+        queue.sync {
+            guard let db = db else { return [:] }
+            var out: [String: String] = [:]
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, "SELECT uri, labels FROM media_assets WHERE labels IS NOT NULL AND labels != '';", -1, &stmt, nil)
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                if let uri = sqlite3_column_text(stmt, 0), let labels = sqlite3_column_text(stmt, 1) {
+                    out[String(cString: uri)] = String(cString: labels)
+                }
+            }
+            sqlite3_finalize(stmt)
+            return out
+        }
+    }
+
+    /// localIdentifier(=uri) → city，供相册「按位置分组」。仅含 city 非空 media。
+    func cityByLocalIdentifier() -> [String: String] {
+        queue.sync {
+            guard let db = db else { return [:] }
+            var out: [String: String] = [:]
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, "SELECT uri, city FROM media_assets WHERE city IS NOT NULL AND city != '';", -1, &stmt, nil)
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                if let uri = sqlite3_column_text(stmt, 0), let city = sqlite3_column_text(stmt, 1) {
+                    out[String(cString: uri)] = String(cString: city)
+                }
+            }
+            sqlite3_finalize(stmt)
+            return out
+        }
+    }
+
+    /// PhotoInfo 面板数据行（media_assets 单条，spec photo_info_dialog 字段源）。
+    struct MediaInfoRow {
+        public var source: String?
+        public var labelsJson: String?
+        public var ocrText: String?
+        public var latitude: Double?
+        public var longitude: Double?
+        public var locationName: String?
+        public var city: String?
+        public var aestheticScore: Double?
+        public var faceQualityScore: Double?
+        public var hasFace: Bool
+        public var faceId: String?
+    }
+
+    /// 按 localIdentifier(=uri) 查单条 media_assets 的信息面板字段；未扫描返回 nil。
+    func mediaInfoByLocalIdentifier(_ uri: String) -> MediaInfoRow? {
+        queue.sync {
+            guard let db = db else { return nil }
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, """
+                SELECT source, labels, ocrText, latitude, longitude, locationName, city,
+                       aestheticScore, faceQualityScore, hasFace, faceId
+                FROM media_assets WHERE uri = ? LIMIT 1;
+                """, -1, &stmt, nil)
+            defer { sqlite3_finalize(stmt) }
+            sqlite3_bind_text(stmt, 1, uri, -1, nil)
+            guard sqlite3_step(stmt) == SQLITE_ROW else { return nil }
+            func text(_ i: Int32) -> String? {
+                sqlite3_column_text(stmt, i).map { String(cString: $0) }
+            }
+            func double(_ i: Int32) -> Double? {
+                sqlite3_column_type(stmt, i) != SQLITE_NULL ? sqlite3_column_double(stmt, i) : nil
+            }
+            return MediaInfoRow(
+                source: text(0), labelsJson: text(1), ocrText: text(2),
+                latitude: double(3), longitude: double(4),
+                locationName: text(5), city: text(6),
+                aestheticScore: double(7), faceQualityScore: double(8),
+                hasFace: sqlite3_column_int(stmt, 9) == 1,
+                faceId: text(10)
+            )
+        }
+    }
+
     /// 是否存在未完成 session（扫描页中断恢复提示用）。
     func unfinishedSessionId() -> String? {
         queue.sync {

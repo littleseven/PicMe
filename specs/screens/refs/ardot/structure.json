@@ -2,7 +2,7 @@
   "file": {
     "id": "715061534788814",
     "name": "polang-ui-spec",
-    "url": "cocraft://localhost/file/715061534788814?node_id=6%3A2"
+    "url": "cocraft://localhost/file/715061534788814?node_id=103%3A3"
   },
   "pages": [
     {
@@ -11607,6 +11607,2536 @@
                 "type": "FRAME",
                 "width": 390,
                 "x": 0,
+                "y": 0
+              }
+            ]
+          }
+        },
+        "105:1": {
+          "name": "gallery/info",
+          "tree": {
+            "nodes": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "characters": "Info",
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "boundVariables": {
+                              "color": {
+                                "id": "VariableID:2:149",
+                                "type": "VARIABLE_ALIAS"
+                              }
+                            },
+                            "color": {
+                              "b": 0.8980000019073486,
+                              "g": 0.8823999762535095,
+                              "r": 0.9020000100135803
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "fontName": {
+                          "family": "Sarasa Gothic SC",
+                          "style": "Semi Bold"
+                        },
+                        "fontSize": 17,
+                        "height": 21,
+                        "id": "105:3",
+                        "layoutAlign": "AUTO",
+                        "layoutGrow": 1,
+                        "lineHeight": {
+                          "unit": "AUTO"
+                        },
+                        "name": "title",
+                        "textAlignHorizontal": "LEFT",
+                        "textAlignVertical": "TOP",
+                        "type": "TEXT",
+                        "width": 315,
+                        "x": 16,
+                        "y": 11.5
+                      },
+                      {
+                        "characters": "Done",
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "boundVariables": {
+                              "color": {
+                                "id": "VariableID:2:130",
+                                "type": "VARIABLE_ALIAS"
+                              }
+                            },
+                            "color": {
+                              "b": 1,
+                              "g": 0.7372999787330627,
+                              "r": 0.8156999945640564
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "fontName": {
+                          "family": "Sarasa Gothic SC",
+                          "style": "Regular"
+                        },
+                        "fontSize": 17,
+                        "height": 21,
+                        "id": "105:4",
+                        "layoutAlign": "AUTO",
+                        "layoutGrow": 0,
+                        "lineHeight": {
+                          "unit": "AUTO"
+                        },
+                        "name": "done",
+                        "textAlignHorizontal": "LEFT",
+                        "textAlignVertical": "TOP",
+                        "type": "TEXT",
+                        "width": 43,
+                        "x": 331,
+                        "y": 11.5
+                      }
+                    ],
+                    "clipsContent": true,
+                    "counterAxisAlignItems": "CENTER",
+                    "counterAxisSizingMode": "FIXED",
+                    "height": 44,
+                    "id": "105:2",
+                    "itemSpacing": 0,
+                    "layoutAlign": "STRETCH",
+                    "layoutGrow": 0,
+                    "layoutMode": "HORIZONTAL",
+                    "name": "title_bar",
+                    "primaryAxisAlignItems": "CENTER",
+                    "primaryAxisSizingMode": "FIXED",
+                    "type": "FRAME",
+                    "width": 390,
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "characters": "File Name",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:151",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8156999945640564,
+                                  "g": 0.7685999870300293,
+                                  "r": 0.7922000288963318
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Regular"
+                            },
+                            "fontSize": 15,
+                            "height": 18,
+                            "id": "105:7",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 0,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "label",
+                            "textAlignHorizontal": "LEFT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 140,
+                            "x": 0,
+                            "y": 0
+                          },
+                          {
+                            "characters": "IMG_20260816_102344.jpg",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:149",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8980000019073486,
+                                  "g": 0.8823999762535095,
+                                  "r": 0.9020000100135803
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Regular"
+                            },
+                            "fontSize": 15,
+                            "height": 18,
+                            "id": "105:8",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 1,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "value",
+                            "textAlignHorizontal": "RIGHT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 210,
+                            "x": 148,
+                            "y": 0
+                          }
+                        ],
+                        "clipsContent": true,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                        "height": 18,
+                        "id": "105:6",
+                        "itemSpacing": 8,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "HORIZONTAL",
+                        "name": "row_filename",
+                        "primaryAxisAlignItems": "MIN",
+                        "primaryAxisSizingMode": "FIXED",
+                        "type": "FRAME",
+                        "width": 358,
+                        "x": 16,
+                        "y": 16
+                      },
+                      {
+                        "children": [
+                          {
+                            "characters": "Type",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:151",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8156999945640564,
+                                  "g": 0.7685999870300293,
+                                  "r": 0.7922000288963318
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Regular"
+                            },
+                            "fontSize": 15,
+                            "height": 18,
+                            "id": "105:10",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 0,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "label",
+                            "textAlignHorizontal": "LEFT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 140,
+                            "x": 0,
+                            "y": 0
+                          },
+                          {
+                            "characters": "Photo",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:149",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8980000019073486,
+                                  "g": 0.8823999762535095,
+                                  "r": 0.9020000100135803
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Regular"
+                            },
+                            "fontSize": 15,
+                            "height": 18,
+                            "id": "105:11",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 1,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "value",
+                            "textAlignHorizontal": "RIGHT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 210,
+                            "x": 148,
+                            "y": 0
+                          }
+                        ],
+                        "clipsContent": true,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                        "height": 18,
+                        "id": "105:9",
+                        "itemSpacing": 8,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "HORIZONTAL",
+                        "name": "row_type",
+                        "primaryAxisAlignItems": "MIN",
+                        "primaryAxisSizingMode": "FIXED",
+                        "type": "FRAME",
+                        "width": 358,
+                        "x": 16,
+                        "y": 44
+                      },
+                      {
+                        "children": [
+                          {
+                            "characters": "Captured",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:151",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8156999945640564,
+                                  "g": 0.7685999870300293,
+                                  "r": 0.7922000288963318
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Regular"
+                            },
+                            "fontSize": 15,
+                            "height": 18,
+                            "id": "105:13",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 0,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "label",
+                            "textAlignHorizontal": "LEFT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 140,
+                            "x": 0,
+                            "y": 0
+                          },
+                          {
+                            "characters": "2026-08-16 10:23",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:149",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8980000019073486,
+                                  "g": 0.8823999762535095,
+                                  "r": 0.9020000100135803
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Regular"
+                            },
+                            "fontSize": 15,
+                            "height": 18,
+                            "id": "105:14",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 1,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "value",
+                            "textAlignHorizontal": "RIGHT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 210,
+                            "x": 148,
+                            "y": 0
+                          }
+                        ],
+                        "clipsContent": true,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                        "height": 18,
+                        "id": "105:12",
+                        "itemSpacing": 8,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "HORIZONTAL",
+                        "name": "row_captured",
+                        "primaryAxisAlignItems": "MIN",
+                        "primaryAxisSizingMode": "FIXED",
+                        "type": "FRAME",
+                        "width": 358,
+                        "x": 16,
+                        "y": 72
+                      },
+                      {
+                        "children": [
+                          {
+                            "characters": "Source",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:151",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8156999945640564,
+                                  "g": 0.7685999870300293,
+                                  "r": 0.7922000288963318
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Regular"
+                            },
+                            "fontSize": 15,
+                            "height": 18,
+                            "id": "105:16",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 0,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "label",
+                            "textAlignHorizontal": "LEFT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 140,
+                            "x": 0,
+                            "y": 0
+                          },
+                          {
+                            "characters": "Camera",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:149",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8980000019073486,
+                                  "g": 0.8823999762535095,
+                                  "r": 0.9020000100135803
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Regular"
+                            },
+                            "fontSize": 15,
+                            "height": 18,
+                            "id": "105:17",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 1,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "value",
+                            "textAlignHorizontal": "RIGHT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 210,
+                            "x": 148,
+                            "y": 0
+                          }
+                        ],
+                        "clipsContent": true,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                        "height": 18,
+                        "id": "105:15",
+                        "itemSpacing": 8,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "HORIZONTAL",
+                        "name": "row_source",
+                        "primaryAxisAlignItems": "MIN",
+                        "primaryAxisSizingMode": "FIXED",
+                        "type": "FRAME",
+                        "width": 358,
+                        "x": 16,
+                        "y": 100
+                      },
+                      {
+                        "children": [
+                          {
+                            "characters": "Location",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:151",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8156999945640564,
+                                  "g": 0.7685999870300293,
+                                  "r": 0.7922000288963318
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Regular"
+                            },
+                            "fontSize": 15,
+                            "height": 18,
+                            "id": "105:19",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 0,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "label",
+                            "textAlignHorizontal": "LEFT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 140,
+                            "x": 0,
+                            "y": 0
+                          },
+                          {
+                            "characters": "北京市朝阳区",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:149",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8980000019073486,
+                                  "g": 0.8823999762535095,
+                                  "r": 0.9020000100135803
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Regular"
+                            },
+                            "fontSize": 15,
+                            "height": 18,
+                            "id": "105:20",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 1,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "value",
+                            "textAlignHorizontal": "RIGHT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 190,
+                            "x": 148,
+                            "y": 0
+                          },
+                          {
+                            "children": [
+                              {
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "color": {
+                                      "b": 0,
+                                      "g": 0,
+                                      "r": 0
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 10,
+                                "id": "105:22",
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "name": "Vector",
+                                "type": "VECTOR",
+                                "width": 7,
+                                "x": 2.5,
+                                "y": 1
+                              }
+                            ],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "MIN",
+                            "counterAxisSizingMode": "FIXED",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:130",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 1,
+                                  "g": 0.7372999787330627,
+                                  "r": 0.8156999945640564
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "height": 12,
+                            "id": "105:21",
+                            "itemSpacing": 0,
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 0,
+                            "layoutMode": "NONE",
+                            "name": "icon_pin",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                            "type": "FRAME",
+                            "width": 12,
+                            "x": 346,
+                            "y": 0
+                          }
+                        ],
+                        "clipsContent": true,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                        "height": 18,
+                        "id": "105:18",
+                        "itemSpacing": 8,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "HORIZONTAL",
+                        "name": "row_location",
+                        "primaryAxisAlignItems": "MIN",
+                        "primaryAxisSizingMode": "FIXED",
+                        "type": "FRAME",
+                        "width": 358,
+                        "x": 16,
+                        "y": 128
+                      }
+                    ],
+                    "clipsContent": true,
+                    "counterAxisAlignItems": "MIN",
+                    "counterAxisSizingMode": "FIXED",
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "boundVariables": {
+                          "color": {
+                            "id": "VariableID:2:146",
+                            "type": "VARIABLE_ALIAS"
+                          }
+                        },
+                        "color": {
+                          "b": 0.12160000205039978,
+                          "g": 0.10589999705553055,
+                          "r": 0.10980000346899033
+                        },
+                        "opacity": 1,
+                        "type": "SOLID",
+                        "visible": true
+                      }
+                    ],
+                    "height": 162,
+                    "id": "105:5",
+                    "itemSpacing": 10,
+                    "layoutAlign": "STRETCH",
+                    "layoutGrow": 0,
+                    "layoutMode": "VERTICAL",
+                    "name": "section_basic",
+                    "primaryAxisAlignItems": "MIN",
+                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                    "type": "FRAME",
+                    "width": 390,
+                    "x": 0,
+                    "y": 44
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "characters": "Aesthetic Score",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:151",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8156999945640564,
+                                  "g": 0.7685999870300293,
+                                  "r": 0.7922000288963318
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Regular"
+                            },
+                            "fontSize": 15,
+                            "height": 18,
+                            "id": "105:25",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 0,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "label",
+                            "textAlignHorizontal": "LEFT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 140,
+                            "x": 0,
+                            "y": 0
+                          },
+                          {
+                            "characters": "7.2 / 10",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:149",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8980000019073486,
+                                  "g": 0.8823999762535095,
+                                  "r": 0.9020000100135803
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Regular"
+                            },
+                            "fontSize": 15,
+                            "height": 18,
+                            "id": "105:26",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 1,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "value",
+                            "textAlignHorizontal": "RIGHT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 210,
+                            "x": 148,
+                            "y": 0
+                          }
+                        ],
+                        "clipsContent": true,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                        "height": 18,
+                        "id": "105:24",
+                        "itemSpacing": 8,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "HORIZONTAL",
+                        "name": "row_aesthetic",
+                        "primaryAxisAlignItems": "MIN",
+                        "primaryAxisSizingMode": "FIXED",
+                        "type": "FRAME",
+                        "width": 358,
+                        "x": 16,
+                        "y": 16
+                      },
+                      {
+                        "children": [
+                          {
+                            "characters": "Contains Face",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:151",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8156999945640564,
+                                  "g": 0.7685999870300293,
+                                  "r": 0.7922000288963318
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Regular"
+                            },
+                            "fontSize": 15,
+                            "height": 18,
+                            "id": "105:28",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 0,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "label",
+                            "textAlignHorizontal": "LEFT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 140,
+                            "x": 0,
+                            "y": 0
+                          },
+                          {
+                            "characters": "Yes",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:149",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8980000019073486,
+                                  "g": 0.8823999762535095,
+                                  "r": 0.9020000100135803
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Regular"
+                            },
+                            "fontSize": 15,
+                            "height": 18,
+                            "id": "105:29",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 1,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "value",
+                            "textAlignHorizontal": "RIGHT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 210,
+                            "x": 148,
+                            "y": 0
+                          }
+                        ],
+                        "clipsContent": true,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                        "height": 18,
+                        "id": "105:27",
+                        "itemSpacing": 8,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "HORIZONTAL",
+                        "name": "row_face",
+                        "primaryAxisAlignItems": "MIN",
+                        "primaryAxisSizingMode": "FIXED",
+                        "type": "FRAME",
+                        "width": 358,
+                        "x": 16,
+                        "y": 44
+                      },
+                      {
+                        "children": [
+                          {
+                            "characters": "Person Group",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:151",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8156999945640564,
+                                  "g": 0.7685999870300293,
+                                  "r": 0.7922000288963318
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Regular"
+                            },
+                            "fontSize": 15,
+                            "height": 18,
+                            "id": "105:31",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 0,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "label",
+                            "textAlignHorizontal": "LEFT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 140,
+                            "x": 0,
+                            "y": 0
+                          },
+                          {
+                            "characters": "face_003",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:149",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8980000019073486,
+                                  "g": 0.8823999762535095,
+                                  "r": 0.9020000100135803
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Regular"
+                            },
+                            "fontSize": 15,
+                            "height": 18,
+                            "id": "105:32",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 1,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "value",
+                            "textAlignHorizontal": "RIGHT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 210,
+                            "x": 148,
+                            "y": 0
+                          }
+                        ],
+                        "clipsContent": true,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                        "height": 18,
+                        "id": "105:30",
+                        "itemSpacing": 8,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "HORIZONTAL",
+                        "name": "row_persongroup",
+                        "primaryAxisAlignItems": "MIN",
+                        "primaryAxisSizingMode": "FIXED",
+                        "type": "FRAME",
+                        "width": 358,
+                        "x": 16,
+                        "y": 72
+                      },
+                      {
+                        "children": [
+                          {
+                            "characters": "Face Quality",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:151",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8156999945640564,
+                                  "g": 0.7685999870300293,
+                                  "r": 0.7922000288963318
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Regular"
+                            },
+                            "fontSize": 15,
+                            "height": 18,
+                            "id": "105:34",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 0,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "label",
+                            "textAlignHorizontal": "LEFT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 140,
+                            "x": 0,
+                            "y": 0
+                          },
+                          {
+                            "characters": "0.82",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:149",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8980000019073486,
+                                  "g": 0.8823999762535095,
+                                  "r": 0.9020000100135803
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Regular"
+                            },
+                            "fontSize": 15,
+                            "height": 18,
+                            "id": "105:35",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 1,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "value",
+                            "textAlignHorizontal": "RIGHT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 210,
+                            "x": 148,
+                            "y": 0
+                          }
+                        ],
+                        "clipsContent": true,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                        "height": 18,
+                        "id": "105:33",
+                        "itemSpacing": 8,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "HORIZONTAL",
+                        "name": "row_facequality",
+                        "primaryAxisAlignItems": "MIN",
+                        "primaryAxisSizingMode": "FIXED",
+                        "type": "FRAME",
+                        "width": 358,
+                        "x": 16,
+                        "y": 100
+                      }
+                    ],
+                    "clipsContent": true,
+                    "counterAxisAlignItems": "MIN",
+                    "counterAxisSizingMode": "FIXED",
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "boundVariables": {
+                          "color": {
+                            "id": "VariableID:2:146",
+                            "type": "VARIABLE_ALIAS"
+                          }
+                        },
+                        "color": {
+                          "b": 0.12160000205039978,
+                          "g": 0.10589999705553055,
+                          "r": 0.10980000346899033
+                        },
+                        "opacity": 1,
+                        "type": "SOLID",
+                        "visible": true
+                      }
+                    ],
+                    "height": 134,
+                    "id": "105:23",
+                    "itemSpacing": 10,
+                    "layoutAlign": "STRETCH",
+                    "layoutGrow": 0,
+                    "layoutMode": "VERTICAL",
+                    "name": "section_smart",
+                    "primaryAxisAlignItems": "MIN",
+                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                    "type": "FRAME",
+                    "width": 390,
+                    "x": 0,
+                    "y": 206
+                  },
+                  {
+                    "children": [
+                      {
+                        "characters": "Tags",
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "boundVariables": {
+                              "color": {
+                                "id": "VariableID:2:151",
+                                "type": "VARIABLE_ALIAS"
+                              }
+                            },
+                            "color": {
+                              "b": 0.8156999945640564,
+                              "g": 0.7685999870300293,
+                              "r": 0.7922000288963318
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "fontName": {
+                          "family": "Sarasa Gothic SC",
+                          "style": "Semi Bold"
+                        },
+                        "fontSize": 13,
+                        "height": 16,
+                        "id": "105:37",
+                        "layoutAlign": "AUTO",
+                        "layoutGrow": 0,
+                        "lineHeight": {
+                          "unit": "AUTO"
+                        },
+                        "name": "section_title",
+                        "textAlignHorizontal": "LEFT",
+                        "textAlignVertical": "TOP",
+                        "type": "TEXT",
+                        "width": 31,
+                        "x": 16,
+                        "y": 16
+                      },
+                      {
+                        "children": [
+                          {
+                            "characters": "海边",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:149",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8980000019073486,
+                                  "g": 0.8823999762535095,
+                                  "r": 0.9020000100135803
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Regular"
+                            },
+                            "fontSize": 12,
+                            "height": 15,
+                            "id": "105:39",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 0,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "chip",
+                            "textAlignHorizontal": "LEFT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 24,
+                            "x": 0,
+                            "y": 0
+                          },
+                          {
+                            "characters": "日落",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:149",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8980000019073486,
+                                  "g": 0.8823999762535095,
+                                  "r": 0.9020000100135803
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Regular"
+                            },
+                            "fontSize": 12,
+                            "height": 15,
+                            "id": "105:40",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 0,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "chip2",
+                            "textAlignHorizontal": "LEFT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 24,
+                            "x": 30,
+                            "y": 0
+                          },
+                          {
+                            "characters": "沙滩",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:149",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8980000019073486,
+                                  "g": 0.8823999762535095,
+                                  "r": 0.9020000100135803
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Regular"
+                            },
+                            "fontSize": 12,
+                            "height": 15,
+                            "id": "105:41",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 0,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "chip3",
+                            "textAlignHorizontal": "LEFT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 24,
+                            "x": 60,
+                            "y": 0
+                          }
+                        ],
+                        "clipsContent": true,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                        "height": 15,
+                        "id": "105:38",
+                        "itemSpacing": 6,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "HORIZONTAL",
+                        "name": "chip_row",
+                        "primaryAxisAlignItems": "MIN",
+                        "primaryAxisSizingMode": "FIXED",
+                        "type": "FRAME",
+                        "width": 358,
+                        "x": 16,
+                        "y": 40
+                      }
+                    ],
+                    "clipsContent": true,
+                    "counterAxisAlignItems": "MIN",
+                    "counterAxisSizingMode": "FIXED",
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "boundVariables": {
+                          "color": {
+                            "id": "VariableID:2:146",
+                            "type": "VARIABLE_ALIAS"
+                          }
+                        },
+                        "color": {
+                          "b": 0.12160000205039978,
+                          "g": 0.10589999705553055,
+                          "r": 0.10980000346899033
+                        },
+                        "opacity": 1,
+                        "type": "SOLID",
+                        "visible": true
+                      }
+                    ],
+                    "height": 71,
+                    "id": "105:36",
+                    "itemSpacing": 8,
+                    "layoutAlign": "STRETCH",
+                    "layoutGrow": 0,
+                    "layoutMode": "VERTICAL",
+                    "name": "section_tags",
+                    "primaryAxisAlignItems": "MIN",
+                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                    "type": "FRAME",
+                    "width": 390,
+                    "x": 0,
+                    "y": 340
+                  },
+                  {
+                    "children": [
+                      {
+                        "characters": "OCR Text",
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "boundVariables": {
+                              "color": {
+                                "id": "VariableID:2:151",
+                                "type": "VARIABLE_ALIAS"
+                              }
+                            },
+                            "color": {
+                              "b": 0.8156999945640564,
+                              "g": 0.7685999870300293,
+                              "r": 0.7922000288963318
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "fontName": {
+                          "family": "Sarasa Gothic SC",
+                          "style": "Semi Bold"
+                        },
+                        "fontSize": 13,
+                        "height": 16,
+                        "id": "105:43",
+                        "layoutAlign": "AUTO",
+                        "layoutGrow": 0,
+                        "lineHeight": {
+                          "unit": "AUTO"
+                        },
+                        "name": "section_title",
+                        "textAlignHorizontal": "LEFT",
+                        "textAlignVertical": "TOP",
+                        "type": "TEXT",
+                        "width": 59,
+                        "x": 16,
+                        "y": 16
+                      },
+                      {
+                        "characters": "Summer vacation 2026 · Beidaihe",
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "boundVariables": {
+                              "color": {
+                                "id": "VariableID:2:151",
+                                "type": "VARIABLE_ALIAS"
+                              }
+                            },
+                            "color": {
+                              "b": 0.8156999945640564,
+                              "g": 0.7685999870300293,
+                              "r": 0.7922000288963318
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "fontName": {
+                          "family": "Sarasa Gothic SC",
+                          "style": "Regular"
+                        },
+                        "fontSize": 12,
+                        "height": 15,
+                        "id": "105:44",
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "lineHeight": {
+                          "unit": "AUTO"
+                        },
+                        "name": "ocr_body",
+                        "textAlignHorizontal": "LEFT",
+                        "textAlignVertical": "TOP",
+                        "type": "TEXT",
+                        "width": 358,
+                        "x": 16,
+                        "y": 38
+                      }
+                    ],
+                    "clipsContent": true,
+                    "counterAxisAlignItems": "MIN",
+                    "counterAxisSizingMode": "FIXED",
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "boundVariables": {
+                          "color": {
+                            "id": "VariableID:2:146",
+                            "type": "VARIABLE_ALIAS"
+                          }
+                        },
+                        "color": {
+                          "b": 0.12160000205039978,
+                          "g": 0.10589999705553055,
+                          "r": 0.10980000346899033
+                        },
+                        "opacity": 1,
+                        "type": "SOLID",
+                        "visible": true
+                      }
+                    ],
+                    "height": 69,
+                    "id": "105:42",
+                    "itemSpacing": 6,
+                    "layoutAlign": "STRETCH",
+                    "layoutGrow": 0,
+                    "layoutMode": "VERTICAL",
+                    "name": "section_ocr",
+                    "primaryAxisAlignItems": "MIN",
+                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                    "type": "FRAME",
+                    "width": 390,
+                    "x": 0,
+                    "y": 411
+                  }
+                ],
+                "clipsContent": true,
+                "cornerRadius": 16,
+                "counterAxisAlignItems": "MIN",
+                "counterAxisSizingMode": "FIXED",
+                "fills": [
+                  {
+                    "blendMode": "NORMAL",
+                    "boundVariables": {
+                      "color": {
+                        "id": "VariableID:2:148",
+                        "type": "VARIABLE_ALIAS"
+                      }
+                    },
+                    "color": {
+                      "b": 0.12160000205039978,
+                      "g": 0.10589999705553055,
+                      "r": 0.10980000346899033
+                    },
+                    "opacity": 1,
+                    "type": "SOLID",
+                    "visible": true
+                  }
+                ],
+                "height": 560,
+                "id": "105:1",
+                "itemSpacing": 0,
+                "layoutAlign": "AUTO",
+                "layoutGrow": 0,
+                "layoutMode": "VERTICAL",
+                "name": "gallery/info",
+                "primaryAxisAlignItems": "MIN",
+                "primaryAxisSizingMode": "FIXED",
+                "type": "FRAME",
+                "width": 390,
+                "x": 440,
+                "y": 0
+              }
+            ]
+          }
+        },
+        "105:45": {
+          "name": "gallery/grid",
+          "tree": {
+            "nodes": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "characters": "Album",
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "boundVariables": {
+                              "color": {
+                                "id": "VariableID:2:149",
+                                "type": "VARIABLE_ALIAS"
+                              }
+                            },
+                            "color": {
+                              "b": 0.8980000019073486,
+                              "g": 0.8823999762535095,
+                              "r": 0.9020000100135803
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "fontName": {
+                          "family": "Sarasa Gothic SC",
+                          "style": "Semi Bold"
+                        },
+                        "fontSize": 22,
+                        "height": 27,
+                        "id": "105:47",
+                        "layoutAlign": "AUTO",
+                        "layoutGrow": 1,
+                        "lineHeight": {
+                          "unit": "AUTO"
+                        },
+                        "name": "title_album",
+                        "textAlignHorizontal": "LEFT",
+                        "textAlignVertical": "TOP",
+                        "type": "TEXT",
+                        "width": 246,
+                        "x": 16,
+                        "y": 12.5
+                      },
+                      {
+                        "characters": "按日期 ▾",
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "boundVariables": {
+                              "color": {
+                                "id": "VariableID:2:151",
+                                "type": "VARIABLE_ALIAS"
+                              }
+                            },
+                            "color": {
+                              "b": 0.8156999945640564,
+                              "g": 0.7685999870300293,
+                              "r": 0.7922000288963318
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "fontName": {
+                          "family": "Sarasa Gothic SC",
+                          "style": "Regular"
+                        },
+                        "fontSize": 14,
+                        "height": 17,
+                        "id": "105:48",
+                        "layoutAlign": "AUTO",
+                        "layoutGrow": 0,
+                        "lineHeight": {
+                          "unit": "AUTO"
+                        },
+                        "name": "grouping_dropdown",
+                        "textAlignHorizontal": "LEFT",
+                        "textAlignVertical": "TOP",
+                        "type": "TEXT",
+                        "width": 52,
+                        "x": 270,
+                        "y": 17.5
+                      },
+                      {
+                        "characters": "◎",
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "boundVariables": {
+                              "color": {
+                                "id": "VariableID:2:151",
+                                "type": "VARIABLE_ALIAS"
+                              }
+                            },
+                            "color": {
+                              "b": 0.8156999945640564,
+                              "g": 0.7685999870300293,
+                              "r": 0.7922000288963318
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "fontName": {
+                          "family": "Sarasa Gothic SC",
+                          "style": "Regular"
+                        },
+                        "fontSize": 18,
+                        "height": 22,
+                        "id": "105:49",
+                        "layoutAlign": "AUTO",
+                        "layoutGrow": 0,
+                        "lineHeight": {
+                          "unit": "AUTO"
+                        },
+                        "name": "icon_scan",
+                        "textAlignHorizontal": "LEFT",
+                        "textAlignVertical": "TOP",
+                        "type": "TEXT",
+                        "width": 18,
+                        "x": 330,
+                        "y": 15
+                      },
+                      {
+                        "characters": "⚙",
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "boundVariables": {
+                              "color": {
+                                "id": "VariableID:2:151",
+                                "type": "VARIABLE_ALIAS"
+                              }
+                            },
+                            "color": {
+                              "b": 0.8156999945640564,
+                              "g": 0.7685999870300293,
+                              "r": 0.7922000288963318
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "fontName": {
+                          "family": "Sarasa Gothic SC",
+                          "style": "Regular"
+                        },
+                        "fontSize": 18,
+                        "height": 22,
+                        "id": "105:50",
+                        "layoutAlign": "AUTO",
+                        "layoutGrow": 0,
+                        "lineHeight": {
+                          "unit": "AUTO"
+                        },
+                        "name": "icon_settings",
+                        "textAlignHorizontal": "LEFT",
+                        "textAlignVertical": "TOP",
+                        "type": "TEXT",
+                        "width": 18,
+                        "x": 356,
+                        "y": 15
+                      }
+                    ],
+                    "clipsContent": true,
+                    "counterAxisAlignItems": "CENTER",
+                    "counterAxisSizingMode": "FIXED",
+                    "height": 52,
+                    "id": "105:46",
+                    "itemSpacing": 8,
+                    "layoutAlign": "STRETCH",
+                    "layoutGrow": 0,
+                    "layoutMode": "HORIZONTAL",
+                    "name": "top_bar",
+                    "primaryAxisAlignItems": "CENTER",
+                    "primaryAxisSizingMode": "FIXED",
+                    "type": "FRAME",
+                    "width": 390,
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "characters": "2026-08-16 · 6 items",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:151",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8156999945640564,
+                                  "g": 0.7685999870300293,
+                                  "r": 0.7922000288963318
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Semi Bold"
+                            },
+                            "fontSize": 13,
+                            "height": 16,
+                            "id": "105:53",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 0,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "header_text",
+                            "textAlignHorizontal": "LEFT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 142,
+                            "x": 128,
+                            "y": 0
+                          }
+                        ],
+                        "clipsContent": true,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "FIXED",
+                        "height": 36,
+                        "id": "105:52",
+                        "itemSpacing": 0,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "HORIZONTAL",
+                        "name": "header_d1",
+                        "primaryAxisAlignItems": "CENTER",
+                        "primaryAxisSizingMode": "FIXED",
+                        "type": "FRAME",
+                        "width": 386,
+                        "x": 2,
+                        "y": 2
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "MIN",
+                            "counterAxisSizingMode": "FIXED",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:150",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.30979999899864197,
+                                  "g": 0.27059999108314514,
+                                  "r": 0.28630000352859497
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "height": 127,
+                            "id": "105:55",
+                            "itemSpacing": 0,
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 1,
+                            "layoutMode": "NONE",
+                            "name": "cell",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                            "type": "FRAME",
+                            "width": 127.33333587646484,
+                            "x": 0,
+                            "y": 0
+                          },
+                          {
+                            "children": [],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "MIN",
+                            "counterAxisSizingMode": "FIXED",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:150",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.30979999899864197,
+                                  "g": 0.27059999108314514,
+                                  "r": 0.28630000352859497
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "height": 127,
+                            "id": "105:56",
+                            "itemSpacing": 0,
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 1,
+                            "layoutMode": "NONE",
+                            "name": "cell2",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                            "type": "FRAME",
+                            "width": 127.33333587646484,
+                            "x": 129.33334350585938,
+                            "y": 0
+                          },
+                          {
+                            "children": [],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "MIN",
+                            "counterAxisSizingMode": "FIXED",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:156",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.14900000393390656,
+                                  "g": 0.12160000205039978,
+                                  "r": 0.12939999997615814
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "height": 127,
+                            "id": "105:57",
+                            "itemSpacing": 0,
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 1,
+                            "layoutMode": "NONE",
+                            "name": "cell3",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                            "type": "FRAME",
+                            "width": 127.33333587646484,
+                            "x": 258.66668701171875,
+                            "y": 0
+                          }
+                        ],
+                        "clipsContent": true,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                        "height": 127,
+                        "id": "105:54",
+                        "itemSpacing": 2,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "HORIZONTAL",
+                        "name": "row_1",
+                        "primaryAxisAlignItems": "MIN",
+                        "primaryAxisSizingMode": "FIXED",
+                        "type": "FRAME",
+                        "width": 386,
+                        "x": 2,
+                        "y": 38
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "MIN",
+                            "counterAxisSizingMode": "FIXED",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:156",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.14900000393390656,
+                                  "g": 0.12160000205039978,
+                                  "r": 0.12939999997615814
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "height": 127,
+                            "id": "105:59",
+                            "itemSpacing": 0,
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 1,
+                            "layoutMode": "NONE",
+                            "name": "cell",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                            "type": "FRAME",
+                            "width": 127.33333587646484,
+                            "x": 0,
+                            "y": 0
+                          },
+                          {
+                            "children": [],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "MIN",
+                            "counterAxisSizingMode": "FIXED",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:150",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.30979999899864197,
+                                  "g": 0.27059999108314514,
+                                  "r": 0.28630000352859497
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "height": 127,
+                            "id": "105:60",
+                            "itemSpacing": 0,
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 1,
+                            "layoutMode": "NONE",
+                            "name": "cell2",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                            "type": "FRAME",
+                            "width": 127.33333587646484,
+                            "x": 129.33334350585938,
+                            "y": 0
+                          },
+                          {
+                            "children": [],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "MIN",
+                            "counterAxisSizingMode": "FIXED",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:150",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.30979999899864197,
+                                  "g": 0.27059999108314514,
+                                  "r": 0.28630000352859497
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "height": 127,
+                            "id": "105:61",
+                            "itemSpacing": 0,
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 1,
+                            "layoutMode": "NONE",
+                            "name": "cell3",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                            "type": "FRAME",
+                            "width": 127.33333587646484,
+                            "x": 258.66668701171875,
+                            "y": 0
+                          }
+                        ],
+                        "clipsContent": true,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                        "height": 127,
+                        "id": "105:58",
+                        "itemSpacing": 2,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "HORIZONTAL",
+                        "name": "row_2",
+                        "primaryAxisAlignItems": "MIN",
+                        "primaryAxisSizingMode": "FIXED",
+                        "type": "FRAME",
+                        "width": 386,
+                        "x": 2,
+                        "y": 165
+                      },
+                      {
+                        "children": [
+                          {
+                            "characters": "2026-08-15 · 3 items",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:151",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8156999945640564,
+                                  "g": 0.7685999870300293,
+                                  "r": 0.7922000288963318
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Semi Bold"
+                            },
+                            "fontSize": 13,
+                            "height": 16,
+                            "id": "105:63",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 0,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "header_text",
+                            "textAlignHorizontal": "LEFT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 142,
+                            "x": 128,
+                            "y": 0
+                          }
+                        ],
+                        "clipsContent": true,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "FIXED",
+                        "height": 36,
+                        "id": "105:62",
+                        "itemSpacing": 0,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "HORIZONTAL",
+                        "name": "header_d2",
+                        "primaryAxisAlignItems": "CENTER",
+                        "primaryAxisSizingMode": "FIXED",
+                        "type": "FRAME",
+                        "width": 386,
+                        "x": 2,
+                        "y": 292
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "MIN",
+                            "counterAxisSizingMode": "FIXED",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:150",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.30979999899864197,
+                                  "g": 0.27059999108314514,
+                                  "r": 0.28630000352859497
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "height": 127,
+                            "id": "105:65",
+                            "itemSpacing": 0,
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 1,
+                            "layoutMode": "NONE",
+                            "name": "cell",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                            "type": "FRAME",
+                            "width": 127.33333587646484,
+                            "x": 0,
+                            "y": 0
+                          },
+                          {
+                            "children": [],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "MIN",
+                            "counterAxisSizingMode": "FIXED",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:156",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.14900000393390656,
+                                  "g": 0.12160000205039978,
+                                  "r": 0.12939999997615814
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "height": 127,
+                            "id": "105:66",
+                            "itemSpacing": 0,
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 1,
+                            "layoutMode": "NONE",
+                            "name": "cell2",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                            "type": "FRAME",
+                            "width": 127.33333587646484,
+                            "x": 129.33334350585938,
+                            "y": 0
+                          },
+                          {
+                            "children": [],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "MIN",
+                            "counterAxisSizingMode": "FIXED",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:150",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.30979999899864197,
+                                  "g": 0.27059999108314514,
+                                  "r": 0.28630000352859497
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "height": 127,
+                            "id": "105:67",
+                            "itemSpacing": 0,
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 1,
+                            "layoutMode": "NONE",
+                            "name": "cell3",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                            "type": "FRAME",
+                            "width": 127.33333587646484,
+                            "x": 258.66668701171875,
+                            "y": 0
+                          }
+                        ],
+                        "clipsContent": true,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                        "height": 127,
+                        "id": "105:64",
+                        "itemSpacing": 2,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "HORIZONTAL",
+                        "name": "row_3",
+                        "primaryAxisAlignItems": "MIN",
+                        "primaryAxisSizingMode": "FIXED",
+                        "type": "FRAME",
+                        "width": 386,
+                        "x": 2,
+                        "y": 328
+                      }
+                    ],
+                    "clipsContent": true,
+                    "counterAxisAlignItems": "MIN",
+                    "counterAxisSizingMode": "FIXED",
+                    "height": 736,
+                    "id": "105:51",
+                    "itemSpacing": 0,
+                    "layoutAlign": "STRETCH",
+                    "layoutGrow": 1,
+                    "layoutMode": "VERTICAL",
+                    "name": "grid_content",
+                    "primaryAxisAlignItems": "MIN",
+                    "primaryAxisSizingMode": "FIXED",
+                    "type": "FRAME",
+                    "width": 390,
+                    "x": 0,
+                    "y": 52
+                  },
+                  {
+                    "children": [
+                      {
+                        "characters": "相册",
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "boundVariables": {
+                              "color": {
+                                "id": "VariableID:2:130",
+                                "type": "VARIABLE_ALIAS"
+                              }
+                            },
+                            "color": {
+                              "b": 1,
+                              "g": 0.7372999787330627,
+                              "r": 0.8156999945640564
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "fontName": {
+                          "family": "Sarasa Gothic SC",
+                          "style": "Regular"
+                        },
+                        "fontSize": 12,
+                        "height": 15,
+                        "id": "105:69",
+                        "layoutAlign": "AUTO",
+                        "layoutGrow": 1,
+                        "lineHeight": {
+                          "unit": "AUTO"
+                        },
+                        "name": "tab_album",
+                        "textAlignHorizontal": "CENTER",
+                        "textAlignVertical": "TOP",
+                        "type": "TEXT",
+                        "width": 75,
+                        "x": 0,
+                        "y": 20.5
+                      },
+                      {
+                        "characters": "打标",
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "boundVariables": {
+                              "color": {
+                                "id": "VariableID:2:151",
+                                "type": "VARIABLE_ALIAS"
+                              }
+                            },
+                            "color": {
+                              "b": 0.8156999945640564,
+                              "g": 0.7685999870300293,
+                              "r": 0.7922000288963318
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "fontName": {
+                          "family": "Sarasa Gothic SC",
+                          "style": "Regular"
+                        },
+                        "fontSize": 12,
+                        "height": 15,
+                        "id": "105:70",
+                        "layoutAlign": "AUTO",
+                        "layoutGrow": 1,
+                        "lineHeight": {
+                          "unit": "AUTO"
+                        },
+                        "name": "tab_tag",
+                        "textAlignHorizontal": "CENTER",
+                        "textAlignVertical": "TOP",
+                        "type": "TEXT",
+                        "width": 75,
+                        "x": 75,
+                        "y": 20.5
+                      },
+                      {
+                        "characters": "人物",
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "boundVariables": {
+                              "color": {
+                                "id": "VariableID:2:151",
+                                "type": "VARIABLE_ALIAS"
+                              }
+                            },
+                            "color": {
+                              "b": 0.8156999945640564,
+                              "g": 0.7685999870300293,
+                              "r": 0.7922000288963318
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "fontName": {
+                          "family": "Sarasa Gothic SC",
+                          "style": "Regular"
+                        },
+                        "fontSize": 12,
+                        "height": 15,
+                        "id": "105:71",
+                        "layoutAlign": "AUTO",
+                        "layoutGrow": 1,
+                        "lineHeight": {
+                          "unit": "AUTO"
+                        },
+                        "name": "tab_person",
+                        "textAlignHorizontal": "CENTER",
+                        "textAlignVertical": "TOP",
+                        "type": "TEXT",
+                        "width": 75,
+                        "x": 150,
+                        "y": 20.5
+                      },
+                      {
+                        "characters": "设置",
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "boundVariables": {
+                              "color": {
+                                "id": "VariableID:2:151",
+                                "type": "VARIABLE_ALIAS"
+                              }
+                            },
+                            "color": {
+                              "b": 0.8156999945640564,
+                              "g": 0.7685999870300293,
+                              "r": 0.7922000288963318
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "fontName": {
+                          "family": "Sarasa Gothic SC",
+                          "style": "Regular"
+                        },
+                        "fontSize": 12,
+                        "height": 15,
+                        "id": "105:72",
+                        "layoutAlign": "AUTO",
+                        "layoutGrow": 1,
+                        "lineHeight": {
+                          "unit": "AUTO"
+                        },
+                        "name": "tab_settings",
+                        "textAlignHorizontal": "CENTER",
+                        "textAlignVertical": "TOP",
+                        "type": "TEXT",
+                        "width": 75,
+                        "x": 225,
+                        "y": 20.5
+                      }
+                    ],
+                    "clipsContent": true,
+                    "cornerRadius": 28,
+                    "counterAxisAlignItems": "CENTER",
+                    "counterAxisSizingMode": "FIXED",
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "boundVariables": {
+                          "color": {
+                            "id": "VariableID:2:156",
+                            "type": "VARIABLE_ALIAS"
+                          }
+                        },
+                        "color": {
+                          "b": 0.14900000393390656,
+                          "g": 0.12160000205039978,
+                          "r": 0.12939999997615814
+                        },
+                        "opacity": 1,
+                        "type": "SOLID",
+                        "visible": true
+                      }
+                    ],
+                    "height": 56,
+                    "id": "105:68",
+                    "itemSpacing": 0,
+                    "layoutAlign": "AUTO",
+                    "layoutGrow": 0,
+                    "layoutMode": "HORIZONTAL",
+                    "name": "floating_tab",
+                    "primaryAxisAlignItems": "CENTER",
+                    "primaryAxisSizingMode": "FIXED",
+                    "type": "FRAME",
+                    "width": 300,
+                    "x": 0,
+                    "y": 788
+                  }
+                ],
+                "clipsContent": true,
+                "counterAxisAlignItems": "MIN",
+                "counterAxisSizingMode": "FIXED",
+                "fills": [
+                  {
+                    "blendMode": "NORMAL",
+                    "boundVariables": {
+                      "color": {
+                        "id": "VariableID:2:146",
+                        "type": "VARIABLE_ALIAS"
+                      }
+                    },
+                    "color": {
+                      "b": 0.12160000205039978,
+                      "g": 0.10589999705553055,
+                      "r": 0.10980000346899033
+                    },
+                    "opacity": 1,
+                    "type": "SOLID",
+                    "visible": true
+                  }
+                ],
+                "height": 844,
+                "id": "105:45",
+                "itemSpacing": 0,
+                "layoutAlign": "AUTO",
+                "layoutGrow": 0,
+                "layoutMode": "VERTICAL",
+                "name": "gallery/grid",
+                "primaryAxisAlignItems": "MIN",
+                "primaryAxisSizingMode": "FIXED",
+                "type": "FRAME",
+                "width": 390,
+                "x": 880,
                 "y": 0
               }
             ]

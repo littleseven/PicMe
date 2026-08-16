@@ -208,14 +208,65 @@ final class GalleryViewModel: ObservableObject {
                 gs.append(DayGroup(id: NSLocalizedString("gallery_group_person_none", comment: ""), items: none))
             }
             groups = gs
-        case .landscape, .location:
-            // 数据依赖后续扫描阶段（内容标签 Pass3 / 地理），先以占位分组开放下拉项。
-            let key: String = groupingMode == .landscape
-                ? NSLocalizedString("gallery_group_landscape_pending", comment: "")
-                : NSLocalizedString("gallery_group_location_pending", comment: "")
-            groups = assets.isEmpty ? [] : [DayGroup(id: key, items: assets)]
+        case .landscape:
+            // 风景筛选：labels（Pass3）命中风景关键词 → 唯一「风景」组；无命中则空
+            // （对齐 Android GetGroupedMediaUseCase LANDSCAPE：筛选进单组，非按标签分组）
+            let labelsMap = TagDatabase.shared.labelsByLocalIdentifier()
+            let landscapes = assets.filter { asset in
+                guard let json = labelsMap[asset.uri] else { return false }
+                return !Self.landscapeKeywords.isDisjoint(with: Self.labelSet(fromLabelsJson: json))
+            }
+            groups = landscapes.isEmpty
+                ? []
+                : [DayGroup(id: NSLocalizedString("gallery_group_landscape", comment: ""), items: landscapes)]
+        case .location:
+            // 按城市分组（media_assets.city）+ 无位置兜底组（对齐 Android LOCATION/NO_LOCATION）
+            let cityMap = TagDatabase.shared.cityByLocalIdentifier()
+            var byCity: [String: [MediaAsset]] = [:]
+            var noCity: [MediaAsset] = []
+            for asset in assets {
+                if let city = cityMap[asset.uri], !city.isEmpty {
+                    byCity[city, default: []].append(asset)
+                } else {
+                    noCity.append(asset)
+                }
+            }
+            var gs: [DayGroup] = byCity
+                .sorted { $0.value.count > $1.value.count }
+                .map { DayGroup(id: $0.key, items: $0.value) }
+            if !noCity.isEmpty {
+                gs.append(DayGroup(id: NSLocalizedString("gallery_group_no_location", comment: ""), items: noCity))
+            }
+            groups = gs
         }
         isLoading = false
         DebugOverlayState.shared.set("gallery.count", "\(assets.count)")
     }
+
+    // MARK: - 风景分组关键词（对齐 Android LANDSCAPE_SCENES，controlled_vocab 自然/城市/户外场景词）
+
+    /// labels JSON {scene, activity, objects[], tags[]} → 全部标签小写集合
+    private static func labelSet(fromLabelsJson json: String) -> Set<String> {
+        guard let data = json.data(using: .utf8),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return [] }
+        var labels: [String] = []
+        if let scene = obj["scene"] as? String, !scene.isEmpty { labels.append(scene) }
+        if let activity = obj["activity"] as? String, !activity.isEmpty { labels.append(activity) }
+        if let objects = obj["objects"] as? [String] { labels.append(contentsOf: objects) }
+        if let tags = obj["tags"] as? [String] { labels.append(contentsOf: tags) }
+        return Set(labels.map { $0.lowercased() })
+    }
+
+    private static let landscapeKeywords: Set<String> = [
+        "风景", "户外", "公园", "街道", "海边", "山脉", "城市", "乡村", "花园", "阳台",
+        "河边", "森林", "雪地", "沙漠", "泳池", "田野", "草原", "湖边", "瀑布", "隧道",
+        "桥下", "天桥", "花田", "竹林", "枫林", "茶园", "古镇", "寺庙", "教堂", "植物园",
+        "动物园", "游乐园", "水族馆", "广场", "海滩", "庭院", "操场", "农家",
+        "landscape", "outdoor", "park", "street", "seaside", "mountains", "city", "countryside",
+        "garden", "balcony", "riverside", "forest", "snowfield", "desert", "swimming pool",
+        "field", "grassland", "lakeside", "waterfall", "tunnel", "under bridge", "overpass",
+        "flower field", "bamboo forest", "maple forest", "tea plantation", "ancient town",
+        "temple", "church", "botanical garden", "zoo", "amusement park", "aquarium",
+        "square", "beach", "courtyard", "playground", "farmhouse",
+    ]
 }

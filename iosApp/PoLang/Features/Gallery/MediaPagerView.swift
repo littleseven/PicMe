@@ -1,6 +1,7 @@
 import SwiftUI
 import SharedKit
 import UIKit
+import MapKit
 
 /// 按需分析（图像理解 / OCR）状态机：idle→loading→done(text)/failed(reason)。
 /// 两条通道独立（同时只一条活跃），共用此状态类型。
@@ -538,25 +539,64 @@ private struct ZoomablePagerPage: View {
     }
 }
 
-/// 照片信息浮层（简化版对齐 Android PhotoInfoDialog：文件名/类型/拍摄时间/时长；
-/// OCR/Vision/标签/美学评分 iOS 无数据（Phase 6），不显示）
+/// 照片信息浮层（spec photo_info_dialog 全字段，2026-08-16 相-16 扩展：
+/// +来源/位置跳地图/美学评分/人脸信息(3行)/标签 FlowRow/OCR 文本；数据源 TagDatabase，未扫描字段隐藏）
 private struct PhotoInfoSheet: View {
     let asset: MediaAsset
     @Environment(\.dismiss) private var dismiss
+    /// TagDB 信息行（nil=未扫描：只显示基础字段）
+    private let info: TagDatabase.MediaInfoRow?
+
+    init(asset: MediaAsset) {
+        self.asset = asset
+        self.info = TagDatabase.shared.mediaInfoByLocalIdentifier(asset.uri)
+    }
 
     var body: some View {
         NavigationStack {
             List {
-                infoRow(String(localized: "File Name"), value: asset.fileName)
-                infoRow(String(localized: "Type"),
-                        value: asset.type == MediaType.video
-                            ? String(localized: "Video") : String(localized: "Photo"))
-                infoRow(String(localized: "Captured"), value: formattedDateTime)
-                if let duration = asset.duration {
-                    infoRow(String(localized: "Duration"), value: formatDuration(duration.int64Value))
+                Section {
+                    infoRow(String(localized: "File Name"), value: asset.fileName)
+                    infoRow(String(localized: "Type"),
+                            value: asset.type == MediaType.video
+                                ? String(localized: "Video") : String(localized: "Photo"))
+                    infoRow(String(localized: "Captured"), value: formattedDateTime)
+                    if let duration = asset.duration, duration.int64Value > 0 {
+                        infoRow(String(localized: "Duration"), value: formatDuration(duration.int64Value))
+                    }
+                    if let source = info?.source, !source.isEmpty {
+                        infoRow(String(localized: "Source"),
+                                value: source.prefix(1).uppercased() + source.dropFirst())
+                    }
+                    locationRow
                 }
-                if let locationName = asset.locationName {
-                    infoRow(String(localized: "Location"), value: locationName)
+                if let info {
+                    Section {
+                        if let score = info.aestheticScore {
+                            infoRow(String(localized: "Aesthetic Score"),
+                                    value: String(format: "%.1f / 10", score))
+                        }
+                        infoRow(String(localized: "Contains Face"),
+                                value: info.hasFace
+                                    ? String(localized: "Yes") : String(localized: "No"))
+                        if info.hasFace, let fid = info.faceId, !fid.isEmpty {
+                            infoRow(String(localized: "Person Group"), value: fid)
+                        }
+                        if let q = info.faceQualityScore, info.hasFace {
+                            infoRow(String(localized: "Face Quality"),
+                                    value: String(format: "%.2f", q))
+                        }
+                    }
+                    if !tags.isEmpty {
+                        Section(String(localized: "Tags")) {
+                            tagFlow
+                        }
+                    }
+                    if let ocr = info.ocrText, !ocr.isEmpty {
+                        Section(String(localized: "OCR Text")) {
+                            Text(ocr).font(.footnote).foregroundStyle(.secondary)
+                        }
+                    }
                 }
             }
             .navigationTitle(String(localized: "Info"))
@@ -567,7 +607,59 @@ private struct PhotoInfoSheet: View {
                 }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.medium, .large])
+    }
+
+    // MARK: - 位置行（可点跳地图，对齐 Android LocationInfoRow → openMapApp）
+
+    @ViewBuilder
+    private var locationRow: some View {
+        let locName = info?.locationName ?? asset.locationName
+        if let locName, !locName.isEmpty {
+            Button {
+                openInMaps()
+            } label: {
+                HStack {
+                    Text(String(localized: "Location")).foregroundStyle(.secondary)
+                    Spacer()
+                    HStack(spacing: 4) {
+                        Text(locName).multilineTextAlignment(.trailing)
+                        Image(systemName: "location.fill")
+                            .font(.caption2).foregroundColor(Color.accentColor)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func openInMaps() {
+        let lat = info?.latitude, lon = info?.longitude
+        let item: MKMapItem
+        if let lat, let lon {
+            item = MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon)))
+        } else {
+            item = MKMapItem()
+        }
+        item.name = info?.locationName ?? asset.locationName
+        item.openInMaps()
+    }
+
+    // MARK: - 标签 FlowRow（labels JSON 的 objects+tags+scene 合并）
+
+    private var tags: [String] {
+        guard let json = info?.labelsJson,
+              let data = json.data(using: .utf8),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return [] }
+        var out: [String] = []
+        if let scene = obj["scene"] as? String, !scene.isEmpty { out.append(scene) }
+        out.append(contentsOf: (obj["objects"] as? [String]) ?? [])
+        out.append(contentsOf: (obj["tags"] as? [String]) ?? [])
+        return Array(out.prefix(20))
+    }
+
+    private var tagFlow: some View {
+        FlowTagRow(tags: tags)
     }
 
     private func infoRow(_ label: String, value: String) -> some View {
@@ -587,6 +679,53 @@ private struct PhotoInfoSheet: View {
     private func formatDuration(_ ms: Int64) -> String {
         let totalSeconds = ms / 1000
         return String(format: "%d:%02d", totalSeconds / 60, totalSeconds % 60)
+    }
+}
+
+/// 标签流式布局（spec tags: flow_row；iOS 16 用自研 wrap——Layout 协议要 iOS 16+，此处用通用 wrap 实现）
+private struct FlowTagRow: View {
+    let tags: [String]
+
+    var body: some View {
+        var width: CGFloat = 0
+        var height: CGFloat = 0
+        return GeometryReader { geo in
+            ZStack(alignment: .topLeading) {
+                ForEach(Array(tags.enumerated()), id: \.offset) { _, tag in
+                    tagChip(tag)
+                        .padding(.trailing, 6)
+                        .padding(.bottom, 6)
+                        .alignmentGuide(.leading) { d in
+                            if abs(width - d.width) > geo.size.width {
+                                width = 0
+                                height -= d.height
+                            }
+                            let result = width
+                            if tag == tags.last {
+                                width = 0
+                            } else {
+                                width -= d.width
+                            }
+                            return result
+                        }
+                        .alignmentGuide(.top) { _ in
+                            let result = height
+                            if tag == tags.last { height = 0 }
+                            return result
+                        }
+                }
+            }
+        }
+        .frame(height: CGFloat((tags.count / 3 + 1)) * 32)
+    }
+
+    private func tagChip(_ tag: String) -> some View {
+        Text(tag)
+            .font(.caption)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color.secondary.opacity(0.15))
+            .clipShape(Capsule())
     }
 }
 
