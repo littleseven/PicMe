@@ -9,6 +9,8 @@ struct AppSlider: View {
     var activeTrackColor: Color = Color.accentColor
     var thumbBorderColor: Color = Color.accentColor
     var onValueChange: (Float) -> Void
+    /// 手势开始/结束回调（对齐 Android `onValueChangeFinished` 提交语义；nil=不关心，默认不影响既有调用方）
+    var onEditingChanged: ((Bool) -> Void)? = nil
 
     @State private var pressed = false
     @State private var dragWidth: CGFloat = 0
@@ -55,11 +57,15 @@ struct AppSlider: View {
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { d in
+                        if !pressed { onEditingChanged?(true) }
                         pressed = true
                         dragWidth = geo.size.width
                         handle(d.location.x)
                     }
-                    .onEnded { _ in pressed = false }
+                    .onEnded { _ in
+                        pressed = false
+                        onEditingChanged?(false)
+                    }
             )
         }
         .frame(height: AppSliderTokens.thumbSize)
