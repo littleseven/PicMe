@@ -129,19 +129,21 @@ top_left_controls:
 # 4. 顶部居中工具栏（TopToolBar，2026-08-15 改版：右列图标列 → iOS 系统相机风格文字工具栏）
 # ============================================================================
 # 位置：Alignment.TopCenter，避让状态栏/刘海区域（同 §3 ignoring_visibility 语义）
-# 布局：Row 居中，spacing = camera.topToolBarSpacing(8dp)，padding_top = inset + camera.topToolBarPaddingTop(8dp)
+# 布局：Row 居中，spacing = camera.topToolBarSpacing(6dp)，padding_top = inset + camera.topToolBarPaddingTop(8dp)
 # 每个入口 = 文字胶囊：字号 12sp，选中 Bold/未选中 Medium，
-#   padding = H camera.topToolBarItemPaddingH(14) V camera.topToolBarItemPaddingV(8)，
+#   padding = H camera.topToolBarItemPaddingH(10) V camera.topToolBarItemPaddingV(8)，
 #   圆角 camera.topToolBarItemRadius(10)
 # 选中态：底 camera.toolBarSelectedBg(=accent；Android=colorScheme.primary)，字 camera.cameraAccentOn(白)
 # 未选中：底 camera.toolBarUnselectedBg(透明)，字 白色
 # ⚠️ 与 §3 左列（back/refresh/debug）垂直错开：左列需额外 top padding 避让工具栏高度
+# 2026-08-16 收窄：spacing 8→6、paddingH 14→10——整组变窄后左缘自然远离左上角返回箭头（间距 ~2dp→~26dp），
+#   同时收紧标签间距离（文字间距 36dp→26dp）
 # 场景（scene）入口已下线（鸡肋功能，2026-08-15 用户决策）；ScenePreset 状态保留供 Agent 指令链路使用
 top_tool_bar:
   anchor: top_center
   layout: row_center
   status_bar_padding: ignoring_visibility
-  spacing: 8                      # camera.topToolBarSpacing
+  spacing: 6                      # camera.topToolBarSpacing
   items:
     - id: beauty_entry
       label: "美颜"                # "美颜" / "Beauty"
@@ -170,16 +172,18 @@ top_tool_bar:
         click: toggle_pro_panel
 
 # ── 顶部内联面板（InlineControlPanel）：ratio/grid/filter/pro 点开时挂在工具栏下方 ──
-# 外壳：maxWidth 420dp，圆角 camera.panelCornerRadius(20)，iOS=ultraThinMaterial /
+# 外壳：maxWidth 420dp，圆角 camera.panelCornerRadius(16)，iOS=ultraThinMaterial /
 #   Android=surface@0.85 + 0.5dp outlineVariant@0.25 描边 + 12dp 阴影；padding H16 V10
 # 动画：从顶部滑入 + 淡入；与美颜底部抽屉全互斥（见 §17）
-# chip 行样式（ratio/grid 用）：胶囊高 40、paddingH 18、字号 15 Medium；
+# chip 行样式（ratio/grid 用）：胶囊高 camera.chipHeight(34)、
+#   paddingH camera.chipPaddingH(14)、间距 camera.chipSpacing(10)、字号 13 Medium（2026-08-16 由 40/18/12/15 收窄）；
 #   选中=accent 底+白字，未选中=白 15% 底+白字；选择后立即收起面板
+# pro 面板 WB chips 为平台差异：Android 用 M3 FilterChip（12sp 既有组件），iOS 用同款胶囊 OptionButton（13pt）
 inline_panels:
   anchor: below_top_tool_bar
   container:
     max_width: 420
-    corner_radius: 20             # camera.panelCornerRadius
+    corner_radius: 16             # camera.panelCornerRadius
     border: "0.5dp outlineVariant_alpha_25"
     shadow_elevation: 12
     padding_horizontal: 16
@@ -676,7 +680,7 @@ filter_panel:
 ratio_panel:
   trigger: top_tool_bar.ratio_entry
   anchor: top_inline                 # InlineControlPanel + chip 胶囊行
-  layout: chip_row                   # 胶囊高 40 / paddingH 18 / 字号 15 Medium（样式见 §4）
+  layout: chip_row                   # 胶囊高 34 / paddingH 14 / 间距 10 / 字号 13 Medium（样式见 §4）
   items:
     - id: ratio_4_3
       label: "4:3"                   # "4:3"
@@ -1080,7 +1084,7 @@ allowed_differences:
   - dimension: panel_material
     android: "surface.copy(alpha=0.85) + 0.5dp outlineVariant@0.25 描边 + 12dp 阴影（InlineControlPanel）"
     ios: ".ultraThinMaterial（毛玻璃）或近似"
-    note: "面板背景材质差异可接受；内联面板圆角统一 camera.panelCornerRadius = 20dp/pt（见 §4 inline_panels）"
+    note: "面板背景材质差异可接受；内联面板圆角统一 camera.panelCornerRadius = 16dp/pt（见 §4 inline_panels）"
 
   - dimension: filter_selected_border
     android: "linearGradient(primary, onSurface) 2.5dp"

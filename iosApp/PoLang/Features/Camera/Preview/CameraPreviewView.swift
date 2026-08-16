@@ -332,15 +332,16 @@ struct CameraPreviewView: View {
     }
 
     /// 顶部内联选项 chip 行（iOS 系统相机风格：居中的胶囊组，无面板壳拉伸）。
+    /// 几何全走 CameraTokens（chipSpacing/chipPaddingH/chipHeight），字号 13 对标 Android SelectorChipRow。
     private func selectorChipRow(_ chips: [(String, Bool, () -> Void)]) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: CameraTokens.chipSpacing) {
             ForEach(chips.indices, id: \.self) { i in
                 Button(action: chips[i].2) {
                     Text(LocalizedStringKey(chips[i].0))
-                        .font(.system(size: 15, weight: .medium))
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundColor(chips[i].1 ? CameraTokens.cameraAccentOn : .white)
-                        .padding(.horizontal, 18)
-                        .frame(height: 40)
+                        .padding(.horizontal, CameraTokens.chipPaddingH)
+                        .frame(height: CameraTokens.chipHeight)
                         .background(
                             Capsule().fill(chips[i].1 ? CameraTokens.cameraAccent : Color.white.opacity(0.15))
                         )
@@ -616,11 +617,11 @@ private struct InlineControlPanel<Content: View>: View {
         }
         .frame(maxWidth: 420)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: CameraTokens.panelCornerRadius, style: .continuous)
                 .fill(.ultraThinMaterial)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: CameraTokens.panelCornerRadius, style: .continuous)
                 .stroke(Color.white.opacity(0.18), lineWidth: 0.5)
         )
         .shadow(color: .black.opacity(0.35), radius: 12, x: 0, y: 6)
@@ -670,17 +671,17 @@ private struct ControlPanel<Content: View>: View {
     }
 }
 
-// 选项 chip（Pro 面板白平衡用；与顶部 chip 同款风格）
+// 选项 chip（Pro 面板白平衡用；与顶部 chip 同款风格，几何走 CameraTokens，字号 13）
 private struct OptionButton: View {
     let titleKey: LocalizedStringKey
     let isSelected: Bool
     let action: () -> Void
     var body: some View {
         Button(action: action) {
-            Text(titleKey).font(.system(size: 15, weight: .medium))
+            Text(titleKey).font(.system(size: 13, weight: .medium))
                 .foregroundColor(isSelected ? CameraTokens.cameraAccentOn : .white)
-                .padding(.horizontal, 18)
-                .frame(height: 40)
+                .padding(.horizontal, CameraTokens.chipPaddingH)
+                .frame(height: CameraTokens.chipHeight)
                 .background(
                     Capsule().fill(isSelected ? CameraTokens.cameraAccent : Color.white.opacity(0.15))
                 )
