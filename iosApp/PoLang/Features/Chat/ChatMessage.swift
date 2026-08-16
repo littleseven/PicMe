@@ -28,11 +28,15 @@ struct ChatMessage: Identifiable, Codable {
     var showCursor: Bool = false
     /// CHART 图卡 SVG（draw_chart 端侧 ChartJsEngine 生成；不持久化）
     var chartSvg: String?
+    /// OPTIMIZE_CANDIDATES 候选卡组 payload（type == .optimizeCandidates，chat.yaml §17；
+    /// 持久化随消息走；解析失败静默丢弃该字段——消息退化为纯文本气泡，不崩）
+    var gacha: GachaPayload? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, role, text, timestamp, type, imageUri
         case isStreaming, isThinking, isToolCalling
         case mediaIds, error, mediaQuery, mediaTotalCount
+        case gacha
         // showCursor 不参与编解码（仅流式内存态）；chartSvg 亦不持久化
     }
 
@@ -41,16 +45,49 @@ struct ChatMessage: Identifiable, Codable {
     }
 
     /// 消息类型（对齐 commonMain ChatMessageType 的 iOS 在用子集；
-    /// 其余 case（userImage/agentImage/command/planPreview/optimizeCandidates）待产生源接入时补）
+    /// 其余 case（userImage/agentImage/command/planPreview）待产生源接入时补；
+    /// optimizeCandidates 已接入——AI 优化抽卡候选卡组，§17）
     enum MessageType: String, Codable {
         case userText, agentText, userImageText, mediaResults, chart, agentEditResult
+        case optimizeCandidates
+    }
+
+    /// 单张抽卡候选卡（结构照 chat.yaml §17 message_model.payload.candidates）。
+    struct GachaCandidate: Codable, Equatable {
+        let index: Int
+        /// 扰动方向（base/clarity/vivid/warm/cool/brighten/crisp；UI 经 GachaDirectionLabel 本地化）
+        let direction: String
+        /// 512px 候选缩略图落盘路径（nil=落盘失败，卡条显示占位）
+        let thumbPath: String?
+        /// NIMA 美学分（1~10；nil=未评分/护栏淘汰）
+        let nimaScore: Float?
+        /// 护栏淘汰标记（0.4 alpha 不可点）
+        let rejected: Bool
+        var rejectReason: String? = nil
+    }
+
+    /// 抽卡候选卡组（结构照 chat.yaml §17 message_model.payload，
+    /// 对齐 commonMain OptimizeCandidateGroup——iOS 保持 Swift struct 沿用 ChatMessage 既有决策）。
+    struct GachaPayload: Codable, Equatable {
+        /// 优化目标图标识（LLM 传入：PHAsset localIdentifier / file:// 路径）
+        var sourceImageUri: String
+        /// 场景（Scene.rawValue：SELFIE/PORTRAIT/GROUP/FOOD/LANDSCAPE/LOW_LIGHT/DOCUMENT/GENERAL）
+        var scene: String
+        /// 推荐卡序号；-1 = KeepOriginal（不预选）
+        var recommendedIndex: Int
+        var candidates: [GachaCandidate]
+        /// 已出现参数指纹（换一组 exclude 去重；排序持久化保证 JSON 稳定）
+        var usedFingerprints: [String]
+        /// 第几抽（首抽 0，换一组 +1）
+        var drawIndex: Int
     }
 
     init(id: UUID = UUID(), role: Role, text: String, timestamp: Date = Date(),
          type: MessageType? = nil, imageUri: String? = nil,
          isStreaming: Bool = false, isThinking: Bool = false, isToolCalling: Bool = false,
          mediaIds: [Int64] = [], error: String? = nil,
-         mediaQuery: String? = nil, mediaTotalCount: Int? = nil) {
+         mediaQuery: String? = nil, mediaTotalCount: Int? = nil,
+         gacha: GachaPayload? = nil) {
         self.id = id
         self.role = role
         self.text = text
@@ -65,6 +102,7 @@ struct ChatMessage: Identifiable, Codable {
         self.error = error
         self.mediaQuery = mediaQuery
         self.mediaTotalCount = mediaTotalCount
+        self.gacha = gacha
     }
 
     // MARK: - Codable 向前兼容（老 JSON 无 type/imageUri）
@@ -87,5 +125,8 @@ struct ChatMessage: Identifiable, Codable {
         // 老数据推断：user → userText；assistant + mediaIds → mediaResults；否则 agentText
         // （chartSvg 不持久化，历史 JSON 里不存在 chart 型，无需推断）
         type = decodedType ?? (role == .user ? .userText : (!mediaIds.isEmpty ? .mediaResults : .agentText))
+        // gacha：老 JSON 无此字段；结构漂移时静默丢弃（nil）——消息退化为纯文本气泡，不崩
+        // （try? 吞掉 decode 错误；spec §17 message_model.persistence「解析失败静默丢弃」）
+        gacha = (try? c.decodeIfPresent(GachaPayload.self, forKey: .gacha)) ?? nil
     }
 }

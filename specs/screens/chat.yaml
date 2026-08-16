@@ -389,6 +389,7 @@ interaction_model:
     AGENT_TEXT: "left bubble, surfaceVariant bg, segmented Markdown (text+table+code)"
     MEDIA_RESULTS: "⚠️ separate full-width message (MediaResultsCarousel), NOT inline in text bubble"
     CHART: "separate full-width message (SVG card)"
+    OPTIMIZE_CANDIDATES: "separate full-width message (GachaCandidateStrip §17)，伴随 agent 文本气泡（content=场景解释句）"
     error: "⚠️ 同 agent 正常气泡（无特殊错误色），content='推理出错：...'"
 
   # 媒体结果：独立消息项
@@ -615,7 +616,71 @@ platform_differences:
       - { feature: "JS 沙箱脚本",     android: supported, ios: "TODO(B2) 引擎选型+handler 移植" }
       - { feature: "draw_chart 图表", android: supported, ios: "TODO(B2) ChartSvgCard + chart kind" }
       - { feature: "AI 工程师(claude)", android: supported, ios: "TODO(B3) SSE 客户端+渲染" }
+      - { feature: "AI 优化抽卡",     android: supported, ios: "supported(2026-08-16 §17 追齐；多轮编辑态 ChatEditStateHolder 缺失见 §17 confirm 注)" }
       - { feature: "记忆/人物关系",    android: supported, ios: "未纳入本轮（留技术债）" }
   privacy_disclosure:
     android: "Manifest 权限 + Play Data Safety；chat 推理 STRICT（图不上传）"
     ios: "purpose string + PrivacyInfo.xcprivacy；附件用 PHPicker(AddOnly)；VLM 端侧"
+
+# ============================================================================
+# 17. AI 优化抽卡候选卡组（Optimize Candidates）— 2026-08-16 反向提取自 Android
+# ============================================================================
+# 基准端：ChatOptimizeGachaController.kt / components/GachaCandidateStrip.kt /
+#         ChatViewModel.kt(gacha selections/rerolling 状态机)
+# 引擎与数值契约：specs/screens/editor.yaml §17 + AI_OPTIMIZATION.md §11.5（chat 复用同一引擎，零改动）
+# shared 契约：OptimizeCandidateGroup（commonMain domain/chat/ChatMessage.kt，iOS 直接经 XCFramework 获得）
+optimize_gacha:
+  trigger:
+    llm_tool: ai_optimize                       # manifest 须新增（schema 逐字节照抄 ChatToolService：单参数 imageUri）
+    fallback_uri: "imageUri 为空 → 取会话最近一张用户图"
+    dispatch: "AgentAction.Success(AiOptimize) → Swift 层 ChatOptimizeGachaController.draw（capability 仅产 observation，gacha 由 UI 层触发）"
+  message_model:
+    type: optimize_candidates                    # OptimizeCandidateGroup.MESSAGE_TYPE
+    payload: OptimizeCandidateGroup{sourceImageUri, scene, recommendedIndex(-1=KeepOriginal), candidates[direction/thumbPath/nimaScore/rejected], usedFingerprints, drawIndex}
+    companion_text: "agent 文本气泡（content=场景解释句 ai_optimize_explain_*，见 editor.yaml §16）"
+    persistence: "iOS ChatHistoryStore Codable（type 字段 + payload 解码；解析失败静默丢弃该字段）"
+  strip_ui:                                      # GachaCandidateStrip
+    container: { bg: surface, corner_radius: 12, padding: 12 }
+    hint_row:
+      expired: { text_key: chat_gacha_expired,   when: "!interactive" }
+      keep:    { text_key: ai_optimize_keep_hint, when: "interactive && recommendedIndex < 0" }
+      pick:    { text_key: chat_gacha_pick_hint,  when: "interactive && recommendedIndex >= 0" }
+    cards_row:
+      layout: row_weight1                        # 4 卡均分宽
+      card:
+        thumb: { size: gachaCardThumbSize /*84*/, corner_radius: gachaCardThumbCornerRadius /*6*/, aspect: 1:1, scale: crop, source: "file(thumbPath)" }
+        selected_border: { visible_when: "selectedIndex == index", width: 2, color: primary }
+        recommended_badge: { when: "index == recommendedIndex", position: top_start, text_key: ai_optimize_recommended, bg: primary }
+        rejected_card: { alpha: 0.4, clickable: false }
+        direction_label: { style: labelSmall_onSurfaceVariant }
+      failed_thumb: "thumbPath 空 → 占位图（落盘失败卡）"
+    buttons_row:                                 # 仅 interactive 时
+      items:
+        - { id: reroll,   text_key: ai_optimize_reroll,     type: text, click: onReroll }
+        - { id: use_this, text_key: chat_gacha_use_this,    type: filled, enabled_when: "selectedIndex >= 0 && !selectedRejected", click: onConfirm }
+      rerolling: "该消息 in rerolling set → 按钮行显示 16dp spinner"
+  interaction_model:
+    selection: "点卡 → selectedIndex=index + 全屏预览该卡（无保存按钮的 ImagePreviewPage；rejected 卡不可点）"
+    reroll: "换一组 → 以 usedFingerprints 为 exclude 重抽 → DAO 覆写原消息 metadata（新组 JSON）→ drawIndex+1；失败 toast chat_gacha_reroll_unavailable"
+    confirm: "就用这张 → 全尺寸渲染确认卡 → 落盘 Documents/chat_edits/ → 消息改写为 agent_image（imageUri, saved:false）→ 反馈落库 source=user；失败 toast chat_gacha_confirm_failed（保持 pending 可重试）"
+    confirm_ios_gap: "⚠️ Android 确认后更新 ChatEditStateHolder（多轮『继续优化』以结果为基准）——iOS 无该机制，确认仅落图文件，多轮基准编辑不可达（技术债，独立 follow）"
+    expired_semantics: "pending 组为进程级内存态——切会话/发新消息/清空/删会话/进程回收 → 落库 source=dismiss + 卡条转只读（expired 文案，无按钮行）；iOS 后台回收更激进，expired 出现频率更高（台账）"
+  state:
+    selections: "Map<messageId, selectedIndex>（初值=recommendedIndex）"
+    rerolling: "Set<messageId>（防抖）"
+    restore: "加载历史时对仍有 pending 的卡组恢复 selections"
+  fallback_chain:
+    - "NIMA 未下载/初始化失败 → 引擎 Unavailable → 固定预设单发优化（agent_image 消息，非卡组）"
+    - "缩略图全部落盘失败 → Fallback 单发（含图或纯文本解释）"
+  feedback: "与编辑器共用 optimize_feedback 表（auto=每组抽完 / user=就用这张 / dismiss=废弃）"
+  ios_impl:
+    controller: "Features/Chat/ChatOptimizeGachaController.swift（pending 内存态/draw/reroll/confirm/discard + 缩略图落盘 Documents/chat_edit_cache/<uuid>.jpg）"
+    view_model: "ChatViewModel gacha selections/rerolling 状态 + 消息类型分发 + 确认后消息改写"
+    bridge: "ChatAgentBridge 的 uiActions 通路须能把 AgentAction.Success(AiOptimize) 路由到 Swift（contracts.md C-G1）"
+    i18n: [chat_gacha_use_this, chat_gacha_pick_hint, chat_gacha_expired, chat_gacha_confirm_failed, chat_gacha_reroll_unavailable]
+  i18n_keys:                                     # 本节新增（其余共用 editor.yaml §16 ai_optimize_*）
+    chat_gacha_use_this:          { en: Use this, zh-Hans: 就用这张, zh-Hant: 就用這張 }
+    chat_gacha_pick_hint:         { en: "Tap a card to preview it, then confirm", zh-Hans: 点选一张候选预览，确认后应用, zh-Hant: 點選一張候選預覽，確認後套用 }
+    chat_gacha_expired:           { en: "This candidate set has expired — start a new optimization", zh-Hans: 该组候选已过期，可重新发起优化, zh-Hant: 該組候選已過期，可重新發起優化 }
+    chat_gacha_confirm_failed:    { en: "Failed to apply, please try again", zh-Hans: 应用失败，请重试, zh-Hant: 套用失敗，請重試 }
+    chat_gacha_reroll_unavailable: { en: "Shuffling is unavailable right now", zh-Hans: 换一组暂不可用，请稍后再试, zh-Hant: 換一組暫不可用，請稍後再試 }

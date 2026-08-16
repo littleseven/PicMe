@@ -23,6 +23,10 @@ final class AppContainer: ObservableObject {
     /// chat 脚本执行桥（IosRunScriptCapability run_gallery_script → JsRuntime+JsCoreEngine 端侧沙箱）
     let runScriptBridge: RunScriptBridge
 
+    /// chat AI 一键优化桥（IosAiOptimizeCapability ai_optimize → AiOptimizeService 固定预设
+    /// 场景分析路径，产出 observation 给远程 LLM；抽卡由 Chat UI 层另行触发，editor.yaml §17）
+    let aiOptimizeBridge: AiOptimizeBridge
+
     /// 美颜渲染参数（全局共享，BeautyPanelView ↔ BeautyRenderer 双向绑定）
     @Published var beautyParams = BeautyRenderer.Params()
 
@@ -44,6 +48,7 @@ final class AppContainer: ObservableObject {
         self.searchBridge = PhSearchBridge()
         self.chartBridge = ChartRendererBridge.shared
         self.runScriptBridge = RunScriptBridge.shared
+        self.aiOptimizeBridge = AiOptimizeBridge.shared
         setupAgentComposition()
     }
 
@@ -56,6 +61,7 @@ final class AppContainer: ObservableObject {
             searchBridge: searchBridge,
             chartBridge: chartBridge,
             runScriptBridge: runScriptBridge,
+            aiOptimizeBridge: aiOptimizeBridge,
             debugBuild: isDebugBuild   // 诊断日志 captureContent：DEBUG 记全文 / Release 仅指标
         )
         chatBridge = IosAgentComposition.shared.chatBridge

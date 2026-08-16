@@ -1,9 +1,10 @@
 import SwiftUI
 import UIKit
 
-/// 图片编辑屏（editor.yaml §1-§5）。从 MediaPagerView「编辑」入口经 fullScreenCover 进入。
+/// 图片编辑屏（editor.yaml §1-§5 + §17 抽卡对比模式）。从 MediaPagerView「编辑」入口经 fullScreenCover 进入。
 /// CROP/ADJUST/FILTER(9 色+5 风格)/MARKUP 全功能；BEAUTY 滑杆可调 + 参数存档（渲染 DEFER）；
-/// 去背景/AI 优化顶栏按钮置灰 + 敬请期待 toast。
+/// 去背景顶栏按钮置灰 + 敬请期待 toast；AI 优化为抽卡对比模式（gachaRun 非空时底栏整体
+/// 替换为 GachaCandidateBar，主预览区照常全尺寸预览候选卡）。
 struct PhotoEditorScreen: View {
     let localIdentifier: String
     var onSaved: (String?) -> Void = { _ in }
@@ -31,7 +32,14 @@ struct PhotoEditorScreen: View {
         if case .ready(let r) = vm.state { return r } else { return nil }
     }
     private var markupMode: Bool {
-        ready?.selectedTab == .markup
+        // §11：MARKUP 绘制层仅在普通编辑态接管（对比模式 gachaRun 非空时隐藏）
+        ready?.selectedTab == .markup && ready?.gachaRun == nil
+    }
+
+    /// 顶栏「AI 优化」可点条件（§3/§17.2）：已加载 + 非处理中 + 非对比模式。
+    private var aiOptimizeEnabled: Bool {
+        if case .ready(let r) = vm.state { return !r.isProcessing && r.gachaRun == nil }
+        return false
     }
 
     var body: some View {
@@ -50,10 +58,21 @@ struct PhotoEditorScreen: View {
                     .clipShape(Capsule())
                     .transition(.opacity)
             }
+            if let errorMessage = vm.error {
+                Text(errorMessage)
+                    .font(.system(size: 14))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(Color.black.opacity(0.8))
+                    .clipShape(Capsule())
+                    .transition(.opacity)
+            }
         }
         .preferredColorScheme(.dark)
         .animation(.easeInOut(duration: 0.2), value: ready?.selectedTab)
         .animation(.easeInOut(duration: 0.2), value: showUnavailableToast)
+        .animation(.easeInOut(duration: 0.2), value: vm.error)
+        .animation(.easeInOut(duration: 0.2), value: ready?.gachaRun == nil)   // 底栏 ↔ 抽卡条切换
         .task {
             vm.onSaved = { id in
                 onSaved(id)
@@ -80,7 +99,9 @@ struct PhotoEditorScreen: View {
                   showsBackButton: true,
                   onBack: { dismiss() }) {
             EditorAction(system: "square.stack.3d.up.slash", enabled: false) { unavailable() } // 去背景 DEFER
-            EditorAction(system: "wand.and.stars", enabled: false) { unavailable() } // AI 优化 DEFER
+            EditorAction(system: "wand.and.stars",
+                         enabled: aiOptimizeEnabled,
+                         accessibilityLabel: L("ai_optimize")) { vm.aiOptimize() } // AI 优化抽卡（§17）
             EditorAction(system: "arrow.uturn.backward", enabled: vm.canUndo) { vm.undo() }
             EditorAction(system: "arrow.uturn.forward", enabled: vm.canRedo) { vm.redo() }
             EditorAction(system: "checkmark", enabled: !(ready?.isSaving ?? false)) { vm.save() }
@@ -180,16 +201,28 @@ struct PhotoEditorScreen: View {
         }
     }
 
-    // MARK: Bottom（面板 + tab 条）
+    // MARK: Bottom（面板 + tab 条；抽卡对比模式整体替换为 GachaCandidateBar）
 
     @ViewBuilder
     private var bottomArea: some View {
         if let r = ready {
-            VStack(spacing: 0) {
-                panelSlot(r)
-                EditorBottomBar(selectedTab: r.selectedTab) { vm.selectTab($0) }
+            if let run = r.gachaRun {
+                // 对比模式（§17.1）：面板 + 底栏隐藏，主预览区照常全尺寸预览（VM 驱动）
+                GachaCandidateBar(
+                    run: run,
+                    isProcessing: r.isProcessing,
+                    onPreview: { index in vm.previewGachaCandidate(index) },
+                    onApply: { vm.applyGachaCandidate() },
+                    onReroll: { vm.rerollGacha() },
+                    onDismiss: { vm.dismissGacha() })
+                    .background(Color.black)
+            } else {
+                VStack(spacing: 0) {
+                    panelSlot(r)
+                    EditorBottomBar(selectedTab: r.selectedTab) { vm.selectTab($0) }
+                }
+                .background(Color(.systemBackground))
             }
-            .background(Color(.systemBackground))
         }
     }
 
@@ -308,6 +341,7 @@ struct PhotoEditorScreen: View {
 private struct EditorAction: View {
     let system: String
     var enabled: Bool = true
+    var accessibilityLabel: String? = nil
     let action: () -> Void
     var body: some View {
         Button(action: action) {
@@ -317,5 +351,19 @@ private struct EditorAction: View {
         .buttonStyle(.plain)
         .foregroundStyle(enabled ? Color.primary : Color.secondary.opacity(0.35))
         .disabled(!enabled)
+        .modifier(EditorActionA11yLabel(label: accessibilityLabel))
+    }
+}
+
+/// 可选 accessibilityLabel（nil 时不施加 modifier，保持系统默认）。
+private struct EditorActionA11yLabel: ViewModifier {
+    let label: String?
+
+    func body(content: Content) -> some View {
+        if let label {
+            content.accessibilityLabel(Text(label))
+        } else {
+            content
+        }
     }
 }

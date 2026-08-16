@@ -10,7 +10,8 @@ import kotlinx.serialization.Serializable
 
 /**
  * iOS chat 工具手工清单（Phase 6.2 T2）：K/N 无反射，`asToolsByClass()` 不可用，
- * 用 [SimpleTool] 子类逐字面对齐 [ChatToolService] 的 8 个相册工具。
+ * 用 [SimpleTool] 子类逐字面对齐 [ChatToolService] 的 8 个相册工具 + ai_optimize
+ * （2026-08-16 抽卡追齐新增）。
  *
  * 一致性纪律：name/description/参数名/参数描述**逐字节**照抄 @Tool(customName) 与
  * @LLMDescription 原文（改任何一侧都会触发 jvmTest `ChatToolManifestConsistencyTest`
@@ -62,6 +63,11 @@ object ChatToolManifest {
     @Serializable
     class MediaIdsArgs(
         @property:LLMDescription("媒体 id 列表逗号分隔，无则空串") val mediaIds: String,
+    )
+
+    @Serializable
+    class AiOptimizeArgs(
+        @property:LLMDescription("图片 URI") val imageUri: String,
     )
 
     // ── 工具实现（委托 ChatToolService 同名 suspend 方法）─────────────────────────
@@ -138,7 +144,17 @@ object ChatToolManifest {
             ChatToolService.getInstance().shareMedia(args.mediaIds)
     }
 
-    /** 8 个工具实例（stateless，共享一份即可；registry 与 descriptors 同源派生）。 */
+    /** ai_optimize（2026-08-16 抽卡追齐）：逐字节对齐 ChatToolService.aiOptimize。 */
+    private class AiOptimizeTool : SimpleTool<AiOptimizeArgs>(
+        argsType = typeToken<AiOptimizeArgs>(),
+        name = "ai_optimize",
+        description = "AI 一键优化图片。imageUri 为图片 URI。",
+    ) {
+        override suspend fun execute(args: AiOptimizeArgs): String =
+            ChatToolService.getInstance().aiOptimize(args.imageUri)
+    }
+
+    /** 9 个工具实例（stateless，共享一份即可；registry 与 descriptors 同源派生）。 */
     val tools: List<ToolBase<*, *>> by lazy {
         listOf(
             GetGallerySummaryTool(),
@@ -149,6 +165,7 @@ object ChatToolManifest {
             FavoriteMediaTool(),
             DeleteMediaTool(),
             ShareMediaTool(),
+            AiOptimizeTool(),
         )
     }
 

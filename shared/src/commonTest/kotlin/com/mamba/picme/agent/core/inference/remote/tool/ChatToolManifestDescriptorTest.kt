@@ -18,11 +18,11 @@ class ChatToolManifestDescriptorTest {
     private val descriptors = ChatToolManifest.buildDescriptors()
 
     @Test
-    fun `exactly 8 tools with deterministic names`() {
+    fun `exactly 9 tools with deterministic names`() {
         assertEquals(
             listOf(
                 "get_gallery_summary", "search_media", "refine_media_search", "view_media",
-                "select_media", "favorite_media", "delete_media", "share_media",
+                "select_media", "favorite_media", "delete_media", "share_media", "ai_optimize",
             ),
             descriptors.map { it.name },
         )
@@ -57,5 +57,10 @@ class ChatToolManifestDescriptorTest {
             "获取本地相册摘要：照片/视频/媒体总数、含人脸数、人物聚类数、已/未打标数、语义向量数、扫描建议。",
             summary.description,
         )
+
+        // ai_optimize（2026-08-16 抽卡追齐）：description/参数描述逐字节对齐 ChatToolService.aiOptimize
+        val optimize = descriptors.single { it.name == "ai_optimize" }
+        assertEquals("AI 一键优化图片。imageUri 为图片 URI。", optimize.description)
+        assertEquals("图片 URI", optimize.requiredParameters.single { it.name == "imageUri" }.description)
     }
 }

@@ -47,6 +47,16 @@ final class ChatViewModel: ObservableObject {
     /// EDIT 意图回调（ChatView 注入 → PhotoEditorScreen）
     var onEditImage: ((String) -> Void)?
 
+    // MARK: AI 优化抽卡状态（chat.yaml §17）
+    /// 抽卡控制器（pending 卡组进程级内存态 + 引擎调用 + 反馈落库）
+    private let gachaController = ChatOptimizeGachaController.shared
+    /// messageId → 选中卡序号（初值=recommendedIndex；pending 过期后仅驱动只读渲染）
+    @Published private(set) var gachaSelections: [UUID: Int] = [:]
+    /// 重抽中消息集合（防抖 + 卡条按钮行 spinner）
+    @Published private(set) var gachaRerolling: Set<UUID> = []
+    /// ai_optimize 抽卡在途（ReAct 同轮重复动作去重）
+    private var gachaDrawInFlight = false
+
     func stageImage(_ localIdentifier: String) {
         stagedImage = StagedImage(localIdentifier: localIdentifier)
         let lid = localIdentifier
@@ -82,6 +92,7 @@ final class ChatViewModel: ObservableObject {
         currentSessionId = ChatHistoryStore.shared.currentSessionId
         bridge.setSessionId(id: currentSessionId)
         messages = ChatHistoryStore.shared.loadMessages(sessionId: currentSessionId)
+        restoreGachaSelections()
         threads = ChatHistoryStore.shared.loadThreads()
         actionWatcher?.cancel()
         actionWatcher = bridge.watchUiActions { [weak self] dto in
@@ -99,6 +110,14 @@ final class ChatViewModel: ObservableObject {
     }
 
     // MARK: - Send (对齐 Android sendMessage 流程)
+
+    /// 发往远程 LLM 的输入：带暂存图时注入图片标识前缀（对齐 Android ChatViewModel.kt:1191
+    /// `"[用户选择了图片：$imageUri，请基于这张图片处理] $text"`），LLM 据此在 ai_optimize 等
+    /// 工具调用中回传该标识；注入的是标识字符串非像素（[PRIVACY] 图片文件不上传远程）。
+    static func llmInput(text: String, stagedImageUri: String?) -> String {
+        guard let uri = stagedImageUri, !uri.isEmpty else { return text }
+        return "[用户选择了图片：\(uri)，请基于这张图片处理] \(text)"
+    }
 
     func send(_ input: String) {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -142,6 +161,14 @@ final class ChatViewModel: ObservableObject {
         guard !trimmed.isEmpty, !isProcessing else { return }
         guard let bridge else { return }
 
+        // 发新消息：本会话 pending 卡组过期（§17 expired_semantics；dismiss 反馈落库）
+        gachaController.discardPending(sessionId: currentSessionId)
+
+        // 带图发消息：图片标识（PHAsset localIdentifier）注入推理文本，LLM 据此回传
+        // ai_optimize(imageUri:) 等工具调用（对齐 Android ChatViewModel.kt:1191 格式；
+        // 注入的是标识字符串非像素——[PRIVACY] 图片文件不上传远程）
+        let stagedLocalId = stagedImage?.localIdentifier
+
         // 1. user 消息即追加（带暂存图 → userImageText 上图下文；图引用 localIdentifier，
         //    远程只发文本——图片像素不上传，隐私红线）
         messages.append(ChatMessage(
@@ -177,7 +204,7 @@ final class ChatViewModel: ObservableObject {
 
         // 3. 启动推理（bridge 已指向当前 sessionId，LLM 记忆按会话隔离）
         bridge.sendMessage(
-            input: trimmed,
+            input: Self.llmInput(text: trimmed, stagedImageUri: stagedLocalId),
             onText: { [weak self] snapshot in
                 Task { @MainActor in
                     // 首 token 到达：喂给节奏器（不直接写 UI，节奏器按字符时间轴推进）
@@ -207,10 +234,14 @@ final class ChatViewModel: ObservableObject {
     func switchSession(_ sessionId: String) {
         guard sessionId != currentSessionId else { return }
         persist()
+        // 切会话：旧会话 pending 卡组过期（dismiss 反馈落库）
+        gachaController.discardPending(sessionId: currentSessionId)
         currentSessionId = sessionId
         ChatHistoryStore.shared.currentSessionId = sessionId
         bridge?.setSessionId(id: sessionId)
         messages = ChatHistoryStore.shared.loadMessages(sessionId: sessionId)
+        restoreGachaSelections()
+        gachaRerolling = []
     }
 
     /// 新建会话并切换过去（顶栏 + / 侧栏 +）
@@ -238,12 +269,15 @@ final class ChatViewModel: ObservableObject {
     func deleteSession(_ sessionId: String) {
         ChatHistoryStore.shared.deleteThread(sessionId: sessionId)
         bridge?.clearHistory(sessionId: sessionId) { }
+        // 删会话：该会话 pending 卡组过期（dismiss 反馈落库）
+        gachaController.discardPending(sessionId: sessionId)
         if currentSessionId == sessionId {
             let fallback = ChatHistoryStore.defaultSessionId
             currentSessionId = fallback
             ChatHistoryStore.shared.currentSessionId = fallback
             bridge?.setSessionId(id: fallback)
             messages = ChatHistoryStore.shared.loadMessages(sessionId: fallback)
+            restoreGachaSelections()
         }
         threads = ChatHistoryStore.shared.loadThreads()
     }
@@ -252,8 +286,12 @@ final class ChatViewModel: ObservableObject {
     func clearHistory() {
         guard let bridge else { return }
         let sessionId = currentSessionId
+        // 清空：本会话 pending 卡组过期（dismiss 反馈落库）
+        gachaController.discardPending(sessionId: sessionId)
         // UI 消息与预览同步清（文件操作不依赖异步回调，避免清记忆途中切会话漏清）
         messages = []
+        gachaSelections = [:]
+        gachaRerolling = []
         ChatHistoryStore.shared.clearMessages(sessionId: sessionId)
         touchThread(preview: "")
         bridge.clearCurrentHistory { }
@@ -334,9 +372,142 @@ final class ChatViewModel: ObservableObject {
             messages.append(ChatMessage(role: .assistant, text: text))
             touchThread(preview: text)
             persist()
+        case "ai_optimize":
+            // AI 一键优化：capability 仅产 observation（AiOptimizeBridge 固定预设路径），
+            // 抽卡由 UI 层触发（chat.yaml §17 trigger——gacha 不入 LLM 工具链）
+            handleAiOptimizeAction(dto)
         default:
             break
         }
+    }
+
+    // MARK: - AI 优化抽卡（chat.yaml §17）
+
+    /// ai_optimize 动作 → 抽卡（draw）→ 出卡条消息（伴随 agent 文本气泡=场景解释句）
+    /// 或降级单发（fallback_chain：unavailable / 缩略图全灭 / 无可用源图）。
+    private func handleAiOptimizeAction(_ dto: ChatUiActionDto) {
+        // ReAct 同轮可能重复派发（流式动作重放）：在途即忽略
+        guard !gachaDrawInFlight else { return }
+        gachaDrawInFlight = true
+        let sessionId = currentSessionId
+        let messageId = UUID()
+        let imageUri = dto.imageUri
+        let fallbackUri = lastUserImageUri()
+        Task { @MainActor in
+            defer { gachaDrawInFlight = false }
+            let outcome = await gachaController.draw(
+                messageId: messageId,
+                imageUri: imageUri,
+                sessionId: sessionId,
+                fallbackImageUri: fallbackUri)
+            // 抽卡期间切了会话：按过期处理（dismiss 反馈落库），不向新会话插入消息
+            guard currentSessionId == sessionId else {
+                gachaController.discardPending(sessionId: sessionId)
+                return
+            }
+            switch outcome {
+            case .candidates(let payload, let explanation):
+                messages.append(ChatMessage(
+                    id: messageId, role: .assistant,
+                    text: explanation, type: .optimizeCandidates, gacha: payload))
+                // 选中态初值 = 推荐卡（KeepOriginal=-1 不预选）
+                gachaSelections[messageId] = payload.recommendedIndex
+                touchThread(preview: explanation)
+                persist()
+            case .fallback(let imagePath, let explanation):
+                // 降级单发：含图（固定预设全尺寸渲染落盘）或纯文本解释
+                if let imagePath {
+                    messages.append(ChatMessage(
+                        role: .assistant, text: explanation,
+                        type: .agentEditResult, imageUri: imagePath))
+                } else {
+                    messages.append(ChatMessage(role: .assistant, text: explanation))
+                }
+                touchThread(preview: explanation)
+                persist()
+            }
+        }
+    }
+
+    /// 卡条 interactive 判定（pending 组存在；过期即只读——无按钮行、不改选中）
+    func isGachaInteractive(_ messageId: UUID) -> Bool {
+        gachaController.hasPending(messageId)
+    }
+
+    /// 点卡：改选中（全屏预览由 ChatView onCardTap 打开）
+    func selectGachaCard(messageId: UUID, index: Int) {
+        gachaSelections[messageId] = index
+    }
+
+    /// 换一组：以 usedFingerprints 为 exclude 重抽 → 覆写原消息候选（drawIndex+1）
+    func rerollGacha(messageId: UUID) {
+        guard !gachaRerolling.contains(messageId),
+              messages.contains(where: { $0.id == messageId && $0.type == .optimizeCandidates }) else { return }
+        gachaRerolling.insert(messageId)
+        Task { @MainActor in
+            defer { gachaRerolling.remove(messageId) }
+            switch await gachaController.reroll(messageId: messageId) {
+            case .replaced(let payload, let explanation):
+                // 覆写原消息候选与伴随解释（await 后按 id 重找——列表可能已变动）
+                guard let idx = messages.firstIndex(where: { $0.id == messageId }) else { return }
+                messages[idx].gacha = payload
+                messages[idx].text = explanation
+                gachaSelections[messageId] = payload.recommendedIndex
+                persist()
+            case .unavailable:
+                // 引擎不可用/重抽全灭：pending 保持不动，卡条仍可确认既有卡
+                unavailableNotice = String(localized: "chat_gacha_reroll_unavailable")
+            }
+        }
+    }
+
+    /// 就用这张：全尺寸渲染 → 落 Documents/chat_edits → 原消息改写为 agentEditResult
+    /// （saved=false 语义——文件仅落 App 沙盒，气泡文案不标注「已存相册」；
+    /// 失败 pending 已回填，卡条保持可重试 + toast）
+    func confirmGacha(messageId: UUID) {
+        guard let selection = gachaSelections[messageId], selection >= 0,
+              let msg = messages.first(where: { $0.id == messageId && $0.type == .optimizeCandidates }) else { return }
+        let sessionId = currentSessionId
+        let explanation = msg.text
+        Task { @MainActor in
+            guard let path = await gachaController.confirm(messageId: messageId, candidateIndex: selection) else {
+                unavailableNotice = String(localized: "chat_gacha_confirm_failed")
+                return
+            }
+            // 渲染期间切了会话：反馈已落库、图已写盘，仅放弃 UI 改写（不污染新会话）
+            guard currentSessionId == sessionId else { return }
+            if let idx = messages.firstIndex(where: { $0.id == messageId }) {
+                // 原地改写：气泡正文保留场景解释句，图换为全尺寸渲染结果
+                messages[idx].type = .agentEditResult
+                messages[idx].imageUri = path
+                messages[idx].gacha = nil
+                gachaSelections.removeValue(forKey: messageId)
+                touchThread(preview: explanation)
+                persist()
+            } else {
+                messages.append(ChatMessage(
+                    role: .assistant, text: explanation,
+                    type: .agentEditResult, imageUri: path))
+                persist()
+            }
+        }
+    }
+
+    /// 兜底链：会话最近一张用户图标识（LLM 未传/解析失败时以其为优化目标）
+    private func lastUserImageUri() -> String? {
+        messages.last(where: { message in message.role == .user && message.imageUri != nil })?.imageUri
+    }
+
+    /// 历史载入后恢复卡条选中态（初值=recommendedIndex）。pending 组为进程级内存态，
+    /// 冷启后一律只读过期（ChatView interactive=false）；selections 仅驱动渲染。
+    private func restoreGachaSelections() {
+        var restored: [UUID: Int] = [:]
+        for msg in messages where msg.type == .optimizeCandidates {
+            if let payload = msg.gacha {
+                restored[msg.id] = payload.recommendedIndex
+            }
+        }
+        gachaSelections = restored
     }
 
     // MARK: - 会话标题与索引

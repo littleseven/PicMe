@@ -13,8 +13,8 @@
 # 图标映射：Material Icons (Android) → SF Symbols (iOS)
 # ----------------------------------------------------------------------------
 # ⚠️ 本轮范围（用户决策 2026-08-10「分阶段落地」）：feasible subset =
-#    CROP + ADJUST + FILTER + MARKUP + Recipe/EditHistory 模型 + 非破坏性保存。
-#    BEAUTY 渲染 / 抠图去背景 / AI 一键优化 / 证件照抽卡 / 对话式编辑 = DEFER
+#    CROP + ADJUST + FILTER + MARKUP + Recipe/EditHistory 模型 + 非破坏性保存 + AI 一键优化抽卡（§17，2026-08-16 追齐）。
+#    BEAUTY 渲染 / 抠图去背景 / 对话式编辑 = DEFER
 #    （见 §14 allowed_differences）。DEFER 项的入口控件以「不可用 + 敬请期待」呈现，不删除。
 
 # ============================================================================
@@ -56,13 +56,21 @@ state_machine:
         selectedTab: EditorTab = CROP                  # 默认进 CROP tab
         isProcessing: Boolean = false                  # 预览重渲染中（spinner overlay）
         isSaving: Boolean = false                      # 保存中（Done 按钮 disabled）
-        gachaRun: GachaRunUiState? = null              # 本轮恒 null（抽卡 defer）
+        gachaRun: GachaRunUiState? = null              # 抽卡对比模式（§17）；null=非对比模式
       transitions:
         updateRecipe:  → 重渲染预览（debounce 200ms）→ Ready(previewBitmap 更新)
         selectTab:     → Ready(selectedTab 改变；缩放/平移重置为 1x/0)
         undo/redo:     → Ready(recipe 回退/前进；重渲染)
         save:          → Ready(isSaving=true) → 写出新副本 → onEditSaved(newUri)
         load_new:      → Loading
+        aiOptimize:    → Ready(isProcessing=true) → 抽卡（§17.2）→ gachaRun 置非空
+                        # 防重入：isProcessing 或 gachaRun 非空时点击忽略
+# 历史栈：EditHistory(maxSize=30)；push() 丢弃 redo 分支；undo/redo 仅移 index。
+# canUndo = (gachaRun==null) && history.canUndo；canRedo 同理（对比模式下 undo/redo 禁用）。
+# GachaRunUiState（对比模式数据，§17.2）：candidates: List<ScoredCandidate> /
+#   recommendedIndex: Int（-1=KeepOriginal 不预选）/ previewedIndex: Int（当前大图预览卡，-1=原图）/
+#   exclude: Set<String>（换一组回传指纹）/ baseRecipe: EditRecipe（进入对比前的配方，dismiss 回退基准）/
+#   scene: Scene / keepOriginal: Boolean
 # 历史栈：EditHistory(maxSize=30)；push() 丢弃 redo 分支；undo/redo 仅移 index。
 # canUndo = (gachaRun==null) && history.canUndo；canRedo 同理。
 
@@ -87,11 +95,11 @@ top_bar:
       enabled: false             # 本轮置灰
       unavailable_toast_key: editor_feature_unavailable   # 「该功能敬请期待」
       behavior: { click: toast_unavailable }
-    - id: ai_optimize            # 🔴 DEFER（本轮不可用）
+    - id: ai_optimize            # ✅ 2026-08-16 抽卡追齐启用（§17）
       icon: { material: auto_fix_high, sf_symbol: "wand.and.stars" }
-      enabled: false
-      unavailable_toast_key: editor_feature_unavailable
-      behavior: { click: toast_unavailable }
+      content_description_key: ai_optimize
+      enabled_when: not(isProcessing) && gachaRun == null   # 对比模式/处理中禁点（防参数叠加）
+      behavior: { click: aiOptimize }                        # 失败/降级语义见 §17.2
     - id: undo
       icon: { material: undo (AutoMirrored), sf_symbol: "arrow.uturn.backward" }
       enabled_when: canUndo
@@ -339,6 +347,9 @@ render_pipeline:
     apply_beauty: ⏸️ no-op（DEFER，模型仍存档）
     apply_markup: Core Graphics 烘焙（doodle 路径 / mosaic 像素化或模糊 / text draw）
   fallback: 任一步异常或输出全黑 → 退回原图，绝不显示黑屏
+  gacha_candidate:                # 抽卡候选渲染（§17）：同一 RecipeApplier 管线，输入为 512px 降采样 base
+    decode: 源图降采样解码（maxEdge=512；iOS CGImageSourceCreateThumbnailAtIndex kCGImageSourceThumbnailMaxPixelSize）
+    render: 候选 preset → EditRecipe 映射 → 预览管线同路径渲染 → 512px 缩略图
 
 # ============================================================================
 # 13. 配方数据模型（EditRecipe）—— contracts.md 详签名
@@ -375,14 +386,14 @@ allowed_differences:
     desc: BEAUTY tab 滑杆可调、参数存档，但预览/保存不渲染美颜效果
     reason: iOS 缺静态图人脸感知 GPU 管线（PhotoProcessor actual）
     followup: 独立 follow 建 iOS 美颜静态图管线 + beauty-api 渲染对齐
-  - id: B2_cutout_gacha_absent
+  - id: B2_cutout_absent
     severity: known_gap
-    desc: 去背景(remove_background)/证件照抽卡(gachaRun)/透明棋盘格 本轮不实现
+    desc: 去背景(remove_background)/透明棋盘格 本轮不实现
     reason: iOS 缺 matting(U2Net)模型
+    # 2026-08-16：原 B2 中的「证件照抽卡(gachaRun)」已随 §17 抽卡追齐移出本条
   - id: B3_ai_optimize_absent
-    severity: known_gap
-    desc: AI 一键优化(ai_optimize)按钮置灰 + 敬请期待 toast
-    reason: 需远程推理协调
+    severity: resolved
+    desc: AI 一键优化(ai_optimize) ✅ 2026-08-16 抽卡追齐关闭（规格 §17；原 reason「需远程推理协调」已过时——抽卡为纯端侧引擎，无远程参与）
   - id: B4_recipe_persistence_inmem
     severity: known_gap
     desc: 配方本轮仅内存态（重编辑不可恢复），Room→GRDB 持久化 fast-follow
@@ -416,6 +427,10 @@ platform_differences:
       markup:      { android: Canvas 烘焙,              ios: Core Graphics 烘焙,         parity: full }
       beauty:      { android: OpenGL 人脸感知 PhotoProcessor, ios: ❌(defer),            parity: none_this_round }
       cutout:      { android: U2Net matting,            ios: ❌(defer),                   parity: none_this_round }
+      gacha:       { android: 抽卡引擎(NIMA ORT NNAPI+GPU 渲染), ios: 抽卡引擎(NIMA ORT CPU+CIImage 渲染), parity: logic_parity_render_approx }
+      # gacha 注：采样/评分/护栏/选优逻辑两端一致；候选渲染 iOS 走 §12 CIImage 管线（beauty 维度
+      # 因 B1 不渲染→人像场景候选视觉差异仅剩调色维度，指纹去重仍含 beauty 维度，可能出现视觉相同卡）；
+      # NIMA iOS 先 CPU/默认 EP（Android NNAPI），评分语义一致
       persistence: { android: Room PhotoEditRecipeDao,  ios: in-memory (GRDB fast-follow),parity: partial }
   privacy_disclosure:
     android:
@@ -426,9 +441,9 @@ platform_differences:
       privacy_manifest: PrivacyInfo.xcprivacy —— 本地处理，无 tracking，无上传；编辑结果仅写本地相册
       privacy_label: Photos and Videos – Add Only（仅添加，不读取全库；读取走系统 Picker）
   red_line_check:
-    PRIVACY: ✅ 所有编辑（裁剪/调节/滤镜/标记）100% 端侧 Core Graphics/CoreImage；图片文件绝不上传远程
-    PERF: ✅ 预览重渲染 debounce 200ms + 后台线程；交互反馈 < 100ms
-    I18N: ✅ 全部文案经 xcstrings 三语（见 §16）
+    PRIVACY: ✅ 所有编辑（裁剪/调节/滤镜/标记/抽卡候选渲染与 NIMA 评分）100% 端侧 Core Graphics/CoreImage/ONNX Runtime；图片文件绝不上传远程
+    PERF: ✅ 预览重渲染 debounce 200ms + 后台线程；交互反馈 < 100ms；抽卡预算 512px 解码<150ms + 渲染×4<1.2s + NIMA×5<500ms
+    I18N: ✅ 全部文案经 xcstrings 三语（见 §16/§17）
 
 # ============================================================================
 # 16. i18n 键表（xcstrings 三语同步；en/zh-Hans/zh-Hant）
@@ -454,6 +469,26 @@ i18n_keys:
   adjust_temperature:      { en: Temperature, zh-Hans: 色温, zh-Hant: 色溫 }
   adjust_tint:             { en: Tint, zh-Hans: 色调, zh-Hant: 色調 }
   reset:                   { en: Reset, zh-Hans: 重置, zh-Hant: 重設 }
+  # ── AI 一键优化抽卡（§17；2026-08-16 追齐）────────────────────────────
+  ai_optimize:             { en: AI Optimize, zh-Hans: AI 一键优化, zh-Hant: AI 一鍵優化 }   # 顶栏按钮 CD
+  ai_optimize_not_available: { en: "AI optimization is not available", zh-Hans: AI 优化暂不可用, zh-Hant: AI 優化暫不可用 }
+  ai_optimize_failed:      { en: "AI optimization failed: %@", zh-Hans: "AI 优化失败：%@", zh-Hant: "AI 優化失敗：%@" }   # %@=错误消息
+  ai_optimize_recommended: { en: Recommended, zh-Hans: 推荐, zh-Hant: 推薦 }               # 候选卡角标（chat 共用）
+  ai_optimize_apply:       { en: Apply, zh-Hans: 应用, zh-Hant: 套用 }
+  ai_optimize_keep_hint:   { en: "AI thinks the original looks best — you can still preview candidates", zh-Hans: AI 认为原图已很好，仍可试看候选, zh-Hant: AI 認為原圖已很好，仍可試看候選 }  # chat 共用
+  ai_optimize_reroll:      { en: Try another set, zh-Hans: 换一组, zh-Hant: 換一組 }        # chat 共用
+  ai_optimize_pick_hint:   { en: "Tap a card to preview it full-size, then Apply", zh-Hans: 点卡片在大图上预览，确认后点应用, zh-Hant: 點卡片在大圖上預覽，確認後點套用 }
+  ai_optimize_dismiss:     { en: Close, zh-Hans: 关闭, zh-Hant: 關閉 }
+  # 场景解释句（chat 中作为 agent 气泡正文展示；Android 侧 buildExplanation 为硬编码中文违例，
+  # iOS 按红线走 key 本地化——语义对齐、载体升级，platform_differences 登记）
+  ai_optimize_explain_selfie:    { en: "Detected a selfie — applied gentle skin smoothing, brightening and tone lift", zh-Hans: 检测到自拍，已适度磨皮美白并提亮肤色, zh-Hant: 偵測到自拍，已適度磨皮美白並提亮膚色 }
+  ai_optimize_explain_portrait:  { en: "Detected a portrait — optimized skin tone and lighting", zh-Hans: 检测到人像，已优化肤色与光影, zh-Hant: 偵測到人像，已最佳化膚色與光影 }
+  ai_optimize_explain_group:     { en: "Detected a group photo — evenly enhanced faces and overall tone", zh-Hans: 检测到合影，已均匀优化人脸与整体色调, zh-Hant: 偵測到合影，已均勻最佳化人臉與整體色調 }
+  ai_optimize_explain_food:      { en: "Detected food — boosted color and appeal", zh-Hans: 检测到美食，已增强色彩与食欲感, zh-Hant: 偵測到美食，已增強色彩與食慾感 }
+  ai_optimize_explain_landscape: { en: "Detected a landscape — improved clarity and color depth", zh-Hans: 检测到风景，已提升通透度与色彩层次, zh-Hant: 偵測到風景，已提升通透度與色彩層次 }
+  ai_optimize_explain_low_light: { en: "Detected a low-light shot — lifted shadows and reduced noise", zh-Hans: 检测到夜景，已提亮暗部并降低噪感, zh-Hant: 偵測到夜景，已提亮暗部並降低噪感 }
+  ai_optimize_explain_document:  { en: "Detected a document — enhanced text sharpness", zh-Hans: 检测到文档，已增强文字清晰度, zh-Hant: 偵測到文件，已增強文字清晰度 }
+  ai_optimize_explain_general:   { en: "Applied general optimization", zh-Hans: 已应用通用优化, zh-Hant: 已套用一般最佳化 }
   doodle:                  { en: Doodle, zh-Hans: 涂鸦, zh-Hant: 塗鴉 }
   mosaic:                  { en: Mosaic, zh-Hans: 马赛克, zh-Hant: 馬賽克 }
   markup_tool_text:        { en: Text, zh-Hans: 文字, zh-Hant: 文字 }
@@ -471,3 +506,83 @@ i18n_keys:
   #   filter_none / filter_leica_classic / filter_leica_vibrant / filter_leica_bw /
   #   filter_film_gold / filter_film_fuji / filter_vintage / filter_cool / filter_warm /
   #   style_toon / style_sketch / style_posterize / style_emboss / style_crosshatch
+
+# ============================================================================
+# 17. AI 一键优化抽卡（Gacha）— 2026-08-16 反向提取自 Android 定稿
+# ============================================================================
+# 基准端：PhotoEditorViewModel.kt aiOptimize/rerollGacha/previewGachaCandidate/
+#         applyGachaCandidate/dismissGacha + components/GachaCandidateBar.kt
+# 数值契约 SSOT：docs/03-TECHNICAL-SPECS/AI_OPTIMIZATION.md §11.5（4 候选/512px/护栏/退化守卫/降级链）
+# 隐私：抽卡全链路（场景分析→渲染→NIMA 评分→落库）100% 端侧；NIMA 模型经模型中心分发
+#       （id=nima-aesthetic-onnx，文件 nima_mobilenet_aesthetic.onnx，iOS Documents/llm_models/…）
+gacha:
+  # ── 17.1 对比条 UI（GachaCandidateBar，替换整个 bottomBar）──────────────────
+  bar:
+    visible_when: "gachaRun != null"          # 对比模式：面板+底栏整体隐藏，底栏位置换本条
+    container: { bg: surface, corner_radius: 12, padding: 12 }
+    hint_row:
+      keep_original: { text_key: ai_optimize_keep_hint, style: bodySmall_onSurfaceVariant }
+      pick:         { text_key: ai_optimize_pick_hint,  style: bodySmall_onSurfaceVariant }
+      rule: "keepOriginal==true → keep_original 文案；否则 pick 文案"
+    cards_row:
+      layout: row_spaceEvenly                 # 4 卡均分
+      card:
+        thumb: { size: gachaCardThumbSize /*84*/, corner_radius: gachaCardThumbCornerRadius /*6*/, scale: crop }
+        direction_label: { style: labelSmall_onSurfaceVariant, position: 卡下方 }  # base/clarity/warm/… 本地化见 17.3
+        selected_border: { visible_when: previewedIndex==index, width: 2, color: primary }
+        recommended_badge:
+          visible_when: "index == recommendedIndex && recommendedIndex >= 0"
+          position: top_start
+          text_key: ai_optimize_recommended    # 「推荐」角标
+          style: { bg: primary, fg: onPrimary, corner_radius: 4, font: labelSmall }
+        rejected_card: { alpha: 0.4, clickable: false }   # 护栏淘汰卡置灰
+        click: previewGachaCandidate(index)    # 点卡 → 主预览区切该卡全尺寸渲染（不叠加）
+      aspect_ratio: 1:1
+    buttons_row:
+      align: end
+      items:
+        - { id: apply,  text_key: ai_optimize_apply,  type: filled, enabled_when: "previewedIndex >= 0 && !selectedCardRejected", click: applyGachaCandidate }
+        - { id: reroll, text_key: ai_optimize_reroll, type: text,   enabled_when: "!isProcessing", click: rerollGacha }
+        - { id: close,  text_key: ai_optimize_dismiss, type: text,  click: dismissGacha }
+      rerolling_feedback: isProcessing → 16dp CircularProgressIndicator 替换按钮行指示
+  # ── 17.2 状态机与语义 ─────────────────────────────────────────────────────
+  flow:
+    aiOptimize:
+      guards: "isProcessing || gachaRun != null → 忽略点击"
+      steps: "optimizeWithGacha(sourceUri, baseRecipe=current.recipe) → GachaOutcome"
+      on_selected: "推荐卡 recipe 进主预览（不入历史栈）；gachaRun = {previewedIndex: best.index}"
+      on_keep_original: "预览原图（previewedIndex=-1）；hint 用 keep 前缀文案"
+      on_unavailable: "固定预设直接应用并入历史栈（旧行为兜底；NIMA 未下载/初始化失败时走此链）"
+      on_error: "error = ai_optimize_failed(消息)（snackbar 展示）"
+      on_error_ios_note: "⚠️ iOS 引擎非 throwing（错误经 unavailable 降级链消化），ai_optimize_failed 键当前无触发点（2026-08-16 审查登记；引擎 null 场景走 ai_optimize_not_available）"
+      engine_null: "error = ai_optimize_not_available"
+    rerollGacha:
+      guards: "isProcessing 时忽略"
+      steps: "以 gachaRun.baseRecipe 为基准 + exclude=usedFingerprints 重抽 → 覆写 gachaRun（drawIndex+1）"
+      on_expired_or_unavailable: "error = ai_optimize_not_available"
+    previewGachaCandidate: "index 卡 toEditRecipe 映射 → 主预览渲染（不叠加 baseRecipe 之外的既有编辑——映射自 baseRecipe 起）；previewedIndex=index"
+    applyGachaCandidate: "当前 previewedIndex 卡配方入撤销历史栈（可 undo）+ 反馈落库(source=user) + 退出对比模式(gachaRun=null)"
+    dismissGacha: "预览回退 baseRecipe + 反馈落库(source=dismiss) + 退出对比模式"
+  compare_mode_locks:          # 对比模式下
+    - undo/redo 禁用（canUndo/canRedo=false，§2）
+    - CROP 旋转变换等面板操作不可达（bottomBar 已被对比条替换）
+    - 顶栏 ai_optimize 禁点（防参数叠加）
+    - ⚠️ iOS 注（2026-08-16 审查登记）：顶栏 Done 仍可点，保存的是 baseRecipe 而非预览中的候选卡
+      （照 §3 字面 isSaving 门控；Android 同场景行为待双端核——已登记技术债不阻塞）
+  feedback_log:                # OptimizeFeedbackLogger → optimize_feedback 表（§15 platform_differences）
+    events: [auto(每组抽完), user(应用卡), dismiss(关闭)]
+    fields: { image_key: "URI SHA-256 前 16 hex", scene, candidates_json: "每卡 index/direction/nimaScore/rejected/rejectReason/beauty(2)/filter(2)/adjustment(6)", selected_index, source, created_at }
+    image_key_privacy: "不存原始路径，仅哈希"
+  # ── 17.3 引擎语义（数值 SSOT=AI_OPTIMIZATION.md §11.5；此处为产品语义摘要）────
+  engine_semantics:
+    draw: "场景分析(8 场景枚举) → base preset → 采样 4 候选(首卡=base 锚点，其余 6 方向池内取+±30% 抖动，指纹去重) → 512px 渲染 → 护栏(高光裁剪增量≥5pp / 亮度漂移>15% 淘汰) → NIMA 评分 → 选优"
+    keep_original_guard: "best.nima ≤ original.nima + 0.05 → 不推荐（recommendedIndex=-1，KeepOriginal）"
+    min_valid_cards: "有效卡（渲染成功且过护栏）<2 → Unavailable → 固定预设兜底"
+    direction_labels: { base: 原图基准, clarity: 清晰, vivid: 鲜艳, warm: 暖色, cool: 冷色, brighten: 提亮, crisp: 锐利 }  # 卡下方向名（iOS 本地化）
+    beauty_dims: "SELFIE/PORTRAIT/GROUP 场景候选额外抖动 smoothing±10/whitening±8；iOS 因 B1 不渲染——视觉差异仅剩调色维度（capabilities 台账 gacha 注）"
+  # ── 17.4 iOS 实现锚点 ─────────────────────────────────────────────────────
+  ios_impl:
+    engine_files: "Features/Editor/Gacha/：GachaModels / CandidateSampler / Guardrails / NimaScorer(ORT+模型中心) / CandidateRenderer(CGImageSource 512px+RecipeApplier) / OptimizeGachaEngine / OptimizeRecipeMapper / AiOptimizeService(场景分析+presets+usecase)"
+    presets_source: "assets presets/optimize_presets.json 打包进 iOS bundle（与 Android 同源）"
+    nima_input: "NHWC 1×224×224×3 逐像素 RGB 交错；归一化 (x-127.5)/127.5；输出 10-bin softmax 期望分 Σpᵢ·(i+1) ∈[1,10]"
+    db: "TagDatabase 加 optimize_feedback 表（sqlite3 C API，CREATE TABLE IF NOT EXISTS 幂等）"
