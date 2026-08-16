@@ -28,6 +28,8 @@
 
 ## §2 Phase 6 详细（当前主战场）
 
+> **2026-08-16 优先级调整（用户拍板）**：**相册 + 聊天优先追齐**，设置页涉及项随批次一并补齐；**相机线冻结**（2026-08-16 决策：双端相机页 UI 一致性问题收敛后生效——剩余相机 UI 对齐项为**冻结前最后一批相机投入**，收敛后不再投入 parity 打磨；G5 功能深化取消；Android 场景面板移除为冻结前收尾待办）。UI 调整必须走 ui-parity-guard 三同步 + **Ardot 页面预览先行**（`sync-ardot-variables.py` / `export-ardot-snapshot.py`，快照入库 `specs/screens/refs/ardot/`）。
+
 ### 6.1 TAG 3-Pass 流水线 — ✅ 三 Pass 全通并合入 main；🔄 聚类质量待终验 + MetalGuardian/后台扫描待建
 
 > 2026-08-12 更新：分支 `feat/ios-tag-scan-core` 已合入 main（`b78d7081`），Pass2/Pass3/控制页 全部 live。
@@ -50,7 +52,7 @@
 
 ✅ **富交互批次①②（08-13~08-15 合并 main，功能面 ~20%→~70%）**：流式节奏器（`b0b58dff2` 接 commonMain `StreamingPacingController`，iosMain 工厂）/ Markdown+表格网格+代码块折叠复制（`bbe2b16dc`+`f2381d101`，commonMain `MarkdownSegmenter`）/ CHART 图表卡（`ChartSvgCard`+触发链 `0b2844581`+`a64e4acdb`）/ 媒体反馈 👍👎🔄 + 模型胶囊（`4f32c30ff`）/ 图片消息子系统（`ChatMessage.MessageType` 6/11 在用 + 上图下文 + 编辑回链 + 捏合 1-5x 全屏预览，`ccbbfe80a`→`c40445e30`）/ JS 沙盒 run_gallery_script 12 只读 handler（`27c3d58a4`→`9c9621c30`）+ 产图链修复（`1436640d8`）/ 横滑卡「查看全部」（`55739c258`）/ 工具轮渲染+气泡宽度对齐（`fdec78e41`+`f504c55a7`）
 
-**非阻塞缺口**（归 §3 后续，批次③候选）：JS 沙盒**写操作**（capability.dispatch + 确认弹窗，对照 Android `WriteConfirmationController`）· `success`/`error` 可见反馈（iOS 静默 break，Android 有气泡）· 5 种消息类型产生源（userImage/agentImage/command/planPreview/optimizeCandidates）· 停止生成 UI（`cancelCurrent` 已导出无入口，**Android 同缺**）· 语音输入（诚实占位）· AI 优化抽卡（仅 token 预留）· Claude 工程师模式（零实现）· ChatViewModel demo 失败文案硬编码中文
+**非阻塞缺口**（归 §3 后续，批次③候选）：JS 沙盒**写操作**（capability.dispatch + 确认弹窗，对照 Android `WriteConfirmationController`）· ~~`success`/`error` 可见反馈~~ ✅（08-16 批次A：DTO 透传 method 名 + ✅/❌ 气泡 + 三语）· 5 种消息类型产生源（userImage/agentImage/command/planPreview/optimizeCandidates）· 停止生成 UI（`cancelCurrent` 已导出无入口，**Android 同缺**）· 语音输入（诚实占位）· AI 优化抽卡（仅 token 预留）· Claude 工程师模式（零实现）· ~~demo 失败文案硬编码中文~~ ✅（08-16 批次A：`chat.chart_failed`/`chat.script_failed` 三语）
 
 ### 6.3 设置与账号 — 🔄 主体完成，剩 3 项 + 4 个功能缺口
 
@@ -80,8 +82,9 @@
 | 跟手横滑 Pager + 4 页常驻 | ✅ | `TabView(.page)` 替换 ZStack 条件渲染（`e8582301`），跟手物理吸附 + 4 页常驻；悬浮 Tab 双渲染 bug 同修 |
 | 自然语言搜索（整链路） | ✅ | `MediaSearchEngine`（635 行）+ `QueryParser`/`SemanticSearchEngine`+MobileCLIP 全 live（`bb1839de`） |
 | Chat 富交互（节奏器/富消息/JS 沙盒/反馈/图表） | ✅ 批次①② | 08-15 `015b59495` 合并；JS 写操作+确认弹窗留批次③（见 §6.2） |
-| 相机 Figma 6 面板还原 + Arbot 系统相机风格 | ✅ 布局层 | Phase F/F2（`06561f28c` 等，08-14）+ `b6c486d3a`/`80776e0a4`（08-15/16）；**场景面板按产品方案移除**（✅ iOS UI+内核已删+残留清理；Android 侧 SceneSelector/ScenePreset/scene_* strings 待删，反向 gap）；功能深化（录像/十字星接脸/MAKEUP·风格滤镜接线）未动（GLSL 资产已 bundle） |
+| 相机 Figma 6 面板还原 + Arbot 系统相机风格 | ✅ 布局层 | Phase F/F2（`06561f28c` 等，08-14）+ `b6c486d3a`/`80776e0a4`（08-15/16）；**场景面板按产品方案移除**（✅ iOS UI+内核已删+残留清理；Android 侧 SceneSelector/ScenePreset/scene_* strings 待删，反向 gap）；功能深化（录像/十字星接脸/MAKEUP·风格滤镜接线）未动——**2026-08-16 冻结决策后不再投入**（GLSL 资产已 bundle 留档） |
 | 相册分组模式 | 🔄 | FACE/PERSON 已实做（`489bf503f`+`7b674428b`）；LANDSCAPE/LOCATION 仍是「待扫描」占位组，待按 labels/city 真分组 |
+| **批次A 速赢（2026-08-16，相册+聊天优先级调整后首批）** | ✅ | 长按大图→编辑+触感 · 删除确认收敛仅系统窗 · 相邻页预热激活 · 空相册格言（spec 修正 + **Ardot Gallery/empty 页面预览**+快照入库+导出脚本多页化）· chat success/error 可见反馈 + demo 文案三语；device 构建绿 |
 
 ---
 
@@ -95,7 +98,7 @@
 | ~~G2~~ | ~~搜索~~ | ~~整条 NL 搜索链路~~ → ✅ 已落地 | `MediaSearchEngine`+`QueryParser`+`SemanticSearchEngine`+MobileCLIP 全 live（`bb1839de`） | — |
 | G3 | 编辑 | 静态美颜编辑器 / 智能抠图 / 证件照 / AI 一键优化抽卡 | FBO→Metal MSL；`BeautyParams`/`FilterType`/`StyleFilter` 已 commonMain；ONNX Runtime iOS 可用；FUSION 纯数组可移植 | 无 |
 | G4 | 人物/记忆 | 关系图谱后端 / 封面美学（NIMA+eDifFIQA）/ 事实记忆 | Room→SQLDelight；NNAPI→CoreML/Metal；`KinshipLexicon`/`PersonQueryResolver` 纯 Kotlin 宜下沉 shared；UI 骨架已有 | G1 Pass2（人脸聚类） |
-| G5 | 相机 | 录像（美颜录制）/ 十字星时序 / 风格特效 5 项 / 语音入口 | Metal 美颜录制；Sherpa-ONNX iOS 单独实现；风格 GLSL→MSL | 无 |
+| ~~G5~~ | 相机 | ❄️ **冻结取消（2026-08-16 决策）**：~~录像（美颜录制）/ 十字星时序 / 风格特效 5 项 / 语音入口~~ 不再投入；相机冻结后仅维护既有功能（引擎试验场 + 内容采集入口） | ~~Metal 美颜录制；Sherpa-ONNX iOS 单独实现；风格 GLSL→MSL~~（方案留档，GLSL 资产已 bundle） | — |
 | G6 | 设置 | 账号登录 / quota / WiFi 静默预下载 / 备份恢复 | `PoLangAuthClient` 等价 + `X-Platform: ios` + `UIDocumentPicker` + App Store 2.5.2（JS 下发声明） | 6.3①合规结论 |
 | G7 | Chat 补全 | ~~多会话 / JS 画图 / 反馈 / 图片附件~~ ✅ 批次①②已落（`015b59495`）；剩 JS 写操作+确认弹窗 / 语音输入 / 抽卡 / Claude 模式 / 5 种消息类型产生源 | shared 契约就绪 | 6.3①（JS 写操作） |
 
@@ -132,6 +135,7 @@
 | 2026-08-10 | **整合审计**：TAG Pass2/3/控制页「未实现/未接线」→ in-flight 分支待合并；相机「下一步」→ 已对齐合并；i18n 分支 ~323 待合并；PARITY_MASTER_PLAN 自诊错误；跟踪策略明确（main 为准 + in-flight） | 本文 §6.1 + §7 + 产品参考/路线图/implementation-tasks/parity/gap 7 文档修正 + **删 19 份冗余/历史文档（git 留史）** + [`IOS_DOC_INDEX.md`](IOS_DOC_INDEX.md) 瘦身为前门 | 见 [`../reviews/2026-08-10-ios-doc-consolidation-audit.md`](../reviews/2026-08-10-ios-doc-consolidation-audit.md) |
 | 2026-08-12 | 看板滞后 main：08-10 后大量合并未反映（TAG 3-Pass 合入 `b78d7081`、搜索 `bb1839de`、聊天多会话 `54799952`、首页跟手 Pager `e8582301`、大图页 VLM/OCR `51f85cde`、编辑器 lite `dc021070`） | §6.1 Pass2/3/控制页→✅已合并 + 新增🔴聚类质量阻塞行；§6.2 移除多会话侧栏缺口；§6.6 跟手 Pager + 自然语言搜索→✅；§3 G1/G2 更新（G2 已落地）；gap 文档加 post-08-10 解决批次 banner；i18n 239→417 | 本次提交 |
 | 2026-08-16 | 看板滞后 main 4 天（08-13~08-16 ~40 个 iOS 提交未反映：chat 富交互批次①②、开发者选项+诊断日志、账号登录、相机 Figma 面板还原+Arbot 风格、聚类 ONNX 决策）；§6.1 仍写「main 走 MNN」与代码不符（实际 `Pass1Pipeline.swift:65` 用 `ORTFaceEmbedder`）；代码规模 12.8k→29k；i18n 417→544/1011 | §6.1 聚类行改「ONNX 已合入+终验观察」+标题🔴→🔄；§6.2 批次①②✅+缺口重列（写操作/反馈/语音/抽卡）；§6.3 账号/开发者选项✅+4 功能缺口；§6.6 加 3 行+相机规格行更新；§3 G1/G7 更新；基线校准 08-16；gap 文档加 08-16 全量复核批注（3 并行审计）；**场景面板移除经用户确认为产品方案**（非倒退，iOS 残留注释+4 i18n key 已清，Android 侧待移除登记为反向 gap） | 本次提交 |
+| 2026-08-16 | **相机线冻结决策**（用户拍板）：双端相机页 UI 一致性收敛后冻结，代码保留；方向聚焦 **Chat 式相册管理/搜索 + 图片后处理智能编辑**；G5 功能深化取消 | §2 优先级注记改冻结语义；§3 G5 标 ❄️ 取消；§6.6 相机行补冻结说明；同步 PRODUCT.md（决策横幅/§2.1/§5.2/§6.1/§6.3/§6.7）、FEATURES.md §4、CLAUDE.md、双端差异清单 §0/§3 | 本次提交 |
 
 ---
 
