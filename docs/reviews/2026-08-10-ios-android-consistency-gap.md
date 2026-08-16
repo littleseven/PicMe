@@ -77,7 +77,8 @@
 > ✅ **2026-08-12 解决**：相-1 NL 搜索（`bb1839de`，`MediaSearchEngine` 全链路 live）/ 相-2 TAG 扫描（`b78d7081`，3-Pass 全通）/ 相-7 大图页 VLM 图像理解 + OCR 提取文字（`51f85cde`）/ 相-8 大图底栏「编辑」入口（`dc021070` 编辑器 lite）。**仍缺**：相-3/4 分组模式 · 相-5 长按编辑触感 · 相-6 视频播放 · 相-8 证件照 · 相-9 PhotoInfo 字段断层。
 >
 > 🔄 **2026-08-16 复核**：相-3 分组模式 **FACE/PERSON 已实做**（`GalleryViewModel.swift:174-210`，hasFace 两分组 + faceId 分组；`489bf503f`+`7b674428b`），**LANDSCAPE/LOCATION 可点但仍为「待扫描」占位组、不筛选**（`GalleryViewModel.swift:211-216`，Android 按 labels/city 真分组）；相-9 PhotoInfo 补 Location 纯文本地名（`MediaPagerView.swift:541-543`，无 lat/lon、不可点跳地图）。
-> ✅ **2026-08-16 批次A速赢已落地**：相-5 长按大图→编辑器+medium 触感（视频页无长按）· 相-10 删除确认收敛为仅系统 PHAsset 窗（app 层 confirmationDialog 两处移除+孤儿 key 清理）· 相-13 相邻页预热激活（`preloadAround()` ±2 页 1600²，PHCachingImageManager）· 相-14 空相册格言占位（复用 `SplashPlaceholder`；spec 漂移同步修正+**Ardot 画布 Gallery 页 `gallery/empty` 预览已建并快照入库**）。**仍缺**：相-4 拖拽多选 · 相-6 视频播放（全 app 无 AVPlayer）· 相-8 证件照（toast 占位）。
+> ✅ **2026-08-16 批次A速赢已落地**：相-5 长按大图→编辑器+medium 触感（视频页无长按）· 相-10 删除确认收敛为仅系统 PHAsset 窗（app 层 confirmationDialog 两处移除+孤儿 key 清理）· 相-13 相邻页预热激活（`preloadAround()` ±2 页 1600²，PHCachingImageManager）· 相-14 空相册格言占位（复用 `SplashPlaceholder`；spec 漂移同步修正+**Ardot 画布 Gallery 页 `gallery/empty` 预览已建并快照入库**）。
+> ✅ **2026-08-16 批次B相册功能深化已落地**（真机验证绿）：相-3 尾部 **LANDSCAPE 关键词筛选单组（74 词同源 Android LANDSCAPE_SCENES）+ LOCATION 按城市分组+无位置兜底组**（spec 同步修正：LANDSCAPE 实为筛选非按标签分组；`TagDatabase` 新增 labels/city 查询）· 相-4 **拖拽批量选择**（长按后拖动扫格 + 选择态直接拖；起始格状态定加/减模式，visited 去重，对齐 Android detectDragGestures(AfterLongPress)）· 相-9 **PhotoInfo 补齐至 spec 全字段**（+来源/美学评分/人脸三行/标签 FlowRow/OCR 段；位置行可点 MKMapItem 跳地图；数据源 `mediaInfoByLocalIdentifier`，未扫描字段隐藏）。**Ardot 画布 Gallery 页补 `gallery/info`+`gallery/grid` 两帧**（快照入库，共 3 帧）。**仍缺**：相-6 视频播放（全 app 无 AVPlayer）· 相-8 证件照（toast 占位）。
 
 | # | 子区 | 差异 | 证据 | 体感 |
 |---|---|---|---|---|
@@ -219,7 +220,7 @@
 - **契约 SSOT**：`specs/screens/*.yaml`（camera/gallery-grid/chat/settings/model-download-center）。对齐 = iOS 实现 → yaml 契约（yaml 镜像 Android）。
 - **真机验证**：`./scripts/ios-auto-dev-loop.sh --quick --screenshot <name>`（baseline 已采，iPhone 15）。相机视觉类改动用 before/after 截图 + syslog 崩溃检查。
 - **下一步**：~~相机页对齐（T7b）~~ ✅ **已完成并合并 main（2026-08-10）**——快门 token 启用+黑闪+反馈（`f050d6ea`）+ 右列 4 面板（比例/网格/场景/ProMode + 面板互斥状态机，`262bf406`/`0267b62f`/`19ae5942`/`04b912fa`/`e965445e`）。§3 剩余 #8 十字星接人脸 / #9 makeup·风格滤镜 / #6 录像属 **G5 功能深化**（见 [`IOS_TASK_STATUS.md`](../01-PRODUCT/IOS_TASK_STATUS.md) §6.6 / [`plans/2026-08-10-ios-implementation-tasks.md`](../superpowers/plans/2026-08-10-ios-implementation-tasks.md) T9）。
-- **2026-08-16 下一步（优先级调整后）**：~~批次A 速赢~~ ✅ **已落地**（相-5/10/13/14 + 聊-2 + demo 文案 i18n；spec 修正 + Ardot Gallery/empty 预览 + 快照入库 + 导出脚本多页化）。→ **批次B 相册功能**（LANDSCAPE/LOCATION 分组 · PhotoInfo 字段 · 拖拽多选）→ **批次C 聊天③+设置涉及项**（JS 写操作+确认弹窗 · 消息类型产生源 · 清除访客/AI 记忆等随批）→ **大工程**（视频播放 · 证件照 · 语音输入 · 抽卡）。相机 G5 暂缓；Android 场景面板移除待办保留。UI 类改动一律先 Ardot 页面预览。
+- **2026-08-16 下一步（优先级调整后）**：~~批次A 速赢~~ ✅ **已落地**（相-5/10/13/14 + 聊-2 + demo 文案 i18n；spec 修正 + Ardot Gallery/empty 预览 + 快照入库 + 导出脚本多页化）。~~批次B 相册功能~~ ✅ **已落地**（LANDSCAPE/LOCATION 分组真实现 · PhotoInfo 全字段 · 拖拽多选；Ardot Gallery 页 3 帧入库；device 构建+真机 dev-loop 全过）。→ **批次C 聊天③+设置涉及项**（JS 写操作+确认弹窗 · 消息类型产生源 · 清除访客/AI 记忆等随批）→ **大工程**（视频播放 · 证件照 · 语音输入 · 抽卡）。相机 G5 暂缓；Android 场景面板移除待办保留。UI 类改动一律先 Ardot 页面预览。
 - **不混入本批**：相册/设置的「整块功能缺失」（搜索/编辑/账号/录像等 Phase 6 大功能）单列计划，不在纯对齐批次内。
 
 ---

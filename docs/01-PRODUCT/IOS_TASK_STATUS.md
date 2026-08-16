@@ -85,6 +85,7 @@
 | 相机 Figma 6 面板还原 + Arbot 系统相机风格 | ✅ 布局层 | Phase F/F2（`06561f28c` 等，08-14）+ `b6c486d3a`/`80776e0a4`（08-15/16）；**场景面板按产品方案移除**（✅ iOS UI+内核已删+残留清理；Android 侧 SceneSelector/ScenePreset/scene_* strings 待删，反向 gap）；功能深化（录像/十字星接脸/MAKEUP·风格滤镜接线）未动——**2026-08-16 冻结决策后不再投入**（GLSL 资产已 bundle 留档） |
 | 相册分组模式 | 🔄 | FACE/PERSON 已实做（`489bf503f`+`7b674428b`）；LANDSCAPE/LOCATION 仍是「待扫描」占位组，待按 labels/city 真分组 |
 | **批次A 速赢（2026-08-16，相册+聊天优先级调整后首批）** | ✅ | 长按大图→编辑+触感 · 删除确认收敛仅系统窗 · 相邻页预热激活 · 空相册格言（spec 修正 + **Ardot Gallery/empty 页面预览**+快照入库+导出脚本多页化）· chat success/error 可见反馈 + demo 文案三语；device 构建绿 |
+| **批次B 相册功能深化（2026-08-16）** | ✅ | LANDSCAPE 筛选单组（74 词同源）+ LOCATION 城市分组+无位置兜底 · 拖拽批量选择（长按拖/选择态拖·加减模式）· PhotoInfo 补齐 spec 全字段（美学/人脸三行/标签 FlowRow/OCR/位置跳地图）；Ardot Gallery 页补 info/grid 帧（共 3 帧入库）；真机 dev-loop 全过 |
 
 ---
 
