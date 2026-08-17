@@ -2,7 +2,7 @@
   "file": {
     "id": "715061534788814",
     "name": "polang-ui-spec",
-    "url": "cocraft://localhost/file/715061534788814?node_id=105%3A1"
+    "url": "cocraft://localhost/file/715061534788814?node_id=103%3A1&preview_mode=1&preview_id=103%3A1"
   },
   "pages": [
     {
@@ -25597,6 +25597,2948 @@
       },
       "id": "103:1",
       "name": "Gallery"
+    },
+    {
+      "frames": {
+        "108:3": {
+          "name": "settings/main",
+          "tree": {
+            "nodes": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "color": {
+                                  "b": 0.8980392217636108,
+                                  "g": 0.8823529481887817,
+                                  "r": 0.9019607901573181
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "height": 13.910417556762695,
+                            "id": "108:6",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 0,
+                            "name": "Vector",
+                            "type": "VECTOR",
+                            "width": 14.28395938873291,
+                            "x": 4.049375057220459,
+                            "y": 4.040208339691162
+                          }
+                        ],
+                        "clipsContent": true,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "FIXED",
+                        "height": 22,
+                        "id": "108:5",
+                        "itemSpacing": 0,
+                        "layoutAlign": "AUTO",
+                        "layoutGrow": 0,
+                        "layoutMode": "NONE",
+                        "name": "icon_back",
+                        "primaryAxisAlignItems": "MIN",
+                        "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                        "type": "FRAME",
+                        "width": 22,
+                        "x": 8,
+                        "y": 13
+                      },
+                      {
+                        "characters": "设置",
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "boundVariables": {
+                              "color": {
+                                "id": "VariableID:2:149",
+                                "type": "VARIABLE_ALIAS"
+                              }
+                            },
+                            "color": {
+                              "b": 0.8980000019073486,
+                              "g": 0.8823999762535095,
+                              "r": 0.9020000100135803
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "fontName": {
+                          "family": "Sarasa Gothic SC",
+                          "style": "Semi Bold"
+                        },
+                        "fontSize": 17,
+                        "height": 21,
+                        "id": "108:7",
+                        "layoutAlign": "AUTO",
+                        "layoutGrow": 0,
+                        "lineHeight": {
+                          "unit": "AUTO"
+                        },
+                        "name": "title",
+                        "textAlignHorizontal": "LEFT",
+                        "textAlignVertical": "TOP",
+                        "type": "TEXT",
+                        "width": 34,
+                        "x": 38,
+                        "y": 13.5
+                      }
+                    ],
+                    "clipsContent": true,
+                    "counterAxisAlignItems": "CENTER",
+                    "counterAxisSizingMode": "FIXED",
+                    "height": 48,
+                    "id": "108:4",
+                    "itemSpacing": 8,
+                    "layoutAlign": "STRETCH",
+                    "layoutGrow": 0,
+                    "layoutMode": "HORIZONTAL",
+                    "name": "top_bar",
+                    "primaryAxisAlignItems": "MIN",
+                    "primaryAxisSizingMode": "FIXED",
+                    "type": "FRAME",
+                    "width": 390,
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "color": {
+                                          "b": 1,
+                                          "g": 0.8705882430076599,
+                                          "r": 0.9176470637321472
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "height": 17.33333396911621,
+                                    "id": "108:12",
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "name": "Vector",
+                                    "type": "VECTOR",
+                                    "width": 17.33333396911621,
+                                    "x": 4.333333492279053,
+                                    "y": 4.333333492279053
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "counterAxisAlignItems": "MIN",
+                                "counterAxisSizingMode": "FIXED",
+                                "height": 26,
+                                "id": "108:11",
+                                "itemSpacing": 0,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "layoutMode": "NONE",
+                                "name": "icon_person",
+                                "primaryAxisAlignItems": "MIN",
+                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                "type": "FRAME",
+                                "width": 26,
+                                "x": 11,
+                                "y": 11
+                              }
+                            ],
+                            "clipsContent": true,
+                            "cornerRadius": 24,
+                            "counterAxisAlignItems": "CENTER",
+                            "counterAxisSizingMode": "FIXED",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:132",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.5450999736785889,
+                                  "g": 0.21570000052452087,
+                                  "r": 0.30979999899864197
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "height": 48,
+                            "id": "108:10",
+                            "itemSpacing": 0,
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 0,
+                            "layoutMode": "HORIZONTAL",
+                            "name": "avatar",
+                            "primaryAxisAlignItems": "CENTER",
+                            "primaryAxisSizingMode": "FIXED",
+                            "type": "FRAME",
+                            "width": 48,
+                            "x": 16,
+                            "y": 16
+                          },
+                          {
+                            "children": [
+                              {
+                                "characters": "账号",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:149",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 0.8980000019073486,
+                                      "g": 0.8823999762535095,
+                                      "r": 0.9020000100135803
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "fontName": {
+                                  "family": "Sarasa Gothic SC",
+                                  "style": "Semi Bold"
+                                },
+                                "fontSize": 16,
+                                "height": 19,
+                                "id": "108:14",
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "lineHeight": {
+                                  "unit": "AUTO"
+                                },
+                                "name": "hero_title",
+                                "textAlignHorizontal": "LEFT",
+                                "textAlignVertical": "TOP",
+                                "type": "TEXT",
+                                "width": 32,
+                                "x": 0,
+                                "y": 0
+                              },
+                              {
+                                "characters": "邮箱注册、额度与 API Key 绑定。",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:151",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 0.8156999945640564,
+                                      "g": 0.7685999870300293,
+                                      "r": 0.7922000288963318
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "fontName": {
+                                  "family": "Sarasa Gothic SC",
+                                  "style": "Regular"
+                                },
+                                "fontSize": 12,
+                                "height": 15,
+                                "id": "108:15",
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "lineHeight": {
+                                  "unit": "AUTO"
+                                },
+                                "name": "hero_subtitle",
+                                "textAlignHorizontal": "LEFT",
+                                "textAlignVertical": "TOP",
+                                "type": "TEXT",
+                                "width": 183,
+                                "x": 0,
+                                "y": 21
+                              }
+                            ],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "MIN",
+                            "counterAxisSizingMode": "FIXED",
+                            "height": 36,
+                            "id": "108:13",
+                            "itemSpacing": 2,
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 1,
+                            "layoutMode": "VERTICAL",
+                            "name": "hero_texts",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                            "type": "FRAME",
+                            "width": 274,
+                            "x": 80,
+                            "y": 22
+                          }
+                        ],
+                        "clipsContent": true,
+                        "cornerRadius": 12,
+                        "counterAxisAlignItems": "CENTER",
+                        "counterAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "boundVariables": {
+                              "color": {
+                                "id": "VariableID:2:158",
+                                "type": "VARIABLE_ALIAS"
+                              }
+                            },
+                            "color": {
+                              "b": 0.2313999980688095,
+                              "g": 0.20389999449253082,
+                              "r": 0.2117999941110611
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "height": 80,
+                        "id": "108:9",
+                        "itemSpacing": 16,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "HORIZONTAL",
+                        "name": "hero_account",
+                        "primaryAxisAlignItems": "MIN",
+                        "primaryAxisSizingMode": "FIXED",
+                        "type": "FRAME",
+                        "width": 370,
+                        "x": 10,
+                        "y": 6
+                      },
+                      {
+                        "children": [
+                          {
+                            "characters": "主题模式",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:149",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8980000019073486,
+                                  "g": 0.8823999762535095,
+                                  "r": 0.9020000100135803
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Semi Bold"
+                            },
+                            "fontSize": 14,
+                            "height": 17,
+                            "id": "108:17",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 0,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "title",
+                            "textAlignHorizontal": "LEFT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 56,
+                            "x": 16,
+                            "y": 16
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "characters": "系统默认",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:131",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.4471000134944916,
+                                          "g": 0.11760000139474869,
+                                          "r": 0.21960000693798065
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Regular"
+                                    },
+                                    "fontSize": 12,
+                                    "height": 15,
+                                    "id": "108:20",
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "AUTO"
+                                    },
+                                    "name": "lbl",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 48,
+                                    "x": 16,
+                                    "y": 8.5
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 8,
+                                "counterAxisAlignItems": "CENTER",
+                                "counterAxisSizingMode": "FIXED",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:130",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 1,
+                                      "g": 0.7372999787330627,
+                                      "r": 0.8156999945640564
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 32,
+                                "id": "108:19",
+                                "itemSpacing": 0,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "layoutMode": "HORIZONTAL",
+                                "name": "chip_sel",
+                                "primaryAxisAlignItems": "CENTER",
+                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                "type": "FRAME",
+                                "width": 80,
+                                "x": 12,
+                                "y": 0
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "characters": "浅色",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:151",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8156999945640564,
+                                          "g": 0.7685999870300293,
+                                          "r": 0.7922000288963318
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Regular"
+                                    },
+                                    "fontSize": 12,
+                                    "height": 15,
+                                    "id": "108:22",
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "AUTO"
+                                    },
+                                    "name": "lbl",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 24,
+                                    "x": 16,
+                                    "y": 8.5
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 8,
+                                "counterAxisAlignItems": "CENTER",
+                                "counterAxisSizingMode": "FIXED",
+                                "height": 32,
+                                "id": "108:21",
+                                "itemSpacing": 0,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "layoutMode": "HORIZONTAL",
+                                "name": "chip",
+                                "primaryAxisAlignItems": "CENTER",
+                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                "strokes": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "color": {
+                                      "b": 0.6000000238418579,
+                                      "g": 0.5608000159263611,
+                                      "r": 0.5764999985694885
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "type": "FRAME",
+                                "width": 56,
+                                "x": 100,
+                                "y": 0
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "characters": "深色",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:151",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8156999945640564,
+                                          "g": 0.7685999870300293,
+                                          "r": 0.7922000288963318
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Regular"
+                                    },
+                                    "fontSize": 12,
+                                    "height": 15,
+                                    "id": "108:24",
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "AUTO"
+                                    },
+                                    "name": "lbl",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 24,
+                                    "x": 16,
+                                    "y": 8.5
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 8,
+                                "counterAxisAlignItems": "CENTER",
+                                "counterAxisSizingMode": "FIXED",
+                                "height": 32,
+                                "id": "108:23",
+                                "itemSpacing": 0,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "layoutMode": "HORIZONTAL",
+                                "name": "chip2",
+                                "primaryAxisAlignItems": "CENTER",
+                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                "strokes": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "color": {
+                                      "b": 0.6000000238418579,
+                                      "g": 0.5608000159263611,
+                                      "r": 0.5764999985694885
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "type": "FRAME",
+                                "width": 56,
+                                "x": 164,
+                                "y": 0
+                              }
+                            ],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "MIN",
+                            "counterAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                            "height": 32,
+                            "id": "108:18",
+                            "itemSpacing": 8,
+                            "layoutAlign": "STRETCH",
+                            "layoutGrow": 0,
+                            "layoutMode": "HORIZONTAL",
+                            "name": "chip_row",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "FIXED",
+                            "type": "FRAME",
+                            "width": 338,
+                            "x": 16,
+                            "y": 41
+                          }
+                        ],
+                        "clipsContent": true,
+                        "cornerRadius": 12,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "FIXED",
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "boundVariables": {
+                              "color": {
+                                "id": "VariableID:2:158",
+                                "type": "VARIABLE_ALIAS"
+                              }
+                            },
+                            "color": {
+                              "b": 0.2313999980688095,
+                              "g": 0.20389999449253082,
+                              "r": 0.2117999941110611
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "height": 89,
+                        "id": "108:16",
+                        "itemSpacing": 8,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "VERTICAL",
+                        "name": "card_theme",
+                        "primaryAxisAlignItems": "MIN",
+                        "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                        "type": "FRAME",
+                        "width": 370,
+                        "x": 10,
+                        "y": 96
+                      },
+                      {
+                        "children": [
+                          {
+                            "characters": "语言",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:149",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8980000019073486,
+                                  "g": 0.8823999762535095,
+                                  "r": 0.9020000100135803
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Semi Bold"
+                            },
+                            "fontSize": 14,
+                            "height": 17,
+                            "id": "108:26",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 0,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "title",
+                            "textAlignHorizontal": "LEFT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 28,
+                            "x": 16,
+                            "y": 16
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "characters": "English",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:151",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8156999945640564,
+                                          "g": 0.7685999870300293,
+                                          "r": 0.7922000288963318
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Regular"
+                                    },
+                                    "fontSize": 12,
+                                    "height": 15,
+                                    "id": "108:29",
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "AUTO"
+                                    },
+                                    "name": "lbl",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 41,
+                                    "x": 16,
+                                    "y": 8.5
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 8,
+                                "counterAxisAlignItems": "CENTER",
+                                "counterAxisSizingMode": "FIXED",
+                                "height": 32,
+                                "id": "108:28",
+                                "itemSpacing": 0,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "layoutMode": "HORIZONTAL",
+                                "name": "chip",
+                                "primaryAxisAlignItems": "CENTER",
+                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                "strokes": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "color": {
+                                      "b": 0.6000000238418579,
+                                      "g": 0.5608000159263611,
+                                      "r": 0.5764999985694885
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "type": "FRAME",
+                                "width": 73,
+                                "x": 12,
+                                "y": 0
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "characters": "中文",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:131",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.4471000134944916,
+                                          "g": 0.11760000139474869,
+                                          "r": 0.21960000693798065
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Regular"
+                                    },
+                                    "fontSize": 12,
+                                    "height": 15,
+                                    "id": "108:31",
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "AUTO"
+                                    },
+                                    "name": "lbl",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 24,
+                                    "x": 16,
+                                    "y": 8.5
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 8,
+                                "counterAxisAlignItems": "CENTER",
+                                "counterAxisSizingMode": "FIXED",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:130",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 1,
+                                      "g": 0.7372999787330627,
+                                      "r": 0.8156999945640564
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 32,
+                                "id": "108:30",
+                                "itemSpacing": 0,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "layoutMode": "HORIZONTAL",
+                                "name": "chip_sel",
+                                "primaryAxisAlignItems": "CENTER",
+                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                "type": "FRAME",
+                                "width": 56,
+                                "x": 93,
+                                "y": 0
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "characters": "繁體中文",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:151",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8156999945640564,
+                                          "g": 0.7685999870300293,
+                                          "r": 0.7922000288963318
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Regular"
+                                    },
+                                    "fontSize": 12,
+                                    "height": 15,
+                                    "id": "108:33",
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "AUTO"
+                                    },
+                                    "name": "lbl",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 48,
+                                    "x": 16,
+                                    "y": 8.5
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 8,
+                                "counterAxisAlignItems": "CENTER",
+                                "counterAxisSizingMode": "FIXED",
+                                "height": 32,
+                                "id": "108:32",
+                                "itemSpacing": 0,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "layoutMode": "HORIZONTAL",
+                                "name": "chip2",
+                                "primaryAxisAlignItems": "CENTER",
+                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                "strokes": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "color": {
+                                      "b": 0.6000000238418579,
+                                      "g": 0.5608000159263611,
+                                      "r": 0.5764999985694885
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "type": "FRAME",
+                                "width": 80,
+                                "x": 157,
+                                "y": 0
+                              }
+                            ],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "MIN",
+                            "counterAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                            "height": 32,
+                            "id": "108:27",
+                            "itemSpacing": 8,
+                            "layoutAlign": "STRETCH",
+                            "layoutGrow": 0,
+                            "layoutMode": "HORIZONTAL",
+                            "name": "chip_row",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "FIXED",
+                            "type": "FRAME",
+                            "width": 338,
+                            "x": 16,
+                            "y": 41
+                          }
+                        ],
+                        "clipsContent": true,
+                        "cornerRadius": 12,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "FIXED",
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "boundVariables": {
+                              "color": {
+                                "id": "VariableID:2:158",
+                                "type": "VARIABLE_ALIAS"
+                              }
+                            },
+                            "color": {
+                              "b": 0.2313999980688095,
+                              "g": 0.20389999449253082,
+                              "r": 0.2117999941110611
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "height": 89,
+                        "id": "108:25",
+                        "itemSpacing": 8,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "VERTICAL",
+                        "name": "card_language",
+                        "primaryAxisAlignItems": "MIN",
+                        "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                        "type": "FRAME",
+                        "width": 370,
+                        "x": 10,
+                        "y": 195
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "fills": [
+                                          {
+                                            "blendMode": "NORMAL",
+                                            "color": {
+                                              "b": 1,
+                                              "g": 0.7372549176216125,
+                                              "r": 0.8156862854957581
+                                            },
+                                            "opacity": 1,
+                                            "type": "SOLID",
+                                            "visible": true
+                                          }
+                                        ],
+                                        "height": 21.40833282470703,
+                                        "id": "108:38",
+                                        "layoutAlign": "AUTO",
+                                        "layoutGrow": 0,
+                                        "name": "Vector",
+                                        "type": "VECTOR",
+                                        "width": 14,
+                                        "x": 7.583333492279053,
+                                        "y": 4.258333206176758
+                                      }
+                                    ],
+                                    "clipsContent": true,
+                                    "counterAxisAlignItems": "MIN",
+                                    "counterAxisSizingMode": "FIXED",
+                                    "height": 28,
+                                    "id": "108:37",
+                                    "itemSpacing": 0,
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "layoutMode": "NONE",
+                                    "name": "icon",
+                                    "primaryAxisAlignItems": "MIN",
+                                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                    "type": "FRAME",
+                                    "width": 28,
+                                    "x": 16,
+                                    "y": 16
+                                  },
+                                  {
+                                    "characters": "AI 记忆",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:149",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8980000019073486,
+                                          "g": 0.8823999762535095,
+                                          "r": 0.9020000100135803
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Semi Bold"
+                                    },
+                                    "fontSize": 14,
+                                    "height": 17,
+                                    "id": "108:39",
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "AUTO"
+                                    },
+                                    "name": "title",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 46,
+                                    "x": 16,
+                                    "y": 52
+                                  },
+                                  {
+                                    "characters": "查看、编辑、删除 AI 记住的事实",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:151",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8156999945640564,
+                                          "g": 0.7685999870300293,
+                                          "r": 0.7922000288963318
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Regular"
+                                    },
+                                    "fontSize": 12,
+                                    "height": 32,
+                                    "id": "108:40",
+                                    "layoutAlign": "STRETCH",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "PIXELS",
+                                      "value": 16
+                                    },
+                                    "name": "desc",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 148,
+                                    "x": 16,
+                                    "y": 77
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 12,
+                                "counterAxisAlignItems": "MIN",
+                                "counterAxisSizingMode": "FIXED",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:158",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 0.2313999980688095,
+                                      "g": 0.20389999449253082,
+                                      "r": 0.2117999941110611
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 125,
+                                "id": "108:36",
+                                "itemSpacing": 8,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 1,
+                                "layoutMode": "VERTICAL",
+                                "name": "card_ai_memory",
+                                "primaryAxisAlignItems": "MIN",
+                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                "type": "FRAME",
+                                "width": 180,
+                                "x": 0,
+                                "y": 0
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "fills": [
+                                          {
+                                            "blendMode": "NORMAL",
+                                            "color": {
+                                              "b": 1,
+                                              "g": 0.7372549176216125,
+                                              "r": 0.8156862854957581
+                                            },
+                                            "opacity": 1,
+                                            "type": "SOLID",
+                                            "visible": true
+                                          }
+                                        ],
+                                        "height": 23.333332061767578,
+                                        "id": "108:43",
+                                        "layoutAlign": "AUTO",
+                                        "layoutGrow": 0,
+                                        "name": "Vector",
+                                        "type": "VECTOR",
+                                        "width": 23.333332061767578,
+                                        "x": 2.3333332538604736,
+                                        "y": 2.3333332538604736
+                                      }
+                                    ],
+                                    "clipsContent": true,
+                                    "counterAxisAlignItems": "MIN",
+                                    "counterAxisSizingMode": "FIXED",
+                                    "height": 28,
+                                    "id": "108:42",
+                                    "itemSpacing": 0,
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "layoutMode": "NONE",
+                                    "name": "icon",
+                                    "primaryAxisAlignItems": "MIN",
+                                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                    "type": "FRAME",
+                                    "width": 28,
+                                    "x": 16,
+                                    "y": 16
+                                  },
+                                  {
+                                    "characters": "人物",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:149",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8980000019073486,
+                                          "g": 0.8823999762535095,
+                                          "r": 0.9020000100135803
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Semi Bold"
+                                    },
+                                    "fontSize": 14,
+                                    "height": 17,
+                                    "id": "108:44",
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "AUTO"
+                                    },
+                                    "name": "title",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 28,
+                                    "x": 16,
+                                    "y": 52
+                                  },
+                                  {
+                                    "characters": "查看并命名人脸聚类",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:151",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8156999945640564,
+                                          "g": 0.7685999870300293,
+                                          "r": 0.7922000288963318
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Regular"
+                                    },
+                                    "fontSize": 12,
+                                    "height": 16,
+                                    "id": "108:45",
+                                    "layoutAlign": "STRETCH",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "PIXELS",
+                                      "value": 16
+                                    },
+                                    "name": "desc",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 148,
+                                    "x": 16,
+                                    "y": 77
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 12,
+                                "counterAxisAlignItems": "MIN",
+                                "counterAxisSizingMode": "FIXED",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:158",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 0.2313999980688095,
+                                      "g": 0.20389999449253082,
+                                      "r": 0.2117999941110611
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 109,
+                                "id": "108:41",
+                                "itemSpacing": 8,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 1,
+                                "layoutMode": "VERTICAL",
+                                "name": "card_people",
+                                "primaryAxisAlignItems": "MIN",
+                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                "type": "FRAME",
+                                "width": 180,
+                                "x": 190,
+                                "y": 0
+                              }
+                            ],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "MIN",
+                            "counterAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                            "height": 125,
+                            "id": "108:35",
+                            "itemSpacing": 10,
+                            "layoutAlign": "STRETCH",
+                            "layoutGrow": 0,
+                            "layoutMode": "HORIZONTAL",
+                            "name": "row_1",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "FIXED",
+                            "type": "FRAME",
+                            "width": 370,
+                            "x": 0,
+                            "y": 0
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "fills": [
+                                          {
+                                            "blendMode": "NORMAL",
+                                            "color": {
+                                              "b": 1,
+                                              "g": 0.7372549176216125,
+                                              "r": 0.8156862854957581
+                                            },
+                                            "opacity": 1,
+                                            "type": "SOLID",
+                                            "visible": true
+                                          }
+                                        ],
+                                        "height": 23.333332061767578,
+                                        "id": "108:49",
+                                        "layoutAlign": "AUTO",
+                                        "layoutGrow": 0,
+                                        "name": "Vector",
+                                        "type": "VECTOR",
+                                        "width": 23.333332061767578,
+                                        "x": 2.3333332538604736,
+                                        "y": 2.3333332538604736
+                                      }
+                                    ],
+                                    "clipsContent": true,
+                                    "counterAxisAlignItems": "MIN",
+                                    "counterAxisSizingMode": "FIXED",
+                                    "height": 28,
+                                    "id": "108:48",
+                                    "itemSpacing": 0,
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "layoutMode": "NONE",
+                                    "name": "icon",
+                                    "primaryAxisAlignItems": "MIN",
+                                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                    "type": "FRAME",
+                                    "width": 28,
+                                    "x": 16,
+                                    "y": 16
+                                  },
+                                  {
+                                    "characters": "通信通道",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:149",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8980000019073486,
+                                          "g": 0.8823999762535095,
+                                          "r": 0.9020000100135803
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Semi Bold"
+                                    },
+                                    "fontSize": 14,
+                                    "height": 17,
+                                    "id": "108:50",
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "AUTO"
+                                    },
+                                    "name": "title",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 56,
+                                    "x": 16,
+                                    "y": 52
+                                  },
+                                  {
+                                    "characters": "配置飞书 / Telegram 远程控制通道。",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:151",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8156999945640564,
+                                          "g": 0.7685999870300293,
+                                          "r": 0.7922000288963318
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Regular"
+                                    },
+                                    "fontSize": 12,
+                                    "height": 32,
+                                    "id": "108:51",
+                                    "layoutAlign": "STRETCH",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "PIXELS",
+                                      "value": 16
+                                    },
+                                    "name": "desc",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 148,
+                                    "x": 16,
+                                    "y": 77
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 12,
+                                "counterAxisAlignItems": "MIN",
+                                "counterAxisSizingMode": "FIXED",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:158",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 0.2313999980688095,
+                                      "g": 0.20389999449253082,
+                                      "r": 0.2117999941110611
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 125,
+                                "id": "108:47",
+                                "itemSpacing": 8,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 1,
+                                "layoutMode": "VERTICAL",
+                                "name": "card_channels",
+                                "primaryAxisAlignItems": "MIN",
+                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                "type": "FRAME",
+                                "width": 180,
+                                "x": 0,
+                                "y": 0
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "fills": [
+                                          {
+                                            "blendMode": "NORMAL",
+                                            "color": {
+                                              "b": 1,
+                                              "g": 0.7372549176216125,
+                                              "r": 0.8156862854957581
+                                            },
+                                            "opacity": 1,
+                                            "type": "SOLID",
+                                            "visible": true
+                                          }
+                                        ],
+                                        "height": 23.333332061767578,
+                                        "id": "108:54",
+                                        "layoutAlign": "AUTO",
+                                        "layoutGrow": 0,
+                                        "name": "Vector",
+                                        "type": "VECTOR",
+                                        "width": 23.333332061767578,
+                                        "x": 2.3333332538604736,
+                                        "y": 2.3333332538604736
+                                      }
+                                    ],
+                                    "clipsContent": true,
+                                    "counterAxisAlignItems": "MIN",
+                                    "counterAxisSizingMode": "FIXED",
+                                    "height": 28,
+                                    "id": "108:53",
+                                    "itemSpacing": 0,
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "layoutMode": "NONE",
+                                    "name": "icon",
+                                    "primaryAxisAlignItems": "MIN",
+                                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                    "type": "FRAME",
+                                    "width": 28,
+                                    "x": 16,
+                                    "y": 16
+                                  },
+                                  {
+                                    "characters": "相册设置",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:149",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8980000019073486,
+                                          "g": 0.8823999762535095,
+                                          "r": 0.9020000100135803
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Semi Bold"
+                                    },
+                                    "fontSize": 14,
+                                    "height": 17,
+                                    "id": "108:55",
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "AUTO"
+                                    },
+                                    "name": "title",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 56,
+                                    "x": 16,
+                                    "y": 52
+                                  },
+                                  {
+                                    "characters": "打标扫描、人脸聚类、标签与重复图管理。",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:151",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8156999945640564,
+                                          "g": 0.7685999870300293,
+                                          "r": 0.7922000288963318
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Regular"
+                                    },
+                                    "fontSize": 12,
+                                    "height": 32,
+                                    "id": "108:56",
+                                    "layoutAlign": "STRETCH",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "PIXELS",
+                                      "value": 16
+                                    },
+                                    "name": "desc",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 148,
+                                    "x": 16,
+                                    "y": 77
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 12,
+                                "counterAxisAlignItems": "MIN",
+                                "counterAxisSizingMode": "FIXED",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:158",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 0.2313999980688095,
+                                      "g": 0.20389999449253082,
+                                      "r": 0.2117999941110611
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 125,
+                                "id": "108:52",
+                                "itemSpacing": 8,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 1,
+                                "layoutMode": "VERTICAL",
+                                "name": "card_gallery",
+                                "primaryAxisAlignItems": "MIN",
+                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                "type": "FRAME",
+                                "width": 180,
+                                "x": 190,
+                                "y": 0
+                              }
+                            ],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "MIN",
+                            "counterAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                            "height": 125,
+                            "id": "108:46",
+                            "itemSpacing": 10,
+                            "layoutAlign": "STRETCH",
+                            "layoutGrow": 0,
+                            "layoutMode": "HORIZONTAL",
+                            "name": "row_2",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "FIXED",
+                            "type": "FRAME",
+                            "width": 370,
+                            "x": 0,
+                            "y": 135
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "fills": [
+                                          {
+                                            "blendMode": "NORMAL",
+                                            "color": {
+                                              "b": 1,
+                                              "g": 0.7372549176216125,
+                                              "r": 0.8156862854957581
+                                            },
+                                            "opacity": 1,
+                                            "type": "SOLID",
+                                            "visible": true
+                                          }
+                                        ],
+                                        "height": 18.66666603088379,
+                                        "id": "108:60",
+                                        "layoutAlign": "AUTO",
+                                        "layoutGrow": 0,
+                                        "name": "Vector",
+                                        "type": "VECTOR",
+                                        "width": 25.66666603088379,
+                                        "x": 1.1666666269302368,
+                                        "y": 4.666666030883789
+                                      }
+                                    ],
+                                    "clipsContent": true,
+                                    "counterAxisAlignItems": "MIN",
+                                    "counterAxisSizingMode": "FIXED",
+                                    "height": 28,
+                                    "id": "108:59",
+                                    "itemSpacing": 0,
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "layoutMode": "NONE",
+                                    "name": "icon",
+                                    "primaryAxisAlignItems": "MIN",
+                                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                    "type": "FRAME",
+                                    "width": 28,
+                                    "x": 16,
+                                    "y": 16
+                                  },
+                                  {
+                                    "characters": "远程模型",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:149",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8980000019073486,
+                                          "g": 0.8823999762535095,
+                                          "r": 0.9020000100135803
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Semi Bold"
+                                    },
+                                    "fontSize": 14,
+                                    "height": 17,
+                                    "id": "108:61",
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "AUTO"
+                                    },
+                                    "name": "title",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 56,
+                                    "x": 16,
+                                    "y": 52
+                                  },
+                                  {
+                                    "characters": "远程模型供应商、API 密钥与当前选用模型。",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:151",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8156999945640564,
+                                          "g": 0.7685999870300293,
+                                          "r": 0.7922000288963318
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Regular"
+                                    },
+                                    "fontSize": 12,
+                                    "height": 32,
+                                    "id": "108:62",
+                                    "layoutAlign": "STRETCH",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "PIXELS",
+                                      "value": 16
+                                    },
+                                    "name": "desc",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 148,
+                                    "x": 16,
+                                    "y": 77
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 12,
+                                "counterAxisAlignItems": "MIN",
+                                "counterAxisSizingMode": "FIXED",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:158",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 0.2313999980688095,
+                                      "g": 0.20389999449253082,
+                                      "r": 0.2117999941110611
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 125,
+                                "id": "108:58",
+                                "itemSpacing": 8,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 1,
+                                "layoutMode": "VERTICAL",
+                                "name": "card_remote_models",
+                                "primaryAxisAlignItems": "MIN",
+                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                "type": "FRAME",
+                                "width": 180,
+                                "x": 0,
+                                "y": 0
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "fills": [
+                                          {
+                                            "blendMode": "NORMAL",
+                                            "color": {
+                                              "b": 1,
+                                              "g": 0.7372549176216125,
+                                              "r": 0.8156862854957581
+                                            },
+                                            "opacity": 1,
+                                            "type": "SOLID",
+                                            "visible": true
+                                          }
+                                        ],
+                                        "height": 21,
+                                        "id": "108:65",
+                                        "layoutAlign": "AUTO",
+                                        "layoutGrow": 0,
+                                        "name": "Vector",
+                                        "type": "VECTOR",
+                                        "width": 21,
+                                        "x": 3.5,
+                                        "y": 3.5
+                                      }
+                                    ],
+                                    "clipsContent": true,
+                                    "counterAxisAlignItems": "MIN",
+                                    "counterAxisSizingMode": "FIXED",
+                                    "height": 28,
+                                    "id": "108:64",
+                                    "itemSpacing": 0,
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "layoutMode": "NONE",
+                                    "name": "icon",
+                                    "primaryAxisAlignItems": "MIN",
+                                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                    "type": "FRAME",
+                                    "width": 28,
+                                    "x": 16,
+                                    "y": 16
+                                  },
+                                  {
+                                    "characters": "本地模型",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:149",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8980000019073486,
+                                          "g": 0.8823999762535095,
+                                          "r": 0.9020000100135803
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Semi Bold"
+                                    },
+                                    "fontSize": 14,
+                                    "height": 17,
+                                    "id": "108:66",
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "AUTO"
+                                    },
+                                    "name": "title",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 56,
+                                    "x": 16,
+                                    "y": 52
+                                  },
+                                  {
+                                    "characters": "选择端侧人脸检测、打标、语音模型。",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:151",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8156999945640564,
+                                          "g": 0.7685999870300293,
+                                          "r": 0.7922000288963318
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Regular"
+                                    },
+                                    "fontSize": 12,
+                                    "height": 32,
+                                    "id": "108:67",
+                                    "layoutAlign": "STRETCH",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "PIXELS",
+                                      "value": 16
+                                    },
+                                    "name": "desc",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 148,
+                                    "x": 16,
+                                    "y": 77
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 12,
+                                "counterAxisAlignItems": "MIN",
+                                "counterAxisSizingMode": "FIXED",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:158",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 0.2313999980688095,
+                                      "g": 0.20389999449253082,
+                                      "r": 0.2117999941110611
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 125,
+                                "id": "108:63",
+                                "itemSpacing": 8,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 1,
+                                "layoutMode": "VERTICAL",
+                                "name": "card_local_models",
+                                "primaryAxisAlignItems": "MIN",
+                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                "type": "FRAME",
+                                "width": 180,
+                                "x": 190,
+                                "y": 0
+                              }
+                            ],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "MIN",
+                            "counterAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                            "height": 125,
+                            "id": "108:57",
+                            "itemSpacing": 10,
+                            "layoutAlign": "STRETCH",
+                            "layoutGrow": 0,
+                            "layoutMode": "HORIZONTAL",
+                            "name": "row_3",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "FIXED",
+                            "type": "FRAME",
+                            "width": 370,
+                            "x": 0,
+                            "y": 270
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "fills": [
+                                          {
+                                            "blendMode": "NORMAL",
+                                            "color": {
+                                              "b": 1,
+                                              "g": 0.7372549176216125,
+                                              "r": 0.8156862854957581
+                                            },
+                                            "opacity": 1,
+                                            "type": "SOLID",
+                                            "visible": true
+                                          }
+                                        ],
+                                        "height": 18.66666603088379,
+                                        "id": "108:71",
+                                        "layoutAlign": "AUTO",
+                                        "layoutGrow": 0,
+                                        "name": "Vector",
+                                        "type": "VECTOR",
+                                        "width": 28,
+                                        "x": 0,
+                                        "y": 4.666666507720947
+                                      }
+                                    ],
+                                    "clipsContent": true,
+                                    "counterAxisAlignItems": "MIN",
+                                    "counterAxisSizingMode": "FIXED",
+                                    "height": 28,
+                                    "id": "108:70",
+                                    "itemSpacing": 0,
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "layoutMode": "NONE",
+                                    "name": "icon",
+                                    "primaryAxisAlignItems": "MIN",
+                                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                    "type": "FRAME",
+                                    "width": 28,
+                                    "x": 16,
+                                    "y": 16
+                                  },
+                                  {
+                                    "characters": "模型中心",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:149",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8980000019073486,
+                                          "g": 0.8823999762535095,
+                                          "r": 0.9020000100135803
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Semi Bold"
+                                    },
+                                    "fontSize": 14,
+                                    "height": 17,
+                                    "id": "108:72",
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "AUTO"
+                                    },
+                                    "name": "title",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 56,
+                                    "x": 16,
+                                    "y": 52
+                                  },
+                                  {
+                                    "characters": "统一下载和管理所有本地模型。",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:151",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8156999945640564,
+                                          "g": 0.7685999870300293,
+                                          "r": 0.7922000288963318
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Regular"
+                                    },
+                                    "fontSize": 12,
+                                    "height": 32,
+                                    "id": "108:73",
+                                    "layoutAlign": "STRETCH",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "PIXELS",
+                                      "value": 16
+                                    },
+                                    "name": "desc",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 148,
+                                    "x": 16,
+                                    "y": 77
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 12,
+                                "counterAxisAlignItems": "MIN",
+                                "counterAxisSizingMode": "FIXED",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:158",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 0.2313999980688095,
+                                      "g": 0.20389999449253082,
+                                      "r": 0.2117999941110611
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 125,
+                                "id": "108:69",
+                                "itemSpacing": 8,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 1,
+                                "layoutMode": "VERTICAL",
+                                "name": "card_model_center",
+                                "primaryAxisAlignItems": "MIN",
+                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                "type": "FRAME",
+                                "width": 180,
+                                "x": 0,
+                                "y": 0
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "fills": [
+                                          {
+                                            "blendMode": "NORMAL",
+                                            "color": {
+                                              "b": 1,
+                                              "g": 0.7372549176216125,
+                                              "r": 0.8156862854957581
+                                            },
+                                            "opacity": 1,
+                                            "type": "SOLID",
+                                            "visible": true
+                                          }
+                                        ],
+                                        "height": 23.04166603088379,
+                                        "id": "108:76",
+                                        "layoutAlign": "AUTO",
+                                        "layoutGrow": 0,
+                                        "name": "Vector",
+                                        "type": "VECTOR",
+                                        "width": 18.66666603088379,
+                                        "x": 4.666666507720947,
+                                        "y": 2.508333206176758
+                                      }
+                                    ],
+                                    "clipsContent": true,
+                                    "counterAxisAlignItems": "MIN",
+                                    "counterAxisSizingMode": "FIXED",
+                                    "height": 28,
+                                    "id": "108:75",
+                                    "itemSpacing": 0,
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "layoutMode": "NONE",
+                                    "name": "icon",
+                                    "primaryAxisAlignItems": "MIN",
+                                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                    "type": "FRAME",
+                                    "width": 28,
+                                    "x": 16,
+                                    "y": 16
+                                  },
+                                  {
+                                    "characters": "沙盒与权限",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:149",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8980000019073486,
+                                          "g": 0.8823999762535095,
+                                          "r": 0.9020000100135803
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Semi Bold"
+                                    },
+                                    "fontSize": 14,
+                                    "height": 17,
+                                    "id": "108:77",
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "AUTO"
+                                    },
+                                    "name": "title",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 70,
+                                    "x": 16,
+                                    "y": 52
+                                  },
+                                  {
+                                    "characters": "自动执行、JS 引擎、设备访问。",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:151",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8156999945640564,
+                                          "g": 0.7685999870300293,
+                                          "r": 0.7922000288963318
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Regular"
+                                    },
+                                    "fontSize": 12,
+                                    "height": 32,
+                                    "id": "108:78",
+                                    "layoutAlign": "STRETCH",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "PIXELS",
+                                      "value": 16
+                                    },
+                                    "name": "desc",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 148,
+                                    "x": 16,
+                                    "y": 77
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 12,
+                                "counterAxisAlignItems": "MIN",
+                                "counterAxisSizingMode": "FIXED",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:158",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 0.2313999980688095,
+                                      "g": 0.20389999449253082,
+                                      "r": 0.2117999941110611
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 125,
+                                "id": "108:74",
+                                "itemSpacing": 8,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 1,
+                                "layoutMode": "VERTICAL",
+                                "name": "card_sandbox",
+                                "primaryAxisAlignItems": "MIN",
+                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                "type": "FRAME",
+                                "width": 180,
+                                "x": 190,
+                                "y": 0
+                              }
+                            ],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "MIN",
+                            "counterAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                            "height": 125,
+                            "id": "108:68",
+                            "itemSpacing": 10,
+                            "layoutAlign": "STRETCH",
+                            "layoutGrow": 0,
+                            "layoutMode": "HORIZONTAL",
+                            "name": "row_4",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "FIXED",
+                            "type": "FRAME",
+                            "width": 370,
+                            "x": 0,
+                            "y": 405
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "fills": [
+                                          {
+                                            "blendMode": "NORMAL",
+                                            "color": {
+                                              "b": 1,
+                                              "g": 0.7372549176216125,
+                                              "r": 0.8156862854957581
+                                            },
+                                            "opacity": 1,
+                                            "type": "SOLID",
+                                            "visible": true
+                                          }
+                                        ],
+                                        "height": 25.66666603088379,
+                                        "id": "108:82",
+                                        "layoutAlign": "AUTO",
+                                        "layoutGrow": 0,
+                                        "name": "Vector",
+                                        "type": "VECTOR",
+                                        "width": 21,
+                                        "x": 3.5,
+                                        "y": 1.1666666269302368
+                                      }
+                                    ],
+                                    "clipsContent": true,
+                                    "counterAxisAlignItems": "MIN",
+                                    "counterAxisSizingMode": "FIXED",
+                                    "height": 28,
+                                    "id": "108:81",
+                                    "itemSpacing": 0,
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "layoutMode": "NONE",
+                                    "name": "icon",
+                                    "primaryAxisAlignItems": "MIN",
+                                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                    "type": "FRAME",
+                                    "width": 28,
+                                    "x": 16,
+                                    "y": 16
+                                  },
+                                  {
+                                    "characters": "数据与隐私",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:149",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8980000019073486,
+                                          "g": 0.8823999762535095,
+                                          "r": 0.9020000100135803
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Semi Bold"
+                                    },
+                                    "fontSize": 14,
+                                    "height": 17,
+                                    "id": "108:83",
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "AUTO"
+                                    },
+                                    "name": "title",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 70,
+                                    "x": 16,
+                                    "y": 52
+                                  },
+                                  {
+                                    "characters": "隐私政策、数据保留与删除方式。",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:151",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8156999945640564,
+                                          "g": 0.7685999870300293,
+                                          "r": 0.7922000288963318
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Regular"
+                                    },
+                                    "fontSize": 12,
+                                    "height": 32,
+                                    "id": "108:84",
+                                    "layoutAlign": "STRETCH",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "PIXELS",
+                                      "value": 16
+                                    },
+                                    "name": "desc",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 148,
+                                    "x": 16,
+                                    "y": 77
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 12,
+                                "counterAxisAlignItems": "MIN",
+                                "counterAxisSizingMode": "FIXED",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:158",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 0.2313999980688095,
+                                      "g": 0.20389999449253082,
+                                      "r": 0.2117999941110611
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 125,
+                                "id": "108:80",
+                                "itemSpacing": 8,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 1,
+                                "layoutMode": "VERTICAL",
+                                "name": "card_data_privacy",
+                                "primaryAxisAlignItems": "MIN",
+                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                "type": "FRAME",
+                                "width": 180,
+                                "x": 0,
+                                "y": 0
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "fills": [
+                                          {
+                                            "blendMode": "NORMAL",
+                                            "color": {
+                                              "b": 1,
+                                              "g": 0.7372549176216125,
+                                              "r": 0.8156862854957581
+                                            },
+                                            "opacity": 1,
+                                            "type": "SOLID",
+                                            "visible": true
+                                          }
+                                        ],
+                                        "height": 7,
+                                        "id": "108:87",
+                                        "layoutAlign": "AUTO",
+                                        "layoutGrow": 0,
+                                        "name": "Ellipse",
+                                        "type": "ELLIPSE",
+                                        "width": 7,
+                                        "x": 10.5,
+                                        "y": 10.5
+                                      },
+                                      {
+                                        "fills": [
+                                          {
+                                            "blendMode": "NORMAL",
+                                            "color": {
+                                              "b": 1,
+                                              "g": 0.7372549176216125,
+                                              "r": 0.8156862854957581
+                                            },
+                                            "opacity": 1,
+                                            "type": "SOLID",
+                                            "visible": true
+                                          }
+                                        ],
+                                        "height": 21,
+                                        "id": "108:88",
+                                        "layoutAlign": "AUTO",
+                                        "layoutGrow": 0,
+                                        "name": "Vector",
+                                        "type": "VECTOR",
+                                        "width": 23.333332061767578,
+                                        "x": 2.3333332538604736,
+                                        "y": 2.3333332538604736
+                                      }
+                                    ],
+                                    "clipsContent": true,
+                                    "counterAxisAlignItems": "MIN",
+                                    "counterAxisSizingMode": "FIXED",
+                                    "height": 28,
+                                    "id": "108:86",
+                                    "itemSpacing": 0,
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "layoutMode": "NONE",
+                                    "name": "icon",
+                                    "primaryAxisAlignItems": "MIN",
+                                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                    "type": "FRAME",
+                                    "width": 28,
+                                    "x": 16,
+                                    "y": 16
+                                  },
+                                  {
+                                    "characters": "相机",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:149",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8980000019073486,
+                                          "g": 0.8823999762535095,
+                                          "r": 0.9020000100135803
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Semi Bold"
+                                    },
+                                    "fontSize": 14,
+                                    "height": 17,
+                                    "id": "108:89",
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "AUTO"
+                                    },
+                                    "name": "title",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 28,
+                                    "x": 16,
+                                    "y": 52
+                                  },
+                                  {
+                                    "characters": "状态记忆与重置",
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "boundVariables": {
+                                          "color": {
+                                            "id": "VariableID:2:151",
+                                            "type": "VARIABLE_ALIAS"
+                                          }
+                                        },
+                                        "color": {
+                                          "b": 0.8156999945640564,
+                                          "g": 0.7685999870300293,
+                                          "r": 0.7922000288963318
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "fontName": {
+                                      "family": "Sarasa Gothic SC",
+                                      "style": "Regular"
+                                    },
+                                    "fontSize": 12,
+                                    "height": 16,
+                                    "id": "108:90",
+                                    "layoutAlign": "STRETCH",
+                                    "layoutGrow": 0,
+                                    "lineHeight": {
+                                      "unit": "PIXELS",
+                                      "value": 16
+                                    },
+                                    "name": "desc",
+                                    "textAlignHorizontal": "LEFT",
+                                    "textAlignVertical": "TOP",
+                                    "type": "TEXT",
+                                    "width": 148,
+                                    "x": 16,
+                                    "y": 77
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 12,
+                                "counterAxisAlignItems": "MIN",
+                                "counterAxisSizingMode": "FIXED",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:158",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 0.2313999980688095,
+                                      "g": 0.20389999449253082,
+                                      "r": 0.2117999941110611
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 109,
+                                "id": "108:85",
+                                "itemSpacing": 8,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 1,
+                                "layoutMode": "VERTICAL",
+                                "name": "card_camera",
+                                "primaryAxisAlignItems": "MIN",
+                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                "type": "FRAME",
+                                "width": 180,
+                                "x": 190,
+                                "y": 0
+                              }
+                            ],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "MIN",
+                            "counterAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                            "height": 125,
+                            "id": "108:79",
+                            "itemSpacing": 10,
+                            "layoutAlign": "STRETCH",
+                            "layoutGrow": 0,
+                            "layoutMode": "HORIZONTAL",
+                            "name": "row_5",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "FIXED",
+                            "type": "FRAME",
+                            "width": 370,
+                            "x": 0,
+                            "y": 540
+                          }
+                        ],
+                        "clipsContent": true,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "FIXED",
+                        "height": 665,
+                        "id": "108:34",
+                        "itemSpacing": 10,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "VERTICAL",
+                        "name": "category_grid",
+                        "primaryAxisAlignItems": "MIN",
+                        "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                        "type": "FRAME",
+                        "width": 370,
+                        "x": 10,
+                        "y": 294
+                      },
+                      {
+                        "children": [
+                          {
+                            "characters": "破浪相册 v1.0.35",
+                            "fills": [
+                              {
+                                "blendMode": "NORMAL",
+                                "boundVariables": {
+                                  "color": {
+                                    "id": "VariableID:2:151",
+                                    "type": "VARIABLE_ALIAS"
+                                  }
+                                },
+                                "color": {
+                                  "b": 0.8156999945640564,
+                                  "g": 0.7685999870300293,
+                                  "r": 0.7922000288963318
+                                },
+                                "opacity": 1,
+                                "type": "SOLID",
+                                "visible": true
+                              }
+                            ],
+                            "fontName": {
+                              "family": "Sarasa Gothic SC",
+                              "style": "Regular"
+                            },
+                            "fontSize": 12,
+                            "height": 15,
+                            "id": "108:92",
+                            "layoutAlign": "AUTO",
+                            "layoutGrow": 0,
+                            "lineHeight": {
+                              "unit": "AUTO"
+                            },
+                            "name": "version",
+                            "textAlignHorizontal": "LEFT",
+                            "textAlignVertical": "TOP",
+                            "type": "TEXT",
+                            "width": 92,
+                            "x": 0,
+                            "y": 16
+                          }
+                        ],
+                        "clipsContent": true,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "FIXED",
+                        "height": 39,
+                        "id": "108:91",
+                        "itemSpacing": 0,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "VERTICAL",
+                        "name": "version_footer",
+                        "primaryAxisAlignItems": "CENTER",
+                        "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                        "type": "FRAME",
+                        "width": 370,
+                        "x": 10,
+                        "y": 969
+                      }
+                    ],
+                    "clipsContent": true,
+                    "counterAxisAlignItems": "MIN",
+                    "counterAxisSizingMode": "FIXED",
+                    "height": 1014,
+                    "id": "108:8",
+                    "itemSpacing": 10,
+                    "layoutAlign": "STRETCH",
+                    "layoutGrow": 0,
+                    "layoutMode": "VERTICAL",
+                    "name": "content",
+                    "primaryAxisAlignItems": "MIN",
+                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                    "type": "FRAME",
+                    "width": 390,
+                    "x": 0,
+                    "y": 48
+                  }
+                ],
+                "clipsContent": true,
+                "counterAxisAlignItems": "MIN",
+                "counterAxisSizingMode": "FIXED",
+                "fills": [
+                  {
+                    "blendMode": "NORMAL",
+                    "boundVariables": {
+                      "color": {
+                        "id": "VariableID:2:146",
+                        "type": "VARIABLE_ALIAS"
+                      }
+                    },
+                    "color": {
+                      "b": 0.12160000205039978,
+                      "g": 0.10589999705553055,
+                      "r": 0.10980000346899033
+                    },
+                    "opacity": 1,
+                    "type": "SOLID",
+                    "visible": true
+                  }
+                ],
+                "height": 1062,
+                "id": "108:3",
+                "itemSpacing": 0,
+                "layoutAlign": "AUTO",
+                "layoutGrow": 0,
+                "layoutMode": "VERTICAL",
+                "name": "settings/main",
+                "primaryAxisAlignItems": "MIN",
+                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                "type": "FRAME",
+                "width": 390,
+                "x": 0,
+                "y": 0
+              }
+            ]
+          }
+        }
+      },
+      "id": "108:1",
+      "name": "Settings"
     }
   ],
   "source": "ardot-canvas"
