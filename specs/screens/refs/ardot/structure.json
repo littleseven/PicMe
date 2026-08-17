@@ -19202,8 +19202,544 @@
                                             "visible": true
                                           }
                                         ],
+                                        "height": 17.25,
+                                        "id": "110:37",
+                                        "layoutAlign": "AUTO",
+                                        "layoutGrow": 0,
+                                        "name": "Vector",
+                                        "type": "VECTOR",
+                                        "width": 15.000000953674316,
+                                        "x": 1.5,
+                                        "y": 1.5
+                                      }
+                                    ],
+                                    "clipsContent": true,
+                                    "counterAxisAlignItems": "MIN",
+                                    "counterAxisSizingMode": "FIXED",
+                                    "height": 18,
+                                    "id": "110:36",
+                                    "itemSpacing": 0,
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "layoutMode": "NONE",
+                                    "name": "icon",
+                                    "primaryAxisAlignItems": "MIN",
+                                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                    "type": "FRAME",
+                                    "width": 18,
+                                    "x": 5,
+                                    "y": 5
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 7,
+                                "counterAxisAlignItems": "CENTER",
+                                "counterAxisSizingMode": "FIXED",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "color": {
+                                      "b": 1,
+                                      "g": 0.4745098054409027,
+                                      "r": 0.16078431904315948
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 28,
+                                "id": "110:35",
+                                "itemSpacing": 0,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "layoutMode": "HORIZONTAL",
+                                "name": "icon_sq",
+                                "primaryAxisAlignItems": "CENTER",
+                                "primaryAxisSizingMode": "FIXED",
+                                "type": "FRAME",
+                                "width": 28,
+                                "x": 16,
+                                "y": 14
+                              },
+                              {
+                                "characters": "ROI 检测",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:149",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 0.8980000019073486,
+                                      "g": 0.8823999762535095,
+                                      "r": 0.9020000100135803
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "fontName": {
+                                  "family": "Sarasa Gothic SC",
+                                  "style": "Regular"
+                                },
+                                "fontSize": 15,
+                                "height": 18,
+                                "id": "110:38",
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 1,
+                                "lineHeight": {
+                                  "unit": "AUTO"
+                                },
+                                "name": "lbl",
+                                "textAlignHorizontal": "LEFT",
+                                "textAlignVertical": "TOP",
+                                "type": "TEXT",
+                                "width": 177,
+                                "x": 56,
+                                "y": 19
+                              },
+                              {
+                                "characters": "MediaPipe",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:151",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 0.8156999945640564,
+                                      "g": 0.7685999870300293,
+                                      "r": 0.7922000288963318
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "fontName": {
+                                  "family": "Sarasa Gothic SC",
+                                  "style": "Regular"
+                                },
+                                "fontSize": 13,
+                                "height": 16,
+                                "id": "110:39",
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "lineHeight": {
+                                  "unit": "AUTO"
+                                },
+                                "name": "value",
+                                "textAlignHorizontal": "LEFT",
+                                "textAlignVertical": "TOP",
+                                "type": "TEXT",
+                                "width": 65,
+                                "x": 245,
+                                "y": 20
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "color": {
+                                          "b": 0.8156862854957581,
+                                          "g": 0.7686274647712708,
+                                          "r": 0.7921568751335144
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "height": 9.291666984558105,
+                                    "id": "110:41",
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "name": "Vector",
+                                    "type": "VECTOR",
+                                    "width": 5.458333492279053,
+                                    "x": 7.020833492279053,
+                                    "y": 5.354166030883789
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "counterAxisAlignItems": "MIN",
+                                "counterAxisSizingMode": "FIXED",
+                                "height": 20,
+                                "id": "110:40",
+                                "itemSpacing": 0,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "layoutMode": "NONE",
+                                "name": "chevron",
+                                "primaryAxisAlignItems": "MIN",
+                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                "type": "FRAME",
+                                "width": 20,
+                                "x": 322,
+                                "y": 18
+                              }
+                            ],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "CENTER",
+                            "counterAxisSizingMode": "FIXED",
+                            "height": 56,
+                            "id": "110:34",
+                            "itemSpacing": 12,
+                            "layoutAlign": "STRETCH",
+                            "layoutGrow": 0,
+                            "layoutMode": "HORIZONTAL",
+                            "name": "row_roi",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "FIXED",
+                            "type": "FRAME",
+                            "width": 358,
+                            "x": 0,
+                            "y": 0
+                          },
+                          {
+                            "children": [
+                              {
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "color": {
+                                      "b": 0.30979999899864197,
+                                      "g": 0.27059999108314514,
+                                      "r": 0.28630000352859497
+                                    },
+                                    "opacity": 0.5,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 1,
+                                "id": "110:43",
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 1,
+                                "name": "line",
+                                "type": "RECTANGLE",
+                                "width": 286,
+                                "x": 56,
+                                "y": 0
+                              }
+                            ],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "MIN",
+                            "counterAxisSizingMode": "FIXED",
+                            "height": 1,
+                            "id": "110:42",
+                            "itemSpacing": 0,
+                            "layoutAlign": "STRETCH",
+                            "layoutGrow": 0,
+                            "layoutMode": "HORIZONTAL",
+                            "name": "divider",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "FIXED",
+                            "type": "FRAME",
+                            "width": 358,
+                            "x": 0,
+                            "y": 56
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "fills": [
+                                          {
+                                            "blendMode": "NORMAL",
+                                            "color": {
+                                              "b": 1,
+                                              "g": 1,
+                                              "r": 1
+                                            },
+                                            "opacity": 1,
+                                            "type": "SOLID",
+                                            "visible": true
+                                          }
+                                        ],
+                                        "height": 13.500000953674316,
+                                        "id": "110:47",
+                                        "layoutAlign": "AUTO",
+                                        "layoutGrow": 0,
+                                        "name": "Vector",
+                                        "type": "VECTOR",
+                                        "width": 13.500000953674316,
+                                        "x": 2.25,
+                                        "y": 2.2499990463256836
+                                      }
+                                    ],
+                                    "clipsContent": true,
+                                    "counterAxisAlignItems": "MIN",
+                                    "counterAxisSizingMode": "FIXED",
+                                    "height": 18,
+                                    "id": "110:46",
+                                    "itemSpacing": 0,
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "layoutMode": "NONE",
+                                    "name": "icon",
+                                    "primaryAxisAlignItems": "MIN",
+                                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                    "type": "FRAME",
+                                    "width": 18,
+                                    "x": 5,
+                                    "y": 5
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 7,
+                                "counterAxisAlignItems": "CENTER",
+                                "counterAxisSizingMode": "FIXED",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "color": {
+                                      "b": 0.5058823823928833,
+                                      "g": 0.250980406999588,
+                                      "r": 1
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 28,
+                                "id": "110:45",
+                                "itemSpacing": 0,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "layoutMode": "HORIZONTAL",
+                                "name": "icon_sq",
+                                "primaryAxisAlignItems": "CENTER",
+                                "primaryAxisSizingMode": "FIXED",
+                                "type": "FRAME",
+                                "width": 28,
+                                "x": 16,
+                                "y": 14
+                              },
+                              {
+                                "characters": "关键点检测",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:149",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 0.8980000019073486,
+                                      "g": 0.8823999762535095,
+                                      "r": 0.9020000100135803
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "fontName": {
+                                  "family": "Sarasa Gothic SC",
+                                  "style": "Regular"
+                                },
+                                "fontSize": 15,
+                                "height": 18,
+                                "id": "110:48",
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 1,
+                                "lineHeight": {
+                                  "unit": "AUTO"
+                                },
+                                "name": "lbl",
+                                "textAlignHorizontal": "LEFT",
+                                "textAlignVertical": "TOP",
+                                "type": "TEXT",
+                                "width": 168,
+                                "x": 56,
+                                "y": 19
+                              },
+                              {
+                                "characters": "MNN 2D106",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:151",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 0.8156999945640564,
+                                      "g": 0.7685999870300293,
+                                      "r": 0.7922000288963318
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "fontName": {
+                                  "family": "Sarasa Gothic SC",
+                                  "style": "Regular"
+                                },
+                                "fontSize": 13,
+                                "height": 16,
+                                "id": "110:49",
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "lineHeight": {
+                                  "unit": "AUTO"
+                                },
+                                "name": "value",
+                                "textAlignHorizontal": "LEFT",
+                                "textAlignVertical": "TOP",
+                                "type": "TEXT",
+                                "width": 74,
+                                "x": 236,
+                                "y": 20
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "color": {
+                                          "b": 0.8156862854957581,
+                                          "g": 0.7686274647712708,
+                                          "r": 0.7921568751335144
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "height": 9.291666984558105,
+                                    "id": "110:51",
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "name": "Vector",
+                                    "type": "VECTOR",
+                                    "width": 5.458333492279053,
+                                    "x": 7.020833492279053,
+                                    "y": 5.354166030883789
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "counterAxisAlignItems": "MIN",
+                                "counterAxisSizingMode": "FIXED",
+                                "height": 20,
+                                "id": "110:50",
+                                "itemSpacing": 0,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "layoutMode": "NONE",
+                                "name": "chevron",
+                                "primaryAxisAlignItems": "MIN",
+                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                "type": "FRAME",
+                                "width": 20,
+                                "x": 322,
+                                "y": 18
+                              }
+                            ],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "CENTER",
+                            "counterAxisSizingMode": "FIXED",
+                            "height": 56,
+                            "id": "110:44",
+                            "itemSpacing": 12,
+                            "layoutAlign": "STRETCH",
+                            "layoutGrow": 0,
+                            "layoutMode": "HORIZONTAL",
+                            "name": "row_landmark",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "FIXED",
+                            "type": "FRAME",
+                            "width": 358,
+                            "x": 0,
+                            "y": 57
+                          },
+                          {
+                            "children": [
+                              {
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "color": {
+                                      "b": 0.30979999899864197,
+                                      "g": 0.27059999108314514,
+                                      "r": 0.28630000352859497
+                                    },
+                                    "opacity": 0.5,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 1,
+                                "id": "110:53",
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 1,
+                                "name": "line",
+                                "type": "RECTANGLE",
+                                "width": 286,
+                                "x": 56,
+                                "y": 0
+                              }
+                            ],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "MIN",
+                            "counterAxisSizingMode": "FIXED",
+                            "height": 1,
+                            "id": "110:52",
+                            "itemSpacing": 0,
+                            "layoutAlign": "STRETCH",
+                            "layoutGrow": 0,
+                            "layoutMode": "HORIZONTAL",
+                            "name": "divider2",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "FIXED",
+                            "type": "FRAME",
+                            "width": 358,
+                            "x": 0,
+                            "y": 113
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "fills": [
+                                          {
+                                            "blendMode": "NORMAL",
+                                            "color": {
+                                              "b": 1,
+                                              "g": 1,
+                                              "r": 1
+                                            },
+                                            "opacity": 1,
+                                            "type": "SOLID",
+                                            "visible": true
+                                          }
+                                        ],
                                         "height": 12,
-                                        "id": "108:414",
+                                        "id": "110:57",
                                         "layoutAlign": "AUTO",
                                         "layoutGrow": 0,
                                         "name": "Vector",
@@ -19217,7 +19753,7 @@
                                     "counterAxisAlignItems": "MIN",
                                     "counterAxisSizingMode": "FIXED",
                                     "height": 18,
-                                    "id": "108:413",
+                                    "id": "110:56",
                                     "itemSpacing": 0,
                                     "layoutAlign": "AUTO",
                                     "layoutGrow": 0,
@@ -19249,7 +19785,7 @@
                                   }
                                 ],
                                 "height": 28,
-                                "id": "108:412",
+                                "id": "110:55",
                                 "itemSpacing": 0,
                                 "layoutAlign": "AUTO",
                                 "layoutGrow": 0,
@@ -19291,7 +19827,7 @@
                                     },
                                     "fontSize": 15,
                                     "height": 18,
-                                    "id": "108:416",
+                                    "id": "110:59",
                                     "layoutAlign": "AUTO",
                                     "layoutGrow": 0,
                                     "lineHeight": {
@@ -19332,7 +19868,7 @@
                                     },
                                     "fontSize": 11,
                                     "height": 13,
-                                    "id": "108:417",
+                                    "id": "110:60",
                                     "layoutAlign": "AUTO",
                                     "layoutGrow": 0,
                                     "lineHeight": {
@@ -19351,7 +19887,7 @@
                                 "counterAxisAlignItems": "MIN",
                                 "counterAxisSizingMode": "FIXED",
                                 "height": 33,
-                                "id": "108:415",
+                                "id": "110:58",
                                 "itemSpacing": 2,
                                 "layoutAlign": "AUTO",
                                 "layoutGrow": 1,
@@ -19360,7 +19896,7 @@
                                 "primaryAxisAlignItems": "MIN",
                                 "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
                                 "type": "FRAME",
-                                "width": 222,
+                                "width": 254,
                                 "x": 56,
                                 "y": 15.5
                               },
@@ -19381,7 +19917,7 @@
                                       }
                                     ],
                                     "height": 9.291666984558105,
-                                    "id": "108:419",
+                                    "id": "110:62",
                                     "layoutAlign": "AUTO",
                                     "layoutGrow": 0,
                                     "name": "Vector",
@@ -19395,7 +19931,7 @@
                                 "counterAxisAlignItems": "MIN",
                                 "counterAxisSizingMode": "FIXED",
                                 "height": 20,
-                                "id": "108:418",
+                                "id": "110:61",
                                 "itemSpacing": 0,
                                 "layoutAlign": "AUTO",
                                 "layoutGrow": 0,
@@ -19405,7 +19941,7 @@
                                 "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
                                 "type": "FRAME",
                                 "width": 20,
-                                "x": 290,
+                                "x": 322,
                                 "y": 22
                               }
                             ],
@@ -19413,7 +19949,7 @@
                             "counterAxisAlignItems": "CENTER",
                             "counterAxisSizingMode": "FIXED",
                             "height": 64,
-                            "id": "108:411",
+                            "id": "110:54",
                             "itemSpacing": 12,
                             "layoutAlign": "STRETCH",
                             "layoutGrow": 0,
@@ -19422,304 +19958,50 @@
                             "primaryAxisAlignItems": "MIN",
                             "primaryAxisSizingMode": "FIXED",
                             "type": "FRAME",
-                            "width": 326,
-                            "x": 16,
-                            "y": 130
-                          },
+                            "width": 358,
+                            "x": 0,
+                            "y": 114
+                          }
+                        ],
+                        "clipsContent": true,
+                        "cornerRadius": 12,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "FIXED",
+                        "fills": [
                           {
-                            "children": [
-                              {
-                                "fills": [
-                                  {
-                                    "blendMode": "NORMAL",
-                                    "color": {
-                                      "b": 0.30979999899864197,
-                                      "g": 0.27059999108314514,
-                                      "r": 0.28630000352859497
-                                    },
-                                    "opacity": 0.5,
-                                    "type": "SOLID",
-                                    "visible": true
-                                  }
-                                ],
-                                "height": 1,
-                                "id": "108:421",
-                                "layoutAlign": "AUTO",
-                                "layoutGrow": 1,
-                                "name": "line",
-                                "type": "RECTANGLE",
-                                "width": 294,
-                                "x": 16,
-                                "y": 0
+                            "blendMode": "NORMAL",
+                            "boundVariables": {
+                              "color": {
+                                "id": "VariableID:2:158",
+                                "type": "VARIABLE_ALIAS"
                               }
-                            ],
-                            "clipsContent": true,
-                            "counterAxisAlignItems": "MIN",
-                            "counterAxisSizingMode": "FIXED",
-                            "height": 1,
-                            "id": "108:420",
-                            "itemSpacing": 0,
-                            "layoutAlign": "STRETCH",
-                            "layoutGrow": 0,
-                            "layoutMode": "HORIZONTAL",
-                            "name": "divider",
-                            "primaryAxisAlignItems": "MIN",
-                            "primaryAxisSizingMode": "FIXED",
-                            "type": "FRAME",
-                            "width": 326,
-                            "x": 16,
-                            "y": 206
-                          },
-                          {
-                            "children": [
-                              {
-                                "characters": "人脸关键点模式（更快）",
-                                "fills": [
-                                  {
-                                    "blendMode": "NORMAL",
-                                    "boundVariables": {
-                                      "color": {
-                                        "id": "VariableID:2:149",
-                                        "type": "VARIABLE_ALIAS"
-                                      }
-                                    },
-                                    "color": {
-                                      "b": 0.8980000019073486,
-                                      "g": 0.8823999762535095,
-                                      "r": 0.9020000100135803
-                                    },
-                                    "opacity": 1,
-                                    "type": "SOLID",
-                                    "visible": true
-                                  }
-                                ],
-                                "fontName": {
-                                  "family": "Sarasa Gothic SC",
-                                  "style": "Regular"
-                                },
-                                "fontSize": 15,
-                                "height": 18,
-                                "id": "108:423",
-                                "layoutAlign": "AUTO",
-                                "layoutGrow": 1,
-                                "lineHeight": {
-                                  "unit": "AUTO"
-                                },
-                                "name": "lbl",
-                                "textAlignHorizontal": "LEFT",
-                                "textAlignVertical": "TOP",
-                                "type": "TEXT",
-                                "width": 250,
-                                "x": 16,
-                                "y": 13
-                              },
-                              {
-                                "children": [
-                                  {
-                                    "fills": [
-                                      {
-                                        "blendMode": "NORMAL",
-                                        "color": {
-                                          "b": 0.4471000134944916,
-                                          "g": 0.11760000139474869,
-                                          "r": 0.21960000693798065
-                                        },
-                                        "opacity": 1,
-                                        "type": "SOLID",
-                                        "visible": true
-                                      }
-                                    ],
-                                    "height": 22,
-                                    "id": "108:425",
-                                    "layoutAlign": "AUTO",
-                                    "layoutGrow": 0,
-                                    "name": "knob",
-                                    "type": "ELLIPSE",
-                                    "width": 22,
-                                    "x": 20,
-                                    "y": 2
-                                  }
-                                ],
-                                "clipsContent": true,
-                                "cornerRadius": 13,
-                                "counterAxisAlignItems": "MIN",
-                                "counterAxisSizingMode": "FIXED",
-                                "fills": [
-                                  {
-                                    "blendMode": "NORMAL",
-                                    "boundVariables": {
-                                      "color": {
-                                        "id": "VariableID:2:130",
-                                        "type": "VARIABLE_ALIAS"
-                                      }
-                                    },
-                                    "color": {
-                                      "b": 1,
-                                      "g": 0.7372999787330627,
-                                      "r": 0.8156999945640564
-                                    },
-                                    "opacity": 1,
-                                    "type": "SOLID",
-                                    "visible": true
-                                  }
-                                ],
-                                "height": 26,
-                                "id": "108:424",
-                                "itemSpacing": 0,
-                                "layoutAlign": "AUTO",
-                                "layoutGrow": 0,
-                                "layoutMode": "NONE",
-                                "name": "switch",
-                                "primaryAxisAlignItems": "MIN",
-                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
-                                "type": "FRAME",
-                                "width": 44,
-                                "x": 266,
-                                "y": 9
-                              }
-                            ],
-                            "clipsContent": true,
-                            "counterAxisAlignItems": "CENTER",
-                            "counterAxisSizingMode": "FIXED",
-                            "height": 44,
-                            "id": "108:422",
-                            "itemSpacing": 0,
-                            "layoutAlign": "STRETCH",
-                            "layoutGrow": 0,
-                            "layoutMode": "HORIZONTAL",
-                            "name": "toggle_landmark_mode",
-                            "primaryAxisAlignItems": "MIN",
-                            "primaryAxisSizingMode": "FIXED",
-                            "type": "FRAME",
-                            "width": 326,
-                            "x": 16,
-                            "y": 219
-                          },
-                          {
-                            "children": [
-                              {
-                                "characters": "动态人脸检测间隔",
-                                "fills": [
-                                  {
-                                    "blendMode": "NORMAL",
-                                    "boundVariables": {
-                                      "color": {
-                                        "id": "VariableID:2:149",
-                                        "type": "VARIABLE_ALIAS"
-                                      }
-                                    },
-                                    "color": {
-                                      "b": 0.8980000019073486,
-                                      "g": 0.8823999762535095,
-                                      "r": 0.9020000100135803
-                                    },
-                                    "opacity": 1,
-                                    "type": "SOLID",
-                                    "visible": true
-                                  }
-                                ],
-                                "fontName": {
-                                  "family": "Sarasa Gothic SC",
-                                  "style": "Regular"
-                                },
-                                "fontSize": 15,
-                                "height": 18,
-                                "id": "108:427",
-                                "layoutAlign": "AUTO",
-                                "layoutGrow": 1,
-                                "lineHeight": {
-                                  "unit": "AUTO"
-                                },
-                                "name": "lbl",
-                                "textAlignHorizontal": "LEFT",
-                                "textAlignVertical": "TOP",
-                                "type": "TEXT",
-                                "width": 250,
-                                "x": 16,
-                                "y": 13
-                              },
-                              {
-                                "children": [
-                                  {
-                                    "fills": [
-                                      {
-                                        "blendMode": "NORMAL",
-                                        "color": {
-                                          "b": 0.4471000134944916,
-                                          "g": 0.11760000139474869,
-                                          "r": 0.21960000693798065
-                                        },
-                                        "opacity": 1,
-                                        "type": "SOLID",
-                                        "visible": true
-                                      }
-                                    ],
-                                    "height": 22,
-                                    "id": "108:429",
-                                    "layoutAlign": "AUTO",
-                                    "layoutGrow": 0,
-                                    "name": "knob",
-                                    "type": "ELLIPSE",
-                                    "width": 22,
-                                    "x": 20,
-                                    "y": 2
-                                  }
-                                ],
-                                "clipsContent": true,
-                                "cornerRadius": 13,
-                                "counterAxisAlignItems": "MIN",
-                                "counterAxisSizingMode": "FIXED",
-                                "fills": [
-                                  {
-                                    "blendMode": "NORMAL",
-                                    "boundVariables": {
-                                      "color": {
-                                        "id": "VariableID:2:130",
-                                        "type": "VARIABLE_ALIAS"
-                                      }
-                                    },
-                                    "color": {
-                                      "b": 1,
-                                      "g": 0.7372999787330627,
-                                      "r": 0.8156999945640564
-                                    },
-                                    "opacity": 1,
-                                    "type": "SOLID",
-                                    "visible": true
-                                  }
-                                ],
-                                "height": 26,
-                                "id": "108:428",
-                                "itemSpacing": 0,
-                                "layoutAlign": "AUTO",
-                                "layoutGrow": 0,
-                                "layoutMode": "NONE",
-                                "name": "switch",
-                                "primaryAxisAlignItems": "MIN",
-                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
-                                "type": "FRAME",
-                                "width": 44,
-                                "x": 266,
-                                "y": 9
-                              }
-                            ],
-                            "clipsContent": true,
-                            "counterAxisAlignItems": "CENTER",
-                            "counterAxisSizingMode": "FIXED",
-                            "height": 44,
-                            "id": "108:426",
-                            "itemSpacing": 0,
-                            "layoutAlign": "STRETCH",
-                            "layoutGrow": 0,
-                            "layoutMode": "HORIZONTAL",
-                            "name": "toggle_adaptive_interval",
-                            "primaryAxisAlignItems": "MIN",
-                            "primaryAxisSizingMode": "FIXED",
-                            "type": "FRAME",
-                            "width": 326,
-                            "x": 16,
-                            "y": 275
-                          },
+                            },
+                            "color": {
+                              "b": 0.2313999980688095,
+                              "g": 0.20389999449253082,
+                              "r": 0.2117999941110611
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "height": 178,
+                        "id": "110:33",
+                        "itemSpacing": 0,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "VERTICAL",
+                        "name": "sec_detect_models",
+                        "primaryAxisAlignItems": "MIN",
+                        "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                        "type": "FRAME",
+                        "width": 358,
+                        "x": 16,
+                        "y": 8
+                      },
+                      {
+                        "children": [
                           {
                             "children": [
                               {
@@ -19740,22 +20022,22 @@
                                             "visible": true
                                           }
                                         ],
-                                        "height": 17.25,
-                                        "id": "110:11",
+                                        "height": 12,
+                                        "id": "110:67",
                                         "layoutAlign": "AUTO",
                                         "layoutGrow": 0,
                                         "name": "Vector",
                                         "type": "VECTOR",
-                                        "width": 15.000000953674316,
+                                        "width": 15.001250267028809,
                                         "x": 1.5,
-                                        "y": 1.5
+                                        "y": 2.9999990463256836
                                       }
                                     ],
                                     "clipsContent": true,
                                     "counterAxisAlignItems": "MIN",
                                     "counterAxisSizingMode": "FIXED",
                                     "height": 18,
-                                    "id": "110:10",
+                                    "id": "110:66",
                                     "itemSpacing": 0,
                                     "layoutAlign": "AUTO",
                                     "layoutGrow": 0,
@@ -19787,7 +20069,7 @@
                                   }
                                 ],
                                 "height": 28,
-                                "id": "110:9",
+                                "id": "110:65",
                                 "itemSpacing": 0,
                                 "layoutAlign": "AUTO",
                                 "layoutGrow": 0,
@@ -19801,7 +20083,7 @@
                                 "y": 14
                               },
                               {
-                                "characters": "ROI 检测",
+                                "characters": "人脸关键点模式",
                                 "fills": [
                                   {
                                     "blendMode": "NORMAL",
@@ -19827,7 +20109,7 @@
                                 },
                                 "fontSize": 15,
                                 "height": 18,
-                                "id": "110:12",
+                                "id": "110:68",
                                 "layoutAlign": "AUTO",
                                 "layoutGrow": 1,
                                 "lineHeight": {
@@ -19837,50 +20119,9 @@
                                 "textAlignHorizontal": "LEFT",
                                 "textAlignVertical": "TOP",
                                 "type": "TEXT",
-                                "width": 145,
+                                "width": 230,
                                 "x": 56,
                                 "y": 19
-                              },
-                              {
-                                "characters": "MediaPipe",
-                                "fills": [
-                                  {
-                                    "blendMode": "NORMAL",
-                                    "boundVariables": {
-                                      "color": {
-                                        "id": "VariableID:2:151",
-                                        "type": "VARIABLE_ALIAS"
-                                      }
-                                    },
-                                    "color": {
-                                      "b": 0.8156999945640564,
-                                      "g": 0.7685999870300293,
-                                      "r": 0.7922000288963318
-                                    },
-                                    "opacity": 1,
-                                    "type": "SOLID",
-                                    "visible": true
-                                  }
-                                ],
-                                "fontName": {
-                                  "family": "Sarasa Gothic SC",
-                                  "style": "Regular"
-                                },
-                                "fontSize": 13,
-                                "height": 16,
-                                "id": "110:13",
-                                "layoutAlign": "AUTO",
-                                "layoutGrow": 0,
-                                "lineHeight": {
-                                  "unit": "AUTO"
-                                },
-                                "name": "value",
-                                "textAlignHorizontal": "LEFT",
-                                "textAlignVertical": "TOP",
-                                "type": "TEXT",
-                                "width": 65,
-                                "x": 213,
-                                "y": 20
                               },
                               {
                                 "children": [
@@ -19889,60 +20130,80 @@
                                       {
                                         "blendMode": "NORMAL",
                                         "color": {
-                                          "b": 0.8156862854957581,
-                                          "g": 0.7686274647712708,
-                                          "r": 0.7921568751335144
+                                          "b": 0.4471000134944916,
+                                          "g": 0.11760000139474869,
+                                          "r": 0.21960000693798065
                                         },
                                         "opacity": 1,
                                         "type": "SOLID",
                                         "visible": true
                                       }
                                     ],
-                                    "height": 9.291666984558105,
-                                    "id": "110:15",
+                                    "height": 22,
+                                    "id": "110:70",
                                     "layoutAlign": "AUTO",
                                     "layoutGrow": 0,
-                                    "name": "Vector",
-                                    "type": "VECTOR",
-                                    "width": 5.458333492279053,
-                                    "x": 7.020833492279053,
-                                    "y": 5.354166030883789
+                                    "name": "knob",
+                                    "type": "ELLIPSE",
+                                    "width": 22,
+                                    "x": 20,
+                                    "y": 2
                                   }
                                 ],
                                 "clipsContent": true,
+                                "cornerRadius": 13,
                                 "counterAxisAlignItems": "MIN",
                                 "counterAxisSizingMode": "FIXED",
-                                "height": 20,
-                                "id": "110:14",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:130",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 1,
+                                      "g": 0.7372999787330627,
+                                      "r": 0.8156999945640564
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 26,
+                                "id": "110:69",
                                 "itemSpacing": 0,
                                 "layoutAlign": "AUTO",
                                 "layoutGrow": 0,
                                 "layoutMode": "NONE",
-                                "name": "chevron",
+                                "name": "switch",
                                 "primaryAxisAlignItems": "MIN",
                                 "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
                                 "type": "FRAME",
-                                "width": 20,
-                                "x": 290,
-                                "y": 18
+                                "width": 44,
+                                "x": 298,
+                                "y": 15
                               }
                             ],
                             "clipsContent": true,
                             "counterAxisAlignItems": "CENTER",
                             "counterAxisSizingMode": "FIXED",
                             "height": 56,
-                            "id": "110:8",
+                            "id": "110:64",
                             "itemSpacing": 12,
                             "layoutAlign": "STRETCH",
                             "layoutGrow": 0,
                             "layoutMode": "HORIZONTAL",
-                            "name": "row_roi",
+                            "name": "toggle_landmark_mode",
                             "primaryAxisAlignItems": "MIN",
                             "primaryAxisSizingMode": "FIXED",
                             "type": "FRAME",
-                            "width": 326,
-                            "x": 16,
-                            "y": 16
+                            "width": 358,
+                            "x": 0,
+                            "y": 0
                           },
                           {
                             "children": [
@@ -19961,12 +20222,12 @@
                                   }
                                 ],
                                 "height": 1,
-                                "id": "110:17",
+                                "id": "110:72",
                                 "layoutAlign": "AUTO",
                                 "layoutGrow": 1,
                                 "name": "line",
                                 "type": "RECTANGLE",
-                                "width": 254,
+                                "width": 286,
                                 "x": 56,
                                 "y": 0
                               }
@@ -19975,18 +20236,265 @@
                             "counterAxisAlignItems": "MIN",
                             "counterAxisSizingMode": "FIXED",
                             "height": 1,
-                            "id": "110:16",
+                            "id": "110:71",
                             "itemSpacing": 0,
                             "layoutAlign": "STRETCH",
                             "layoutGrow": 0,
                             "layoutMode": "HORIZONTAL",
-                            "name": "divider_top",
+                            "name": "divider",
                             "primaryAxisAlignItems": "MIN",
                             "primaryAxisSizingMode": "FIXED",
                             "type": "FRAME",
-                            "width": 326,
+                            "width": 358,
                             "x": 0,
-                            "y": 72
+                            "y": 56
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "fills": [
+                                          {
+                                            "blendMode": "NORMAL",
+                                            "color": {
+                                              "b": 1,
+                                              "g": 1,
+                                              "r": 1
+                                            },
+                                            "opacity": 1,
+                                            "type": "SOLID",
+                                            "visible": true
+                                          }
+                                        ],
+                                        "height": 15.750000953674316,
+                                        "id": "110:76",
+                                        "layoutAlign": "AUTO",
+                                        "layoutGrow": 0,
+                                        "name": "Vector",
+                                        "type": "VECTOR",
+                                        "width": 13.500000953674316,
+                                        "x": 2.25,
+                                        "y": 0.75
+                                      }
+                                    ],
+                                    "clipsContent": true,
+                                    "counterAxisAlignItems": "MIN",
+                                    "counterAxisSizingMode": "FIXED",
+                                    "height": 18,
+                                    "id": "110:75",
+                                    "itemSpacing": 0,
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "layoutMode": "NONE",
+                                    "name": "icon",
+                                    "primaryAxisAlignItems": "MIN",
+                                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                    "type": "FRAME",
+                                    "width": 18,
+                                    "x": 5,
+                                    "y": 5
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 7,
+                                "counterAxisAlignItems": "CENTER",
+                                "counterAxisSizingMode": "FIXED",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "color": {
+                                      "b": 1,
+                                      "g": 0.4745098054409027,
+                                      "r": 0.16078431904315948
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 28,
+                                "id": "110:74",
+                                "itemSpacing": 0,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "layoutMode": "HORIZONTAL",
+                                "name": "icon_sq",
+                                "primaryAxisAlignItems": "CENTER",
+                                "primaryAxisSizingMode": "FIXED",
+                                "type": "FRAME",
+                                "width": 28,
+                                "x": 16,
+                                "y": 14
+                              },
+                              {
+                                "characters": "动态人脸检测间隔",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:149",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 0.8980000019073486,
+                                      "g": 0.8823999762535095,
+                                      "r": 0.9020000100135803
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "fontName": {
+                                  "family": "Sarasa Gothic SC",
+                                  "style": "Regular"
+                                },
+                                "fontSize": 15,
+                                "height": 18,
+                                "id": "110:77",
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 1,
+                                "lineHeight": {
+                                  "unit": "AUTO"
+                                },
+                                "name": "lbl",
+                                "textAlignHorizontal": "LEFT",
+                                "textAlignVertical": "TOP",
+                                "type": "TEXT",
+                                "width": 230,
+                                "x": 56,
+                                "y": 19
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "color": {
+                                          "b": 0.4471000134944916,
+                                          "g": 0.11760000139474869,
+                                          "r": 0.21960000693798065
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "height": 22,
+                                    "id": "110:79",
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "name": "knob",
+                                    "type": "ELLIPSE",
+                                    "width": 22,
+                                    "x": 20,
+                                    "y": 2
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 13,
+                                "counterAxisAlignItems": "MIN",
+                                "counterAxisSizingMode": "FIXED",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:130",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 1,
+                                      "g": 0.7372999787330627,
+                                      "r": 0.8156999945640564
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 26,
+                                "id": "110:78",
+                                "itemSpacing": 0,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "layoutMode": "NONE",
+                                "name": "switch",
+                                "primaryAxisAlignItems": "MIN",
+                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                "type": "FRAME",
+                                "width": 44,
+                                "x": 298,
+                                "y": 15
+                              }
+                            ],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "CENTER",
+                            "counterAxisSizingMode": "FIXED",
+                            "height": 56,
+                            "id": "110:73",
+                            "itemSpacing": 12,
+                            "layoutAlign": "STRETCH",
+                            "layoutGrow": 0,
+                            "layoutMode": "HORIZONTAL",
+                            "name": "toggle_adaptive_interval",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "FIXED",
+                            "type": "FRAME",
+                            "width": 358,
+                            "x": 0,
+                            "y": 57
+                          },
+                          {
+                            "children": [
+                              {
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "color": {
+                                      "b": 0.30979999899864197,
+                                      "g": 0.27059999108314514,
+                                      "r": 0.28630000352859497
+                                    },
+                                    "opacity": 0.5,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 1,
+                                "id": "110:81",
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 1,
+                                "name": "line",
+                                "type": "RECTANGLE",
+                                "width": 286,
+                                "x": 56,
+                                "y": 0
+                              }
+                            ],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "MIN",
+                            "counterAxisSizingMode": "FIXED",
+                            "height": 1,
+                            "id": "110:80",
+                            "itemSpacing": 0,
+                            "layoutAlign": "STRETCH",
+                            "layoutGrow": 0,
+                            "layoutMode": "HORIZONTAL",
+                            "name": "divider2",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "FIXED",
+                            "type": "FRAME",
+                            "width": 358,
+                            "x": 0,
+                            "y": 113
                           },
                           {
                             "children": [
@@ -20009,7 +20517,7 @@
                                           }
                                         ],
                                         "height": 13.500000953674316,
-                                        "id": "110:21",
+                                        "id": "110:85",
                                         "layoutAlign": "AUTO",
                                         "layoutGrow": 0,
                                         "name": "Vector",
@@ -20023,7 +20531,7 @@
                                     "counterAxisAlignItems": "MIN",
                                     "counterAxisSizingMode": "FIXED",
                                     "height": 18,
-                                    "id": "110:20",
+                                    "id": "110:84",
                                     "itemSpacing": 0,
                                     "layoutAlign": "AUTO",
                                     "layoutGrow": 0,
@@ -20045,9 +20553,9 @@
                                   {
                                     "blendMode": "NORMAL",
                                     "color": {
-                                      "b": 0.5058823823928833,
-                                      "g": 0.250980406999588,
-                                      "r": 1
+                                      "b": 1,
+                                      "g": 0.4745098054409027,
+                                      "r": 0.16078431904315948
                                     },
                                     "opacity": 1,
                                     "type": "SOLID",
@@ -20055,7 +20563,7 @@
                                   }
                                 ],
                                 "height": 28,
-                                "id": "110:19",
+                                "id": "110:83",
                                 "itemSpacing": 0,
                                 "layoutAlign": "AUTO",
                                 "layoutGrow": 0,
@@ -20069,7 +20577,7 @@
                                 "y": 14
                               },
                               {
-                                "characters": "关键点检测",
+                                "characters": "检测档位",
                                 "fills": [
                                   {
                                     "blendMode": "NORMAL",
@@ -20095,7 +20603,7 @@
                                 },
                                 "fontSize": 15,
                                 "height": 18,
-                                "id": "110:22",
+                                "id": "110:86",
                                 "layoutAlign": "AUTO",
                                 "layoutGrow": 1,
                                 "lineHeight": {
@@ -20105,198 +20613,8 @@
                                 "textAlignHorizontal": "LEFT",
                                 "textAlignVertical": "TOP",
                                 "type": "TEXT",
-                                "width": 136,
+                                "width": 216,
                                 "x": 56,
-                                "y": 19
-                              },
-                              {
-                                "characters": "MNN 2D106",
-                                "fills": [
-                                  {
-                                    "blendMode": "NORMAL",
-                                    "boundVariables": {
-                                      "color": {
-                                        "id": "VariableID:2:151",
-                                        "type": "VARIABLE_ALIAS"
-                                      }
-                                    },
-                                    "color": {
-                                      "b": 0.8156999945640564,
-                                      "g": 0.7685999870300293,
-                                      "r": 0.7922000288963318
-                                    },
-                                    "opacity": 1,
-                                    "type": "SOLID",
-                                    "visible": true
-                                  }
-                                ],
-                                "fontName": {
-                                  "family": "Sarasa Gothic SC",
-                                  "style": "Regular"
-                                },
-                                "fontSize": 13,
-                                "height": 16,
-                                "id": "110:23",
-                                "layoutAlign": "AUTO",
-                                "layoutGrow": 0,
-                                "lineHeight": {
-                                  "unit": "AUTO"
-                                },
-                                "name": "value",
-                                "textAlignHorizontal": "LEFT",
-                                "textAlignVertical": "TOP",
-                                "type": "TEXT",
-                                "width": 74,
-                                "x": 204,
-                                "y": 20
-                              },
-                              {
-                                "children": [
-                                  {
-                                    "fills": [
-                                      {
-                                        "blendMode": "NORMAL",
-                                        "color": {
-                                          "b": 0.8156862854957581,
-                                          "g": 0.7686274647712708,
-                                          "r": 0.7921568751335144
-                                        },
-                                        "opacity": 1,
-                                        "type": "SOLID",
-                                        "visible": true
-                                      }
-                                    ],
-                                    "height": 9.291666984558105,
-                                    "id": "110:25",
-                                    "layoutAlign": "AUTO",
-                                    "layoutGrow": 0,
-                                    "name": "Vector",
-                                    "type": "VECTOR",
-                                    "width": 5.458333492279053,
-                                    "x": 7.020833492279053,
-                                    "y": 5.354166030883789
-                                  }
-                                ],
-                                "clipsContent": true,
-                                "counterAxisAlignItems": "MIN",
-                                "counterAxisSizingMode": "FIXED",
-                                "height": 20,
-                                "id": "110:24",
-                                "itemSpacing": 0,
-                                "layoutAlign": "AUTO",
-                                "layoutGrow": 0,
-                                "layoutMode": "NONE",
-                                "name": "chevron",
-                                "primaryAxisAlignItems": "MIN",
-                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
-                                "type": "FRAME",
-                                "width": 20,
-                                "x": 290,
-                                "y": 18
-                              }
-                            ],
-                            "clipsContent": true,
-                            "counterAxisAlignItems": "CENTER",
-                            "counterAxisSizingMode": "FIXED",
-                            "height": 56,
-                            "id": "110:18",
-                            "itemSpacing": 12,
-                            "layoutAlign": "STRETCH",
-                            "layoutGrow": 0,
-                            "layoutMode": "HORIZONTAL",
-                            "name": "row_landmark",
-                            "primaryAxisAlignItems": "MIN",
-                            "primaryAxisSizingMode": "FIXED",
-                            "type": "FRAME",
-                            "width": 326,
-                            "x": 16,
-                            "y": 73
-                          },
-                          {
-                            "children": [
-                              {
-                                "fills": [
-                                  {
-                                    "blendMode": "NORMAL",
-                                    "color": {
-                                      "b": 0.30979999899864197,
-                                      "g": 0.27059999108314514,
-                                      "r": 0.28630000352859497
-                                    },
-                                    "opacity": 0.5,
-                                    "type": "SOLID",
-                                    "visible": true
-                                  }
-                                ],
-                                "height": 1,
-                                "id": "110:27",
-                                "layoutAlign": "AUTO",
-                                "layoutGrow": 1,
-                                "name": "line",
-                                "type": "RECTANGLE",
-                                "width": 254,
-                                "x": 56,
-                                "y": 0
-                              }
-                            ],
-                            "clipsContent": true,
-                            "counterAxisAlignItems": "MIN",
-                            "counterAxisSizingMode": "FIXED",
-                            "height": 1,
-                            "id": "110:26",
-                            "itemSpacing": 0,
-                            "layoutAlign": "STRETCH",
-                            "layoutGrow": 0,
-                            "layoutMode": "HORIZONTAL",
-                            "name": "divider_mid",
-                            "primaryAxisAlignItems": "MIN",
-                            "primaryAxisSizingMode": "FIXED",
-                            "type": "FRAME",
-                            "width": 326,
-                            "x": 0,
-                            "y": 129
-                          },
-                          {
-                            "children": [
-                              {
-                                "characters": "动态间隔强度档位",
-                                "fills": [
-                                  {
-                                    "blendMode": "NORMAL",
-                                    "boundVariables": {
-                                      "color": {
-                                        "id": "VariableID:2:149",
-                                        "type": "VARIABLE_ALIAS"
-                                      }
-                                    },
-                                    "color": {
-                                      "b": 0.8980000019073486,
-                                      "g": 0.8823999762535095,
-                                      "r": 0.9020000100135803
-                                    },
-                                    "opacity": 1,
-                                    "type": "SOLID",
-                                    "visible": true
-                                  }
-                                ],
-                                "fontName": {
-                                  "family": "Sarasa Gothic SC",
-                                  "style": "Regular"
-                                },
-                                "fontSize": 15,
-                                "height": 18,
-                                "id": "110:29",
-                                "layoutAlign": "AUTO",
-                                "layoutGrow": 1,
-                                "lineHeight": {
-                                  "unit": "AUTO"
-                                },
-                                "name": "lbl",
-                                "textAlignHorizontal": "LEFT",
-                                "textAlignVertical": "TOP",
-                                "type": "TEXT",
-                                "width": 232,
-                                "x": 16,
                                 "y": 19
                               },
                               {
@@ -20326,7 +20644,7 @@
                                 },
                                 "fontSize": 13,
                                 "height": 16,
-                                "id": "110:30",
+                                "id": "110:87",
                                 "layoutAlign": "AUTO",
                                 "layoutGrow": 0,
                                 "lineHeight": {
@@ -20337,7 +20655,7 @@
                                 "textAlignVertical": "TOP",
                                 "type": "TEXT",
                                 "width": 26,
-                                "x": 256,
+                                "x": 284,
                                 "y": 20
                               },
                               {
@@ -20357,7 +20675,7 @@
                                       }
                                     ],
                                     "height": 9.291666984558105,
-                                    "id": "110:32",
+                                    "id": "110:89",
                                     "layoutAlign": "AUTO",
                                     "layoutGrow": 0,
                                     "name": "Vector",
@@ -20371,379 +20689,7 @@
                                 "counterAxisAlignItems": "MIN",
                                 "counterAxisSizingMode": "FIXED",
                                 "height": 20,
-                                "id": "110:31",
-                                "itemSpacing": 0,
-                                "layoutAlign": "AUTO",
-                                "layoutGrow": 0,
-                                "layoutMode": "NONE",
-                                "name": "chevron",
-                                "primaryAxisAlignItems": "MIN",
-                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
-                                "type": "FRAME",
-                                "width": 20,
-                                "x": 290,
-                                "y": 18
-                              }
-                            ],
-                            "clipsContent": true,
-                            "counterAxisAlignItems": "CENTER",
-                            "counterAxisSizingMode": "FIXED",
-                            "height": 56,
-                            "id": "110:28",
-                            "itemSpacing": 8,
-                            "layoutAlign": "STRETCH",
-                            "layoutGrow": 0,
-                            "layoutMode": "HORIZONTAL",
-                            "name": "row_profile",
-                            "primaryAxisAlignItems": "MIN",
-                            "primaryAxisSizingMode": "FIXED",
-                            "type": "FRAME",
-                            "width": 326,
-                            "x": 16,
-                            "y": 331
-                          }
-                        ],
-                        "clipsContent": true,
-                        "cornerRadius": 12,
-                        "counterAxisAlignItems": "MIN",
-                        "counterAxisSizingMode": "FIXED",
-                        "fills": [
-                          {
-                            "blendMode": "NORMAL",
-                            "boundVariables": {
-                              "color": {
-                                "id": "VariableID:2:158",
-                                "type": "VARIABLE_ALIAS"
-                              }
-                            },
-                            "color": {
-                              "b": 0.2313999980688095,
-                              "g": 0.20389999449253082,
-                              "r": 0.2117999941110611
-                            },
-                            "opacity": 1,
-                            "type": "SOLID",
-                            "visible": true
-                          }
-                        ],
-                        "height": 403,
-                        "id": "108:369",
-                        "itemSpacing": 12,
-                        "layoutAlign": "STRETCH",
-                        "layoutGrow": 0,
-                        "layoutMode": "VERTICAL",
-                        "name": "sec_face",
-                        "primaryAxisAlignItems": "MIN",
-                        "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
-                        "type": "FRAME",
-                        "width": 358,
-                        "x": 16,
-                        "y": 8
-                      },
-                      {
-                        "children": [
-                          {
-                            "children": [
-                              {
-                                "characters": "打标模型",
-                                "fills": [
-                                  {
-                                    "blendMode": "NORMAL",
-                                    "boundVariables": {
-                                      "color": {
-                                        "id": "VariableID:2:149",
-                                        "type": "VARIABLE_ALIAS"
-                                      }
-                                    },
-                                    "color": {
-                                      "b": 0.8980000019073486,
-                                      "g": 0.8823999762535095,
-                                      "r": 0.9020000100135803
-                                    },
-                                    "opacity": 1,
-                                    "type": "SOLID",
-                                    "visible": true
-                                  }
-                                ],
-                                "fontName": {
-                                  "family": "Sarasa Gothic SC",
-                                  "style": "Regular"
-                                },
-                                "fontSize": 15,
-                                "height": 18,
-                                "id": "108:512",
-                                "layoutAlign": "AUTO",
-                                "layoutGrow": 1,
-                                "lineHeight": {
-                                  "unit": "AUTO"
-                                },
-                                "name": "lbl",
-                                "textAlignHorizontal": "LEFT",
-                                "textAlignVertical": "TOP",
-                                "type": "TEXT",
-                                "width": 109,
-                                "x": 16,
-                                "y": 19
-                              },
-                              {
-                                "characters": "自动（Florence-2 优先）",
-                                "fills": [
-                                  {
-                                    "blendMode": "NORMAL",
-                                    "boundVariables": {
-                                      "color": {
-                                        "id": "VariableID:2:151",
-                                        "type": "VARIABLE_ALIAS"
-                                      }
-                                    },
-                                    "color": {
-                                      "b": 0.8156999945640564,
-                                      "g": 0.7685999870300293,
-                                      "r": 0.7922000288963318
-                                    },
-                                    "opacity": 1,
-                                    "type": "SOLID",
-                                    "visible": true
-                                  }
-                                ],
-                                "fontName": {
-                                  "family": "Sarasa Gothic SC",
-                                  "style": "Regular"
-                                },
-                                "fontSize": 13,
-                                "height": 16,
-                                "id": "108:513",
-                                "layoutAlign": "AUTO",
-                                "layoutGrow": 0,
-                                "lineHeight": {
-                                  "unit": "AUTO"
-                                },
-                                "name": "value",
-                                "textAlignHorizontal": "LEFT",
-                                "textAlignVertical": "TOP",
-                                "type": "TEXT",
-                                "width": 149,
-                                "x": 133,
-                                "y": 20
-                              },
-                              {
-                                "children": [
-                                  {
-                                    "fills": [
-                                      {
-                                        "blendMode": "NORMAL",
-                                        "color": {
-                                          "b": 0.8156862854957581,
-                                          "g": 0.7686274647712708,
-                                          "r": 0.7921568751335144
-                                        },
-                                        "opacity": 1,
-                                        "type": "SOLID",
-                                        "visible": true
-                                      }
-                                    ],
-                                    "height": 9.291666984558105,
-                                    "id": "108:515",
-                                    "layoutAlign": "AUTO",
-                                    "layoutGrow": 0,
-                                    "name": "Vector",
-                                    "type": "VECTOR",
-                                    "width": 5.458333492279053,
-                                    "x": 7.020833492279053,
-                                    "y": 5.354166030883789
-                                  }
-                                ],
-                                "clipsContent": true,
-                                "counterAxisAlignItems": "MIN",
-                                "counterAxisSizingMode": "FIXED",
-                                "height": 20,
-                                "id": "108:514",
-                                "itemSpacing": 0,
-                                "layoutAlign": "AUTO",
-                                "layoutGrow": 0,
-                                "layoutMode": "NONE",
-                                "name": "chevron",
-                                "primaryAxisAlignItems": "MIN",
-                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
-                                "type": "FRAME",
-                                "width": 20,
-                                "x": 290,
-                                "y": 18
-                              }
-                            ],
-                            "clipsContent": true,
-                            "counterAxisAlignItems": "CENTER",
-                            "counterAxisSizingMode": "FIXED",
-                            "height": 56,
-                            "id": "108:511",
-                            "itemSpacing": 8,
-                            "layoutAlign": "STRETCH",
-                            "layoutGrow": 0,
-                            "layoutMode": "HORIZONTAL",
-                            "name": "row_tagger",
-                            "primaryAxisAlignItems": "MIN",
-                            "primaryAxisSizingMode": "FIXED",
-                            "type": "FRAME",
-                            "width": 326,
-                            "x": 16,
-                            "y": 16
-                          }
-                        ],
-                        "clipsContent": true,
-                        "cornerRadius": 12,
-                        "counterAxisAlignItems": "MIN",
-                        "counterAxisSizingMode": "FIXED",
-                        "fills": [
-                          {
-                            "blendMode": "NORMAL",
-                            "boundVariables": {
-                              "color": {
-                                "id": "VariableID:2:158",
-                                "type": "VARIABLE_ALIAS"
-                              }
-                            },
-                            "color": {
-                              "b": 0.2313999980688095,
-                              "g": 0.20389999449253082,
-                              "r": 0.2117999941110611
-                            },
-                            "opacity": 1,
-                            "type": "SOLID",
-                            "visible": true
-                          }
-                        ],
-                        "height": 88,
-                        "id": "108:438",
-                        "itemSpacing": 12,
-                        "layoutAlign": "STRETCH",
-                        "layoutGrow": 0,
-                        "layoutMode": "VERTICAL",
-                        "name": "sec_tagging",
-                        "primaryAxisAlignItems": "MIN",
-                        "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
-                        "type": "FRAME",
-                        "width": 358,
-                        "x": 16,
-                        "y": 435
-                      },
-                      {
-                        "children": [
-                          {
-                            "children": [
-                              {
-                                "characters": "本地语音识别模型",
-                                "fills": [
-                                  {
-                                    "blendMode": "NORMAL",
-                                    "boundVariables": {
-                                      "color": {
-                                        "id": "VariableID:2:149",
-                                        "type": "VARIABLE_ALIAS"
-                                      }
-                                    },
-                                    "color": {
-                                      "b": 0.8980000019073486,
-                                      "g": 0.8823999762535095,
-                                      "r": 0.9020000100135803
-                                    },
-                                    "opacity": 1,
-                                    "type": "SOLID",
-                                    "visible": true
-                                  }
-                                ],
-                                "fontName": {
-                                  "family": "Sarasa Gothic SC",
-                                  "style": "Regular"
-                                },
-                                "fontSize": 15,
-                                "height": 18,
-                                "id": "108:459",
-                                "layoutAlign": "AUTO",
-                                "layoutGrow": 1,
-                                "lineHeight": {
-                                  "unit": "AUTO"
-                                },
-                                "name": "lbl",
-                                "textAlignHorizontal": "LEFT",
-                                "textAlignVertical": "TOP",
-                                "type": "TEXT",
-                                "width": 171,
-                                "x": 16,
-                                "y": 19
-                              },
-                              {
-                                "characters": "Sherpa-ONNX 中英",
-                                "fills": [
-                                  {
-                                    "blendMode": "NORMAL",
-                                    "boundVariables": {
-                                      "color": {
-                                        "id": "VariableID:2:151",
-                                        "type": "VARIABLE_ALIAS"
-                                      }
-                                    },
-                                    "color": {
-                                      "b": 0.8156999945640564,
-                                      "g": 0.7685999870300293,
-                                      "r": 0.7922000288963318
-                                    },
-                                    "opacity": 1,
-                                    "type": "SOLID",
-                                    "visible": true
-                                  }
-                                ],
-                                "fontName": {
-                                  "family": "Sarasa Gothic SC",
-                                  "style": "Regular"
-                                },
-                                "fontSize": 13,
-                                "height": 16,
-                                "id": "108:460",
-                                "layoutAlign": "AUTO",
-                                "layoutGrow": 0,
-                                "lineHeight": {
-                                  "unit": "AUTO"
-                                },
-                                "name": "value",
-                                "textAlignHorizontal": "LEFT",
-                                "textAlignVertical": "TOP",
-                                "type": "TEXT",
-                                "width": 119,
-                                "x": 195,
-                                "y": 20
-                              },
-                              {
-                                "children": [
-                                  {
-                                    "fills": [
-                                      {
-                                        "blendMode": "NORMAL",
-                                        "color": {
-                                          "b": 0.8156862854957581,
-                                          "g": 0.7686274647712708,
-                                          "r": 0.7921568751335144
-                                        },
-                                        "opacity": 1,
-                                        "type": "SOLID",
-                                        "visible": true
-                                      }
-                                    ],
-                                    "height": 9.291666984558105,
-                                    "id": "108:462",
-                                    "layoutAlign": "AUTO",
-                                    "layoutGrow": 0,
-                                    "name": "Vector",
-                                    "type": "VECTOR",
-                                    "width": 5.458333492279053,
-                                    "x": 7.020833492279053,
-                                    "y": 5.354166030883789
-                                  }
-                                ],
-                                "clipsContent": true,
-                                "counterAxisAlignItems": "MIN",
-                                "counterAxisSizingMode": "FIXED",
-                                "height": 20,
-                                "id": "108:461",
+                                "id": "110:88",
                                 "itemSpacing": 0,
                                 "layoutAlign": "AUTO",
                                 "layoutGrow": 0,
@@ -20761,8 +20707,536 @@
                             "counterAxisAlignItems": "CENTER",
                             "counterAxisSizingMode": "FIXED",
                             "height": 56,
-                            "id": "108:458",
-                            "itemSpacing": 8,
+                            "id": "110:82",
+                            "itemSpacing": 12,
+                            "layoutAlign": "STRETCH",
+                            "layoutGrow": 0,
+                            "layoutMode": "HORIZONTAL",
+                            "name": "row_profile",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "FIXED",
+                            "type": "FRAME",
+                            "width": 358,
+                            "x": 0,
+                            "y": 114
+                          }
+                        ],
+                        "clipsContent": true,
+                        "cornerRadius": 12,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "FIXED",
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "boundVariables": {
+                              "color": {
+                                "id": "VariableID:2:158",
+                                "type": "VARIABLE_ALIAS"
+                              }
+                            },
+                            "color": {
+                              "b": 0.2313999980688095,
+                              "g": 0.20389999449253082,
+                              "r": 0.2117999941110611
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "height": 170,
+                        "id": "110:63",
+                        "itemSpacing": 0,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "VERTICAL",
+                        "name": "sec_detect_policy",
+                        "primaryAxisAlignItems": "MIN",
+                        "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                        "type": "FRAME",
+                        "width": 358,
+                        "x": 16,
+                        "y": 210
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "fills": [
+                                          {
+                                            "blendMode": "NORMAL",
+                                            "color": {
+                                              "b": 1,
+                                              "g": 1,
+                                              "r": 1
+                                            },
+                                            "opacity": 1,
+                                            "type": "SOLID",
+                                            "visible": true
+                                          }
+                                        ],
+                                        "height": 15.000000953674316,
+                                        "id": "110:94",
+                                        "layoutAlign": "AUTO",
+                                        "layoutGrow": 0,
+                                        "name": "Vector",
+                                        "type": "VECTOR",
+                                        "width": 14.981250762939453,
+                                        "x": 1.5,
+                                        "y": 1.5
+                                      }
+                                    ],
+                                    "clipsContent": true,
+                                    "counterAxisAlignItems": "MIN",
+                                    "counterAxisSizingMode": "FIXED",
+                                    "height": 18,
+                                    "id": "110:93",
+                                    "itemSpacing": 0,
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "layoutMode": "NONE",
+                                    "name": "icon",
+                                    "primaryAxisAlignItems": "MIN",
+                                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                    "type": "FRAME",
+                                    "width": 18,
+                                    "x": 5,
+                                    "y": 5
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 7,
+                                "counterAxisAlignItems": "CENTER",
+                                "counterAxisSizingMode": "FIXED",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "color": {
+                                      "b": 0,
+                                      "g": 0.5686274766921997,
+                                      "r": 1
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 28,
+                                "id": "110:92",
+                                "itemSpacing": 0,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "layoutMode": "HORIZONTAL",
+                                "name": "icon_sq",
+                                "primaryAxisAlignItems": "CENTER",
+                                "primaryAxisSizingMode": "FIXED",
+                                "type": "FRAME",
+                                "width": 28,
+                                "x": 16,
+                                "y": 14
+                              },
+                              {
+                                "characters": "照片打标",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:149",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 0.8980000019073486,
+                                      "g": 0.8823999762535095,
+                                      "r": 0.9020000100135803
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "fontName": {
+                                  "family": "Sarasa Gothic SC",
+                                  "style": "Regular"
+                                },
+                                "fontSize": 15,
+                                "height": 18,
+                                "id": "110:95",
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 1,
+                                "lineHeight": {
+                                  "unit": "AUTO"
+                                },
+                                "name": "lbl",
+                                "textAlignHorizontal": "LEFT",
+                                "textAlignVertical": "TOP",
+                                "type": "TEXT",
+                                "width": 145,
+                                "x": 56,
+                                "y": 19
+                              },
+                              {
+                                "characters": "Florence-2 优先",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:151",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 0.8156999945640564,
+                                      "g": 0.7685999870300293,
+                                      "r": 0.7922000288963318
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "fontName": {
+                                  "family": "Sarasa Gothic SC",
+                                  "style": "Regular"
+                                },
+                                "fontSize": 13,
+                                "height": 16,
+                                "id": "110:96",
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "lineHeight": {
+                                  "unit": "AUTO"
+                                },
+                                "name": "value",
+                                "textAlignHorizontal": "LEFT",
+                                "textAlignVertical": "TOP",
+                                "type": "TEXT",
+                                "width": 97,
+                                "x": 213,
+                                "y": 20
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "color": {
+                                          "b": 0.8156862854957581,
+                                          "g": 0.7686274647712708,
+                                          "r": 0.7921568751335144
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "height": 9.291666984558105,
+                                    "id": "110:98",
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "name": "Vector",
+                                    "type": "VECTOR",
+                                    "width": 5.458333492279053,
+                                    "x": 7.020833492279053,
+                                    "y": 5.354166030883789
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "counterAxisAlignItems": "MIN",
+                                "counterAxisSizingMode": "FIXED",
+                                "height": 20,
+                                "id": "110:97",
+                                "itemSpacing": 0,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "layoutMode": "NONE",
+                                "name": "chevron",
+                                "primaryAxisAlignItems": "MIN",
+                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                "type": "FRAME",
+                                "width": 20,
+                                "x": 322,
+                                "y": 18
+                              }
+                            ],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "CENTER",
+                            "counterAxisSizingMode": "FIXED",
+                            "height": 56,
+                            "id": "110:91",
+                            "itemSpacing": 12,
+                            "layoutAlign": "STRETCH",
+                            "layoutGrow": 0,
+                            "layoutMode": "HORIZONTAL",
+                            "name": "row_tagger",
+                            "primaryAxisAlignItems": "MIN",
+                            "primaryAxisSizingMode": "FIXED",
+                            "type": "FRAME",
+                            "width": 358,
+                            "x": 0,
+                            "y": 0
+                          }
+                        ],
+                        "clipsContent": true,
+                        "cornerRadius": 12,
+                        "counterAxisAlignItems": "MIN",
+                        "counterAxisSizingMode": "FIXED",
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "boundVariables": {
+                              "color": {
+                                "id": "VariableID:2:158",
+                                "type": "VARIABLE_ALIAS"
+                              }
+                            },
+                            "color": {
+                              "b": 0.2313999980688095,
+                              "g": 0.20389999449253082,
+                              "r": 0.2117999941110611
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "height": 56,
+                        "id": "110:90",
+                        "itemSpacing": 0,
+                        "layoutAlign": "STRETCH",
+                        "layoutGrow": 0,
+                        "layoutMode": "VERTICAL",
+                        "name": "sec_tagging",
+                        "primaryAxisAlignItems": "MIN",
+                        "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                        "type": "FRAME",
+                        "width": 358,
+                        "x": 16,
+                        "y": 404
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "fills": [
+                                          {
+                                            "blendMode": "NORMAL",
+                                            "color": {
+                                              "b": 1,
+                                              "g": 1,
+                                              "r": 1
+                                            },
+                                            "opacity": 1,
+                                            "type": "SOLID",
+                                            "visible": true
+                                          }
+                                        ],
+                                        "height": 15.000000953674316,
+                                        "id": "110:103",
+                                        "layoutAlign": "AUTO",
+                                        "layoutGrow": 0,
+                                        "name": "Vector",
+                                        "type": "VECTOR",
+                                        "width": 13.500000953674316,
+                                        "x": 2.25,
+                                        "y": 1.5
+                                      }
+                                    ],
+                                    "clipsContent": true,
+                                    "counterAxisAlignItems": "MIN",
+                                    "counterAxisSizingMode": "FIXED",
+                                    "height": 18,
+                                    "id": "110:102",
+                                    "itemSpacing": 0,
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "layoutMode": "NONE",
+                                    "name": "icon",
+                                    "primaryAxisAlignItems": "MIN",
+                                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                    "type": "FRAME",
+                                    "width": 18,
+                                    "x": 5,
+                                    "y": 5
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 7,
+                                "counterAxisAlignItems": "CENTER",
+                                "counterAxisSizingMode": "FIXED",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "color": {
+                                      "b": 0.4627451002597809,
+                                      "g": 0.9019607901573181,
+                                      "r": 0
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 28,
+                                "id": "110:101",
+                                "itemSpacing": 0,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "layoutMode": "HORIZONTAL",
+                                "name": "icon_sq",
+                                "primaryAxisAlignItems": "CENTER",
+                                "primaryAxisSizingMode": "FIXED",
+                                "type": "FRAME",
+                                "width": 28,
+                                "x": 16,
+                                "y": 14
+                              },
+                              {
+                                "characters": "语音识别",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:149",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 0.8980000019073486,
+                                      "g": 0.8823999762535095,
+                                      "r": 0.9020000100135803
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "fontName": {
+                                  "family": "Sarasa Gothic SC",
+                                  "style": "Regular"
+                                },
+                                "fontSize": 15,
+                                "height": 18,
+                                "id": "110:104",
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 1,
+                                "lineHeight": {
+                                  "unit": "AUTO"
+                                },
+                                "name": "lbl",
+                                "textAlignHorizontal": "LEFT",
+                                "textAlignVertical": "TOP",
+                                "type": "TEXT",
+                                "width": 151,
+                                "x": 56,
+                                "y": 19
+                              },
+                              {
+                                "characters": "Zipformer 中英",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "boundVariables": {
+                                      "color": {
+                                        "id": "VariableID:2:151",
+                                        "type": "VARIABLE_ALIAS"
+                                      }
+                                    },
+                                    "color": {
+                                      "b": 0.8156999945640564,
+                                      "g": 0.7685999870300293,
+                                      "r": 0.7922000288963318
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "fontName": {
+                                  "family": "Sarasa Gothic SC",
+                                  "style": "Regular"
+                                },
+                                "fontSize": 13,
+                                "height": 16,
+                                "id": "110:105",
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "lineHeight": {
+                                  "unit": "AUTO"
+                                },
+                                "name": "value",
+                                "textAlignHorizontal": "LEFT",
+                                "textAlignVertical": "TOP",
+                                "type": "TEXT",
+                                "width": 91,
+                                "x": 219,
+                                "y": 20
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "fills": [
+                                      {
+                                        "blendMode": "NORMAL",
+                                        "color": {
+                                          "b": 0.8156862854957581,
+                                          "g": 0.7686274647712708,
+                                          "r": 0.7921568751335144
+                                        },
+                                        "opacity": 1,
+                                        "type": "SOLID",
+                                        "visible": true
+                                      }
+                                    ],
+                                    "height": 9.291666984558105,
+                                    "id": "110:107",
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "name": "Vector",
+                                    "type": "VECTOR",
+                                    "width": 5.458333492279053,
+                                    "x": 7.020833492279053,
+                                    "y": 5.354166030883789
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "counterAxisAlignItems": "MIN",
+                                "counterAxisSizingMode": "FIXED",
+                                "height": 20,
+                                "id": "110:106",
+                                "itemSpacing": 0,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "layoutMode": "NONE",
+                                "name": "chevron",
+                                "primaryAxisAlignItems": "MIN",
+                                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                "type": "FRAME",
+                                "width": 20,
+                                "x": 322,
+                                "y": 18
+                              }
+                            ],
+                            "clipsContent": true,
+                            "counterAxisAlignItems": "CENTER",
+                            "counterAxisSizingMode": "FIXED",
+                            "height": 56,
+                            "id": "110:100",
+                            "itemSpacing": 12,
                             "layoutAlign": "STRETCH",
                             "layoutGrow": 0,
                             "layoutMode": "HORIZONTAL",
@@ -20791,13 +21265,13 @@
                                   }
                                 ],
                                 "height": 1,
-                                "id": "108:464",
+                                "id": "110:109",
                                 "layoutAlign": "AUTO",
                                 "layoutGrow": 1,
                                 "name": "line",
                                 "type": "RECTANGLE",
-                                "width": 326,
-                                "x": 16,
+                                "width": 286,
+                                "x": 56,
                                 "y": 0
                               }
                             ],
@@ -20805,7 +21279,7 @@
                             "counterAxisAlignItems": "MIN",
                             "counterAxisSizingMode": "FIXED",
                             "height": 1,
-                            "id": "108:463",
+                            "id": "110:108",
                             "itemSpacing": 0,
                             "layoutAlign": "STRETCH",
                             "layoutGrow": 0,
@@ -20821,7 +21295,85 @@
                           {
                             "children": [
                               {
-                                "characters": "本地唤醒词模型",
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "fills": [
+                                          {
+                                            "blendMode": "NORMAL",
+                                            "color": {
+                                              "b": 1,
+                                              "g": 1,
+                                              "r": 1
+                                            },
+                                            "opacity": 1,
+                                            "type": "SOLID",
+                                            "visible": true
+                                          }
+                                        ],
+                                        "height": 14.250000953674316,
+                                        "id": "110:113",
+                                        "layoutAlign": "AUTO",
+                                        "layoutGrow": 0,
+                                        "name": "Vector",
+                                        "type": "VECTOR",
+                                        "width": 10.399038314819336,
+                                        "x": 3.800480842590332,
+                                        "y": 1.5
+                                      }
+                                    ],
+                                    "clipsContent": true,
+                                    "counterAxisAlignItems": "MIN",
+                                    "counterAxisSizingMode": "FIXED",
+                                    "height": 18,
+                                    "id": "110:112",
+                                    "itemSpacing": 0,
+                                    "layoutAlign": "AUTO",
+                                    "layoutGrow": 0,
+                                    "layoutMode": "NONE",
+                                    "name": "icon",
+                                    "primaryAxisAlignItems": "MIN",
+                                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                                    "type": "FRAME",
+                                    "width": 18,
+                                    "x": 5,
+                                    "y": 5
+                                  }
+                                ],
+                                "clipsContent": true,
+                                "cornerRadius": 7,
+                                "counterAxisAlignItems": "CENTER",
+                                "counterAxisSizingMode": "FIXED",
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "color": {
+                                      "b": 0.4627451002597809,
+                                      "g": 0.9019607901573181,
+                                      "r": 0
+                                    },
+                                    "opacity": 1,
+                                    "type": "SOLID",
+                                    "visible": true
+                                  }
+                                ],
+                                "height": 28,
+                                "id": "110:111",
+                                "itemSpacing": 0,
+                                "layoutAlign": "AUTO",
+                                "layoutGrow": 0,
+                                "layoutMode": "HORIZONTAL",
+                                "name": "icon_sq",
+                                "primaryAxisAlignItems": "CENTER",
+                                "primaryAxisSizingMode": "FIXED",
+                                "type": "FRAME",
+                                "width": 28,
+                                "x": 16,
+                                "y": 14
+                              },
+                              {
+                                "characters": "唤醒词",
                                 "fills": [
                                   {
                                     "blendMode": "NORMAL",
@@ -20847,7 +21399,7 @@
                                 },
                                 "fontSize": 15,
                                 "height": 18,
-                                "id": "108:466",
+                                "id": "110:114",
                                 "layoutAlign": "AUTO",
                                 "layoutGrow": 1,
                                 "lineHeight": {
@@ -20857,8 +21409,8 @@
                                 "textAlignHorizontal": "LEFT",
                                 "textAlignVertical": "TOP",
                                 "type": "TEXT",
-                                "width": 251,
-                                "x": 16,
+                                "width": 203,
+                                "x": 56,
                                 "y": 19
                               },
                               {
@@ -20888,7 +21440,7 @@
                                 },
                                 "fontSize": 13,
                                 "height": 16,
-                                "id": "108:467",
+                                "id": "110:115",
                                 "layoutAlign": "AUTO",
                                 "layoutGrow": 0,
                                 "lineHeight": {
@@ -20899,7 +21451,7 @@
                                 "textAlignVertical": "TOP",
                                 "type": "TEXT",
                                 "width": 39,
-                                "x": 275,
+                                "x": 271,
                                 "y": 20
                               },
                               {
@@ -20919,7 +21471,7 @@
                                       }
                                     ],
                                     "height": 9.291666984558105,
-                                    "id": "108:469",
+                                    "id": "110:117",
                                     "layoutAlign": "AUTO",
                                     "layoutGrow": 0,
                                     "name": "Vector",
@@ -20933,7 +21485,7 @@
                                 "counterAxisAlignItems": "MIN",
                                 "counterAxisSizingMode": "FIXED",
                                 "height": 20,
-                                "id": "108:468",
+                                "id": "110:116",
                                 "itemSpacing": 0,
                                 "layoutAlign": "AUTO",
                                 "layoutGrow": 0,
@@ -20951,8 +21503,8 @@
                             "counterAxisAlignItems": "CENTER",
                             "counterAxisSizingMode": "FIXED",
                             "height": 56,
-                            "id": "108:465",
-                            "itemSpacing": 8,
+                            "id": "110:110",
+                            "itemSpacing": 12,
                             "layoutAlign": "STRETCH",
                             "layoutGrow": 0,
                             "layoutMode": "HORIZONTAL",
@@ -20989,7 +21541,7 @@
                           }
                         ],
                         "height": 113,
-                        "id": "108:452",
+                        "id": "110:99",
                         "itemSpacing": 0,
                         "layoutAlign": "STRETCH",
                         "layoutGrow": 0,
@@ -21000,13 +21552,13 @@
                         "type": "FRAME",
                         "width": 358,
                         "x": 16,
-                        "y": 547
+                        "y": 484
                       }
                     ],
                     "clipsContent": true,
                     "counterAxisAlignItems": "MIN",
                     "counterAxisSizingMode": "FIXED",
-                    "height": 660,
+                    "height": 597,
                     "id": "108:368",
                     "itemSpacing": 24,
                     "layoutAlign": "STRETCH",
@@ -21043,7 +21595,7 @@
                     "visible": true
                   }
                 ],
-                "height": 708,
+                "height": 645,
                 "id": "108:363",
                 "itemSpacing": 0,
                 "layoutAlign": "AUTO",

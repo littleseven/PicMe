@@ -29,6 +29,12 @@ import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.CenterFocusStrong
 import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material.icons.rounded.Sell
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.Timer
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Face
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Memory
@@ -65,6 +71,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -483,6 +490,7 @@ private fun SettingsContent(
                 var showProfileDialog by remember { mutableStateOf(false) }
                 var showTaggerDialog by remember { mutableStateOf(false) }
 
+                // ── 组1 检测模型：ROI / 关键点 / 模型中心 ──
                 SettingsListSection {
                     SettingsListRow(
                         title = stringResource(R.string.stage_roi_title),
@@ -507,44 +515,62 @@ private fun SettingsContent(
                         iconBlockColor = AppColors.vibrantGreen,
                         subtitle = stringResource(R.string.model_center_desc)
                     )
-                    SettingsListDivider()
+                }
+
+                // ── 组2 检测策略：关键点模式 / 动态间隔 / 档位 ──
+                SettingsListSection {
                     DebugOptionRow(
                         title = stringResource(R.string.face_landmark_mode),
                         checked = faceDetectionLandmarkModeEnabled,
                         onCheckedChange = onFaceDetectionLandmarkModeEnabledChange,
-                        horizontalPadding = 16.dp
+                        horizontalPadding = SettingsTokens.listRowPaddingH,
+                        rowHeight = SettingsTokens.listRowHeight,
+                        icon = Icons.Rounded.Speed,
+                        iconBlockColor = AppColors.vibrantBlue
                     )
+                    SettingsListDivider()
                     DebugOptionRow(
                         title = stringResource(R.string.adaptive_face_detect_interval),
                         checked = adaptiveFaceDetectionIntervalEnabled,
                         onCheckedChange = onAdaptiveFaceDetectionIntervalEnabledChange,
-                        horizontalPadding = 16.dp
+                        horizontalPadding = SettingsTokens.listRowPaddingH,
+                        rowHeight = SettingsTokens.listRowHeight,
+                        icon = Icons.Rounded.Timer,
+                        iconBlockColor = AppColors.vibrantBlue
                     )
                     if (adaptiveFaceDetectionIntervalEnabled) {
                         SettingsListDivider()
                         SettingsListRow(
                             title = stringResource(R.string.face_detect_profile_title),
                             onClick = { showProfileDialog = true },
+                            icon = Icons.Rounded.Tune,
+                            iconBlockColor = AppColors.vibrantBlue,
                             valueText = profileLabel(faceDetectIntervalProfile)
                         )
                     }
                 }
 
+                // ── 组3 照片打标 ──
                 SettingsListSection {
                     SettingsListRow(
                         title = stringResource(R.string.tagging_model_label),
                         onClick = { showTaggerDialog = true },
+                        icon = Icons.Rounded.Sell,
+                        iconBlockColor = AppColors.vibrantOrange,
                         valueText = taggerLabel(taggerModelKey)
                     )
                 }
 
+                // ── 组4 语音：语音识别 / 唤醒词 ──
                 SettingsListSection {
                     VoiceModelRow(
                         title = stringResource(R.string.local_asr_model),
                         tag = "asr",
                         currentModel = localAsrModel,
                         onModelSelected = onLocalAsrModelChange,
-                        onNavigateToModelCenter = { onNavigateToModelCenter("Audio") }
+                        onNavigateToModelCenter = { onNavigateToModelCenter("Audio") },
+                        icon = Icons.Rounded.GraphicEq,
+                        iconBlockColor = AppColors.vibrantGreen
                     )
                     SettingsListDivider()
                     VoiceModelRow(
@@ -552,7 +578,9 @@ private fun SettingsContent(
                         tag = "kws",
                         currentModel = localKwsModel,
                         onModelSelected = onLocalKwsModelChange,
-                        onNavigateToModelCenter = { onNavigateToModelCenter("Audio") }
+                        onNavigateToModelCenter = { onNavigateToModelCenter("Audio") },
+                        icon = Icons.Rounded.Mic,
+                        iconBlockColor = AppColors.vibrantGreen
                     )
                 }
 
@@ -1634,7 +1662,9 @@ private fun VoiceModelRow(
     tag: String,
     currentModel: String,
     onModelSelected: (String) -> Unit,
-    onNavigateToModelCenter: () -> Unit
+    onNavigateToModelCenter: () -> Unit,
+    icon: ImageVector,
+    iconBlockColor: Color
 ) {
     val context = LocalContext.current
     val downloadManager = remember { LlmModelDownloadManager(context) }
@@ -1659,6 +1689,8 @@ private fun VoiceModelRow(
                 showDialog = true
             }
         },
+        icon = icon,
+        iconBlockColor = iconBlockColor,
         valueText = currentName ?: stringResource(R.string.model_pending_download)
     )
     if (showDialog) {

@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import com.mamba.picme.core.designsystem.AppColors
 import com.mamba.picme.core.designsystem.SettingsTokens
 
@@ -232,15 +233,35 @@ internal fun DebugOptionRow(
     title: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    horizontalPadding: Dp = 12.dp
+    horizontalPadding: Dp = 12.dp,
+    rowHeight: Dp = SettingsTokens.toggleRowHeight,
+    icon: ImageVector? = null,
+    iconBlockColor: Color = Color.Transparent
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(SettingsTokens.toggleRowHeight)
+            .height(rowHeight)
             .padding(horizontal = horizontalPadding),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(SettingsTokens.rowElementGap)
     ) {
+        if (icon != null) {
+            Box(
+                modifier = Modifier
+                    .size(SettingsTokens.listIconBlockSize)
+                    .clip(RoundedCornerShape(SettingsTokens.listIconBlockRadius))
+                    .background(iconBlockColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(SettingsTokens.listIconInnerSize)
+                )
+            }
+        }
         Text(
             text = title,
             style = MaterialTheme.typography.bodyMedium,
@@ -417,7 +438,9 @@ internal fun SettingsListRow(
             Text(
                 text = valueText,
                 fontSize = SettingsTokens.listValueFontSize.value.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
         Icon(

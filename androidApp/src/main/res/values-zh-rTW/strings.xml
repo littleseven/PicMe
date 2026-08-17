@@ -176,7 +176,7 @@
     <string name="debug_tools">調試工具</string>
     <string name="show_debug_tools">顯示調試入口</string>
     <string name="test_data_tools">測試資料工具</string>
-    <string name="face_landmark_mode">人臉關鍵點模式（更快）</string>
+    <string name="face_landmark_mode">人臉關鍵點模式</string>
     <string name="adaptive_face_detect_interval">動態人臉檢測間隔</string>
     <string name="face_detect_profile_title">動態間隔強度檔位</string>
     <string name="face_detect_profile_conservative">保守</string>
@@ -465,9 +465,9 @@
     <string name="asr_input_device_bluetooth">已連接藍牙耳機</string>
     <string name="asr_input_device_wired">已連接有线耳機</string>
     <string name="asr_input_device_builtin">使用手機麥克風</string>
-    <string name="local_asr_model">本地語音識別模型</string>
+    <string name="local_asr_model">語音識別</string>
     <string name="local_asr_model_fallback">未下載本地 ASR 模型，將自動回退到系統語音識別。</string>
-<string name="local_kws_model">本地喚醒詞模型</string>
+<string name="local_kws_model">喚醒詞</string>
 <string name="local_kws_model_fallback">未下載本地 KWS 喚醒詞模型，語音喚醒功能將不可用。</string>
 <string name="asr_model_manager">ASR 模型管理</string>
 <string name="asr_model_manager_desc">下載和管理端側語音識別模型。</string>
@@ -739,7 +739,7 @@
     <string name="face_detection_models_desc">選擇人臉偵測模型與推論裝置，調關鍵點與偵測節奏。</string>
     <string name="photo_tagging">照片打標</string>
     <string name="photo_tagging_desc">自動辨識照片內容，產生場景、物體、人物、活動、美學等標籤，用於搜尋與分類。</string>
-    <string name="tagging_model_label">打標模型</string>
+    <string name="tagging_model_label">照片打標</string>
     <string name="voice_models">語音</string>
     <string name="sandbox_settings_desc">自動執行、JS 引擎、裝置存取。</string>
     <string name="sandbox_execution">執行</string>
@@ -928,7 +928,7 @@
     <string name="cd_remove_pending_image">移除已選圖片</string>
     <string name="tag_viewer_title">標籤查看</string>
     <string name="tag_model_selector_title">打標模型</string>
-    <string name="tag_model_auto">自動（Florence-2 優先）</string>
+    <string name="tag_model_auto">Florence-2 優先</string>
     <string name="tag_viewer_tab_photos">照片</string>
     <string name="tag_viewer_tab_tags">標籤聚合</string>
     <string name="tag_viewer_search_hint">搜尋檔名或標籤</string>

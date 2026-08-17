@@ -179,7 +179,7 @@
     <string name="debug_tools">Debug Tools</string>
     <string name="show_debug_tools">Show debug entries</string>
     <string name="test_data_tools">Test Data Tools</string>
-    <string name="face_landmark_mode">Face landmark mode (faster)</string>
+    <string name="face_landmark_mode">Face landmark mode</string>
     <string name="adaptive_face_detect_interval">Adaptive face detect interval</string>
     <string name="face_detect_profile_title">Adaptive interval profile</string>
     <string name="face_detect_profile_conservative">Conservative</string>
@@ -513,9 +513,9 @@
     <string name="asr_input_device_bluetooth">Bluetooth headset connected</string>
     <string name="asr_input_device_wired">Wired headset connected</string>
     <string name="asr_input_device_builtin">Using phone microphone</string>
-    <string name="local_asr_model">Local ASR Model</string>
+    <string name="local_asr_model">Speech Recognition</string>
     <string name="local_asr_model_fallback">No local ASR model downloaded. Tap below to download.</string>
-<string name="local_kws_model">Local KWS Model</string>
+<string name="local_kws_model">Wake Word</string>
 <string name="local_kws_model_fallback">No local KWS model downloaded. Tap below to download.</string>
     <string name="asr_model_manager">ASR Model Manager</string>
     <string name="asr_model_manager_desc">Download and manage on-device speech recognition models.</string>
@@ -767,7 +767,7 @@
     <string name="face_detection_models_desc">Choose face detection models and device; tune landmarks and cadence.</string>
     <string name="photo_tagging">Photo Tagging</string>
     <string name="photo_tagging_desc">Auto-detect photo content into tags (scene, objects, people, activity, aesthetic) for search and grouping.</string>
-    <string name="tagging_model_label">Tagging model</string>
+    <string name="tagging_model_label">Photo Tagging</string>
     <string name="voice_models">Voice</string>
     <string name="sandbox_settings_desc">Auto-execute, JS engine, device access.</string>
     <string name="sandbox_execution">Execution</string>
@@ -956,7 +956,7 @@
     <string name="cd_remove_pending_image">Remove selected image</string>
     <string name="tag_viewer_title">Tag Viewer</string>
     <string name="tag_model_selector_title">Tagging Model</string>
-    <string name="tag_model_auto">Auto (Florence-2 preferred)</string>
+    <string name="tag_model_auto">Florence-2 preferred</string>
     <string name="tag_viewer_tab_photos">Photos</string>
     <string name="tag_viewer_tab_tags">Tags</string>
     <string name="tag_viewer_search_hint">Search file name or tag</string>
