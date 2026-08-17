@@ -52,9 +52,10 @@
     <string name="inference_engine_mnn">MNN (Supports CPU/GPU)</string>
     <string name="inference_device_preference">Device Preference</string>
     <string name="settings_inference_device_preference_desc">Force inference engine to use CPU or GPU, or let it choose automatically.</string>
-    <string name="device_preference_auto">Auto (Default)</string>
-    <string name="device_preference_force_cpu">Force CPU</string>
-    <string name="device_preference_force_gpu">Force GPU</string>
+    <string name="device_preference_auto">Auto</string>
+    <string name="device_preference_force_cpu">CPU</string>
+    <string name="device_preference_force_gpu">GPU</string>
+    <string name="model_pending_download">Not downloaded</string>
     <string name="stage_roi_title">ROI Detection</string>
     <string name="stage_roi_desc">Configure ROI detection model, engine and device.</string>
     <string name="stage_landmark_title">Landmark Detection</string>

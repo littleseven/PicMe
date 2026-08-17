@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -44,8 +45,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
+import com.mamba.picme.core.designsystem.AppColors
 import com.mamba.picme.core.designsystem.SettingsTokens
 
 @Composable
@@ -227,13 +231,14 @@ internal fun <T> CompactMultiSelectChips(
 internal fun DebugOptionRow(
     title: String,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit,
+    horizontalPadding: Dp = 12.dp
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(44.dp)
-            .padding(horizontal = 12.dp),
+            .height(SettingsTokens.toggleRowHeight)
+            .padding(horizontal = horizontalPadding),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -354,46 +359,60 @@ internal fun SettingsListSection(content: @Composable () -> Unit) {
 }
 
 /**
- * 列表行：彩色圆角图标块（白色内图标）+ 标题 + 可选右值 + chevron。
+ * 列表行：彩色圆角图标块（白色内图标，可省略）+ 标题（可带副标题）+ 可选右值 + chevron。
  * 图标块色映射（行→AppColors/StatusColor/colorScheme 角色）双端保持一致，不入 token。
  */
 @Composable
 internal fun SettingsListRow(
     title: String,
-    icon: ImageVector,
-    iconBlockColor: Color,
     onClick: () -> Unit,
-    valueText: String? = null
+    icon: ImageVector? = null,
+    iconBlockColor: Color = Color.Transparent,
+    valueText: String? = null,
+    subtitle: String? = null
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(SettingsTokens.listRowHeight)
+            .height(if (subtitle != null) SettingsTokens.rowHeightWithSubtitle else SettingsTokens.listRowHeight)
             .clickable(onClick = onClick)
             .padding(horizontal = SettingsTokens.listRowPaddingH),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(SettingsTokens.rowElementGap)
     ) {
-        Box(
-            modifier = Modifier
-                .size(SettingsTokens.listIconBlockSize)
-                .clip(RoundedCornerShape(SettingsTokens.listIconBlockRadius))
-                .background(iconBlockColor),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(SettingsTokens.listIconInnerSize)
-            )
+        if (icon != null) {
+            Box(
+                modifier = Modifier
+                    .size(SettingsTokens.listIconBlockSize)
+                    .clip(RoundedCornerShape(SettingsTokens.listIconBlockRadius))
+                    .background(iconBlockColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(SettingsTokens.listIconInnerSize)
+                )
+            }
         }
-        Text(
-            text = title,
-            fontSize = SettingsTokens.listTitleFontSize.value.sp,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f)
-        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = title,
+                fontSize = SettingsTokens.listTitleFontSize.value.sp,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
         if (valueText != null) {
             Text(
                 text = valueText,
@@ -422,3 +441,4 @@ internal fun SettingsListDivider() {
         thickness = 1.dp
     )
 }
+

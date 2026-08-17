@@ -53,9 +53,10 @@
     <string name="inference_engine_mnn">MNN (支持 CPU/GPU)</string>
     <string name="inference_device_preference">设备偏好</string>
     <string name="settings_inference_device_preference_desc">强制推理引擎使用 CPU 或 GPU，或让其自动选择。</string>
-    <string name="device_preference_auto">自动（默认）</string>
-    <string name="device_preference_force_cpu">强制 CPU</string>
-    <string name="device_preference_force_gpu">强制 GPU</string>
+    <string name="device_preference_auto">自动</string>
+    <string name="device_preference_force_cpu">CPU</string>
+    <string name="device_preference_force_gpu">GPU</string>
+    <string name="model_pending_download">待下载</string>
     <string name="stage_roi_title">ROI 检测</string>
     <string name="stage_roi_desc">配置 ROI 检测的模型、推理引擎和设备。</string>
     <string name="stage_landmark_title">关键点检测</string>

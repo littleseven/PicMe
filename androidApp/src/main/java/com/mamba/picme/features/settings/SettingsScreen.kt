@@ -27,7 +27,9 @@ import androidx.compose.material.icons.rounded.Accessibility
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.CenterFocusStrong
 import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.Face
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.AccountCircle
@@ -62,6 +64,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -78,7 +81,9 @@ import com.mamba.picme.core.designsystem.PoLangTheme
 import com.mamba.picme.core.designsystem.SettingsTokens
 import com.mamba.picme.core.designsystem.StatusColor
 import com.mamba.picme.data.download.DownloadState
+import com.mamba.picme.data.download.DownloadStatus
 import com.mamba.picme.data.download.ModelConfig
+import com.mamba.picme.data.download.LlmModelDownloadManager
 import com.mamba.picme.domain.model.AppLanguage
 import com.mamba.picme.domain.model.DetectionModelType
 import com.mamba.picme.domain.model.DetectionStage
@@ -471,94 +476,140 @@ private fun SettingsContent(
                 // 自动执行多步骤计划已迁入「沙盒与权限」一级入口
             }
 
-            // ── 3. 本地模型（用户侧一级入口）────────────────────────
+            // ── 3. 本地模型（用户侧一级入口，2026-08-17 拍平为行式，与设置主页同构）──
             if (category == SettingsCategory.LOCAL_MODEL) {
-                // ── 1. 人脸检测：检测模型 + 关键点 + 自适应节奏 ──
-                SettingsSection(
-                    title = stringResource(R.string.face_detection),
-                    description = stringResource(R.string.face_detection_models_desc)
-                ) {
-                    StageConfigSection(
-                        stage = DetectionStage.ROI,
-                        config = roiStageConfig,
-                        onModelTypeSelected = onRoiModelTypeSelected,
-                        onDevicePreferenceSelected = onRoiDevicePreferenceSelected,
-                        onNavigateToModelManager = onNavigateToModelCenter,
-                        isModelDownloaded = isModelDownloaded,
-                        getModelId = getModelId,
-                        downloadModel = downloadModel,
-                        downloadStates = downloadStates,
-                        allModels = allModels
-                    )
+                var showRoiDialog by remember { mutableStateOf(false) }
+                var showLandmarkDialog by remember { mutableStateOf(false) }
+                var showProfileDialog by remember { mutableStateOf(false) }
+                var showTaggerDialog by remember { mutableStateOf(false) }
 
-                    StageConfigSection(
-                        stage = DetectionStage.LANDMARK,
-                        config = landmarkStageConfig,
-                        onModelTypeSelected = onLandmarkModelTypeSelected,
-                        onDevicePreferenceSelected = onLandmarkDevicePreferenceSelected,
-                        onNavigateToModelManager = onNavigateToModelCenter,
-                        isModelDownloaded = isModelDownloaded,
-                        getModelId = getModelId,
-                        downloadModel = downloadModel,
-                        downloadStates = downloadStates,
-                        allModels = allModels
+                SettingsListSection {
+                    SettingsListRow(
+                        title = stringResource(R.string.stage_roi_title),
+                        onClick = { showRoiDialog = true },
+                        icon = Icons.Rounded.Face,
+                        iconBlockColor = AppColors.vibrantBlue,
+                        valueText = stageModelLabel(roiStageConfig.modelType)
                     )
-
+                    SettingsListDivider()
+                    SettingsListRow(
+                        title = stringResource(R.string.stage_landmark_title),
+                        onClick = { showLandmarkDialog = true },
+                        icon = Icons.Rounded.CenterFocusStrong,
+                        iconBlockColor = AppColors.vibrantPink,
+                        valueText = stageModelLabel(landmarkStageConfig.modelType)
+                    )
+                    SettingsListDivider()
+                    SettingsListRow(
+                        title = stringResource(R.string.model_center),
+                        onClick = { onNavigateToModelCenter("Vision") },
+                        icon = Icons.Rounded.CloudDownload,
+                        iconBlockColor = AppColors.vibrantGreen,
+                        subtitle = stringResource(R.string.model_center_desc)
+                    )
+                    SettingsListDivider()
                     DebugOptionRow(
                         title = stringResource(R.string.face_landmark_mode),
                         checked = faceDetectionLandmarkModeEnabled,
-                        onCheckedChange = onFaceDetectionLandmarkModeEnabledChange
+                        onCheckedChange = onFaceDetectionLandmarkModeEnabledChange,
+                        horizontalPadding = 16.dp
                     )
                     DebugOptionRow(
                         title = stringResource(R.string.adaptive_face_detect_interval),
                         checked = adaptiveFaceDetectionIntervalEnabled,
-                        onCheckedChange = onAdaptiveFaceDetectionIntervalEnabledChange
+                        onCheckedChange = onAdaptiveFaceDetectionIntervalEnabledChange,
+                        horizontalPadding = 16.dp
                     )
                     if (adaptiveFaceDetectionIntervalEnabled) {
-                        FaceDetectProfileSelection(
-                            currentProfile = faceDetectIntervalProfile,
-                            onProfileSelected = onFaceDetectIntervalProfileSelected
+                        SettingsListDivider()
+                        SettingsListRow(
+                            title = stringResource(R.string.face_detect_profile_title),
+                            onClick = { showProfileDialog = true },
+                            valueText = profileLabel(faceDetectIntervalProfile)
                         )
                     }
                 }
 
-                // ── 2. 照片打标：自动识别照片内容生成标签 ──
-                SettingsSection(
-                    title = stringResource(R.string.photo_tagging),
-                    description = stringResource(R.string.photo_tagging_desc)
-                ) {
-                    Text(
-                        text = stringResource(R.string.tagging_model_label),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 12.dp, top = 4.dp)
+                SettingsListSection {
+                    SettingsListRow(
+                        title = stringResource(R.string.tagging_model_label),
+                        onClick = { showTaggerDialog = true },
+                        valueText = taggerLabel(taggerModelKey)
                     )
-                    CompactOptionChips(
+                }
+
+                SettingsListSection {
+                    VoiceModelRow(
+                        title = stringResource(R.string.local_asr_model),
+                        tag = "asr",
+                        currentModel = localAsrModel,
+                        onModelSelected = onLocalAsrModelChange,
+                        onNavigateToModelCenter = { onNavigateToModelCenter("Audio") }
+                    )
+                    SettingsListDivider()
+                    VoiceModelRow(
+                        title = stringResource(R.string.local_kws_model),
+                        tag = "kws",
+                        currentModel = localKwsModel,
+                        onModelSelected = onLocalKwsModelChange,
+                        onNavigateToModelCenter = { onNavigateToModelCenter("Audio") }
+                    )
+                }
+
+                if (showRoiDialog) {
+                    StageConfigDialog(
+                        title = stringResource(R.string.stage_roi_title),
+                        stage = DetectionStage.ROI,
+                        config = roiStageConfig,
+                        onModelTypeSelected = onRoiModelTypeSelected,
+                        onDevicePreferenceSelected = onRoiDevicePreferenceSelected,
+                        isModelDownloaded = isModelDownloaded,
+                        getModelId = getModelId,
+                        downloadModel = downloadModel,
+                        downloadStates = downloadStates,
+                        allModels = allModels,
+                        onDismiss = { showRoiDialog = false }
+                    )
+                }
+                if (showLandmarkDialog) {
+                    StageConfigDialog(
+                        title = stringResource(R.string.stage_landmark_title),
+                        stage = DetectionStage.LANDMARK,
+                        config = landmarkStageConfig,
+                        onModelTypeSelected = onLandmarkModelTypeSelected,
+                        onDevicePreferenceSelected = onLandmarkDevicePreferenceSelected,
+                        isModelDownloaded = isModelDownloaded,
+                        getModelId = getModelId,
+                        downloadModel = downloadModel,
+                        downloadStates = downloadStates,
+                        allModels = allModels,
+                        onDismiss = { showLandmarkDialog = false }
+                    )
+                }
+                if (showProfileDialog) {
+                    SettingsSingleChoiceDialog(
+                        title = stringResource(R.string.face_detect_profile_title),
+                        options = listOf(
+                            FaceDetectIntervalProfile.CONSERVATIVE to stringResource(R.string.face_detect_profile_conservative),
+                            FaceDetectIntervalProfile.BALANCED to stringResource(R.string.face_detect_profile_balanced),
+                            FaceDetectIntervalProfile.AGGRESSIVE to stringResource(R.string.face_detect_profile_aggressive)
+                        ),
+                        isSelected = { it == faceDetectIntervalProfile },
+                        onSelected = { profile -> onFaceDetectIntervalProfileSelected(profile as FaceDetectIntervalProfile) },
+                        onDismiss = { showProfileDialog = false }
+                    )
+                }
+                if (showTaggerDialog) {
+                    SettingsSingleChoiceDialog(
+                        title = stringResource(R.string.tagging_model_label),
                         options = listOf(
                             TaggerModelSelector.AUTO to stringResource(R.string.tag_model_auto),
                             "florence2_base" to "Florence-2",
                             "qwen3_vl_2b" to "Qwen3-VL"
                         ),
-                        currentValue = taggerModelKey,
-                        maxLines = 2,
-                        onSelected = onTaggerModelKeyChange
-                    )
-                }
-
-                // ── 3. 语音：语音识别 + 唤醒词模型 ──
-                SettingsSection(
-                    title = stringResource(R.string.voice_models)
-                ) {
-                    LocalAsrModelSelection(
-                        currentModel = localAsrModel,
-                        onModelSelected = onLocalAsrModelChange,
-                        onNavigateToModelCenter = onNavigateToModelCenter
-                    )
-
-                    LocalKwsModelSelection(
-                        currentModel = localKwsModel,
-                        onModelSelected = onLocalKwsModelChange,
-                        onNavigateToModelCenter = onNavigateToModelCenter
+                        isSelected = { it == taggerModelKey },
+                        onSelected = { key -> onTaggerModelKeyChange(key as String) },
+                        onDismiss = { showTaggerDialog = false }
                     )
                 }
             }
@@ -1421,30 +1472,211 @@ private fun OpenClBackendSelection(
     )
 }
 
+/**
+ * 检测阶段配置弹窗（ROI/关键点行点击）：模型单选 + 设备偏好单选两组。
+ * 未下载模型项点击触发下载（下载中禁用），选项即时生效不关弹窗。
+ */
 @Composable
-private fun FaceDetectProfileSelection(
-    currentProfile: FaceDetectIntervalProfile,
-    onProfileSelected: (FaceDetectIntervalProfile) -> Unit
+private fun StageConfigDialog(
+    title: String,
+    stage: DetectionStage,
+    config: StageConfig,
+    onModelTypeSelected: (DetectionModelType) -> Unit,
+    onDevicePreferenceSelected: (InferenceDevicePreference) -> Unit,
+    isModelDownloaded: (DetectionModelType) -> Boolean,
+    getModelId: (DetectionModelType, DetectionStage) -> String?,
+    downloadModel: (String, ModelConfig) -> Unit,
+    downloadStates: Map<String, DownloadState>,
+    allModels: List<ModelConfig>,
+    onDismiss: () -> Unit
 ) {
-    val options = listOf(
-        FaceDetectIntervalProfile.CONSERVATIVE to stringResource(R.string.face_detect_profile_conservative),
-        FaceDetectIntervalProfile.BALANCED to stringResource(R.string.face_detect_profile_balanced),
-        FaceDetectIntervalProfile.AGGRESSIVE to stringResource(R.string.face_detect_profile_aggressive)
-    )
+    val context = LocalContext.current
+    val modelTypes = if (stage == DetectionStage.ROI) {
+        listOf(
+            DetectionModelType.MEDIAPIPE to R.string.model_mediapipe,
+            DetectionModelType.DET_500M_MNN to R.string.model_det10g_mnn
+        )
+    } else {
+        listOf(
+            DetectionModelType.MEDIAPIPE to R.string.model_mediapipe,
+            DetectionModelType.FACE_2D106_MNN to R.string.model_2d106_mnn
+        )
+    }
 
-    Text(
-        text = stringResource(R.string.face_detect_profile_title),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 12.dp, top = 2.dp, bottom = 0.dp)
-    )
+    fun selectModel(type: DetectionModelType) {
+        val isMediaPipe = type == DetectionModelType.MEDIAPIPE
+        if (isMediaPipe || isModelDownloaded(type)) {
+            onModelTypeSelected(type)
+        } else {
+            val modelId = getModelId(type, stage)
+            val modelConfig = modelId?.let { id -> allModels.find { it.id == id } }
+            if (modelConfig != null && modelId != null) {
+                downloadModel(modelId, modelConfig)
+                Toast.makeText(
+                    context,
+                    "开始下载 ${modelConfig.name}，下载完成后自动生效",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } else {
+                Toast.makeText(
+                    context,
+                    "模型配置未找到，请先进入模型管理页面下载",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
 
-    CompactOptionChips(
-        options = options,
-        currentValue = currentProfile,
-        maxLines = 1,
-        onSelected = onProfileSelected
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column {
+                Text(
+                    text = stringResource(R.string.model_type),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                modelTypes.forEach { (type, labelRes) ->
+                    val isMediaPipe = type == DetectionModelType.MEDIAPIPE
+                    val downloaded = isModelDownloaded(type) || isMediaPipe
+                    val modelId = getModelId(type, stage)
+                    val downloadState = modelId?.let { downloadStates[it] }
+                    val downloading = downloadState?.status == DownloadStatus.DOWNLOADING
+                    val progress = if (downloading && downloadState.totalBytes > 0) {
+                        (downloadState.downloadedBytes.toFloat() / downloadState.totalBytes * 100).toInt()
+                    } else {
+                        0
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = !downloading) { selectModel(type) }
+                            .padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = type == config.modelType,
+                            enabled = !downloading,
+                            onClick = { selectModel(type) }
+                        )
+                        Text(
+                            text = when {
+                                downloading -> "${stringResource(labelRes)} · $progress%"
+                                !downloaded -> "${stringResource(labelRes)} · ${stringResource(R.string.model_pending_download)}"
+                                else -> stringResource(labelRes)
+                            },
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
+                }
+                Text(
+                    text = stringResource(R.string.inference_device_preference),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 12.dp)
+                )
+                listOf(
+                    InferenceDevicePreference.AUTO to R.string.device_preference_auto,
+                    InferenceDevicePreference.FORCE_CPU to R.string.device_preference_force_cpu,
+                    InferenceDevicePreference.FORCE_GPU to R.string.device_preference_force_gpu
+                ).forEach { (preference, labelRes) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onDevicePreferenceSelected(preference) }
+                            .padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = preference == config.devicePreference,
+                            onClick = { onDevicePreferenceSelected(preference) }
+                        )
+                        Text(
+                            text = stringResource(labelRes),
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
     )
+}
+
+@Composable
+private fun stageModelLabel(type: DetectionModelType): String = stringResource(
+    when (type) {
+        DetectionModelType.MEDIAPIPE -> R.string.model_mediapipe
+        DetectionModelType.DET_500M_MNN -> R.string.model_det10g_mnn
+        DetectionModelType.FACE_2D106_MNN -> R.string.model_2d106_mnn
+    }
+)
+
+@Composable
+private fun profileLabel(profile: FaceDetectIntervalProfile): String = stringResource(
+    when (profile) {
+        FaceDetectIntervalProfile.CONSERVATIVE -> R.string.face_detect_profile_conservative
+        FaceDetectIntervalProfile.BALANCED -> R.string.face_detect_profile_balanced
+        FaceDetectIntervalProfile.AGGRESSIVE -> R.string.face_detect_profile_aggressive
+    }
+)
+
+/** 语音模型行：右值=当前模型名（无则「待下载」），已下载弹窗选择、未下载跳模型中心。 */
+@Composable
+private fun VoiceModelRow(
+    title: String,
+    tag: String,
+    currentModel: String,
+    onModelSelected: (String) -> Unit,
+    onNavigateToModelCenter: () -> Unit
+) {
+    val context = LocalContext.current
+    val downloadManager = remember { LlmModelDownloadManager(context) }
+    var downloadedModels by remember { mutableStateOf<List<ModelConfig>>(emptyList()) }
+    var showDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        downloadedModels = downloadManager.getDownloadedModels().filter { model ->
+            model.tags.any { it.equals(tag, ignoreCase = true) } ||
+                model.id.contains(tag, ignoreCase = true)
+        }
+    }
+
+    val currentName = downloadedModels.find { it.id == currentModel }?.name
+        ?: currentModel.ifBlank { null }
+    SettingsListRow(
+        title = title,
+        onClick = {
+            if (downloadedModels.isEmpty()) {
+                onNavigateToModelCenter()
+            } else {
+                showDialog = true
+            }
+        },
+        valueText = currentName ?: stringResource(R.string.model_pending_download)
+    )
+    if (showDialog) {
+        SettingsSingleChoiceDialog(
+            title = title,
+            options = downloadedModels.map { it.id to it.name },
+            isSelected = { it == currentModel },
+            onSelected = { value -> onModelSelected(value as String) },
+            onDismiss = { showDialog = false }
+        )
+    }
+}
+
+@Composable
+private fun taggerLabel(key: String): String = when (key) {
+    "florence2_base" -> "Florence-2"
+    "qwen3_vl_2b" -> "Qwen3-VL"
+    else -> stringResource(R.string.tag_model_auto)
 }
 
 @Composable

@@ -1,6 +1,6 @@
 {
   "endpoint": "http://127.0.0.1:50501/api/v1/mcp",
-  "exportedAt": "2026-08-17T20:28:29+08:00",
+  "exportedAt": "2026-08-17T21:46:34+08:00",
   "file": {
     "id": "715061534788814",
     "name": "polang-ui-spec",
@@ -99,11 +99,6 @@
     {
       "frames": [
         {
-          "id": "108:3",
-          "name": "settings/main",
-          "png": "settings-main.png"
-        },
-        {
           "id": "108:94",
           "name": "settings/main_list",
           "png": "settings-main_list.png"
@@ -119,5 +114,5 @@
     }
   ],
   "scale": 1,
-  "structureSha256": "d6242377569c9509db42b9f67c567d0fcdd64cd807015edbea600fae168e774c"
+  "structureSha256": "eab7ca59f2c8d574549156567261b1957c15314132e368c6aacfdab658f3c262"
 }
