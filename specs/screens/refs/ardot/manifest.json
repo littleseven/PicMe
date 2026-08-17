@@ -1,11 +1,11 @@
 {
   "endpoint": "http://127.0.0.1:50501/api/v1/mcp",
-  "exportedAt": "2026-08-17T22:12:30+08:00",
+  "exportedAt": "2026-08-17T22:26:46+08:00",
   "file": {
     "id": "715061534788814",
     "name": "polang-ui-spec",
     "permission": "readwrite",
-    "url": "cocraft://localhost/file/715061534788814?node_id=108%3A1"
+    "url": "cocraft://localhost/file/715061534788814?node_id=111%3A319"
   },
   "note": "云端画布为编辑工作区；本目录快照由 export-ardot-snapshot.py 生成（多页聚合，2026-08-16 起），重跑覆盖。变量 SSOT=shared/src/commonMain/resources/design-tokens.json，不在本快照内。",
   "pages": [
@@ -99,6 +99,22 @@
     {
       "frames": [
         {
+          "id": "111:321",
+          "name": "chat/empty",
+          "png": "chat-empty.png"
+        },
+        {
+          "id": "111:383",
+          "name": "chat/conversation",
+          "png": "chat-conversation.png"
+        }
+      ],
+      "id": "111:319",
+      "name": "Chat"
+    },
+    {
+      "frames": [
+        {
           "id": "108:94",
           "name": "settings/main_list",
           "png": "settings-main_list.png"
@@ -125,13 +141,18 @@
         },
         {
           "id": "111:276",
-          "name": "settings/dialog_option",
-          "png": "settings-dialog_option.png"
+          "name": "settings/dialog_language",
+          "png": "settings-dialog_language.png"
         },
         {
           "id": "111:294",
           "name": "settings/dialog_stage",
           "png": "settings-dialog_stage.png"
+        },
+        {
+          "id": "111:446",
+          "name": "settings/dialog_theme",
+          "png": "settings-dialog_theme.png"
         }
       ],
       "id": "108:1",
@@ -139,5 +160,5 @@
     }
   ],
   "scale": 1,
-  "structureSha256": "eed5c9700bad7e3c316f5dc5351bf67c4db6f26eabef4f541c32033135825031"
+  "structureSha256": "2af99add5268da638f3d17f05c234398c367f8cb845017dd655ce0822c4f99cb"
 }
