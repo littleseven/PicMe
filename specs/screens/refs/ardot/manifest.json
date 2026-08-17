@@ -1,6 +1,6 @@
 {
   "endpoint": "http://127.0.0.1:50501/api/v1/mcp",
-  "exportedAt": "2026-08-17T22:26:46+08:00",
+  "exportedAt": "2026-08-17T22:37:35+08:00",
   "file": {
     "id": "715061534788814",
     "name": "polang-ui-spec",
@@ -107,6 +107,11 @@
           "id": "111:383",
           "name": "chat/conversation",
           "png": "chat-conversation.png"
+        },
+        {
+          "id": "111:492",
+          "name": "chat/sidebar",
+          "png": "chat-sidebar.png"
         }
       ],
       "id": "111:319",
@@ -160,5 +165,5 @@
     }
   ],
   "scale": 1,
-  "structureSha256": "2af99add5268da638f3d17f05c234398c367f8cb845017dd655ce0822c4f99cb"
+  "structureSha256": "a05daea4f21699abc7730cd16a94f3557c396afecd31cb925cdfcdbb86de80ce"
 }
