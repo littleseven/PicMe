@@ -1,8 +1,7 @@
 {
   "_comment": "PoLang 双端 Design Token SSOT。Android/iOS 各自从此文件同步到代码常量。修改 token 时先改此文件，再两端同步。完整提取方法学/漂移记录见 docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md。",
-  "_version": "2.2.0",
-  "_updated": "2026-08-17",
-
+  "_version": "2.2.1",
+  "_updated": "2026-08-18",
   "spacing": {
     "_comment": "语义间距阶梯。屏幕级 padding 多为 md(12)/lg(16)，组件内 gap 多为 sm(8)。",
     "xs": 4,
@@ -12,7 +11,6 @@
     "xl": 24,
     "xxl": 32
   },
-
   "radius": {
     "_comment": "圆角阶梯。panel=底部面板顶角; card=卡片/模型卡; button=按钮/标签; small=辅助元素; thumbnail=网格缩略图。",
     "panel": 24,
@@ -21,14 +19,12 @@
     "small": 8,
     "thumbnail": 2
   },
-
   "icon": {
     "sm": 18,
     "md": 22,
     "lg": 24,
     "xl": 32
   },
-
   "topBar": {
     "_comment": "AppTopBar 通用顶栏（Gallery/Settings/Editor 共享）。titleFontSize 17sp 为非 M3 标准定制值。",
     "height": 48,
@@ -39,7 +35,6 @@
     "spacing": 8,
     "horizontalPadding": 8
   },
-
   "shutter": {
     "_comment": "相机快门。diameter=外环; innerDiameter=照片态内核; 录像态内核缩为 28dp 4dp 圆角方。",
     "diameter": 76,
@@ -51,7 +46,6 @@
     "flashAlpha": 0.6,
     "flashFadeMs": 80
   },
-
   "beautyPanel": {
     "_comment": "相机美颜面板容器。slider 控件完整规格见 appSlider。",
     "topCornerRadius": 24,
@@ -62,14 +56,12 @@
     "heightRatioMin": 0.2,
     "heightRatioMax": 0.75
   },
-
   "grid": {
     "_comment": "相册/搜索网格。方形 Crop，minCellSize 控制列数。",
     "minCellSize": 110,
     "spacing": 2,
     "cornerRadius": 2
   },
-
   "searchField": {
     "_comment": "SearchTopBar 内嵌胶囊搜索框（Gallery/Chat 共用 SearchField）。ios-follow gallery-search 2026-08-11 自 Android SearchField.kt 反向提取。颜色全走 colorScheme 角色：bg=surfaceVariant@0.7，icon/placeholder/clear=onSurface@0.5/0.4/0.5，cursor=primary。",
     "cornerRadius": 24,
@@ -86,7 +78,6 @@
     "resultCountAlpha": 0.6,
     "resultCountGap": 8
   },
-
   "pager": {
     "_comment": "4 页 App Shell（Camera=0/Gallery=1/Chat=2/People=3）HorizontalPager。",
     "pageSpacing": 16,
@@ -94,7 +85,6 @@
     "overlayMaxWidth": 400,
     "overlayMaxHeight": 500
   },
-
   "color": {
     "_comment": "不随主题切换的固定功能色。随主题切换的语义色见 colorScheme。",
     "focusRing": "#FF00E5FF",
@@ -106,92 +96,164 @@
     "vibrantOrange": "#FFFF9100",
     "vibrantPink": "#FFFF4081"
   },
-
   "typography": {
     "_comment": "M3 baseline 字号阶梯。仅 bodyLarge 为定制（Typography.kt），其余皆为 M3 默认。size/lineHeight/letterSpacing 单位 sp。iOS 映射：role→(size, weight→SwiftUI Font.Weight: Normal=.regular, Medium=.medium)。",
-    "displayLarge":  { "size": 57, "lineHeight": 64, "weight": "Normal", "letterSpacing": -0.25 },
-    "displayMedium": { "size": 45, "lineHeight": 52, "weight": "Normal", "letterSpacing": 0 },
-    "displaySmall":  { "size": 36, "lineHeight": 44, "weight": "Normal", "letterSpacing": 0 },
-    "headlineLarge": { "size": 32, "lineHeight": 40, "weight": "Normal", "letterSpacing": 0 },
-    "headlineMedium":{ "size": 28, "lineHeight": 36, "weight": "Normal", "letterSpacing": 0 },
-    "headlineSmall": { "size": 24, "lineHeight": 32, "weight": "Normal", "letterSpacing": 0 },
-    "titleLarge":    { "size": 22, "lineHeight": 28, "weight": "Normal", "letterSpacing": 0 },
-    "titleMedium":   { "size": 16, "lineHeight": 24, "weight": "Medium", "letterSpacing": 0.15 },
-    "titleSmall":    { "size": 14, "lineHeight": 20, "weight": "Medium", "letterSpacing": 0.1 },
-    "bodyLarge":     { "size": 16, "lineHeight": 24, "weight": "Normal", "letterSpacing": 0.5 },
-    "bodyMedium":    { "size": 14, "lineHeight": 20, "weight": "Normal", "letterSpacing": 0.25 },
-    "bodySmall":     { "size": 12, "lineHeight": 16, "weight": "Normal", "letterSpacing": 0.4 },
-    "labelLarge":    { "size": 14, "lineHeight": 20, "weight": "Medium", "letterSpacing": 0.1 },
-    "labelMedium":   { "size": 12, "lineHeight": 16, "weight": "Medium", "letterSpacing": 0.5 },
-    "labelSmall":    { "size": 11, "lineHeight": 16, "weight": "Medium", "letterSpacing": 0.5 }
+    "displayLarge": {
+      "size": 57,
+      "lineHeight": 64,
+      "weight": "Normal",
+      "letterSpacing": -0.25
+    },
+    "displayMedium": {
+      "size": 45,
+      "lineHeight": 52,
+      "weight": "Normal",
+      "letterSpacing": 0
+    },
+    "displaySmall": {
+      "size": 36,
+      "lineHeight": 44,
+      "weight": "Normal",
+      "letterSpacing": 0
+    },
+    "headlineLarge": {
+      "size": 32,
+      "lineHeight": 40,
+      "weight": "Normal",
+      "letterSpacing": 0
+    },
+    "headlineMedium": {
+      "size": 28,
+      "lineHeight": 36,
+      "weight": "Normal",
+      "letterSpacing": 0
+    },
+    "headlineSmall": {
+      "size": 24,
+      "lineHeight": 32,
+      "weight": "Normal",
+      "letterSpacing": 0
+    },
+    "titleLarge": {
+      "size": 22,
+      "lineHeight": 28,
+      "weight": "Normal",
+      "letterSpacing": 0
+    },
+    "titleMedium": {
+      "size": 16,
+      "lineHeight": 24,
+      "weight": "Medium",
+      "letterSpacing": 0.15
+    },
+    "titleSmall": {
+      "size": 14,
+      "lineHeight": 20,
+      "weight": "Medium",
+      "letterSpacing": 0.1
+    },
+    "bodyLarge": {
+      "size": 16,
+      "lineHeight": 24,
+      "weight": "Normal",
+      "letterSpacing": 0.5
+    },
+    "bodyMedium": {
+      "size": 14,
+      "lineHeight": 20,
+      "weight": "Normal",
+      "letterSpacing": 0.25
+    },
+    "bodySmall": {
+      "size": 12,
+      "lineHeight": 16,
+      "weight": "Normal",
+      "letterSpacing": 0.4
+    },
+    "labelLarge": {
+      "size": 14,
+      "lineHeight": 20,
+      "weight": "Medium",
+      "letterSpacing": 0.1
+    },
+    "labelMedium": {
+      "size": 12,
+      "lineHeight": 16,
+      "weight": "Medium",
+      "letterSpacing": 0.5
+    },
+    "labelSmall": {
+      "size": 11,
+      "lineHeight": 16,
+      "weight": "Medium",
+      "letterSpacing": 0.5
+    }
   },
-
   "colorScheme": {
-    "_comment": "M3 baseline 配色 light/dark。Android Color.kt/Theme.kt 值；surfaceVariant/outline/containers 为 M3 默认（Theme.kt 未显式设置）。iOS 须用这些 ARGB hex 作为语义色基准（iOS 无 Material You 动态取色）。注意：Android 端 ErrorLight=Color(0xB32610) 有 alpha=00 透明 bug、Dark tertiaryContainer/onTertiaryContainer 误指向 TertiaryDark，此处已修正为 M3 标准值。",
+    "_comment": "2026-08-18 定稿「电光海×Cloud Dancer」：中性轴=潘通2026年度色 Cloud Dancer #F0EEE9 暖乳白（暗色暖黑 #171412）；primary=电光宝蓝→荧光绿松石家族（浅 #0D63D6/暗 #7FC9FF）；tertiary=绿松石青。品牌渐变（设计稿字面量）= #1B6FE3→#2FE6DE(暗端亮端)/#0E5BC4(浅色深端)。",
     "light": {
-      "primary": "#FF6750A4",
+      "primary": "#FF0D63D6",
       "onPrimary": "#FFFFFFFF",
-      "primaryContainer": "#FFEADDFF",
-      "onPrimaryContainer": "#FF21005D",
-      "secondary": "#FF625B71",
+      "primaryContainer": "#FFCFE5FF",
+      "onPrimaryContainer": "#FF062E6B",
+      "secondary": "#FF44618C",
       "onSecondary": "#FFFFFFFF",
-      "secondaryContainer": "#FFE8DEF8",
-      "onSecondaryContainer": "#FF1D192B",
-      "tertiary": "#FF7D5260",
+      "secondaryContainer": "#FFD8E2F5",
+      "onSecondaryContainer": "#FF0C1B33",
+      "tertiary": "#FF0F7C92",
       "onTertiary": "#FFFFFFFF",
-      "tertiaryContainer": "#FFFFD8E4",
-      "onTertiaryContainer": "#FF31111D",
+      "tertiaryContainer": "#FFC7F0F7",
+      "onTertiaryContainer": "#FF04303B",
       "error": "#FFB3261E",
       "onError": "#FFFFFFFF",
       "errorContainer": "#FFF9DEDC",
       "onErrorContainer": "#FF410E0B",
-      "background": "#FFFFFBFE",
-      "onBackground": "#FF1C1B1F",
-      "surface": "#FFFFFBFE",
-      "onSurface": "#FF1C1B1F",
-      "surfaceVariant": "#FFE7E0EC",
-      "onSurfaceVariant": "#FF49454F",
-      "outline": "#FF79747E",
-      "outlineVariant": "#FFCAC4D0",
-      "surfaceContainerLowest": "#FFFFFFFF",
-      "surfaceContainerLow": "#FFF7F2FA",
-      "surfaceContainer": "#FFF3EDF7",
-      "surfaceContainerHigh": "#FFEDE7F0",
-      "surfaceContainerHighest": "#FFE6E0E9"
+      "background": "#FFF0EEE9",
+      "onBackground": "#FF1D1A16",
+      "surface": "#FFF0EEE9",
+      "onSurface": "#FF1D1A16",
+      "surfaceVariant": "#FFE4DFD6",
+      "onSurfaceVariant": "#FF4A453E",
+      "outline": "#FF7A756D",
+      "outlineVariant": "#FFCDC7BC",
+      "surfaceContainerLowest": "#FFFBF9F5",
+      "surfaceContainerLow": "#FFF4F1EA",
+      "surfaceContainer": "#FFEFEBE3",
+      "surfaceContainerHigh": "#FFE9E4DB",
+      "surfaceContainerHighest": "#FFE3DDD3"
     },
     "dark": {
-      "primary": "#FFD0BCFF",
-      "onPrimary": "#FF381E72",
-      "primaryContainer": "#FF4F378B",
-      "onPrimaryContainer": "#FFEADDFF",
-      "secondary": "#FFCCC2DC",
-      "onSecondary": "#FF332D41",
-      "secondaryContainer": "#FF4A4458",
-      "onSecondaryContainer": "#FFE8DEF8",
-      "tertiary": "#FFEFB8C8",
-      "onTertiary": "#FF492532",
-      "tertiaryContainer": "#FF633B48",
-      "onTertiaryContainer": "#FFFFD8E4",
+      "primary": "#FF7FC9FF",
+      "onPrimary": "#FF00325B",
+      "primaryContainer": "#FF0F5AA8",
+      "onPrimaryContainer": "#FFD5E9FF",
+      "secondary": "#FFB3CCF0",
+      "onSecondary": "#FF1D3350",
+      "secondaryContainer": "#FF324B70",
+      "onSecondaryContainer": "#FFD3E1F8",
+      "tertiary": "#FF7ADCE6",
+      "onTertiary": "#FF003740",
+      "tertiaryContainer": "#FF00505C",
+      "onTertiaryContainer": "#FF97F0F9",
       "error": "#FFF2B8B5",
       "onError": "#FF601410",
       "errorContainer": "#FF8C1D18",
       "onErrorContainer": "#FFF9DEDC",
-      "background": "#FF1C1B1F",
-      "onBackground": "#FFE6E1E5",
-      "surface": "#FF1C1B1F",
-      "onSurface": "#FFE6E1E5",
-      "surfaceVariant": "#FF49454F",
-      "onSurfaceVariant": "#FFCAC4D0",
-      "outline": "#FF938F99",
-      "outlineVariant": "#FF49454F",
-      "surfaceContainerLowest": "#FF0F0D13",
-      "surfaceContainerLow": "#FF1D1B20",
-      "surfaceContainer": "#FF211F26",
-      "surfaceContainerHigh": "#FF2B2930",
-      "surfaceContainerHighest": "#FF36343B"
+      "background": "#FF171412",
+      "onBackground": "#FFEDE9E3",
+      "surface": "#FF171412",
+      "onSurface": "#FFEDE9E3",
+      "surfaceVariant": "#FF46413A",
+      "onSurfaceVariant": "#FFCFC9BF",
+      "outline": "#FF968F86",
+      "outlineVariant": "#FF46413A",
+      "surfaceContainerLowest": "#FF100E0C",
+      "surfaceContainerLow": "#FF1B1815",
+      "surfaceContainer": "#FF211E1A",
+      "surfaceContainerHigh": "#FF2B2722",
+      "surfaceContainerHighest": "#FF36312B"
     }
   },
-
   "alpha": {
     "_comment": "透明度语义阶梯。绝大多数派生色 = colorScheme 角色 .copy(alpha=N)，如 onSurface@0.6=次要文本。iOS 须照搬这些 alpha 值以保证层级感还原。",
     "scrimModal": 0.7,
@@ -211,7 +273,6 @@
     "faint": 0.3,
     "ghost": 0.2
   },
-
   "statusColor": {
     "_comment": "语义状态色（不随主题）。success/warning/error/info 跨 camera/chat/settings/idphoto/tag 复用。注意 statusError(#E53935)=产品 Material Red，与 colorScheme.error(#B3261E M3) 不同。",
     "success": "#FF4CAF50",
@@ -220,7 +281,6 @@
     "error": "#FFE53935",
     "info": "#FF2196F3"
   },
-
   "motion": {
     "_comment": "动效时长(ms)+缓动。规范：禁用线性(Linear)，统一 FastOutSlowIn/Standard。drift: MainActivity nav 过渡 tween(400) 未指定 easing，应补 FastOutSlowIn。",
     "durationMs": {
@@ -246,7 +306,6 @@
       "scaleTo": 1.0
     }
   },
-
   "elevation": {
     "_comment": "阴影/tonal 阶梯(dp)。settings 卡片=none; 模型卡=low; 选中 chip/滑块 thumb=medium; chat 输入卡=high; 悬浮 Tab=floating; 底部面板=sheet。",
     "none": 0,
@@ -256,7 +315,6 @@
     "floating": 6,
     "sheet": 16
   },
-
   "appSlider": {
     "_comment": "全 app 统一滑杆（HyperOS 风）：胶囊轨道+白圆点 primary 描边 thumb+按压放大。camera/editor/beauty 共享。颜色取 colorScheme.primary/onSurface。",
     "trackHeight": 6,
@@ -272,7 +330,6 @@
     "animDurationMs": 150,
     "animEasing": "FastOutSlowInEasing"
   },
-
   "bottomTab": {
     "_comment": "悬浮底部胶囊导航（FloatingBottomTab），主入口聚合。v1 SSOT 漏配 cornerRadius=28，已补。color=surface。",
     "cornerRadius": 28,
@@ -289,7 +346,6 @@
     "labelColor": "onSurface",
     "labelTopPadding": 2
   },
-
   "bottomSheet": {
     "_comment": "相机/编辑器共享底部面板外壳（ControlPanel/BeautyPanel/ProMode/EditorPanel）。强制深色场景：surface@0.95 + 渐变 scrim。",
     "topCornerRadius": 24,
@@ -297,7 +353,11 @@
     "surfaceAlpha": 0.95,
     "borderWidth": 0.5,
     "borderColorAlpha": 0.25,
-    "gradientStops": ["transparent", "black@0.55", "black@0.82"],
+    "gradientStops": [
+      "transparent",
+      "black@0.55",
+      "black@0.82"
+    ],
     "handleWidth": 36,
     "handleHeight": 4,
     "handleColorAlpha": 0.2,
@@ -305,7 +365,6 @@
     "contentPaddingV": 8,
     "contentSpacing": 12
   },
-
   "chip": {
     "_comment": "通用 FilterChip/AssistChip 几何。M3 默认组件 + 以下定制。selected=primary 系，unselected=surfaceVariant@0.5。",
     "height": 36,
@@ -316,7 +375,6 @@
     "selectedShadowElevation": 2,
     "labelStyle": "labelLarge"
   },
-
   "badge": {
     "_comment": "标签徽章（模型卡 tag badge / 模型 must-have 必备徽章）。primary@0.12 bg + 圆点。",
     "tagRadius": 6,
@@ -333,7 +391,6 @@
     "requiredLabelWeight": "Bold",
     "requiredLabelColor": "#FFFFFFFF"
   },
-
   "camera": {
     "_comment": "相机强制深色 overlay 专属。focusRing 复用 color.focusRing。controlButton idle=Black@0.5/active=primary。",
     "focusRingDiameter": 100,
@@ -377,7 +434,6 @@
     "zoomCapsulePaddingH": 12,
     "zoomCapsuleHeight": 32
   },
-
   "chatBubble": {
     "_comment": "聊天气泡。两套：ChatScreen(M3 浅色 DeepSeek 白卡输入) vs AiChatScreen(深色 overlay 黑底)。bubble 不对称圆角（tail 侧小）。",
     "bubbleMaxWidth": 360,
@@ -401,7 +457,6 @@
     "circularButtonSize": 36,
     "circularButtonIconSize": 22
   },
-
   "chatCarousel": {
     "_comment": "聊天媒体结果轮播（MediaResultsCarousel）。ios-follow chat 2026-08-12 自 Android MediaResultsCarousel.kt 反向提取。卡片右侧竖排反馈按钮叠层。",
     "cardWidth": 120,
@@ -413,14 +468,12 @@
     "feedbackBgColor": "#66000000",
     "viewAllCornerRadius": 12
   },
-
   "chatContext": {
     "_comment": "聊天上下文附件暂存区（选图后输入栏上方）。ios-follow chat 2026-08-12 新增（B1）。72dp 缩略图 + 三意图 chip。",
     "thumbSize": 72,
     "thumbCornerRadius": 8,
     "intentChipSpacing": 8
   },
-
   "settings": {
     "_comment": "设置页通用结构。SettingsClickableRow=主行模式，section=分组卡片容器。list*=主菜单列表式（2026-08-17 重设计，iOS 式分组列表）；图标块色映射（行到 vibrant 系、statusColor、colorScheme 角色的对应）属 UI 结构不入 token，双端各自在代码中映射并保持一致。注意注释内勿出现连续斜杠星号（会截断 Android KDoc 块注释）。",
     "rowHeightNoSubtitle": 56,
@@ -451,7 +504,6 @@
     "listTitleFontSize": 15,
     "listValueFontSize": 13
   },
-
   "editor": {
     "_comment": "图片编辑器组件几何（结构 token）。内容色板（markup 7 色/lip 12 色/blush 3 色）见 DESIGN_TOKENS_SPEC.md palette 附录，属产品内容数据不入 token。",
     "filterPanelHeight": 120,
@@ -472,7 +524,6 @@
     "markupSwatchSelected": 32,
     "markupSwatchUnselected": 24
   },
-
   "modelCenter": {
     "_comment": "模型下载中心专属 token。getTagColor 代码用主题角色(recommended/chat/beauty-camera→tertiary/primary)与下方固定 hex 存在分歧，iOS 以本表固定 hex 为准。",
     "tagColorMustHave": "#FFE53935",
@@ -490,7 +541,6 @@
     "miniBadgeRadius": 4,
     "tagBadgeDotSize": 6
   },
-
   "person": {
     "_comment": "人物页（列表+详情）。聚类模型，对标 Android PersonScreen/PersonInfoScreen。cardRadius=16 区别于通用 radius.card=12（Android PersonListItem 显式 16dp）。",
     "cardRadius": 16,

@@ -434,27 +434,30 @@ interaction_model:
     right: [report_issue, new_chat, clear_chat]  # new_chat = 新建会话（非清空）；clear_chat = 清当前会话
 
 # ============================================================================
-# 10. 颜色参考
+# 10. 颜色参考（2026-08-18 定稿「电光海×Cloud Dancer」，SSOT=design-tokens.json v2.2.1）
 # ============================================================================
 colors:
-  primary: "#6750A4"                # Material3 purple
+  primary: "#0D63D6"                # 电光宝蓝
   onPrimary: "#FFFFFF"
-  primaryContainer: "#EADDFF"
-  surface: "#FFFBFE"
-  onSurface: "#1C1B1F"
-  surfaceVariant: "#E7E0EC"
-  surfaceContainerLowest: "#FFFFFF"
-  background: "#FFFBFE"
+  primaryContainer: "#CFE5FF"
+  surface: "#F0EEE9"                # Cloud Dancer 暖乳白（潘通 2026 年度色）
+  onSurface: "#1D1A16"
+  surfaceVariant: "#E4DFD6"
+  surfaceContainerLowest: "#FBF9F5"
+  background: "#F0EEE9"
   error: "#B32610"
   model_dot_official: "#2196F3"
   model_dot_user_key: "#FF9800"
   voice_cancel: "#E53935"
+  # 品牌渐变（设计稿字面量，Agent 头像/Logo/发送钮/大数字）：
+  #   dark: #1B6FE3 → #2FE6DE（电光宝蓝→荧光绿松石，135°）
+  #   light 深端: #0E5BC4
   # Dark mode 对应（iOS 默认 .dark）
-  # primary → #D0BCFF
-  # onSurface → #E6E1E5
-  # surfaceVariant → #49454F
-  # surface → #1C1B1F
-  # background → #1C1B1F
+  # primary → #7FC9FF（晴空亮蓝）
+  # onSurface → #EDE9E3（暖白）
+  # surfaceVariant → #46413A
+  # surface → #171412（暖黑）
+  # background → #171412
 
 # ============================================================================
 # 11. 允许的平台差异

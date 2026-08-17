@@ -1,11 +1,11 @@
 {
   "endpoint": "http://127.0.0.1:50501/api/v1/mcp",
-  "exportedAt": "2026-08-17T23:54:02+08:00",
+  "exportedAt": "2026-08-18T00:32:46+08:00",
   "file": {
     "id": "715061534788814",
     "name": "polang-ui-spec",
     "permission": "readwrite",
-    "url": "cocraft://localhost/file/715061534788814?node_id=116%3A164"
+    "url": "cocraft://localhost/file/715061534788814?node_id=118%3A104"
   },
   "note": "云端画布为编辑工作区；本目录快照由 export-ardot-snapshot.py 生成（多页聚合，2026-08-16 起），重跑覆盖。变量 SSOT=shared/src/commonMain/resources/design-tokens.json，不在本快照内。",
   "pages": [
@@ -17,24 +17,9 @@
           "png": "camera-idle.png"
         },
         {
-          "id": "9:2",
-          "name": "camera/idle",
-          "png": "camera-idle.png"
-        },
-        {
           "id": "95:37",
           "name": "camera/panel_beauty_face",
           "png": "camera-panel_beauty_face.png"
-        },
-        {
-          "id": "95:37",
-          "name": "camera/panel_beauty_face",
-          "png": "camera-panel_beauty_face.png"
-        },
-        {
-          "id": "95:107",
-          "name": "camera/panel_ratio",
-          "png": "camera-panel_ratio.png"
         },
         {
           "id": "95:107",
@@ -47,16 +32,6 @@
           "png": "camera-panel_grid.png"
         },
         {
-          "id": "95:152",
-          "name": "camera/panel_grid",
-          "png": "camera-panel_grid.png"
-        },
-        {
-          "id": "95:197",
-          "name": "camera/panel_filter",
-          "png": "camera-panel_filter.png"
-        },
-        {
           "id": "95:197",
           "name": "camera/panel_filter",
           "png": "camera-panel_filter.png"
@@ -65,16 +40,6 @@
           "id": "95:235",
           "name": "camera/panel_pro",
           "png": "camera-panel_pro.png"
-        },
-        {
-          "id": "95:235",
-          "name": "camera/panel_pro",
-          "png": "camera-panel_pro.png"
-        },
-        {
-          "id": "95:322",
-          "name": "camera/focusing",
-          "png": "camera-focusing.png"
         },
         {
           "id": "95:322",
@@ -93,24 +58,9 @@
           "png": "gallery-empty.png"
         },
         {
-          "id": "103:3",
-          "name": "gallery/empty",
-          "png": "gallery-empty.png"
-        },
-        {
           "id": "105:1",
           "name": "gallery/info",
           "png": "gallery-info.png"
-        },
-        {
-          "id": "105:1",
-          "name": "gallery/info",
-          "png": "gallery-info.png"
-        },
-        {
-          "id": "105:45",
-          "name": "gallery/grid",
-          "png": "gallery-grid.png"
         },
         {
           "id": "105:45",
@@ -123,24 +73,9 @@
           "png": "gallery-search.png"
         },
         {
-          "id": "107:112",
-          "name": "gallery/search",
-          "png": "gallery-search.png"
-        },
-        {
           "id": "107:156",
           "name": "gallery/search_no_result",
           "png": "gallery-search_no_result.png"
-        },
-        {
-          "id": "107:156",
-          "name": "gallery/search_no_result",
-          "png": "gallery-search_no_result.png"
-        },
-        {
-          "id": "107:189",
-          "name": "gallery/scanning",
-          "png": "gallery-scanning.png"
         },
         {
           "id": "107:189",
@@ -153,24 +88,9 @@
           "png": "gallery-sort_menu.png"
         },
         {
-          "id": "107:264",
-          "name": "gallery/sort_menu",
-          "png": "gallery-sort_menu.png"
-        },
-        {
           "id": "107:353",
           "name": "gallery/selection",
           "png": "gallery-selection.png"
-        },
-        {
-          "id": "107:353",
-          "name": "gallery/selection",
-          "png": "gallery-selection.png"
-        },
-        {
-          "id": "118:1",
-          "name": "gallery/settings",
-          "png": "gallery-settings.png"
         },
         {
           "id": "118:1",
@@ -302,8 +222,44 @@
       ],
       "id": "108:1",
       "name": "Settings"
+    },
+    {
+      "frames": [
+        {
+          "id": "118:105",
+          "name": "editor/current_crop",
+          "png": "editor-current_crop.png"
+        },
+        {
+          "id": "118:165",
+          "name": "editor/current_adjust",
+          "png": "editor-current_adjust.png"
+        },
+        {
+          "id": "118:243",
+          "name": "editor/concept_a_hypic",
+          "png": "editor-concept_a_hypic.png"
+        },
+        {
+          "id": "118:313",
+          "name": "editor/concept_b_pro",
+          "png": "editor-concept_b_pro.png"
+        },
+        {
+          "id": "118:372",
+          "name": "editor/concept_a_adjust",
+          "png": "editor-concept_a_adjust.png"
+        },
+        {
+          "id": "118:480",
+          "name": "editor/concept_a_crop",
+          "png": "editor-concept_a_crop.png"
+        }
+      ],
+      "id": "118:104",
+      "name": "Editor"
     }
   ],
   "scale": 1,
-  "structureSha256": "4701834f0b394afe8b575211107ec12aefdd30f5bbe0e5e3a0dfff79289e151a"
+  "structureSha256": "1aa8867949ea0732084668af7457c57b5363d8ff8b9db58c40953f6773f5fc6b"
 }
