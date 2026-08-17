@@ -297,7 +297,7 @@
 
     <!-- Duplicate Management -->
     <string name="gallery_features">相册打标</string>
-    <string name="gallery_settings">相册设置</string>
+    <string name="gallery_settings">相册</string>
     <string name="gallery_settings_desc">打标扫描、人脸聚类、标签与重复图管理。</string>
     <string name="gallery_features_desc">打标扫描、人脸聚类与模型下载管理。</string>
     <string name="people_title">人物</string>

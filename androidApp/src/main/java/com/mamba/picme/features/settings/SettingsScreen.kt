@@ -21,11 +21,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.Label
 import androidx.compose.material.icons.rounded.Accessibility
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Forum
@@ -44,6 +47,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -58,7 +62,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -70,7 +73,10 @@ import com.mamba.picme.R
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.tool.accessibility.AccessibilityServiceHolder
 import com.mamba.picme.core.common.Logger
+import com.mamba.picme.core.designsystem.AppColors
 import com.mamba.picme.core.designsystem.PoLangTheme
+import com.mamba.picme.core.designsystem.SettingsTokens
+import com.mamba.picme.core.designsystem.StatusColor
 import com.mamba.picme.data.download.DownloadState
 import com.mamba.picme.data.download.ModelConfig
 import com.mamba.picme.domain.model.AppLanguage
@@ -410,7 +416,14 @@ private fun SettingsContent(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 10.dp, vertical = 6.dp)
+                .padding(
+                    horizontal = if (category == SettingsCategory.MAIN) {
+                        SettingsTokens.listSectionPaddingH
+                    } else {
+                        10.dp
+                    },
+                    vertical = 6.dp
+                )
         ) {
             if (category == SettingsCategory.MAIN) {
                 SettingsMainMenu(
@@ -972,78 +985,217 @@ private fun SettingsMainMenu(
     onNavigateToPeople: () -> Unit,
     onNavigateToTagControl: () -> Unit
 ) {
+    var showThemeDialog by remember { mutableStateOf(false) }
+    var showLanguageDialog by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(SettingsTokens.listSectionSpacing)
     ) {
-        // ── 账号（置顶全宽卡，反映登录态）──
+        // ── 账号（置顶行，反映登录态）──
         SettingsAccountHeroCard(onClick = { onNavigateToCategory(SettingsCategory.ACCOUNT) })
 
-        // ── 主题 ──
-        Card(
-            modifier = Modifier
-                .fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.theme_mode),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                ThemeSelection(
-                    currentMode = themeMode,
-                    onModeSelected = onThemeModeSelected
+        // ── 个性化：主题 / 语言（右值=当前选中，点击弹窗切换）──
+        SettingsListSection {
+            SettingsListRow(
+                title = stringResource(R.string.theme_mode),
+                icon = Icons.Rounded.DarkMode,
+                iconBlockColor = AppColors.vibrantOrange,
+                valueText = stringResource(themeModeLabelRes(themeMode)),
+                onClick = { showThemeDialog = true }
+            )
+            SettingsListDivider()
+            SettingsListRow(
+                title = stringResource(R.string.language),
+                icon = Icons.Rounded.Language,
+                iconBlockColor = AppColors.vibrantBlue,
+                valueText = languageLabel(appLanguage),
+                onClick = { showLanguageDialog = true }
+            )
+        }
+
+        // ── 功能：人物 / AI 记忆 / 相册 / 相机 ──
+        SettingsListSection {
+            SettingsListRow(
+                title = stringResource(R.string.people_entry),
+                icon = Icons.Rounded.AccountCircle,
+                iconBlockColor = AppColors.vibrantGreen,
+                onClick = onNavigateToPeople
+            )
+            SettingsListDivider()
+            SettingsListRow(
+                title = stringResource(R.string.settings_ai_memory),
+                icon = Icons.Rounded.Psychology,
+                iconBlockColor = MaterialTheme.colorScheme.primaryContainer,
+                onClick = onNavigateToMemoryFacts
+            )
+            SettingsListDivider()
+            SettingsListRow(
+                title = stringResource(R.string.gallery_settings),
+                icon = Icons.Rounded.PhotoLibrary,
+                iconBlockColor = AppColors.vibrantOrange,
+                onClick = onNavigateToTagControl
+            )
+            SettingsListDivider()
+            SettingsListRow(
+                title = stringResource(R.string.camera_settings),
+                icon = Icons.Rounded.CameraAlt,
+                iconBlockColor = AppColors.vibrantPink,
+                onClick = { onNavigateToCategory(SettingsCategory.CAMERA) }
+            )
+        }
+
+        // ── AI 与系统：模型中心 / 远程模型 / 本地模型 / 通信通道 / 沙盒与权限 ──
+        SettingsListSection {
+            SettingsListRow(
+                title = stringResource(R.string.model_center),
+                icon = Icons.Rounded.CloudDownload,
+                iconBlockColor = AppColors.vibrantGreen,
+                onClick = onNavigateToModelCenter
+            )
+            SettingsListDivider()
+            SettingsListRow(
+                title = stringResource(R.string.remote_models),
+                icon = Icons.Rounded.Cloud,
+                iconBlockColor = StatusColor.info,
+                onClick = { onNavigateToCategory(SettingsCategory.REMOTE_MODEL) }
+            )
+            SettingsListDivider()
+            SettingsListRow(
+                title = stringResource(R.string.local_models),
+                icon = Icons.Rounded.Memory,
+                iconBlockColor = AppColors.vibrantPink,
+                onClick = { onNavigateToCategory(SettingsCategory.LOCAL_MODEL) }
+            )
+            SettingsListDivider()
+            SettingsListRow(
+                title = stringResource(R.string.communication_channel),
+                icon = Icons.Rounded.Forum,
+                iconBlockColor = AppColors.vibrantOrange,
+                onClick = onNavigateToCommunicationChannel
+            )
+            SettingsListDivider()
+            SettingsListRow(
+                title = stringResource(R.string.sandbox_settings),
+                icon = Icons.Rounded.VerifiedUser,
+                iconBlockColor = MaterialTheme.colorScheme.primaryContainer,
+                onClick = { onNavigateToCategory(SettingsCategory.SANDBOX) }
+            )
+        }
+
+        // ── 其他：数据与隐私 / 开发者选项（解锁后显示）──
+        SettingsListSection {
+            SettingsListRow(
+                title = stringResource(R.string.data_privacy_entry),
+                icon = Icons.Rounded.PrivacyTip,
+                iconBlockColor = AppColors.vibrantBlue,
+                onClick = onNavigateToDataPrivacy
+            )
+            if (developerOptionsUnlocked) {
+                SettingsListDivider()
+                SettingsListRow(
+                    title = stringResource(R.string.developer_options),
+                    icon = Icons.Rounded.Terminal,
+                    iconBlockColor = StatusColor.warningAmber,
+                    onClick = { onNavigateToCategory(SettingsCategory.DEVELOPER) }
                 )
             }
         }
-
-        // ── 语言 ──
-        Card(
-            modifier = Modifier
-                .fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.language),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                LanguageSelection(
-                    currentLanguage = appLanguage,
-                    onLanguageSelected = onAppLanguageSelected
-                )
-            }
-        }
-
-        // ── 功能分类网格 ──
-        SettingsCategoryGrid(
-            onNavigateToCategory = onNavigateToCategory,
-            onNavigateToModelCenter = onNavigateToModelCenter,
-            onNavigateToDataPrivacy = onNavigateToDataPrivacy,
-            onNavigateToCommunicationChannel = onNavigateToCommunicationChannel,
-            onNavigateToMemoryFacts = onNavigateToMemoryFacts,
-            onNavigateToPeople = onNavigateToPeople,
-            onNavigateToTagControl = onNavigateToTagControl,
-            developerOptionsUnlocked = developerOptionsUnlocked,
-        )
 
         // ── 版本页脚（连点 7 次解锁开发者选项）──
         SettingsVersionFooter(onUnlock = onUnlockDeveloperOptions)
     }
+
+    if (showThemeDialog) {
+        SettingsSingleChoiceDialog(
+            title = stringResource(R.string.theme_mode),
+            options = listOf(
+                ThemeMode.SYSTEM to stringResource(R.string.system_default),
+                ThemeMode.LIGHT to stringResource(R.string.light),
+                ThemeMode.DARK to stringResource(R.string.dark)
+            ),
+            isSelected = { it == themeMode },
+            onSelected = { mode -> onThemeModeSelected(mode as ThemeMode) },
+            onDismiss = { showThemeDialog = false }
+        )
+    }
+    if (showLanguageDialog) {
+        SettingsSingleChoiceDialog(
+            title = stringResource(R.string.language),
+            options = listOf(
+                AppLanguage.SYSTEM to stringResource(R.string.system_default),
+                AppLanguage.ENGLISH to "English",
+                AppLanguage.CHINESE to "中文",
+                AppLanguage.TRADITIONAL_CHINESE to "繁體中文"
+            ),
+            isSelected = { it == appLanguage },
+            onSelected = { language -> onAppLanguageSelected(language as AppLanguage) },
+            onDismiss = { showLanguageDialog = false }
+        )
+    }
+}
+
+private fun themeModeLabelRes(mode: ThemeMode): Int = when (mode) {
+    ThemeMode.SYSTEM -> R.string.system_default
+    ThemeMode.LIGHT -> R.string.light
+    ThemeMode.DARK -> R.string.dark
+}
+
+@Composable
+private fun languageLabel(language: AppLanguage): String = when (language) {
+    AppLanguage.SYSTEM -> stringResource(R.string.system_default)
+    AppLanguage.ENGLISH -> "English"
+    AppLanguage.CHINESE -> "中文"
+    AppLanguage.TRADITIONAL_CHINESE -> "繁體中文"
+}
+
+/** 列表行值列的弹窗选择器（主题/语言共用）：单选即生效，无确认按钮。 */
+@Composable
+private fun <T> SettingsSingleChoiceDialog(
+    title: String,
+    options: List<Pair<T, String>>,
+    isSelected: (T) -> Boolean,
+    onSelected: (T) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column {
+                options.forEach { (value, label) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onSelected(value)
+                                onDismiss()
+                            }
+                            .padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = isSelected(value),
+                            onClick = {
+                                onSelected(value)
+                                onDismiss()
+                            }
+                        )
+                        Text(
+                            text = label,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
+    )
 }
 
 /**
@@ -1086,14 +1238,17 @@ private fun SettingsAccountHeroCard(onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(SettingsTokens.listHeroRowHeight)
+                .padding(horizontal = SettingsTokens.listRowPaddingH),
+            horizontalArrangement = Arrangement.spacedBy(SettingsTokens.rowElementGap),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(SettingsTokens.heroAvatarSize)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
@@ -1106,7 +1261,7 @@ private fun SettingsAccountHeroCard(onClick: () -> Unit) {
             }
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+                verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
                 Text(
                     text = if (loggedIn) serverEmail else stringResource(R.string.account),
@@ -1131,119 +1286,11 @@ private fun SettingsAccountHeroCard(onClick: () -> Unit) {
                     overflow = TextOverflow.Ellipsis
                 )
             }
-        }
-    }
-}
-
-private data class CategoryGridItem(
-    val titleRes: Int,
-    val descriptionRes: Int,
-    val icon: ImageVector,
-    val onClick: () -> Unit,
-)
-
-/**
- * 设置页功能分类网格（2 列卡片）。
- */
-@Composable
-private fun SettingsCategoryGrid(
-    onNavigateToCategory: (SettingsCategory) -> Unit,
-    onNavigateToModelCenter: () -> Unit,
-    onNavigateToDataPrivacy: () -> Unit,
-    onNavigateToCommunicationChannel: () -> Unit,
-    onNavigateToMemoryFacts: () -> Unit,
-    onNavigateToPeople: () -> Unit,
-    onNavigateToTagControl: () -> Unit,
-    developerOptionsUnlocked: Boolean,
-) {
-    val baseItems = listOf(
-        CategoryGridItem(R.string.settings_ai_memory, R.string.settings_ai_memory_desc, Icons.Rounded.Psychology, onNavigateToMemoryFacts),
-        CategoryGridItem(R.string.people_entry, R.string.people_entry_desc, Icons.Rounded.AccountCircle, onNavigateToPeople),
-        CategoryGridItem(R.string.communication_channel, R.string.communication_channel_desc, Icons.Rounded.Forum) {
-            onNavigateToCommunicationChannel()
-        },
-        CategoryGridItem(R.string.gallery_settings, R.string.gallery_settings_desc, Icons.Rounded.PhotoLibrary) {
-            onNavigateToTagControl()
-        },
-        CategoryGridItem(R.string.remote_models, R.string.remote_models_desc, Icons.Rounded.Cloud) {
-            onNavigateToCategory(SettingsCategory.REMOTE_MODEL)
-        },
-        CategoryGridItem(R.string.local_models, R.string.local_models_desc, Icons.Rounded.Memory) {
-            onNavigateToCategory(SettingsCategory.LOCAL_MODEL)
-        },
-        CategoryGridItem(R.string.model_center, R.string.model_center_desc, Icons.Rounded.CloudDownload, onNavigateToModelCenter),
-        CategoryGridItem(R.string.sandbox_settings, R.string.sandbox_settings_desc, Icons.Rounded.VerifiedUser) {
-            onNavigateToCategory(SettingsCategory.SANDBOX)
-        },
-        // 备份与恢复已并入「数据与隐私」页
-        CategoryGridItem(R.string.data_privacy_entry, R.string.data_privacy_desc, Icons.Rounded.PrivacyTip, onNavigateToDataPrivacy),
-        CategoryGridItem(R.string.camera_settings, R.string.camera_settings_desc, Icons.Rounded.CameraAlt) {
-            onNavigateToCategory(SettingsCategory.CAMERA)
-        },
-    )
-    val devItem = CategoryGridItem(R.string.developer_options, R.string.developer_options_desc, Icons.Rounded.Terminal) {
-        onNavigateToCategory(SettingsCategory.DEVELOPER)
-    }
-    val items = if (developerOptionsUnlocked) baseItems + devItem else baseItems
-
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        items.chunked(2).forEach { pair ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                pair.forEach { item ->
-                    SettingsCategoryCard(
-                        title = stringResource(item.titleRes),
-                        description = stringResource(item.descriptionRes),
-                        icon = item.icon,
-                        modifier = Modifier.weight(1f),
-                        onClick = item.onClick
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SettingsCategoryCard(
-    title: String,
-    description: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
             Icon(
-                imageVector = icon,
+                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(28.dp)
-            )
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                minLines = 2,
-                maxLines = 2
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = SettingsTokens.rowChevronAlpha),
+                modifier = Modifier.size(SettingsTokens.rowChevronSize)
             )
         }
     }
@@ -1371,42 +1418,6 @@ private fun OpenClBackendSelection(
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
         modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
-    )
-}
-
-@Composable
-private fun ThemeSelection(
-    currentMode: ThemeMode,
-    onModeSelected: (ThemeMode) -> Unit
-) {
-    val options = listOf(
-        ThemeMode.SYSTEM to stringResource(R.string.system_default),
-        ThemeMode.LIGHT to stringResource(R.string.light),
-        ThemeMode.DARK to stringResource(R.string.dark)
-    )
-    CompactOptionChips(
-        options = options,
-        currentValue = currentMode,
-        maxLines = 1,
-        onSelected = onModeSelected
-    )
-}
-
-@Composable
-private fun LanguageSelection(
-    currentLanguage: AppLanguage,
-    onLanguageSelected: (AppLanguage) -> Unit
-) {
-    val options = listOf(
-        AppLanguage.ENGLISH to "English",
-        AppLanguage.CHINESE to "中文",
-        AppLanguage.TRADITIONAL_CHINESE to "繁體中文"
-    )
-    CompactOptionChips(
-        options = options,
-        currentValue = currentLanguage,
-        maxLines = 2,
-        onSelected = onLanguageSelected
     )
 }
 

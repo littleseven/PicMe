@@ -1,7 +1,7 @@
 {
   "_comment": "PoLang 双端 Design Token SSOT。Android/iOS 各自从此文件同步到代码常量。修改 token 时先改此文件，再两端同步。完整提取方法学/漂移记录见 docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md。",
-  "_version": "2.1.0",
-  "_updated": "2026-08-15",
+  "_version": "2.2.0",
+  "_updated": "2026-08-17",
 
   "spacing": {
     "_comment": "语义间距阶梯。屏幕级 padding 多为 md(12)/lg(16)，组件内 gap 多为 sm(8)。",
@@ -422,7 +422,7 @@
   },
 
   "settings": {
-    "_comment": "设置页通用结构。SettingsClickableRow=主行模式，section=分组卡片容器。颜色全走 colorScheme 角色。",
+    "_comment": "设置页通用结构。SettingsClickableRow=主行模式，section=分组卡片容器。list*=主菜单列表式（2026-08-17 重设计，iOS 式分组列表）；图标块色映射（行到 vibrant 系、statusColor、colorScheme 角色的对应）属 UI 结构不入 token，双端各自在代码中映射并保持一致。注意注释内勿出现连续斜杠星号（会截断 Android KDoc 块注释）。",
     "rowHeightNoSubtitle": 56,
     "rowHeightWithSubtitle": 64,
     "rowPaddingH": 12,
@@ -438,7 +438,18 @@
     "heroAvatarSize": 48,
     "heroAvatarBg": "primaryContainer",
     "categoryCardIconSize": 28,
-    "categoryCardIconTint": "primary"
+    "categoryCardIconTint": "primary",
+    "listRowHeight": 56,
+    "listHeroRowHeight": 72,
+    "listRowPaddingH": 16,
+    "listIconBlockSize": 28,
+    "listIconBlockRadius": 7,
+    "listIconInnerSize": 18,
+    "listSectionSpacing": 24,
+    "listSectionPaddingH": 16,
+    "listDividerInsetStart": 56,
+    "listTitleFontSize": 15,
+    "listValueFontSize": 13
   },
 
   "editor": {

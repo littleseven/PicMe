@@ -1,8 +1,10 @@
 package com.mamba.picme.features.settings
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -14,8 +16,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Card
@@ -35,9 +39,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.mamba.picme.core.designsystem.SettingsTokens
 
 @Composable
 internal fun SettingsSection(
@@ -324,4 +333,92 @@ internal fun SettingsTextInputRow(
             onCheckedChange = { showSecret = it }
         )
     }
+}
+
+// ── 设置主菜单列表式组件（2026-08-17 重设计，iOS 式分组列表；spec=specs/screens/refs/ardot settings/main_list）──
+
+/** 列表分组容器：surfaceContainerHighest 圆角卡，行间由 [SettingsListDivider] 分隔。 */
+@Composable
+internal fun SettingsListSection(content: @Composable () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column {
+            content()
+        }
+    }
+}
+
+/**
+ * 列表行：彩色圆角图标块（白色内图标）+ 标题 + 可选右值 + chevron。
+ * 图标块色映射（行→AppColors/StatusColor/colorScheme 角色）双端保持一致，不入 token。
+ */
+@Composable
+internal fun SettingsListRow(
+    title: String,
+    icon: ImageVector,
+    iconBlockColor: Color,
+    onClick: () -> Unit,
+    valueText: String? = null
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(SettingsTokens.listRowHeight)
+            .clickable(onClick = onClick)
+            .padding(horizontal = SettingsTokens.listRowPaddingH),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(SettingsTokens.rowElementGap)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(SettingsTokens.listIconBlockSize)
+                .clip(RoundedCornerShape(SettingsTokens.listIconBlockRadius))
+                .background(iconBlockColor),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(SettingsTokens.listIconInnerSize)
+            )
+        }
+        Text(
+            text = title,
+            fontSize = SettingsTokens.listTitleFontSize.value.sp,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
+        )
+        if (valueText != null) {
+            Text(
+                text = valueText,
+                fontSize = SettingsTokens.listValueFontSize.value.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = SettingsTokens.rowChevronAlpha),
+            modifier = Modifier.size(SettingsTokens.rowChevronSize)
+        )
+    }
+}
+
+/** 行间分隔线：起点缩进至文字起始处（图标块右侧），与 iOS inset grouped 规范一致。 */
+@Composable
+internal fun SettingsListDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(
+            start = SettingsTokens.listDividerInsetStart,
+            end = SettingsTokens.listRowPaddingH
+        ),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+        thickness = 1.dp
+    )
 }

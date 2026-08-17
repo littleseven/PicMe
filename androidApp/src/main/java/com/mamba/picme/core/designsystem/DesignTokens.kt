@@ -257,7 +257,7 @@ object ChatContextTokens {
     val intentChipSpacing = 8.dp
 }
 
-/** 设置页通用结构。SettingsClickableRow=主行模式，section=分组卡片容器。颜色全走 colorScheme 角色。 */
+/** 设置页通用结构。SettingsClickableRow=主行模式，section=分组卡片容器。list*=主菜单列表式（2026-08-17 重设计，iOS 式分组列表）；图标块色映射（行到 vibrant 系、statusColor、colorScheme 角色的对应）属 UI 结构不入 token，双端各自在代码中映射并保持一致。注意注释内勿出现连续斜杠星号（会截断 Android KDoc 块注释）。 */
 object SettingsTokens {
     val rowHeightNoSubtitle = 56.dp
     val rowHeightWithSubtitle = 64.dp
@@ -271,6 +271,17 @@ object SettingsTokens {
     val sectionPaddingV = 10.dp
     val heroAvatarSize = 48.dp
     val categoryCardIconSize = 28.dp
+    val listRowHeight = 56.dp
+    val listHeroRowHeight = 72.dp
+    val listRowPaddingH = 16.dp
+    val listIconBlockSize = 28.dp
+    val listIconBlockRadius = 7.dp
+    val listIconInnerSize = 18.dp
+    val listSectionSpacing = 24.dp
+    val listSectionPaddingH = 16.dp
+    val listDividerInsetStart = 56.dp
+    val listTitleFontSize = 15.dp
+    val listValueFontSize = 13.dp
 }
 
 /** 图片编辑器组件几何（结构 token）。内容色板（markup 7 色/lip 12 色/blush 3 色）见 DESIGN_TOKENS_SPEC.md palette 附录，属产品内容数据不入 token。 */

@@ -483,6 +483,17 @@ enum SettingsTokens {
     static let sectionPaddingV: CGFloat = 10
     static let heroAvatarSize: CGFloat = 48
     static let categoryCardIconSize: CGFloat = 28
+    static let listRowHeight: CGFloat = 56
+    static let listHeroRowHeight: CGFloat = 72
+    static let listRowPaddingH: CGFloat = 16
+    static let listIconBlockSize: CGFloat = 28
+    static let listIconBlockRadius: CGFloat = 7
+    static let listIconInnerSize: CGFloat = 18
+    static let listSectionSpacing: CGFloat = 24
+    static let listSectionPaddingH: CGFloat = 16
+    static let listDividerInsetStart: CGFloat = 56
+    static let listTitleFontSize: CGFloat = 15
+    static let listValueFontSize: CGFloat = 13
 }
 
 // MARK: - Editor
