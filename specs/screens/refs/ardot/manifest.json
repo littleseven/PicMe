@@ -1,48 +1,48 @@
 {
   "endpoint": "http://127.0.0.1:50501/api/v1/mcp",
-  "exportedAt": "2026-08-18T01:58:12+08:00",
+  "exportedAt": "2026-08-18T02:10:00+08:00",
   "file": {
     "id": "715061534788814",
     "name": "polang-ui-spec",
     "permission": "readwrite",
-    "url": "cocraft://localhost/file/715061534788814?node_id=118%3A104"
+    "url": "cocraft://localhost/file/715061534788814?node_id=108%3A1"
   },
   "note": "云端画布为编辑工作区；本目录快照由 export-ardot-snapshot.py 生成（多页聚合，2026-08-16 起），重跑覆盖。变量 SSOT=shared/src/commonMain/resources/design-tokens.json，不在本快照内。",
   "pages": [
     {
       "frames": [
         {
-          "id": "9:2",
+          "id": "118:1146",
           "name": "camera/idle",
           "png": "camera-idle.png"
         },
         {
-          "id": "95:37",
+          "id": "118:1184",
           "name": "camera/panel_beauty_face",
           "png": "camera-panel_beauty_face.png"
         },
         {
-          "id": "95:107",
+          "id": "118:1255",
           "name": "camera/panel_ratio",
           "png": "camera-panel_ratio.png"
         },
         {
-          "id": "95:152",
+          "id": "118:1299",
           "name": "camera/panel_grid",
           "png": "camera-panel_grid.png"
         },
         {
-          "id": "95:197",
+          "id": "118:1343",
           "name": "camera/panel_filter",
           "png": "camera-panel_filter.png"
         },
         {
-          "id": "95:235",
+          "id": "118:1397",
           "name": "camera/panel_pro",
           "png": "camera-panel_pro.png"
         },
         {
-          "id": "95:322",
+          "id": "118:1465",
           "name": "camera/focusing",
           "png": "camera-focusing.png"
         }
@@ -145,24 +145,9 @@
           "png": "settings-main_list.png"
         },
         {
-          "id": "108:94",
-          "name": "settings/main_list",
-          "png": "settings-main_list.png"
-        },
-        {
           "id": "108:363",
           "name": "settings/local_models",
           "png": "settings-local_models.png"
-        },
-        {
-          "id": "108:363",
-          "name": "settings/local_models",
-          "png": "settings-local_models.png"
-        },
-        {
-          "id": "111:1",
-          "name": "settings/remote_models",
-          "png": "settings-remote_models.png"
         },
         {
           "id": "111:1",
@@ -175,16 +160,6 @@
           "png": "settings-sandbox.png"
         },
         {
-          "id": "111:50",
-          "name": "settings/sandbox",
-          "png": "settings-sandbox.png"
-        },
-        {
-          "id": "111:129",
-          "name": "settings/developer",
-          "png": "settings-developer.png"
-        },
-        {
           "id": "111:129",
           "name": "settings/developer",
           "png": "settings-developer.png"
@@ -195,24 +170,9 @@
           "png": "settings-dialog_language.png"
         },
         {
-          "id": "111:276",
-          "name": "settings/dialog_language",
-          "png": "settings-dialog_language.png"
-        },
-        {
           "id": "111:294",
           "name": "settings/dialog_stage",
           "png": "settings-dialog_stage.png"
-        },
-        {
-          "id": "111:294",
-          "name": "settings/dialog_stage",
-          "png": "settings-dialog_stage.png"
-        },
-        {
-          "id": "111:446",
-          "name": "settings/dialog_theme",
-          "png": "settings-dialog_theme.png"
         },
         {
           "id": "111:446",
@@ -266,5 +226,5 @@
     }
   ],
   "scale": 1,
-  "structureSha256": "c8b7eb932646f6d543d7edea988ff72214b4cc7bd0a69c6f5c1d2b8df120b4a6"
+  "structureSha256": "37208114532eeac958c3f539c3914c0a129525f02a56d074f8ad594aaa80adf1"
 }

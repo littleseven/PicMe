@@ -2,282 +2,12 @@
   "file": {
     "id": "715061534788814",
     "name": "polang-ui-spec",
-    "url": "cocraft://localhost/file/715061534788814?node_id=118%3A104"
+    "url": "cocraft://localhost/file/715061534788814?node_id=108%3A1"
   },
   "pages": [
     {
       "frames": {
-        "95:107": {
-          "name": "camera/panel_ratio",
-          "tree": {
-            "nodes": [
-              {
-                "children": [],
-                "clipsContent": true,
-                "counterAxisAlignItems": "MIN",
-                "counterAxisSizingMode": "FIXED",
-                "fills": [
-                  {
-                    "blendMode": "NORMAL",
-                    "boundVariables": {
-                      "color": {
-                        "id": "VariableID:2:118",
-                        "type": "VARIABLE_ALIAS"
-                      }
-                    },
-                    "color": {
-                      "b": 0,
-                      "g": 0,
-                      "r": 0
-                    },
-                    "opacity": 0.800000011920929,
-                    "type": "SOLID",
-                    "visible": true
-                  }
-                ],
-                "height": 890,
-                "id": "95:107",
-                "itemSpacing": 0,
-                "layoutAlign": "AUTO",
-                "layoutGrow": 0,
-                "layoutMode": "NONE",
-                "name": "camera/panel_ratio",
-                "primaryAxisAlignItems": "MIN",
-                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
-                "type": "FRAME",
-                "width": 400,
-                "x": 900,
-                "y": 0
-              }
-            ]
-          }
-        },
-        "95:152": {
-          "name": "camera/panel_grid",
-          "tree": {
-            "nodes": [
-              {
-                "children": [],
-                "clipsContent": true,
-                "counterAxisAlignItems": "MIN",
-                "counterAxisSizingMode": "FIXED",
-                "fills": [
-                  {
-                    "blendMode": "NORMAL",
-                    "boundVariables": {
-                      "color": {
-                        "id": "VariableID:2:118",
-                        "type": "VARIABLE_ALIAS"
-                      }
-                    },
-                    "color": {
-                      "b": 0,
-                      "g": 0,
-                      "r": 0
-                    },
-                    "opacity": 0.800000011920929,
-                    "type": "SOLID",
-                    "visible": true
-                  }
-                ],
-                "height": 890,
-                "id": "95:152",
-                "itemSpacing": 0,
-                "layoutAlign": "AUTO",
-                "layoutGrow": 0,
-                "layoutMode": "NONE",
-                "name": "camera/panel_grid",
-                "primaryAxisAlignItems": "MIN",
-                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
-                "type": "FRAME",
-                "width": 400,
-                "x": 1350,
-                "y": 0
-              }
-            ]
-          }
-        },
-        "95:197": {
-          "name": "camera/panel_filter",
-          "tree": {
-            "nodes": [
-              {
-                "children": [],
-                "clipsContent": true,
-                "counterAxisAlignItems": "MIN",
-                "counterAxisSizingMode": "FIXED",
-                "fills": [
-                  {
-                    "blendMode": "NORMAL",
-                    "boundVariables": {
-                      "color": {
-                        "id": "VariableID:2:118",
-                        "type": "VARIABLE_ALIAS"
-                      }
-                    },
-                    "color": {
-                      "b": 0,
-                      "g": 0,
-                      "r": 0
-                    },
-                    "opacity": 0.800000011920929,
-                    "type": "SOLID",
-                    "visible": true
-                  }
-                ],
-                "height": 890,
-                "id": "95:197",
-                "itemSpacing": 0,
-                "layoutAlign": "AUTO",
-                "layoutGrow": 0,
-                "layoutMode": "NONE",
-                "name": "camera/panel_filter",
-                "primaryAxisAlignItems": "MIN",
-                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
-                "type": "FRAME",
-                "width": 400,
-                "x": 450,
-                "y": 934
-              }
-            ]
-          }
-        },
-        "95:235": {
-          "name": "camera/panel_pro",
-          "tree": {
-            "nodes": [
-              {
-                "children": [],
-                "clipsContent": true,
-                "counterAxisAlignItems": "MIN",
-                "counterAxisSizingMode": "FIXED",
-                "fills": [
-                  {
-                    "blendMode": "NORMAL",
-                    "boundVariables": {
-                      "color": {
-                        "id": "VariableID:2:118",
-                        "type": "VARIABLE_ALIAS"
-                      }
-                    },
-                    "color": {
-                      "b": 0,
-                      "g": 0,
-                      "r": 0
-                    },
-                    "opacity": 0.800000011920929,
-                    "type": "SOLID",
-                    "visible": true
-                  }
-                ],
-                "height": 890,
-                "id": "95:235",
-                "itemSpacing": 0,
-                "layoutAlign": "AUTO",
-                "layoutGrow": 0,
-                "layoutMode": "NONE",
-                "name": "camera/panel_pro",
-                "primaryAxisAlignItems": "MIN",
-                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
-                "type": "FRAME",
-                "width": 400,
-                "x": 900,
-                "y": 934
-              }
-            ]
-          }
-        },
-        "95:322": {
-          "name": "camera/focusing",
-          "tree": {
-            "nodes": [
-              {
-                "children": [],
-                "clipsContent": true,
-                "counterAxisAlignItems": "MIN",
-                "counterAxisSizingMode": "FIXED",
-                "fills": [
-                  {
-                    "blendMode": "NORMAL",
-                    "boundVariables": {
-                      "color": {
-                        "id": "VariableID:2:118",
-                        "type": "VARIABLE_ALIAS"
-                      }
-                    },
-                    "color": {
-                      "b": 0,
-                      "g": 0,
-                      "r": 0
-                    },
-                    "opacity": 0.800000011920929,
-                    "type": "SOLID",
-                    "visible": true
-                  }
-                ],
-                "height": 890,
-                "id": "95:322",
-                "itemSpacing": 0,
-                "layoutAlign": "AUTO",
-                "layoutGrow": 0,
-                "layoutMode": "NONE",
-                "name": "camera/focusing",
-                "primaryAxisAlignItems": "MIN",
-                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
-                "type": "FRAME",
-                "width": 400,
-                "x": 1350,
-                "y": 934
-              }
-            ]
-          }
-        },
-        "95:37": {
-          "name": "camera/panel_beauty_face",
-          "tree": {
-            "nodes": [
-              {
-                "children": [],
-                "clipsContent": true,
-                "counterAxisAlignItems": "MIN",
-                "counterAxisSizingMode": "FIXED",
-                "fills": [
-                  {
-                    "blendMode": "NORMAL",
-                    "boundVariables": {
-                      "color": {
-                        "id": "VariableID:2:118",
-                        "type": "VARIABLE_ALIAS"
-                      }
-                    },
-                    "color": {
-                      "b": 0,
-                      "g": 0,
-                      "r": 0
-                    },
-                    "opacity": 0.800000011920929,
-                    "type": "SOLID",
-                    "visible": true
-                  }
-                ],
-                "height": 890,
-                "id": "95:37",
-                "itemSpacing": 0,
-                "layoutAlign": "AUTO",
-                "layoutGrow": 0,
-                "layoutMode": "NONE",
-                "name": "camera/panel_beauty_face",
-                "primaryAxisAlignItems": "MIN",
-                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
-                "type": "FRAME",
-                "width": 400,
-                "x": 450,
-                "y": 0
-              }
-            ]
-          }
-        },
-        "9:2": {
+        "118:1146": {
           "name": "camera/idle",
           "tree": {
             "nodes": [
@@ -306,7 +36,7 @@
                   }
                 ],
                 "height": 890,
-                "id": "9:2",
+                "id": "118:1146",
                 "itemSpacing": 0,
                 "layoutAlign": "AUTO",
                 "layoutGrow": 0,
@@ -318,6 +48,355 @@
                 "width": 400,
                 "x": 0,
                 "y": 0
+              }
+            ]
+          }
+        },
+        "118:1184": {
+          "name": "camera/panel_beauty_face",
+          "tree": {
+            "nodes": [
+              {
+                "children": [],
+                "clipsContent": true,
+                "counterAxisAlignItems": "MIN",
+                "counterAxisSizingMode": "FIXED",
+                "fills": [
+                  {
+                    "blendMode": "NORMAL",
+                    "boundVariables": {
+                      "color": {
+                        "id": "VariableID:2:118",
+                        "type": "VARIABLE_ALIAS"
+                      }
+                    },
+                    "color": {
+                      "b": 0,
+                      "g": 0,
+                      "r": 0
+                    },
+                    "opacity": 0.800000011920929,
+                    "type": "SOLID",
+                    "visible": true
+                  }
+                ],
+                "height": 890,
+                "id": "118:1184",
+                "itemSpacing": 0,
+                "layoutAlign": "AUTO",
+                "layoutGrow": 0,
+                "layoutMode": "NONE",
+                "name": "camera/panel_beauty_face",
+                "primaryAxisAlignItems": "MIN",
+                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                "type": "FRAME",
+                "width": 400,
+                "x": 450,
+                "y": 0
+              }
+            ]
+          }
+        },
+        "118:1255": {
+          "name": "camera/panel_ratio",
+          "tree": {
+            "nodes": [
+              {
+                "children": [],
+                "clipsContent": true,
+                "counterAxisAlignItems": "MIN",
+                "counterAxisSizingMode": "FIXED",
+                "fills": [
+                  {
+                    "blendMode": "NORMAL",
+                    "boundVariables": {
+                      "color": {
+                        "id": "VariableID:2:118",
+                        "type": "VARIABLE_ALIAS"
+                      }
+                    },
+                    "color": {
+                      "b": 0,
+                      "g": 0,
+                      "r": 0
+                    },
+                    "opacity": 0.800000011920929,
+                    "type": "SOLID",
+                    "visible": true
+                  }
+                ],
+                "height": 890,
+                "id": "118:1255",
+                "itemSpacing": 0,
+                "layoutAlign": "AUTO",
+                "layoutGrow": 0,
+                "layoutMode": "NONE",
+                "name": "camera/panel_ratio",
+                "primaryAxisAlignItems": "MIN",
+                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                "type": "FRAME",
+                "width": 400,
+                "x": 900,
+                "y": 0
+              }
+            ]
+          }
+        },
+        "118:1299": {
+          "name": "camera/panel_grid",
+          "tree": {
+            "nodes": [
+              {
+                "children": [],
+                "clipsContent": true,
+                "counterAxisAlignItems": "MIN",
+                "counterAxisSizingMode": "FIXED",
+                "fills": [
+                  {
+                    "blendMode": "NORMAL",
+                    "boundVariables": {
+                      "color": {
+                        "id": "VariableID:2:118",
+                        "type": "VARIABLE_ALIAS"
+                      }
+                    },
+                    "color": {
+                      "b": 0,
+                      "g": 0,
+                      "r": 0
+                    },
+                    "opacity": 0.800000011920929,
+                    "type": "SOLID",
+                    "visible": true
+                  }
+                ],
+                "height": 890,
+                "id": "118:1299",
+                "itemSpacing": 0,
+                "layoutAlign": "AUTO",
+                "layoutGrow": 0,
+                "layoutMode": "NONE",
+                "name": "camera/panel_grid",
+                "primaryAxisAlignItems": "MIN",
+                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                "type": "FRAME",
+                "width": 400,
+                "x": 1350,
+                "y": 0
+              }
+            ]
+          }
+        },
+        "118:1343": {
+          "name": "camera/panel_filter",
+          "tree": {
+            "nodes": [
+              {
+                "children": [],
+                "clipsContent": true,
+                "counterAxisAlignItems": "MIN",
+                "counterAxisSizingMode": "FIXED",
+                "fills": [
+                  {
+                    "blendMode": "NORMAL",
+                    "boundVariables": {
+                      "color": {
+                        "id": "VariableID:2:118",
+                        "type": "VARIABLE_ALIAS"
+                      }
+                    },
+                    "color": {
+                      "b": 0,
+                      "g": 0,
+                      "r": 0
+                    },
+                    "opacity": 0.800000011920929,
+                    "type": "SOLID",
+                    "visible": true
+                  }
+                ],
+                "height": 890,
+                "id": "118:1343",
+                "itemSpacing": 0,
+                "layoutAlign": "AUTO",
+                "layoutGrow": 0,
+                "layoutMode": "NONE",
+                "name": "camera/panel_filter",
+                "primaryAxisAlignItems": "MIN",
+                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                "type": "FRAME",
+                "width": 400,
+                "x": 1800,
+                "y": 0
+              }
+            ]
+          }
+        },
+        "118:1397": {
+          "name": "camera/panel_pro",
+          "tree": {
+            "nodes": [
+              {
+                "children": [],
+                "clipsContent": true,
+                "counterAxisAlignItems": "MIN",
+                "counterAxisSizingMode": "FIXED",
+                "fills": [
+                  {
+                    "blendMode": "NORMAL",
+                    "boundVariables": {
+                      "color": {
+                        "id": "VariableID:2:118",
+                        "type": "VARIABLE_ALIAS"
+                      }
+                    },
+                    "color": {
+                      "b": 0,
+                      "g": 0,
+                      "r": 0
+                    },
+                    "opacity": 0.800000011920929,
+                    "type": "SOLID",
+                    "visible": true
+                  }
+                ],
+                "height": 890,
+                "id": "118:1397",
+                "itemSpacing": 0,
+                "layoutAlign": "AUTO",
+                "layoutGrow": 0,
+                "layoutMode": "NONE",
+                "name": "camera/panel_pro",
+                "primaryAxisAlignItems": "MIN",
+                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                "type": "FRAME",
+                "width": 400,
+                "x": 450,
+                "y": 934
+              }
+            ]
+          }
+        },
+        "118:1465": {
+          "name": "camera/focusing",
+          "tree": {
+            "nodes": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "clipsContent": true,
+                    "cornerRadius": 1,
+                    "counterAxisAlignItems": "MIN",
+                    "counterAxisSizingMode": "FIXED",
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "boundVariables": {
+                          "color": {
+                            "id": "VariableID:2:117",
+                            "type": "VARIABLE_ALIAS"
+                          }
+                        },
+                        "color": {
+                          "b": 1,
+                          "g": 0.8980000019073486,
+                          "r": 0
+                        },
+                        "opacity": 1,
+                        "type": "SOLID",
+                        "visible": true
+                      }
+                    ],
+                    "height": 2,
+                    "id": "118:1504",
+                    "itemSpacing": 0,
+                    "layoutAlign": "AUTO",
+                    "layoutGrow": 0,
+                    "layoutMode": "NONE",
+                    "name": "focus_cross_h",
+                    "primaryAxisAlignItems": "MIN",
+                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                    "type": "FRAME",
+                    "width": 16,
+                    "x": 179.5,
+                    "y": 349
+                  },
+                  {
+                    "children": [],
+                    "clipsContent": true,
+                    "cornerRadius": 1,
+                    "counterAxisAlignItems": "MIN",
+                    "counterAxisSizingMode": "FIXED",
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "boundVariables": {
+                          "color": {
+                            "id": "VariableID:2:117",
+                            "type": "VARIABLE_ALIAS"
+                          }
+                        },
+                        "color": {
+                          "b": 1,
+                          "g": 0.8980000019073486,
+                          "r": 0
+                        },
+                        "opacity": 1,
+                        "type": "SOLID",
+                        "visible": true
+                      }
+                    ],
+                    "height": 16,
+                    "id": "118:1505",
+                    "itemSpacing": 0,
+                    "layoutAlign": "AUTO",
+                    "layoutGrow": 0,
+                    "layoutMode": "NONE",
+                    "name": "focus_cross_v",
+                    "primaryAxisAlignItems": "MIN",
+                    "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                    "type": "FRAME",
+                    "width": 2,
+                    "x": 186.5,
+                    "y": 342
+                  }
+                ],
+                "clipsContent": true,
+                "counterAxisAlignItems": "MIN",
+                "counterAxisSizingMode": "FIXED",
+                "fills": [
+                  {
+                    "blendMode": "NORMAL",
+                    "boundVariables": {
+                      "color": {
+                        "id": "VariableID:2:118",
+                        "type": "VARIABLE_ALIAS"
+                      }
+                    },
+                    "color": {
+                      "b": 0,
+                      "g": 0,
+                      "r": 0
+                    },
+                    "opacity": 0.800000011920929,
+                    "type": "SOLID",
+                    "visible": true
+                  }
+                ],
+                "height": 890,
+                "id": "118:1465",
+                "itemSpacing": 0,
+                "layoutAlign": "AUTO",
+                "layoutGrow": 0,
+                "layoutMode": "NONE",
+                "name": "camera/focusing",
+                "primaryAxisAlignItems": "MIN",
+                "primaryAxisSizingMode": "RESIZE_TO_FIT_WITH_IMPLICIT_SIZE",
+                "type": "FRAME",
+                "width": 400,
+                "x": 900,
+                "y": 934
               }
             ]
           }
