@@ -1,6 +1,6 @@
 {
   "endpoint": "http://127.0.0.1:50501/api/v1/mcp",
-  "exportedAt": "2026-08-17T19:43:27+08:00",
+  "exportedAt": "2026-08-17T19:50:59+08:00",
   "file": {
     "id": "715061534788814",
     "name": "polang-ui-spec",
@@ -114,5 +114,5 @@
     }
   ],
   "scale": 1,
-  "structureSha256": "55c4a396d440f3c89153b37c54a8915b022fb6b5b7d01d13230997f2c9cdb7ea"
+  "structureSha256": "1a7a18fb08a931bd1ae73fb30bcbacda19578f9d56c17be9cdb89c7f68a06871"
 }
