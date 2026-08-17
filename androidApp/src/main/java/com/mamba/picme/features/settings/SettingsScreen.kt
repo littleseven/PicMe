@@ -50,6 +50,7 @@ import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Face
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Memory
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.Person
@@ -86,6 +87,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -1860,10 +1863,11 @@ fun SettingsScreenPreview() {
     }
 }
 
+
 /**
- * 远程模型页（行式，spec=specs/screens/refs/ardot settings/remote_models）：
- * 当前模型行（紫）+ 模型列表（选中绿✓·使用中 / 蓝云）+ 添加模型行（绿+）。
- * 模型行点击弹动作弹层（设为当前/删除）；编辑走「删除+重新添加」。
+ * 远程模型页（2026-08-17 v2 重设计，spec=specs/screens/refs/ardot settings/remote_models）：
+ * 单组模型列表——供应商字母徽章（品牌色）+ 双行模型行（模型名+使用中胶囊 / 供应商·已配置）；
+ * 选中行 primaryTint 高亮；点行=设为当前，行尾「⋯」弹动作（设为当前/删除）；组尾添加行。
  */
 @Composable
 private fun RemoteModelsListSection(
@@ -1880,53 +1884,54 @@ private fun RemoteModelsListSection(
         }
     }
     val configuredConfigs = configs.configs.filter { it.isConfigured }
-    val selectedConfig = configs.getConfig(selectedModelId)?.takeIf { it.isConfigured }
     var showAddDialog by remember { mutableStateOf(false) }
     var actionModel by remember { mutableStateOf<RemoteModelConfig?>(null) }
 
-    // ── 组1 当前模型 ──
     SettingsListSection {
-        SettingsListRow(
-            title = stringResource(R.string.ai_agent_current_model),
-            onClick = {},
-            icon = Icons.Rounded.Psychology,
-            iconBlockColor = MaterialTheme.colorScheme.primaryContainer,
-            subtitle = selectedConfig?.let { config ->
-                "${config.modelId} · " + (
-                    RemoteModelConfig.getProvider(config.providerId)?.displayName
-                        ?: config.providerId
-                    )
-            } ?: stringResource(R.string.remote_model_none)
-        )
-    }
-
-    // ── 组2 模型列表 ──
-    if (configuredConfigs.isNotEmpty()) {
-        SettingsListSection {
-            configuredConfigs.forEachIndexed { index, config ->
-                if (index > 0) {
-                    SettingsListDivider()
-                }
-                val isSelected = config.uniqueKey == selectedModelId
-                SettingsListRow(
-                    title = config.modelId,
-                    onClick = { actionModel = config },
-                    icon = if (isSelected) Icons.Rounded.CheckCircle else Icons.Rounded.Cloud,
-                    iconBlockColor = if (isSelected) AppColors.vibrantGreen else StatusColor.info,
-                    valueText = if (isSelected) stringResource(R.string.model_in_use) else null
+        configuredConfigs.forEachIndexed { index, config ->
+            if (index > 0) {
+                SettingsListDivider()
+            }
+            RemoteModelRow(
+                config = config,
+                isSelected = config.uniqueKey == selectedModelId,
+                onSelect = { onSelectedModelChange(config.uniqueKey) },
+                onMore = { actionModel = config }
+            )
+        }
+        if (configuredConfigs.isNotEmpty()) {
+            SettingsListDivider()
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(SettingsTokens.listRowHeight)
+                .clickable(onClick = { showAddDialog = true })
+                .padding(horizontal = SettingsTokens.listRowPaddingH),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(SettingsTokens.rowElementGap)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(SettingsTokens.listIconBlockSize)
+                    .clip(RoundedCornerShape(SettingsTokens.listIconBlockSize / 2))
+                    .background(AppColors.vibrantGreen),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Add,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(SettingsTokens.listIconInnerSize)
                 )
             }
+            Text(
+                text = stringResource(R.string.add_model),
+                fontSize = SettingsTokens.listTitleFontSize.value.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
+            )
         }
-    }
-
-    // ── 组3 添加模型 ──
-    SettingsListSection {
-        SettingsListRow(
-            title = stringResource(R.string.add_model),
-            onClick = { showAddDialog = true },
-            icon = Icons.Rounded.Add,
-            iconBlockColor = AppColors.vibrantGreen
-        )
     }
 
     actionModel?.let { model ->
@@ -1970,6 +1975,105 @@ private fun RemoteModelsListSection(
                 onConfigsChange(RemoteModelConfigs.toJson(updated))
                 showAddDialog = false
             }
+        )
+    }
+}
+
+/** 供应商字母徽章品牌色（与设计稿映射一致：DeepSeek 蓝 / Moonshot 紫 / OpenAI 绿 / 其他灰）。 */
+private fun providerBadgeColor(providerId: String): Color = when (providerId.lowercase()) {
+    "deepseek" -> AppColors.vibrantBlue
+    "moonshot", "kimi" -> Color(0xFF4F378B)
+    "openai" -> AppColors.vibrantGreen
+    else -> Color(0xFF938F99)
+}
+
+/** 远程模型行：字母徽章 + 双行文本（模型名+可选「使用中」胶囊 / 供应商·已配置）+ 行尾 ⋯。 */
+@Composable
+private fun RemoteModelRow(
+    config: RemoteModelConfig,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+    onMore: () -> Unit
+) {
+    val providerName = RemoteModelConfig.getProvider(config.providerId)?.displayName ?: config.providerId
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(SettingsTokens.rowHeightWithSubtitle)
+            .background(
+                if (isSelected) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                } else {
+                    Color.Transparent
+                }
+            )
+            .clickable(onClick = onSelect)
+            .padding(start = SettingsTokens.listRowPaddingH, end = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(SettingsTokens.rowElementGap)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(SettingsTokens.listIconBlockSize)
+                .clip(RoundedCornerShape(SettingsTokens.listIconBlockSize / 2))
+                .background(providerBadgeColor(config.providerId)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = providerName.first().uppercase(),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
+            )
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = config.modelId,
+                    fontSize = SettingsTokens.listTitleFontSize.value.sp,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (isSelected) {
+                    Box(
+                        modifier = Modifier
+                            .height(20.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.primary)
+                            .padding(horizontal = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = stringResource(R.string.model_in_use),
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                }
+            }
+            Text(
+                text = "$providerName · ${stringResource(R.string.remote_model_configured)}",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        Icon(
+            imageVector = Icons.Rounded.MoreVert,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = SettingsTokens.rowChevronAlpha),
+            modifier = Modifier
+                .size(SettingsTokens.rowChevronSize)
+                .clickable(onClick = onMore)
         )
     }
 }

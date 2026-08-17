@@ -409,6 +409,7 @@
     <string name="tag_gen_use_opencl_desc">使用 GPU 加速批量图片标签生成。部分设备 OpenCL 多模态推理可能卡死，如 Pass 3 卡住请关闭此选项。</string>
     <string name="remote_models">远程模型</string>
     <string name="model_in_use">使用中</string>
+    <string name="remote_model_configured">已配置</string>
     <string name="remote_model_set_current">设为当前</string>
     <string name="remote_model_none">未配置</string>
     <string name="remote_models_desc">远程模型供应商、API 密钥与当前选用模型。</string>

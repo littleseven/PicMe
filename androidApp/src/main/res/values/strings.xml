@@ -420,6 +420,7 @@
     <string name="tag_control_subtitle">Regenerate by category / time range / full or incremental</string>
     <string name="remote_models">Remote Models</string>
     <string name="model_in_use">In use</string>
+    <string name="remote_model_configured">Configured</string>
     <string name="remote_model_set_current">Set as current</string>
     <string name="remote_model_none">Not configured</string>
     <string name="remote_models_desc">Remote model providers, API keys, and the active model.</string>
