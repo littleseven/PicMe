@@ -6,6 +6,7 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,17 +18,28 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.Label
 import androidx.compose.material.icons.rounded.Accessibility
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.CloudDownload
+import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.Gradient
+import androidx.compose.material.icons.rounded.ListAlt
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.CenterFocusStrong
+import androidx.compose.material.icons.rounded.Code
+import androidx.compose.material.icons.rounded.KeyboardVoice
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Mic
@@ -70,6 +82,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -82,6 +95,8 @@ import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.tool.accessibility.AccessibilityServiceHolder
+import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
+import com.mamba.picme.agent.core.remote.config.RemoteModelConfigs
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.core.designsystem.AppColors
 import com.mamba.picme.core.designsystem.PoLangTheme
@@ -128,6 +143,16 @@ enum class SettingsCategory {
 }
 
 private const val TAG = "Settings"
+
+/** Shader 调试模式（硬编码技术名，不做 i18n）。 */
+private val SHADER_DEBUG_MODES = listOf(
+    0 to "Normal",
+    1 to "Skin Mask",
+    2 to "Warp Offset",
+    3 to "BigEye Radius",
+    4 to "ThinFace Radius",
+    5 to "All Warp"
+)
 
 @Suppress("LongMethod", "LongParameterList") // 待重构：SettingsScreen 抽 SettingsNav holder
 @Composable
@@ -468,18 +493,14 @@ private fun SettingsContent(
 
             // ── 1. 个性化（主题与语言已迁移至设置页主菜单顶部）───
 
-            // ── 2. 远程模型（用户侧一级入口）────────────────────────
+            // ── 2. 远程模型（用户侧一级入口，2026-08-17 行式重设计）────────────────
             if (category == SettingsCategory.REMOTE_MODEL) {
-                SettingsSection(
-                    title = stringResource(R.string.remote_models)
-                ) {
-                    AiAgentRemoteModelsSection(
-                        configsJson = aiAgentRemoteModelConfigs,
-                        onConfigsChange = onAiAgentRemoteModelConfigsChange,
-                        selectedModelId = aiAgentSelectedRemoteModel,
-                        onSelectedModelChange = onAiAgentSelectedRemoteModelChange
-                    )
-                }
+                RemoteModelsListSection(
+                    configsJson = aiAgentRemoteModelConfigs,
+                    onConfigsChange = onAiAgentRemoteModelConfigsChange,
+                    selectedModelId = aiAgentSelectedRemoteModel,
+                    onSelectedModelChange = onAiAgentSelectedRemoteModelChange
+                )
                 // 自动执行多步骤计划已迁入「沙盒与权限」一级入口
             }
 
@@ -645,7 +666,7 @@ private fun SettingsContent(
             // ── 4. 语音控制（用户侧一级入口）────────────────────────
             // 语音控制已并入「沙盒与权限」页的设备访问模块（麦克风访问）
 
-            // ── 5. 沙盒与权限（用户侧一级入口）────────────────────
+            // ── 5. 沙盒与权限（用户侧一级入口，2026-08-17 行式重设计）────────────
             if (category == SettingsCategory.SANDBOX) {
                 val context = LocalContext.current
                 val openAppSystemSettings: () -> Unit = {
@@ -655,77 +676,102 @@ private fun SettingsContent(
                     }
                     runCatching { context.startActivity(intent) }
                 }
+                var showVoiceModeDialog by remember { mutableStateOf(false) }
 
-                SettingsSection(
-                    title = stringResource(R.string.sandbox_execution),
-                    description = stringResource(R.string.sandbox_execution_desc)
-                ) {
+                // ── 组1 智能体执行 ──
+                SettingsListSection {
                     DebugOptionRow(
                         title = stringResource(R.string.ai_agent_auto_execute_plans),
                         checked = autoExecutePlans,
-                        onCheckedChange = onAutoExecutePlansChange
+                        onCheckedChange = onAutoExecutePlansChange,
+                        horizontalPadding = SettingsTokens.listRowPaddingH,
+                        rowHeight = SettingsTokens.listRowHeight,
+                        icon = Icons.Rounded.Psychology,
+                        iconBlockColor = MaterialTheme.colorScheme.primaryContainer
                     )
-                    Text(
-                        text = stringResource(R.string.ai_agent_auto_execute_plans_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
-                    )
+                    SettingsListDivider()
                     DebugOptionRow(
                         title = stringResource(R.string.js_engine_execution),
                         checked = jsEngineEnabled,
-                        onCheckedChange = onJsEngineEnabledChange
-                    )
-                    Text(
-                        text = stringResource(R.string.js_engine_execution_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
+                        onCheckedChange = onJsEngineEnabledChange,
+                        horizontalPadding = SettingsTokens.listRowPaddingH,
+                        rowHeight = SettingsTokens.listRowHeight,
+                        icon = Icons.Rounded.Code,
+                        iconBlockColor = MaterialTheme.colorScheme.primaryContainer
                     )
                 }
 
-                SettingsSection(
-                    title = stringResource(R.string.sandbox_device_access),
-                    description = stringResource(R.string.sandbox_device_access_desc)
-                ) {
+                // ── 组2 设备访问 ──
+                SettingsListSection {
                     DebugOptionRow(
                         title = stringResource(R.string.agent_camera_access),
                         checked = agentCameraAccessEnabled,
-                        onCheckedChange = onAgentCameraAccessChange
+                        onCheckedChange = onAgentCameraAccessChange,
+                        horizontalPadding = SettingsTokens.listRowPaddingH,
+                        rowHeight = SettingsTokens.listRowHeight,
+                        icon = Icons.Rounded.CameraAlt,
+                        iconBlockColor = AppColors.vibrantBlue
                     )
-                    SettingsClickableRow(
+                    SettingsListDivider()
+                    SettingsListRow(
                         title = stringResource(R.string.camera_permission_system),
-                        subtitle = stringResource(R.string.permission_system_subtitle),
-                        valueText = stringResource(R.string.permission_system_value),
-                        onClick = openAppSystemSettings
+                        onClick = openAppSystemSettings,
+                        icon = Icons.Rounded.Lock,
+                        iconBlockColor = AppColors.vibrantBlue,
+                        valueText = stringResource(R.string.permission_system_value)
                     )
+                    SettingsListDivider()
                     DebugOptionRow(
                         title = stringResource(R.string.agent_gallery_access),
                         checked = agentGalleryAccessEnabled,
-                        onCheckedChange = onAgentGalleryAccessChange
+                        onCheckedChange = onAgentGalleryAccessChange,
+                        horizontalPadding = SettingsTokens.listRowPaddingH,
+                        rowHeight = SettingsTokens.listRowHeight,
+                        icon = Icons.Rounded.PhotoLibrary,
+                        iconBlockColor = AppColors.vibrantBlue
                     )
-                    SettingsClickableRow(
+                    SettingsListDivider()
+                    SettingsListRow(
                         title = stringResource(R.string.gallery_permission_system),
-                        subtitle = stringResource(R.string.permission_system_subtitle),
-                        valueText = stringResource(R.string.permission_system_value),
-                        onClick = openAppSystemSettings
+                        onClick = openAppSystemSettings,
+                        icon = Icons.Rounded.Lock,
+                        iconBlockColor = AppColors.vibrantBlue,
+                        valueText = stringResource(R.string.permission_system_value)
                     )
+                }
 
-                    // 语音交互（麦克风访问）
-                    Text(
-                        text = stringResource(R.string.voice_control),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 12.dp, top = 8.dp)
+                // ── 组3 语音 ──
+                SettingsListSection {
+                    SettingsListRow(
+                        title = stringResource(R.string.voice_control),
+                        onClick = { showVoiceModeDialog = true },
+                        icon = Icons.Rounded.Mic,
+                        iconBlockColor = AppColors.vibrantGreen,
+                        valueText = stringResource(voiceModeLabelRes(voiceCommandMode))
                     )
-                    VoiceCommandModeSelection(
-                        currentMode = voiceCommandMode,
-                        onModeSelected = onVoiceCommandModeChange
-                    )
+                    SettingsListDivider()
                     DebugOptionRow(
                         title = stringResource(R.string.voice_entry_enabled),
                         checked = voiceEntryEnabled,
-                        onCheckedChange = onVoiceEntryEnabledChange
+                        onCheckedChange = onVoiceEntryEnabledChange,
+                        horizontalPadding = SettingsTokens.listRowPaddingH,
+                        rowHeight = SettingsTokens.listRowHeight,
+                        icon = Icons.Rounded.KeyboardVoice,
+                        iconBlockColor = AppColors.vibrantGreen
+                    )
+                }
+
+                if (showVoiceModeDialog) {
+                    SettingsSingleChoiceDialog(
+                        title = stringResource(R.string.voice_control),
+                        options = listOf(
+                            VoiceCommandMode.DISABLED to stringResource(R.string.voice_command_mode_disabled),
+                            VoiceCommandMode.PUSH_TO_TALK to stringResource(R.string.voice_command_mode_push_to_talk),
+                            VoiceCommandMode.WAKE_WORD to stringResource(R.string.voice_command_mode_wake_word)
+                        ),
+                        isSelected = { it == voiceCommandMode },
+                        onSelected = { mode -> onVoiceCommandModeChange(mode as VoiceCommandMode) },
+                        onDismiss = { showVoiceModeDialog = false }
                     )
                 }
             }
@@ -928,91 +974,112 @@ private fun SettingsContent(
 
             // ── 6. 开发者选项 ─────────────────────────────────────
             if (category == SettingsCategory.DEVELOPER) {
-                // ── 1. 相机预览调试：预览可视化叠加层 ──────────────
-                SettingsSection(
-                    title = stringResource(R.string.dev_preview_debug),
-                    description = stringResource(R.string.settings_debug_tools_desc)
-                ) {
+                var showShaderDialog by remember { mutableStateOf(false) }
+                var showLogModulesDialog by remember { mutableStateOf(false) }
+
+                // ── 组1 预览调试 ──
+                SettingsListSection {
                     DebugOptionRow(
                         title = stringResource(R.string.debug),
                         checked = debugUiEnabled,
-                        onCheckedChange = onDebugUiEnabledChange
+                        onCheckedChange = onDebugUiEnabledChange,
+                        horizontalPadding = SettingsTokens.listRowPaddingH,
+                        rowHeight = SettingsTokens.listRowHeight,
+                        icon = Icons.Rounded.BugReport,
+                        iconBlockColor = StatusColor.warningAmber
                     )
                     if (debugUiEnabled) {
+                        SettingsListDivider()
                         DebugOptionRow(
                             title = stringResource(R.string.show_camera_info),
                             checked = showCameraInfoInPreview,
-                            onCheckedChange = onShowCameraInfoInPreviewChange
+                            onCheckedChange = onShowCameraInfoInPreviewChange,
+                            horizontalPadding = SettingsTokens.listRowPaddingH,
+                            rowHeight = SettingsTokens.listRowHeight,
+                            icon = Icons.Rounded.Language,
+                            iconBlockColor = StatusColor.warningAmber
                         )
+                        SettingsListDivider()
                         DebugOptionRow(
                             title = stringResource(R.string.show_face_debug),
                             checked = showFaceDebugOverlay,
-                            onCheckedChange = onShowFaceDebugOverlayChange
+                            onCheckedChange = onShowFaceDebugOverlayChange,
+                            horizontalPadding = SettingsTokens.listRowPaddingH,
+                            rowHeight = SettingsTokens.listRowHeight,
+                            icon = Icons.Rounded.Face,
+                            iconBlockColor = StatusColor.warningAmber
                         )
+                        SettingsListDivider()
                         DebugOptionRow(
                             title = stringResource(R.string.show_log_overlay),
                             checked = showLogOverlay,
-                            onCheckedChange = onShowLogOverlayChange
+                            onCheckedChange = onShowLogOverlayChange,
+                            horizontalPadding = SettingsTokens.listRowPaddingH,
+                            rowHeight = SettingsTokens.listRowHeight,
+                            icon = Icons.Rounded.Description,
+                            iconBlockColor = StatusColor.warningAmber
                         )
-                        ShaderDebugModeSelection(
-                            currentMode = debugShaderMode,
-                            onModeSelected = onDebugShaderModeSelected
+                        SettingsListDivider()
+                        SettingsListRow(
+                            title = stringResource(R.string.shader_debug_mode),
+                            onClick = { showShaderDialog = true },
+                            icon = Icons.Rounded.Gradient,
+                            iconBlockColor = StatusColor.warningAmber,
+                            valueText = shaderModeLabel(debugShaderMode)
                         )
                     }
                 }
 
                 // 引擎与模型（人脸检测阶段配置 + 打标模型）已移至「本地模型」一级入口
 
-                // ── 2. 诊断与日志（LLM 调用日志 + 按模块日志开关）──────────
-                SettingsSection(
-                    title = stringResource(R.string.dev_diagnostics_log)
-                ) {
-                    SettingsClickableRow(
+                // ── 组2 诊断日志 ──
+                SettingsListSection {
+                    SettingsListRow(
                         title = stringResource(R.string.llm_call_log),
-                        subtitle = stringResource(R.string.llm_call_log_desc),
-                        valueText = stringResource(R.string.enter),
-                        onClick = onNavigateToLlmLog
+                        onClick = onNavigateToLlmLog,
+                        icon = Icons.Rounded.Terminal,
+                        iconBlockColor = StatusColor.warningAmber,
+                        subtitle = stringResource(R.string.llm_call_log_desc)
                     )
-
-                    Text(
-                        text = stringResource(R.string.log_management),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 12.dp, top = 8.dp)
-                    )
-                    LogModuleConfigSection(
-                        config = logModuleConfig,
-                        onConfigChange = onLogModuleConfigChange
+                    SettingsListDivider()
+                    SettingsListRow(
+                        title = stringResource(R.string.log_management),
+                        onClick = { showLogModulesDialog = true },
+                        icon = Icons.Rounded.ListAlt,
+                        iconBlockColor = StatusColor.warningAmber,
+                        valueText = stringResource(R.string.log_modules_all)
                     )
                 }
 
-                // ── 3. 开发测试工具（仅 DEBUG 构建） ────────────────
+                // ── 组3 测试工具（仅 DEBUG 构建） ──
                 if (BuildConfig.DEBUG) {
                     val context = LocalContext.current
 
-                    SettingsSection(
-                        title = stringResource(R.string.dev_test_tools)
-                    ) {
-                        SettingsClickableRow(
+                    SettingsListSection {
+                        SettingsListRow(
                             title = stringResource(R.string.debug_image_download),
-                            subtitle = stringResource(R.string.debug_image_download_desc),
-                            valueText = stringResource(R.string.enter),
-                            onClick = onNavigateToDebug
+                            onClick = onNavigateToDebug,
+                            icon = Icons.Rounded.CloudDownload,
+                            iconBlockColor = StatusColor.warningAmber,
+                            subtitle = stringResource(R.string.debug_image_download_desc)
                         )
-                        SettingsClickableRow(
+                        SettingsListDivider()
+                        SettingsListRow(
                             title = stringResource(R.string.search_test_entry_title),
-                            subtitle = stringResource(R.string.search_test_entry_subtitle),
-                            valueText = stringResource(R.string.enter),
-                            onClick = onNavigateToSearchTest
+                            onClick = onNavigateToSearchTest,
+                            icon = Icons.Rounded.Search,
+                            iconBlockColor = StatusColor.warningAmber,
+                            subtitle = stringResource(R.string.search_test_entry_subtitle)
                         )
-                        SettingsClickableRow(
+                        SettingsListDivider()
+                        SettingsListRow(
                             title = stringResource(R.string.jsbridge_entry_title),
-                            subtitle = stringResource(R.string.jsbridge_entry_subtitle),
-                            valueText = stringResource(R.string.enter),
-                            onClick = onNavigateToJsBridge
+                            onClick = onNavigateToJsBridge,
+                            icon = Icons.Rounded.Code,
+                            iconBlockColor = StatusColor.warningAmber,
+                            subtitle = stringResource(R.string.jsbridge_entry_subtitle)
                         )
-
-                        Spacer(modifier = Modifier.height(8.dp))
+                        SettingsListDivider()
 
                         // AI 远程控制无障碍服务
                         var isAccessibilityEnabled by remember {
@@ -1026,20 +1093,55 @@ private fun SettingsContent(
                             }
                         }
 
-                        SettingsClickableRow(
+                        SettingsListRow(
                             title = stringResource(R.string.settings_accessibility_service_title),
-                            subtitle = stringResource(R.string.settings_accessibility_service_summary),
-                            valueText = stringResource(
-                                if (isAccessibilityEnabled) R.string.settings_accessibility_service_enabled else R.string.settings_accessibility_service_disabled
-                            ),
-                            leadingIcon = Icons.Rounded.Accessibility,
                             onClick = {
                                 val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
                                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 }
                                 context.startActivity(intent)
-                            }
+                            },
+                            icon = Icons.Rounded.Accessibility,
+                            iconBlockColor = StatusColor.warningAmber,
+                            valueText = stringResource(
+                                if (isAccessibilityEnabled) {
+                                    R.string.settings_accessibility_service_enabled
+                                } else {
+                                    R.string.settings_accessibility_service_disabled
+                                }
+                            )
                         )
+                    }
+                }
+
+                if (showShaderDialog) {
+                    SettingsSingleChoiceDialog(
+                        title = stringResource(R.string.shader_debug_mode),
+                        options = SHADER_DEBUG_MODES,
+                        isSelected = { it == debugShaderMode },
+                        onSelected = { mode -> onDebugShaderModeSelected(mode as Int) },
+                        onDismiss = { showShaderDialog = false }
+                    )
+                }
+                if (showLogModulesDialog) {
+                    SettingsOptionSheetShell(
+                        title = stringResource(R.string.log_management),
+                        subtitle = stringResource(R.string.log_modules_dialog_subtitle),
+                        onDismiss = { showLogModulesDialog = false }
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            LogModule.entries.forEach { module ->
+                                SettingsOptionRow(
+                                    label = module.displayName,
+                                    selected = logModuleConfig.isEnabled(module),
+                                    onClick = {
+                                        onLogModuleConfigChange(
+                                            logModuleConfig.toggle(module, !logModuleConfig.isEnabled(module))
+                                        )
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -1188,6 +1290,7 @@ private fun SettingsMainMenu(
     if (showThemeDialog) {
         SettingsSingleChoiceDialog(
             title = stringResource(R.string.theme_mode),
+            subtitle = stringResource(R.string.theme_mode_dialog_subtitle),
             options = listOf(
                 ThemeMode.SYSTEM to stringResource(R.string.system_default),
                 ThemeMode.LIGHT to stringResource(R.string.light),
@@ -1195,12 +1298,14 @@ private fun SettingsMainMenu(
             ),
             isSelected = { it == themeMode },
             onSelected = { mode -> onThemeModeSelected(mode as ThemeMode) },
-            onDismiss = { showThemeDialog = false }
+            onDismiss = { showThemeDialog = false },
+            trailing = { mode -> ThemeModePreview(mode as ThemeMode) }
         )
     }
     if (showLanguageDialog) {
         SettingsSingleChoiceDialog(
             title = stringResource(R.string.language),
+            subtitle = stringResource(R.string.language_dialog_subtitle),
             options = listOf(
                 AppLanguage.SYSTEM to stringResource(R.string.system_default),
                 AppLanguage.ENGLISH to "English",
@@ -1220,6 +1325,14 @@ private fun themeModeLabelRes(mode: ThemeMode): Int = when (mode) {
     ThemeMode.DARK -> R.string.dark
 }
 
+private fun voiceModeLabelRes(mode: VoiceCommandMode): Int = when (mode) {
+    VoiceCommandMode.DISABLED -> R.string.voice_command_mode_disabled
+    VoiceCommandMode.PUSH_TO_TALK -> R.string.voice_command_mode_push_to_talk
+    VoiceCommandMode.WAKE_WORD -> R.string.voice_command_mode_wake_word
+}
+
+private fun shaderModeLabel(mode: Int): String = SHADER_DEBUG_MODES.firstOrNull { it.first == mode }?.second ?: "Normal"
+
 @Composable
 private fun languageLabel(language: AppLanguage): String = when (language) {
     AppLanguage.SYSTEM -> stringResource(R.string.system_default)
@@ -1228,53 +1341,64 @@ private fun languageLabel(language: AppLanguage): String = when (language) {
     AppLanguage.TRADITIONAL_CHINESE -> "繁體中文"
 }
 
-/** 列表行值列的弹窗选择器（主题/语言共用）：单选即生效，无确认按钮。 */
+/** 列表行值列的弹层选择器（主题/语言/档位/打标/语音共用）：底部弹层，单选即生效。
+ * trailing 可选：主题弹窗传预览块等自定义尾部内容。 */
 @Composable
 private fun <T> SettingsSingleChoiceDialog(
     title: String,
+    subtitle: String? = null,
     options: List<Pair<T, String>>,
     isSelected: (T) -> Boolean,
     onSelected: (T) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    trailing: @Composable (T) -> Unit = {}
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            Column {
-                options.forEach { (value, label) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onSelected(value)
-                                onDismiss()
-                            }
-                            .padding(vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = isSelected(value),
-                            onClick = {
-                                onSelected(value)
-                                onDismiss()
-                            }
-                        )
-                        Text(
-                            text = label,
-                            modifier = Modifier.padding(start = 4.dp)
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
+    SettingsOptionSheetShell(
+        title = title,
+        subtitle = subtitle,
+        onDismiss = onDismiss
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            options.forEach { (value, label) ->
+                SettingsOptionRow(
+                    label = label,
+                    selected = isSelected(value),
+                    onClick = {
+                        onSelected(value)
+                        onDismiss()
+                    },
+                    trailing = { trailing(value) }
+                )
             }
         }
-    )
+    }
+}
+
+/** 主题预览块（dialog_theme spec）：系统默认=浅深双拼，浅色/深色=底色+顶栏示意。 */
+@Composable
+private fun ThemeModePreview(mode: ThemeMode) {
+    Row(
+        modifier = Modifier
+            .size(width = 28.dp, height = 20.dp)
+            .clip(RoundedCornerShape(6.dp))
+    ) {
+        when (mode) {
+            ThemeMode.SYSTEM -> {
+                Box(Modifier.width(14.dp).height(20.dp).background(Color(0xFFFCFDFE)))
+                Box(Modifier.width(14.dp).height(20.dp).background(Color(0xFF1C1B1F)))
+            }
+            ThemeMode.LIGHT -> Box(
+                Modifier
+                    .size(width = 28.dp, height = 20.dp)
+                    .background(Color(0xFFFCFDFE))
+            )
+            ThemeMode.DARK -> Box(
+                Modifier
+                    .size(width = 28.dp, height = 20.dp)
+                    .background(Color(0xFF1C1B1F))
+            )
+        }
+    }
 }
 
 /**
@@ -1452,20 +1576,6 @@ internal fun GallerySettingsHeader(
     }
 }
 
-@Composable
-private fun LogModuleConfigSection(
-    config: LogModuleConfig,
-    onConfigChange: (LogModuleConfig) -> Unit
-) {
-    CompactMultiSelectChips(
-        options = LogModule.entries.map { it to it.displayName },
-        isSelected = { module -> config.isEnabled(module) },
-        maxLines = 3,
-        onToggle = { module ->
-            onConfigChange(config.toggle(module, !config.isEnabled(module)))
-        }
-    )
-}
 
 @Composable
 private fun OpenClBackendSelection(
@@ -1555,86 +1665,49 @@ private fun StageConfigDialog(
         }
     }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            Column {
-                Text(
-                    text = stringResource(R.string.model_type),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                modelTypes.forEach { (type, labelRes) ->
-                    val isMediaPipe = type == DetectionModelType.MEDIAPIPE
-                    val downloaded = isModelDownloaded(type) || isMediaPipe
-                    val modelId = getModelId(type, stage)
-                    val downloadState = modelId?.let { downloadStates[it] }
-                    val downloading = downloadState?.status == DownloadStatus.DOWNLOADING
-                    val progress = if (downloading && downloadState.totalBytes > 0) {
-                        (downloadState.downloadedBytes.toFloat() / downloadState.totalBytes * 100).toInt()
-                    } else {
-                        0
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(enabled = !downloading) { selectModel(type) }
-                            .padding(vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = type == config.modelType,
-                            enabled = !downloading,
-                            onClick = { selectModel(type) }
-                        )
-                        Text(
-                            text = when {
-                                downloading -> "${stringResource(labelRes)} · $progress%"
-                                !downloaded -> "${stringResource(labelRes)} · ${stringResource(R.string.model_pending_download)}"
-                                else -> stringResource(labelRes)
-                            },
-                            modifier = Modifier.padding(start = 4.dp)
-                        )
-                    }
+    SettingsOptionSheetShell(
+        title = title,
+        subtitle = null,
+        onDismiss = onDismiss
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            SettingsOptionGroupLabel(stringResource(R.string.model_type))
+            modelTypes.forEach { (type, labelRes) ->
+                val isMediaPipe = type == DetectionModelType.MEDIAPIPE
+                val downloaded = isModelDownloaded(type) || isMediaPipe
+                val modelId = getModelId(type, stage)
+                val downloadState = modelId?.let { downloadStates[it] }
+                val downloading = downloadState?.status == DownloadStatus.DOWNLOADING
+                val progress = if (downloading && downloadState.totalBytes > 0) {
+                    (downloadState.downloadedBytes.toFloat() / downloadState.totalBytes * 100).toInt()
+                } else {
+                    0
                 }
-                Text(
-                    text = stringResource(R.string.inference_device_preference),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 12.dp)
+                SettingsOptionRow(
+                    label = when {
+                        downloading -> "${stringResource(labelRes)} · $progress%"
+                        !downloaded -> "${stringResource(labelRes)} · ${stringResource(R.string.model_pending_download)}"
+                        else -> stringResource(labelRes)
+                    },
+                    selected = type == config.modelType,
+                    onClick = { selectModel(type) },
+                    ready = downloaded && !downloading
                 )
-                listOf(
-                    InferenceDevicePreference.AUTO to R.string.device_preference_auto,
-                    InferenceDevicePreference.FORCE_CPU to R.string.device_preference_force_cpu,
-                    InferenceDevicePreference.FORCE_GPU to R.string.device_preference_force_gpu
-                ).forEach { (preference, labelRes) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onDevicePreferenceSelected(preference) }
-                            .padding(vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = preference == config.devicePreference,
-                            onClick = { onDevicePreferenceSelected(preference) }
-                        )
-                        Text(
-                            text = stringResource(labelRes),
-                            modifier = Modifier.padding(start = 4.dp)
-                        )
-                    }
-                }
             }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
+            SettingsOptionGroupLabel(stringResource(R.string.inference_device_preference))
+            listOf(
+                InferenceDevicePreference.AUTO to R.string.device_preference_auto,
+                InferenceDevicePreference.FORCE_CPU to R.string.device_preference_force_cpu,
+                InferenceDevicePreference.FORCE_GPU to R.string.device_preference_force_gpu
+            ).forEach { (preference, labelRes) ->
+                SettingsOptionRow(
+                    label = stringResource(labelRes),
+                    selected = preference == config.devicePreference,
+                    onClick = { onDevicePreferenceSelected(preference) }
+                )
             }
         }
-    )
+    }
 }
 
 @Composable
@@ -1696,6 +1769,7 @@ private fun VoiceModelRow(
     if (showDialog) {
         SettingsSingleChoiceDialog(
             title = title,
+            subtitle = stringResource(R.string.voice_model_dialog_subtitle),
             options = downloadedModels.map { it.id to it.name },
             isSelected = { it == currentModel },
             onSelected = { value -> onModelSelected(value as String) },
@@ -1711,34 +1785,6 @@ private fun taggerLabel(key: String): String = when (key) {
     else -> stringResource(R.string.tag_model_auto)
 }
 
-@Composable
-private fun ShaderDebugModeSelection(
-    currentMode: Int,
-    onModeSelected: (Int) -> Unit
-) {
-    val options = listOf(
-        0 to "Normal",
-        1 to "Skin Mask",
-        2 to "Warp Offset",
-        3 to "BigEye Radius",
-        4 to "ThinFace Radius",
-        5 to "All Warp"
-    )
-
-    Text(
-        text = stringResource(R.string.shader_debug_mode),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 12.dp, top = 8.dp, bottom = 0.dp)
-    )
-
-    CompactOptionChips(
-        options = options,
-        currentValue = currentMode,
-        maxLines = 2,
-        onSelected = onModeSelected
-    )
-}
 
 @Preview(showBackground = true)
 @Composable
@@ -1810,6 +1856,120 @@ fun SettingsScreenPreview() {
             onNavigateToDebug = {},
             onNavigateToJsBridge = {},
             onNavigateToSearchTest = {}
+        )
+    }
+}
+
+/**
+ * 远程模型页（行式，spec=specs/screens/refs/ardot settings/remote_models）：
+ * 当前模型行（紫）+ 模型列表（选中绿✓·使用中 / 蓝云）+ 添加模型行（绿+）。
+ * 模型行点击弹动作弹层（设为当前/删除）；编辑走「删除+重新添加」。
+ */
+@Composable
+private fun RemoteModelsListSection(
+    configsJson: String,
+    onConfigsChange: (String) -> Unit,
+    selectedModelId: String,
+    onSelectedModelChange: (String) -> Unit
+) {
+    val configs = remember(configsJson) {
+        if (configsJson.isNotBlank()) {
+            RemoteModelConfigs.fromJson(configsJson)
+        } else {
+            RemoteModelConfigs()
+        }
+    }
+    val configuredConfigs = configs.configs.filter { it.isConfigured }
+    val selectedConfig = configs.getConfig(selectedModelId)?.takeIf { it.isConfigured }
+    var showAddDialog by remember { mutableStateOf(false) }
+    var actionModel by remember { mutableStateOf<RemoteModelConfig?>(null) }
+
+    // ── 组1 当前模型 ──
+    SettingsListSection {
+        SettingsListRow(
+            title = stringResource(R.string.ai_agent_current_model),
+            onClick = {},
+            icon = Icons.Rounded.Psychology,
+            iconBlockColor = MaterialTheme.colorScheme.primaryContainer,
+            subtitle = selectedConfig?.let { config ->
+                "${config.modelId} · " + (
+                    RemoteModelConfig.getProvider(config.providerId)?.displayName
+                        ?: config.providerId
+                    )
+            } ?: stringResource(R.string.remote_model_none)
+        )
+    }
+
+    // ── 组2 模型列表 ──
+    if (configuredConfigs.isNotEmpty()) {
+        SettingsListSection {
+            configuredConfigs.forEachIndexed { index, config ->
+                if (index > 0) {
+                    SettingsListDivider()
+                }
+                val isSelected = config.uniqueKey == selectedModelId
+                SettingsListRow(
+                    title = config.modelId,
+                    onClick = { actionModel = config },
+                    icon = if (isSelected) Icons.Rounded.CheckCircle else Icons.Rounded.Cloud,
+                    iconBlockColor = if (isSelected) AppColors.vibrantGreen else StatusColor.info,
+                    valueText = if (isSelected) stringResource(R.string.model_in_use) else null
+                )
+            }
+        }
+    }
+
+    // ── 组3 添加模型 ──
+    SettingsListSection {
+        SettingsListRow(
+            title = stringResource(R.string.add_model),
+            onClick = { showAddDialog = true },
+            icon = Icons.Rounded.Add,
+            iconBlockColor = AppColors.vibrantGreen
+        )
+    }
+
+    actionModel?.let { model ->
+        SettingsOptionSheetShell(
+            title = model.modelId,
+            subtitle = RemoteModelConfig.getProvider(model.providerId)?.displayName ?: model.providerId,
+            onDismiss = { actionModel = null }
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                SettingsOptionRow(
+                    label = stringResource(R.string.remote_model_set_current),
+                    selected = model.uniqueKey == selectedModelId,
+                    onClick = {
+                        onSelectedModelChange(model.uniqueKey)
+                        actionModel = null
+                    }
+                )
+                SettingsOptionRow(
+                    label = stringResource(R.string.delete),
+                    selected = false,
+                    onClick = {
+                        val updated = configs.removeConfig(model.uniqueKey)
+                        onConfigsChange(RemoteModelConfigs.toJson(updated))
+                        if (model.uniqueKey == selectedModelId) {
+                            updated.configs.find { it.isConfigured }?.let { next ->
+                                onSelectedModelChange(next.uniqueKey)
+                            }
+                        }
+                        actionModel = null
+                    }
+                )
+            }
+        }
+    }
+
+    if (showAddDialog) {
+        AddProviderModelDialog(
+            onDismiss = { showAddDialog = false },
+            onConfirm = { config ->
+                val updated = configs.updateConfig(config.uniqueKey, config)
+                onConfigsChange(RemoteModelConfigs.toJson(updated))
+                showAddDialog = false
+            }
         )
     }
 }

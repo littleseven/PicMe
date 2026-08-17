@@ -7,6 +7,7 @@
     <string name="settings">設定</string>
     <string name="dark_mode">深色模式</string>
     <string name="language">語言</string>
+    <string name="language_dialog_subtitle">選擇介面顯示語言</string>
     <string name="system_default">系統預設</string>
     <string name="light">淺色</string>
     <string name="dark">深色</string>
@@ -31,6 +32,7 @@
     <string name="gallery_permission_title">相簿存取權限</string>
     <string name="gallery_permission_desc">允許存取以瀏覽和管理您的照片與影片</string>
     <string name="theme_mode">主題模式</string>
+    <string name="theme_mode_dialog_subtitle">跟隨系統或手動選擇外觀</string>
     <string name="beauty_engine">美顏引擎</string>
 
     <string name="beauty_engine_rplan">大美麗（預設）</string>
@@ -219,9 +221,9 @@
     <string name="unknown">未知</string>
     <string name="person_group">人物分組 %1$s</string>
     <string name="debug">調試</string>
-    <string name="show_camera_info">顯示相機資訊</string>
-    <string name="show_face_debug">顯示人臉調試</string>
-    <string name="show_log_overlay">顯示日誌浮層</string>
+    <string name="show_camera_info">相機資訊</string>
+    <string name="show_face_debug">人臉調試浮層</string>
+    <string name="show_log_overlay">日誌浮層</string>
     <string name="camera_memory">相機狀態記憶</string>
     <string name="camera_memory_desc">進入相機時恢復上次參數和開關狀態。</string>
     <string name="camera_settings">相機</string>
@@ -406,6 +408,9 @@
     <string name="tag_gen_use_opencl_title">TAG 生成 GPU 加速</string>
     <string name="tag_gen_use_opencl_desc">使用 GPU 加速批量圖片標籤生成。部分裝置 OpenCL 多模態推理可能卡死，如 Pass 3 卡住請關閉此選項。</string>
     <string name="remote_models">遠端模型</string>
+    <string name="model_in_use">使用中</string>
+    <string name="remote_model_set_current">設為當前</string>
+    <string name="remote_model_none">未配置</string>
     <string name="remote_models_desc">遠端模型供應商、API 金鑰與目前選用模型。</string>
     <string name="local_models">本地模型</string>
     <string name="local_models_desc">選擇端側人臉偵測、打標、語音模型。</string>
@@ -416,7 +421,9 @@
     <string name="add_model">添加模型</string>
     <string name="add_custom_model">添加自定義模型</string>
     <string name="add">添加</string>
-    <string name="log_management">日誌管理</string>
+    <string name="log_management">模組日誌</string>
+    <string name="log_modules_all">全部</string>
+    <string name="log_modules_dialog_subtitle">按模組開關日誌輸出</string>
     <string name="log_management_desc">按模塊控制日誌輸出</string>
     <string name="base_url">基礎 URL</string>
     <string name="base_url_not_set">未設定</string>
@@ -424,7 +431,7 @@
     <string name="api_key_hint">輸入 API Key</string>
     <string name="api_key_set">API Key 已設定</string>
     <string name="api_key_not_set">未設定</string>
-    <string name="ai_agent_auto_execute_plans">自動執行多步驟計劃</string>
+    <string name="ai_agent_auto_execute_plans">自動執行計劃</string>
     <string name="ai_agent_auto_execute_plans_desc">關閉後，Agent 執行多步驟計劃前會要求確認。</string>
     <string name="ai_agent_input_hint">向 AI 助手提問...</string>
     <string name="ai_model_manager">AI 模型管理</string>
@@ -468,6 +475,7 @@
     <string name="local_asr_model">語音識別</string>
     <string name="local_asr_model_fallback">未下載本地 ASR 模型，將自動回退到系統語音識別。</string>
 <string name="local_kws_model">喚醒詞</string>
+    <string name="voice_model_dialog_subtitle">選擇已下載的模型</string>
 <string name="local_kws_model_fallback">未下載本地 KWS 喚醒詞模型，語音喚醒功能將不可用。</string>
 <string name="asr_model_manager">ASR 模型管理</string>
 <string name="asr_model_manager_desc">下載和管理端側語音識別模型。</string>
@@ -541,7 +549,7 @@
     <string name="chat_send">發送</string>
 
     <!-- AI 遠端控制無障礙服務 -->
-    <string name="settings_accessibility_service_title">AI 遠端控制無障礙服務</string>
+    <string name="settings_accessibility_service_title">無障礙服務</string>
     <string name="settings_accessibility_service_summary">開啟後 Agent/飛書指令才能識別 Compose 介面元素並執行點擊、輸入等操作。</string>
     <string name="settings_accessibility_service_enabled">已開啟</string>
     <string name="settings_accessibility_service_disabled">未開啟</string>
@@ -661,7 +669,7 @@
     <string name="cd_collapse">摺疊</string>
 
     <!-- Debug Tools -->
-    <string name="shader_debug_mode">著色器調試模式</string>
+    <string name="shader_debug_mode">Shader 調試</string>
     <string name="model_download">模型下載</string>
     <string name="switch_to_keyboard">切換到鍵盤</string>
     <string name="copy_success">已複製</string>
@@ -701,7 +709,7 @@
     <string name="search_test_semantic_results">語義召回結果 (%1$d)</string>
     <string name="search_test_more_results">還有 %1$d 條結果未顯示</string>
     <string name="search_test_logs">日誌</string>
-    <string name="search_test_entry_title">搜索測試頁</string>
+    <string name="search_test_entry_title">搜索測試</string>
     <string name="search_test_entry_subtitle">搜索召回全鏈路觀測</string>
     <string name="enter">進入</string>
     <string name="yes">是</string>
@@ -744,7 +752,7 @@
     <string name="sandbox_settings_desc">自動執行、JS 引擎、裝置存取。</string>
     <string name="sandbox_execution">執行</string>
     <string name="sandbox_execution_desc">控制 Agent 可自主執行的內容。</string>
-    <string name="js_engine_execution">JS 引擎執行</string>
+    <string name="js_engine_execution">JS 引擎</string>
     <string name="js_engine_execution_desc">允許 Agent 執行 JS 沙盒腳本。</string>
     <string name="sandbox_device_access">裝置存取</string>
     <string name="sandbox_device_access_desc">控制 Agent 可存取的裝置能力。</string>
@@ -753,11 +761,11 @@
     <string name="camera_permission_system">相機權限（系統）</string>
     <string name="gallery_permission_system">相簿權限（系統）</string>
     <string name="permission_system_subtitle">開啟系統應用設定管理權限。</string>
-    <string name="permission_system_value">開啟</string>
+    <string name="permission_system_value">系統設定</string>
     <string name="gallery_advanced">進階</string>
     <string name="gallery_debug_features">相簿除錯功能</string>
     <string name="gallery_debug_features_desc">相簿打標的測試工具與後端模式切換。</string>
-    <string name="debug_image_download">圖片下載頁</string>
+    <string name="debug_image_download">圖片下載調試</string>
     <string name="debug_image_download_desc">測試數據生成與圖片下載。</string>
     <string name="llm_call_log">LLM 呼叫記錄</string>
     <string name="llm_call_log_desc">檢視最近 200 條 LLM 與工具呼叫記錄（release 版本僅記錄指標，不含訊息內容）</string>
@@ -941,7 +949,7 @@
     <string name="tag_viewer_raw_json">原始 JSON</string>
     <string name="tag_viewer_open_entry">查看生成標籤</string>
     <string name="jsbridge_debug_section">JS Bridge（MVP）</string>
-        <string name="jsbridge_entry_title">JS Bridge 除錯</string>
+        <string name="jsbridge_entry_title">JS Bridge</string>
         <string name="jsbridge_entry_subtitle">在 QuickJS 沙箱中編輯並執行腳本</string>
     <string name="jsbridge_debug_run_demo">執行 JS Bridge 演示</string>
     <string name="jsbridge_debug_done">JS 演示完成：%1$s</string>

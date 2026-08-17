@@ -6,6 +6,7 @@
     <string name="settings">Settings</string>
     <string name="dark_mode">Dark Mode</string>
     <string name="language">Language</string>
+    <string name="language_dialog_subtitle">Choose display language</string>
     <string name="system_default">System Default</string>
     <string name="light">Light</string>
     <string name="dark">Dark</string>
@@ -30,6 +31,7 @@
     <string name="gallery_permission_title">Gallery Access</string>
     <string name="gallery_permission_desc">Allow access to browse and manage your photos and videos</string>
     <string name="theme_mode">Theme Mode</string>
+    <string name="theme_mode_dialog_subtitle">Follow system or pick manually</string>
     <string name="beauty_engine">Beauty Engine</string>
 
     <string name="beauty_engine_rplan">Big Beauty (Default)</string>
@@ -222,9 +224,9 @@
     <string name="unknown">Unknown</string>
     <string name="person_group">Person Group %1$s</string>
     <string name="debug">Debug</string>
-    <string name="show_camera_info">Show Camera Info</string>
-    <string name="show_face_debug">Show Face Debug</string>
-    <string name="show_log_overlay">Show Log Overlay</string>
+    <string name="show_camera_info">Camera Info</string>
+    <string name="show_face_debug">Face Debug Overlay</string>
+    <string name="show_log_overlay">Log Overlay</string>
     <string name="camera_memory">Camera State Memory</string>
     <string name="camera_memory_desc">Remember the last camera parameters and toggles on next launch.</string>
     <string name="camera_settings">Camera</string>
@@ -417,6 +419,9 @@
     <string name="tag_control_title">TAG Generation Control</string>
     <string name="tag_control_subtitle">Regenerate by category / time range / full or incremental</string>
     <string name="remote_models">Remote Models</string>
+    <string name="model_in_use">In use</string>
+    <string name="remote_model_set_current">Set as current</string>
+    <string name="remote_model_none">Not configured</string>
     <string name="remote_models_desc">Remote model providers, API keys, and the active model.</string>
     <string name="local_models">Local Models</string>
     <string name="local_models_desc">Pick on-device face-detection, tagging and voice models.</string>
@@ -427,7 +432,9 @@
     <string name="add_model">Add Model</string>
     <string name="add_custom_model">Add Custom Model</string>
     <string name="add">Add</string>
-    <string name="log_management">Log Management</string>
+    <string name="log_management">Module Logs</string>
+    <string name="log_modules_all">All</string>
+    <string name="log_modules_dialog_subtitle">Toggle per-module logging</string>
     <string name="log_management_desc">Control log output by module</string>
     <string name="base_url">Base URL</string>
     <string name="base_url_not_set">Not set</string>
@@ -435,7 +442,7 @@
     <string name="api_key_hint">Enter API Key</string>
     <string name="api_key_set">API Key configured</string>
     <string name="api_key_not_set">Not configured</string>
-    <string name="ai_agent_auto_execute_plans">Auto-Execute Multi-Step Plans</string>
+    <string name="ai_agent_auto_execute_plans">Auto-Execute Plans</string>
     <string name="ai_agent_auto_execute_plans_desc">When disabled, Agent will ask for confirmation before executing multi-step plans.</string>
     <string name="ai_agent_input_hint">Ask AI Agent...</string>
     <string name="clear_chat">Clear Chat</string>
@@ -516,6 +523,7 @@
     <string name="local_asr_model">Speech Recognition</string>
     <string name="local_asr_model_fallback">No local ASR model downloaded. Tap below to download.</string>
 <string name="local_kws_model">Wake Word</string>
+    <string name="voice_model_dialog_subtitle">Pick a downloaded model</string>
 <string name="local_kws_model_fallback">No local KWS model downloaded. Tap below to download.</string>
     <string name="asr_model_manager">ASR Model Manager</string>
     <string name="asr_model_manager_desc">Download and manage on-device speech recognition models.</string>
@@ -588,7 +596,7 @@
     <string name="chat_send">Send</string>
 
     <!-- AI Remote Control Accessibility Service -->
-    <string name="settings_accessibility_service_title">AI Remote Control Accessibility</string>
+    <string name="settings_accessibility_service_title">Accessibility Service</string>
     <string name="settings_accessibility_service_summary">Allow Agent/Feishu commands to read Compose UI elements and perform taps or input.</string>
     <string name="settings_accessibility_service_enabled">Enabled</string>
     <string name="settings_accessibility_service_disabled">Not enabled</string>
@@ -667,7 +675,7 @@
     <string name="cd_collapse">Collapse</string>
 
     <!-- Debug Tools -->
-    <string name="shader_debug_mode">Shader Debug Mode</string>
+    <string name="shader_debug_mode">Shader Debug</string>
     <string name="model_download">Model Download</string>
     <string name="switch_to_keyboard">Switch to keyboard</string>
     <string name="copy_success">Copied</string>
@@ -781,11 +789,11 @@
     <string name="camera_permission_system">Camera Permission (System)</string>
     <string name="gallery_permission_system">Gallery Permission (System)</string>
     <string name="permission_system_subtitle">Open system app settings to manage permissions.</string>
-    <string name="permission_system_value">Open</string>
+    <string name="permission_system_value">System Settings</string>
     <string name="gallery_advanced">Advanced</string>
     <string name="gallery_debug_features">Gallery Debug Features</string>
     <string name="gallery_debug_features_desc">Testing tools and backend mode switches for gallery tagging.</string>
-    <string name="debug_image_download">Image Download</string>
+    <string name="debug_image_download">Image Download Debug</string>
     <string name="debug_image_download_desc">Generate test data and download images.</string>
     <string name="llm_call_log">LLM Call Logs</string>
     <string name="llm_call_log_desc">View the latest 200 LLM and tool call records (release builds record metrics only, no message content)</string>
@@ -969,7 +977,7 @@
     <string name="tag_viewer_raw_json">Raw JSON</string>
     <string name="tag_viewer_open_entry">View generated tags</string>
     <string name="jsbridge_debug_section">JS Bridge (MVP)</string>
-        <string name="jsbridge_entry_title">JS Bridge Debug</string>
+        <string name="jsbridge_entry_title">JS Bridge</string>
         <string name="jsbridge_entry_subtitle">Edit and run scripts in QuickJS sandbox</string>
     <string name="jsbridge_debug_run_demo">Run JS Bridge demo</string>
     <string name="jsbridge_debug_done">JS demo finished: %1$s</string>

@@ -7,6 +7,7 @@
     <string name="settings">设置</string>
     <string name="dark_mode">暗黑模式</string>
     <string name="language">语言</string>
+    <string name="language_dialog_subtitle">选择界面显示语言</string>
     <string name="system_default">系统默认</string>
     <string name="light">浅色</string>
     <string name="dark">深色</string>
@@ -31,6 +32,7 @@
     <string name="gallery_permission_title">相册访问权限</string>
     <string name="gallery_permission_desc">允许访问以浏览和管理您的照片与视频</string>
     <string name="theme_mode">主题模式</string>
+    <string name="theme_mode_dialog_subtitle">跟随系统或手动选择外观</string>
     <string name="beauty_engine">美颜引擎</string>
 
     <string name="beauty_engine_rplan">大美丽（默认）</string>
@@ -219,9 +221,9 @@
     <string name="unknown">未知</string>
     <string name="person_group">人物分组 %1$s</string>
     <string name="debug">调试</string>
-    <string name="show_camera_info">显示相机信息</string>
-    <string name="show_face_debug">显示人脸调试</string>
-    <string name="show_log_overlay">显示日志浮层</string>
+    <string name="show_camera_info">相机信息</string>
+    <string name="show_face_debug">人脸调试浮层</string>
+    <string name="show_log_overlay">日志浮层</string>
     <string name="camera_memory">相机状态记忆</string>
     <string name="camera_memory_desc">进入相机时恢复上次参数和开关状态。</string>
     <string name="camera_settings">相机</string>
@@ -406,6 +408,9 @@
     <string name="tag_gen_use_opencl_title">TAG 生成 GPU 加速</string>
     <string name="tag_gen_use_opencl_desc">使用 GPU 加速批量图片标签生成。部分设备 OpenCL 多模态推理可能卡死，如 Pass 3 卡住请关闭此选项。</string>
     <string name="remote_models">远程模型</string>
+    <string name="model_in_use">使用中</string>
+    <string name="remote_model_set_current">设为当前</string>
+    <string name="remote_model_none">未配置</string>
     <string name="remote_models_desc">远程模型供应商、API 密钥与当前选用模型。</string>
     <string name="local_models">本地模型</string>
     <string name="local_models_desc">选择端侧人脸检测、打标、语音模型。</string>
@@ -416,7 +421,9 @@
     <string name="add_model">添加模型</string>
     <string name="add_custom_model">添加自定义模型</string>
     <string name="add">添加</string>
-    <string name="log_management">日志管理</string>
+    <string name="log_management">模块日志</string>
+    <string name="log_modules_all">全部</string>
+    <string name="log_modules_dialog_subtitle">按模块开关日志输出</string>
     <string name="log_management_desc">按模块控制日志输出</string>
     <string name="base_url">基础 URL</string>
     <string name="base_url_not_set">未设置</string>
@@ -424,7 +431,7 @@
     <string name="api_key_hint">输入 API Key</string>
     <string name="api_key_set">API Key 已配置</string>
     <string name="api_key_not_set">未配置</string>
-    <string name="ai_agent_auto_execute_plans">自动执行多步骤计划</string>
+    <string name="ai_agent_auto_execute_plans">自动执行计划</string>
     <string name="ai_agent_auto_execute_plans_desc">关闭后，Agent 执行多步骤计划前会要求确认。</string>
     <string name="ai_agent_input_hint">向 AI 助手提问...</string>
     <string name="ai_model_manager">AI 模型管理</string>
@@ -468,6 +475,7 @@
     <string name="local_asr_model">语音识别</string>
     <string name="local_asr_model_fallback">未下载本地 ASR 模型，将自动回退到系统语音识别。</string>
 <string name="local_kws_model">唤醒词</string>
+    <string name="voice_model_dialog_subtitle">选择已下载的模型</string>
 <string name="local_kws_model_fallback">未下载本地 KWS 唤醒词模型，语音唤醒功能将不可用。</string>
 <string name="asr_model_manager">ASR 模型管理</string>
 <string name="asr_model_manager_desc">下载和管理端侧语音识别模型。</string>
@@ -541,7 +549,7 @@
     <string name="chat_send">发送</string>
 
     <!-- AI 远程控制无障碍服务 -->
-    <string name="settings_accessibility_service_title">AI 远程控制无障碍服务</string>
+    <string name="settings_accessibility_service_title">无障碍服务</string>
     <string name="settings_accessibility_service_summary">开启后 Agent/飞书指令才能识别 Compose 界面元素并执行点击、输入等操作。</string>
     <string name="settings_accessibility_service_enabled">已开启</string>
     <string name="settings_accessibility_service_disabled">未开启</string>
@@ -661,7 +669,7 @@
     <string name="cd_collapse">折叠</string>
 
     <!-- Debug Tools -->
-    <string name="shader_debug_mode">着色器调试模式</string>
+    <string name="shader_debug_mode">Shader 调试</string>
     <string name="model_download">模型下载</string>
     <string name="switch_to_keyboard">切换到键盘</string>
     <string name="copy_success">已复制</string>
@@ -723,7 +731,7 @@
     <string name="search_test_semantic_results">语义召回结果 (%1$d)</string>
     <string name="search_test_more_results">还有 %1$d 条结果未显示</string>
     <string name="search_test_logs">日志</string>
-    <string name="search_test_entry_title">搜索测试页</string>
+    <string name="search_test_entry_title">搜索测试</string>
     <string name="search_test_entry_subtitle">搜索召回全链路观测</string>
     <string name="enter">进入</string>
     <string name="yes">是</string>
@@ -766,7 +774,7 @@
     <string name="sandbox_settings_desc">自动执行、JS 引擎、设备访问。</string>
     <string name="sandbox_execution">执行</string>
     <string name="sandbox_execution_desc">控制 Agent 可自主执行的内容。</string>
-    <string name="js_engine_execution">JS 引擎执行</string>
+    <string name="js_engine_execution">JS 引擎</string>
     <string name="js_engine_execution_desc">允许 Agent 执行 JS 沙盒脚本。</string>
     <string name="sandbox_device_access">设备访问</string>
     <string name="sandbox_device_access_desc">控制 Agent 可访问的设备能力。</string>
@@ -775,11 +783,11 @@
     <string name="camera_permission_system">相机权限（系统）</string>
     <string name="gallery_permission_system">相册权限（系统）</string>
     <string name="permission_system_subtitle">打开系统应用设置管理权限。</string>
-    <string name="permission_system_value">打开</string>
+    <string name="permission_system_value">系统设置</string>
     <string name="gallery_advanced">高级</string>
     <string name="gallery_debug_features">相册调试功能</string>
     <string name="gallery_debug_features_desc">相册打标的测试工具与后端模式切换。</string>
-    <string name="debug_image_download">图片下载页</string>
+    <string name="debug_image_download">图片下载调试</string>
     <string name="debug_image_download_desc">测试数据生成与图片下载。</string>
     <string name="llm_call_log">LLM 调用日志</string>
     <string name="llm_call_log_desc">查看最近 200 条 LLM 与工具调用记录（release 构建仅记录指标，不含消息内容）</string>
@@ -963,7 +971,7 @@
     <string name="tag_viewer_raw_json">原始 JSON</string>
     <string name="tag_viewer_open_entry">查看生成标签</string>
     <string name="jsbridge_debug_section">JS Bridge（MVP）</string>
-        <string name="jsbridge_entry_title">JS Bridge 调试</string>
+        <string name="jsbridge_entry_title">JS Bridge</string>
         <string name="jsbridge_entry_subtitle">在 QuickJS 沙箱中编辑并运行脚本</string>
     <string name="jsbridge_debug_run_demo">运行 JS Bridge 演示</string>
     <string name="jsbridge_debug_done">JS 演示完成：%1$s</string>
