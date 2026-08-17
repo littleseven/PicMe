@@ -434,12 +434,12 @@ interaction_model:
     right: [report_issue, new_chat, clear_chat]  # new_chat = 新建会话（非清空）；clear_chat = 清当前会话
 
 # ============================================================================
-# 10. 颜色参考（2026-08-18 定稿「电光海×Cloud Dancer」，SSOT=design-tokens.json v2.2.1）
+# 10. 颜色参考（2026-08-18 定稿「青玉绿×Cloud Dancer」，SSOT=design-tokens.json v2.2.2）
 # ============================================================================
 colors:
-  primary: "#0D63D6"                # 电光宝蓝
+  primary: "#1F5C54"                # 深松绿（青玉）
   onPrimary: "#FFFFFF"
-  primaryContainer: "#CFE5FF"
+  primaryContainer: "#A8D5CC"
   surface: "#F0EEE9"                # Cloud Dancer 暖乳白（潘通 2026 年度色）
   onSurface: "#1D1A16"
   surfaceVariant: "#E4DFD6"
@@ -450,10 +450,10 @@ colors:
   model_dot_user_key: "#FF9800"
   voice_cancel: "#E53935"
   # 品牌渐变（设计稿字面量，Agent 头像/Logo/发送钮/大数字）：
-  #   dark: #1B6FE3 → #2FE6DE（电光宝蓝→荧光绿松石，135°）
-  #   light 深端: #0E5BC4
+  #   dark: #0F766E → #5EA88F（深松绿→鼠尾草玉，135°）
+  #   light 深端: #43937E
   # Dark mode 对应（iOS 默认 .dark）
-  # primary → #7FC9FF（晴空亮蓝）
+  # primary → #8FD6C6（薄荷玉）
   # onSurface → #EDE9E3（暖白）
   # surfaceVariant → #46413A
   # surface → #171412（暖黑）
