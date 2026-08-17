@@ -1,6 +1,6 @@
 {
   "endpoint": "http://127.0.0.1:50501/api/v1/mcp",
-  "exportedAt": "2026-08-17T21:54:22+08:00",
+  "exportedAt": "2026-08-17T22:12:30+08:00",
   "file": {
     "id": "715061534788814",
     "name": "polang-ui-spec",
@@ -107,6 +107,31 @@
           "id": "108:363",
           "name": "settings/local_models",
           "png": "settings-local_models.png"
+        },
+        {
+          "id": "111:1",
+          "name": "settings/remote_models",
+          "png": "settings-remote_models.png"
+        },
+        {
+          "id": "111:50",
+          "name": "settings/sandbox",
+          "png": "settings-sandbox.png"
+        },
+        {
+          "id": "111:129",
+          "name": "settings/developer",
+          "png": "settings-developer.png"
+        },
+        {
+          "id": "111:276",
+          "name": "settings/dialog_option",
+          "png": "settings-dialog_option.png"
+        },
+        {
+          "id": "111:294",
+          "name": "settings/dialog_stage",
+          "png": "settings-dialog_stage.png"
         }
       ],
       "id": "108:1",
@@ -114,5 +139,5 @@
     }
   ],
   "scale": 1,
-  "structureSha256": "621daea40dc077bc60834ac49a7cfccae0f8103ab234ee0848d8c0da8ebf8bd8"
+  "structureSha256": "eed5c9700bad7e3c316f5dc5351bf67c4db6f26eabef4f541c32033135825031"
 }
