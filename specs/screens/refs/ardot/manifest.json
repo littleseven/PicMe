@@ -1,11 +1,11 @@
 {
   "endpoint": "http://127.0.0.1:50501/api/v1/mcp",
-  "exportedAt": "2026-08-17T23:29:29+08:00",
+  "exportedAt": "2026-08-17T23:46:57+08:00",
   "file": {
     "id": "715061534788814",
     "name": "polang-ui-spec",
     "permission": "readwrite",
-    "url": "cocraft://localhost/file/715061534788814?node_id=111%3A319"
+    "url": "cocraft://localhost/file/715061534788814?node_id=116%3A164"
   },
   "note": "云端画布为编辑工作区；本目录快照由 export-ardot-snapshot.py 生成（多页聚合，2026-08-16 起），重跑覆盖。变量 SSOT=shared/src/commonMain/resources/design-tokens.json，不在本快照内。",
   "pages": [
@@ -15,6 +15,16 @@
           "id": "9:2",
           "name": "camera/idle",
           "png": "camera-idle.png"
+        },
+        {
+          "id": "9:2",
+          "name": "camera/idle",
+          "png": "camera-idle.png"
+        },
+        {
+          "id": "95:37",
+          "name": "camera/panel_beauty_face",
+          "png": "camera-panel_beauty_face.png"
         },
         {
           "id": "95:37",
@@ -27,6 +37,16 @@
           "png": "camera-panel_ratio.png"
         },
         {
+          "id": "95:107",
+          "name": "camera/panel_ratio",
+          "png": "camera-panel_ratio.png"
+        },
+        {
+          "id": "95:152",
+          "name": "camera/panel_grid",
+          "png": "camera-panel_grid.png"
+        },
+        {
           "id": "95:152",
           "name": "camera/panel_grid",
           "png": "camera-panel_grid.png"
@@ -37,9 +57,24 @@
           "png": "camera-panel_filter.png"
         },
         {
+          "id": "95:197",
+          "name": "camera/panel_filter",
+          "png": "camera-panel_filter.png"
+        },
+        {
           "id": "95:235",
           "name": "camera/panel_pro",
           "png": "camera-panel_pro.png"
+        },
+        {
+          "id": "95:235",
+          "name": "camera/panel_pro",
+          "png": "camera-panel_pro.png"
+        },
+        {
+          "id": "95:322",
+          "name": "camera/focusing",
+          "png": "camera-focusing.png"
         },
         {
           "id": "95:322",
@@ -91,6 +126,11 @@
           "id": "107:353",
           "name": "gallery/selection",
           "png": "gallery-selection.png"
+        },
+        {
+          "id": "118:1",
+          "name": "gallery/settings",
+          "png": "gallery-settings.png"
         }
       ],
       "id": "103:1",
@@ -112,6 +152,21 @@
           "id": "111:492",
           "name": "chat/sidebar",
           "png": "chat-sidebar.png"
+        },
+        {
+          "id": "116:26",
+          "name": "chat/sidebar_light",
+          "png": "chat-sidebar_light.png"
+        },
+        {
+          "id": "116:72",
+          "name": "chat/empty_light",
+          "png": "chat-empty_light.png"
+        },
+        {
+          "id": "116:150",
+          "name": "chat/conversation_light",
+          "png": "chat-conversation_light.png"
         }
       ],
       "id": "111:319",
@@ -125,9 +180,24 @@
           "png": "settings-main_list.png"
         },
         {
+          "id": "108:94",
+          "name": "settings/main_list",
+          "png": "settings-main_list.png"
+        },
+        {
           "id": "108:363",
           "name": "settings/local_models",
           "png": "settings-local_models.png"
+        },
+        {
+          "id": "108:363",
+          "name": "settings/local_models",
+          "png": "settings-local_models.png"
+        },
+        {
+          "id": "111:1",
+          "name": "settings/remote_models",
+          "png": "settings-remote_models.png"
         },
         {
           "id": "111:1",
@@ -140,9 +210,24 @@
           "png": "settings-sandbox.png"
         },
         {
+          "id": "111:50",
+          "name": "settings/sandbox",
+          "png": "settings-sandbox.png"
+        },
+        {
           "id": "111:129",
           "name": "settings/developer",
           "png": "settings-developer.png"
+        },
+        {
+          "id": "111:129",
+          "name": "settings/developer",
+          "png": "settings-developer.png"
+        },
+        {
+          "id": "111:276",
+          "name": "settings/dialog_language",
+          "png": "settings-dialog_language.png"
         },
         {
           "id": "111:276",
@@ -155,6 +240,16 @@
           "png": "settings-dialog_stage.png"
         },
         {
+          "id": "111:294",
+          "name": "settings/dialog_stage",
+          "png": "settings-dialog_stage.png"
+        },
+        {
+          "id": "111:446",
+          "name": "settings/dialog_theme",
+          "png": "settings-dialog_theme.png"
+        },
+        {
           "id": "111:446",
           "name": "settings/dialog_theme",
           "png": "settings-dialog_theme.png"
@@ -165,5 +260,5 @@
     }
   ],
   "scale": 1,
-  "structureSha256": "81cf09bf75a5b6ce2763acdfbbd53bdb99c8704e7d77bd7a438c022d89ac8251"
+  "structureSha256": "8e4832d0d8ef9f731e1042fd86fef55c583e8b6289a4860903c0e692950fe1c4"
 }
