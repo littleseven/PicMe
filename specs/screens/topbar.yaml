@@ -58,11 +58,11 @@ topbar:
     leading: { back: "ic/back 36/22" }
     field:
       height: 36
-      corner_radius: 18
-      background: "surfaceVariant@0.5"
+      corner_radius: 24   # token searchField/cornerRadius
+      background: "surfaceVariant@0.7"   # token searchField/backgroundAlpha
       grow: true
-      leading_icon: { icon: "ic/search", size: 16 }
-      placeholder: { size: 14, color: "onSurface@0.35" }
+      leading_icon: { icon: "ic/search", size: 16, alpha: 0.5 }   # token searchField/iconAlpha
+      placeholder: { size: 14, color: "onSurface@0.4" }   # token searchField/placeholderAlpha
       clear_button: { icon: "ic/clear", size: 16 }
     trailing: { result_count: { size: 12, color: "onSurfaceVariant" } }
     applies: [gallery/search, gallery/search_no_result]

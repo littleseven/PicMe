@@ -80,7 +80,6 @@ grid_page:
     # ── 标题 ──
     title:
       text: "相册"
-      color: colorScheme.primary
       position: leading
 
     # ── 操作组 ──
