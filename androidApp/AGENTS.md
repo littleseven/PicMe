@@ -124,7 +124,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | `tag/` | `TagGenerationScheduler`, `TagScanOrchestrator`, `OpenClGuardian`, `TagCategory` | TAG 生成编排、OpenCL 守护、类别定义 |
 | `aesthetic/` | `NimaScorer`, `EdiffiqaScorer`, `CoverSelector`, `FaceAligner`, `AestheticScoreWorker` | 美学打分（NIMA + eDifFIQA）：NNAPI 推理、会话跨调用复用、人脸对齐与质量分；非会话制附属打分器（`runUntilDone` 循环排空 + `progress` StateFlow 上报），触发=扫描完成后自动补分 + 打标页手动（Service `ACTION_SCORE_AESTHETIC[_FULL]`），与扫描会话互斥（复用 RetinaFace 无同步保护）；待人脸画质分口径 gate 在 `hasFace=1` |
 | `backup/` | `TagDataBackup`（model/）, `TagDataBackupRepository`, `BackupTagDataUseCase`, `RestoreTagDataUseCase` | 标签数据备份/恢复（备份模型 v5：标签、人脸聚类、人物关系、记忆事实、编辑配方等本地数据导出导入） |
-| `person/` | `RelationPredicate`, `KinshipLexicon`, `PersonRepository`, `PersonQueryResolver`, `RelationSnapshotRestorer` | 人物关系图谱（两层模型）：谓词封闭枚举（粗谓词机器逻辑，性别/长幼细分 + 中/英/日标签）+ `customLabel` 自定义称呼（用户语言，展示/查询优先）；称谓词表（声明归一具体谓词 + 谓词族查询扩展）；关系与"我"标记收口仓库；查询串→personId 解析器；重聚快照恢复纯函数 |
+| `person/` | `RelationPredicate`, `KinshipLexicon`, `PersonRepository`, `PersonQueryResolver`, `RelationSnapshotRestorer` | 人物关系图谱（两层模型）：谓词封闭枚举（粗谓词机器逻辑，性别/长幼细分 + 中/英/日标签）+ `customLabel` 自定义称呼（用户语言，展示/查询优先）；称谓词表（声明归一具体谓词 + 谓词族查询扩展）；关系与"我"标记收口仓库（`observeSelfAvatar` 同时是设置页账户头像的数据源）；查询串→personId 解析器；重聚快照恢复纯函数 |
 | `memory/` | `MemoryRepository` | 通用事实记忆仓库（"帮我记住…"收口，remember/update/forget/唯一匹配删/observeAll） |
 | `preview/` | `BeautyPreviewProvider` | 美颜预览提供者接口 |
 

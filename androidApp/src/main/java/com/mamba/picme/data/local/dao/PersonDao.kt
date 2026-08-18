@@ -8,6 +8,7 @@ import androidx.room.Update
 import com.mamba.picme.data.local.entity.FaceEmbeddingEntity
 import com.mamba.picme.data.local.entity.PersonEntity
 import com.mamba.picme.data.model.MediaEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PersonDao {
@@ -106,6 +107,10 @@ interface PersonDao {
 
     @Query("SELECT * FROM persons WHERE is_self = 1 LIMIT 1")
     suspend fun getSelfPerson(): PersonEntity?
+
+    /** 观察"我"本人（is_self = 1）：标记/取消、改名、封面变更、重聚恢复均触发重发 */
+    @Query("SELECT * FROM persons WHERE is_self = 1 LIMIT 1")
+    fun observeSelfPerson(): Flow<PersonEntity?>
 
     @Insert
     suspend fun insertEmbedding(embedding: FaceEmbeddingEntity): Long

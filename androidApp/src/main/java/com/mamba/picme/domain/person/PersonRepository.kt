@@ -1,11 +1,13 @@
 package com.mamba.picme.domain.person
 
+import com.mamba.picme.data.local.MediaDao
 import com.mamba.picme.data.local.dao.PersonDao
 import com.mamba.picme.data.local.dao.PersonRelationDao
 import com.mamba.picme.data.local.entity.PersonEntity
 import com.mamba.picme.data.local.entity.PersonRelationEntity
 import com.mamba.picme.data.model.MediaEntity
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 /**
@@ -16,7 +18,8 @@ import kotlinx.coroutines.flow.map
  */
 class PersonRepository(
     private val personDao: PersonDao,
-    private val relationDao: PersonRelationDao
+    private val relationDao: PersonRelationDao,
+    private val mediaDao: MediaDao
 ) {
 
     /** 关系声明结果（枚举所有分支，调用方穷举处理） */
@@ -46,6 +49,23 @@ class PersonRepository(
     }
 
     suspend fun getSelfPerson(): PersonEntity? = personDao.getSelfPerson()
+
+    /**
+     * 设置页账户头像数据源：观察"我"本人，解析封面媒体 uri + 人脸纵向聚焦点。
+     *
+     * 未标记"我"、无封面或封面媒体已删时发 null（调用方回退默认图标）。
+     * persons 表变更（标记/取消、封面更新、重聚恢复）自动重发。
+     */
+    fun observeSelfAvatar(): Flow<SelfAvatar?> =
+        personDao.observeSelfPerson()
+            // persons 表级失效会随无关人物变更（改名/聚类统计）重发；
+            // self 行内容未变时跳过 map，避免对 media_assets 的重复点查
+            .distinctUntilChanged()
+            .map { person ->
+                val coverId = person?.coverMediaId ?: return@map null
+                val media = mediaDao.getMediaById(coverId) ?: return@map null
+                SelfAvatar(coverUri = media.uri, faceFocusY = media.faceFocusY)
+            }
 
     /**
      * 人物编辑收口（相册重命名对话框与人物页共用）：
@@ -301,6 +321,12 @@ class PersonRepository(
 data class CustomLabelHit(
     val label: String,
     val person: PersonEntity
+)
+
+/** "我"的账户头像：人物封面 uri + 人脸纵向聚焦点（供 faceAwareVerticalAlignment）。 */
+data class SelfAvatar(
+    val coverUri: String,
+    val faceFocusY: Float?
 )
 
 /**

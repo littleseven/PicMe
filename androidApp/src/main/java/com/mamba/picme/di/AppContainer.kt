@@ -235,7 +235,8 @@ class AppContainerImpl(
     override val personRepository: PersonRepository by lazy {
         PersonRepository(
             personDao = database.personDao(),
-            relationDao = database.personRelationDao()
+            relationDao = database.personRelationDao(),
+            mediaDao = database.mediaDao()
         )
     }
 

@@ -3,11 +3,19 @@ package com.mamba.picme.domain.person
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.entity.PersonEntity
 import com.mamba.picme.data.model.MediaEntity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -39,7 +47,7 @@ class PersonRepositoryTest {
         db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        repository = PersonRepository(db.personDao(), db.personRelationDao())
+        repository = PersonRepository(db.personDao(), db.personRelationDao(), db.mediaDao())
     }
 
     @After
@@ -123,6 +131,94 @@ class PersonRepositoryTest {
 
         repository.clearSelf()
         assertNull(repository.getSelfPerson())
+    }
+
+    @Test
+    fun `observeSelfAvatar emits null when self not marked`() = runTest {
+        insertPerson("张三")
+        assertNull(repository.observeSelfAvatar().first())
+    }
+
+    @Test
+    fun `observeSelfAvatar emits null when self has no cover`() = runTest {
+        val selfId = insertPerson("我")
+        repository.setSelf(selfId)
+        assertNull("未设置封面时回退 null", repository.observeSelfAvatar().first())
+    }
+
+    @Test
+    fun `observeSelfAvatar resolves cover uri and faceFocusY for marked self`() = runTest {
+        val selfId = insertPerson("我")
+        val mediaId = db.mediaDao().insertMedia(
+            MediaEntity(
+                uri = "content://media/selfie",
+                type = MediaType.PHOTO,
+                captureDate = 1L,
+                fileName = "selfie.jpg",
+                faceFocusY = 0.3f
+            )
+        )
+        db.personDao().updateCoverMedia(selfId, mediaId)
+        repository.setSelf(selfId)
+
+        val avatar = repository.observeSelfAvatar().first()
+        assertNotNull(avatar)
+        assertEquals("content://media/selfie", avatar!!.coverUri)
+        assertEquals(0.3f, avatar.faceFocusY)
+    }
+
+    @Test
+    fun `observeSelfAvatar emits null when cover media deleted`() = runTest {
+        val selfId = insertPerson("我")
+        val mediaId = db.mediaDao().insertMedia(
+            MediaEntity(
+                uri = "content://media/selfie",
+                type = MediaType.PHOTO,
+                captureDate = 1L,
+                fileName = "selfie.jpg"
+            )
+        )
+        db.personDao().updateCoverMedia(selfId, mediaId)
+        repository.setSelf(selfId)
+        db.mediaDao().deleteMediaByIds(listOf(mediaId))
+
+        assertNull("封面媒体已删时回退 null", repository.observeSelfAvatar().first())
+    }
+
+    /**
+     * 活性测试：本功能的核心承诺是「标记/取消后头像实时切换」，锁定 Room 失效重发行为。
+     * 发射序列必须是 null（未标记）→ SelfAvatar（标记）→ null（取消）。
+     * Room InvalidationTracker 走真实执行器，故用 runBlocking + 真实时延而非 runTest 虚拟时间。
+     */
+    @Test
+    fun `observeSelfAvatar re-emits on setSelf and clearSelf`() = runBlocking {
+        val selfId = insertPerson("我")
+        val mediaId = db.mediaDao().insertMedia(
+            MediaEntity(
+                uri = "content://media/selfie",
+                type = MediaType.PHOTO,
+                captureDate = 1L,
+                fileName = "selfie.jpg",
+                faceFocusY = 0.3f
+            )
+        )
+        db.personDao().updateCoverMedia(selfId, mediaId)
+
+        val emissions = mutableListOf<SelfAvatar?>()
+        val job = launch(Dispatchers.IO) {
+            repository.observeSelfAvatar().take(3).toList(emissions)
+        }
+        withTimeout(5_000) { while (emissions.isEmpty()) delay(50) }
+        repository.setSelf(selfId)
+        withTimeout(5_000) { while (emissions.size < 2) delay(50) }
+        repository.clearSelf()
+        withTimeout(5_000) { job.join() }
+
+        assertEquals("发射序列：未标记 → 标记 → 取消", 3, emissions.size)
+        assertNull(emissions[0])
+        assertEquals("content://media/selfie", emissions[1]?.coverUri)
+        assertEquals(0.3f, emissions[1]?.faceFocusY)
+        assertNull(emissions[2])
     }
 
     @Test

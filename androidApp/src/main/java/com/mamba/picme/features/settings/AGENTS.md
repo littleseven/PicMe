@@ -164,6 +164,8 @@
 **分类枚举**：`SettingsCategory`（2026-08-16 现状，九分类）
 - `MAIN` — 设置主菜单：账号 Hero 卡 + 主题/语言快选卡 + 2 列分类卡片网格（baseItems 10 项）
 - `ACCOUNT` — 账号（邮箱验证登录 / 额度卡）
+
+> **账户头像跟随"我"标记（2026-08-18 新增）**：主菜单 Hero 卡头像（`SettingsAccountHeroCard`）与账号页头部头像（`SettingsServerAuth.AccountAvatar`）共用 `PersonRepository.observeSelfAvatar()` 数据源——人物页标记「这是我」后，头像实时切换为该人物封面人脸（`faceAwareVerticalAlignment` 裁剪防砍头）；未标记/无封面/封面媒体已删时回退默认 Person 图标。数据链路：`PersonDao.observeSelfPerson()`（Room Flow，is_self/封面变更自动重发）→ 封面 mediaId 解析 uri + faceFocusY。
 - `GALLERY` — 相册功能：TAG 生成控制、标签查看、重复照片管理、打标模型选择、GPU 加速
 - `CAMERA` — 相机状态记忆与重置（重置入口 2026-08-16 自相机页迁入，带 AlertDialog 二次确认）
 - `SYSTEM` — 悬浮窗 AI 聊天气泡、电池优化与 MIUI 权限

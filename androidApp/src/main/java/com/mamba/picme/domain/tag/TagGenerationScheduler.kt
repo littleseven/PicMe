@@ -182,7 +182,11 @@ class TagGenerationScheduler(
 
     /** 人物领域仓库（关系图谱快照导出/恢复走其收口 API） */
     private val personRepository by lazy {
-        PersonRepository(personDao = db.personDao(), relationDao = db.personRelationDao())
+        PersonRepository(
+            personDao = db.personDao(),
+            relationDao = db.personRelationDao(),
+            mediaDao = db.mediaDao()
+        )
     }
     private val vocab = ControlledVocab.loadFromAssets(context)
     private val enToZhTranslatorLazy = lazy {

@@ -87,12 +87,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.mamba.picme.BuildConfig
 import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
@@ -105,6 +107,7 @@ import com.mamba.picme.core.designsystem.AppColors
 import com.mamba.picme.core.designsystem.PoLangTheme
 import com.mamba.picme.core.designsystem.SettingsTokens
 import com.mamba.picme.core.designsystem.StatusColor
+import com.mamba.picme.core.image.faceAwareVerticalAlignment
 import com.mamba.picme.data.download.DownloadState
 import com.mamba.picme.data.download.DownloadStatus
 import com.mamba.picme.data.download.ModelConfig
@@ -1406,6 +1409,7 @@ private fun ThemeModePreview(mode: ThemeMode) {
 
 /**
  * 账号置顶全宽卡：已登录显示邮箱与「服务端账户」，未登录显示「账号」+ 注册引导。
+ * 头像跟随人物页的"我"标记：已标记且有封面时显示本人人脸（face-aware 裁剪），否则回退默认图标。
  */
 @Composable
 private fun SettingsAccountHeroCard(onClick: () -> Unit) {
@@ -1415,6 +1419,11 @@ private fun SettingsAccountHeroCard(onClick: () -> Unit) {
     val serverToken by repo.serverAuthTokenFlow.collectAsState(initial = "")
     val serverEmail by repo.serverAuthEmailFlow.collectAsState(initial = "")
     val loggedIn = serverToken.isNotBlank()
+
+    val personRepository = app.container.personRepository
+    val selfAvatar by remember(personRepository) {
+        personRepository.observeSelfAvatar()
+    }.collectAsState(initial = null)
 
     val authClient = app.container.picMeAuthClient
     var quotaUsed by remember { mutableStateOf(0) }
@@ -1456,13 +1465,23 @@ private fun SettingsAccountHeroCard(onClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.primaryContainer,
                 modifier = Modifier.size(SettingsTokens.heroAvatarSize)
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Rounded.Person,
+                val avatar = selfAvatar
+                if (avatar != null) {
+                    AsyncImage(
+                        model = avatar.coverUri,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(26.dp)
+                        contentScale = ContentScale.Crop,
+                        alignment = faceAwareVerticalAlignment(avatar.faceFocusY)
                     )
+                } else {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Rounded.Person,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
                 }
             }
             Column(
