@@ -40,13 +40,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
 import com.mamba.picme.core.common.Logger
+import com.mamba.picme.core.image.faceAwareVerticalAlignment
 import com.mamba.picme.data.remote.picme.PoLangAuthClient
 import com.mamba.picme.features.common.auth.EmailCodeAuthForm
 import kotlinx.coroutines.launch
@@ -493,22 +496,40 @@ private fun QuotaProgressBar(
 }
 
 /**
- * 账户头像占位。
+ * 账户头像：跟随人物页的"我"标记，已标记且有封面时显示本人人脸（face-aware 裁剪），
+ * 否则回退默认 Person 图标占位。
  */
 @Composable
 private fun AccountAvatar() {
+    val context = LocalContext.current
+    val app = context.applicationContext as PoLangApplication
+    val personRepository = app.container.personRepository
+    val selfAvatar by remember(personRepository) {
+        personRepository.observeSelfAvatar()
+    }.collectAsState(initial = null)
+
     Surface(
         shape = CircleShape,
         color = MaterialTheme.colorScheme.primaryContainer,
         modifier = Modifier.size(56.dp)
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = Icons.Rounded.Person,
+        val avatar = selfAvatar
+        if (avatar != null) {
+            AsyncImage(
+                model = avatar.coverUri,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(28.dp)
+                contentScale = ContentScale.Crop,
+                alignment = faceAwareVerticalAlignment(avatar.faceFocusY)
             )
+        } else {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Rounded.Person,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
         }
     }
 }
