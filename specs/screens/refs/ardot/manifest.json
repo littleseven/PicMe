@@ -1,13 +1,13 @@
 {
   "endpoint": "http://127.0.0.1:50501/api/v1/mcp",
-  "exportedAt": "2026-08-18T19:07:25+08:00",
+  "exportedAt": "2026-08-19T00:20:00+08:00",
   "file": {
     "id": "715061534788814",
     "name": "polang-ui-spec",
     "permission": "readwrite",
-    "url": "cocraft://localhost/file/715061534788814?node_id=118%3A1184"
+    "url": "cocraft://localhost/file/715061534788814?node_id=132%3A153"
   },
-  "note": "云端画布为编辑工作区；本目录快照由 export-ardot-snapshot.py 生成（多页聚合，2026-08-16 起），重跑覆盖。变量 SSOT=shared/src/commonMain/resources/design-tokens.json，不在本快照内。",
+  "note": "云端画布为编辑工作区；本目录快照由 export-ardot-snapshot.py 生成（多页聚合，2026-08-16 起），重跑覆盖。变量 SSOT=shared/src/commonMain/resources/design-tokens.json，不在本快照内。2026-08-19 重导补充：export_nodes 批量渲染对部分帧返回空图（渲染缓存/惰性加载缺陷），11 帧（gallery-sort_menu/selection/settings、chat-empty_light/conversation_light、settings-remote_models/sandbox/developer/dialog_language、editor-concept_a_crop/beauty）改用 capture_screenshot 客户端渲染回填；camera 7 帧 + settings-dialog_theme/stage 当前任何 API 路径均无法渲染（相机页画布仅存 ic/back+ic/flip 两实例的空壳，完整结构从未进入 structure dump——待从桌面端恢复后重导），此 9 帧暂用 git HEAD 上一版有效渲染占位。",
   "pages": [
     {
       "frames": [
@@ -218,8 +218,19 @@
       ],
       "id": "118:104",
       "name": "Editor"
+    },
+    {
+      "frames": [
+        {
+          "id": "132:4",
+          "name": "icon/spec_sheet",
+          "png": "icon-spec_sheet.png"
+        }
+      ],
+      "id": "132:2",
+      "name": "IconSet"
     }
   ],
   "scale": 1,
-  "structureSha256": "389b58eb80148ad7498b5c276f6f36f540280fefd1795d6e2ded4c8a582b8587"
+  "structureSha256": "d4451eb68f9e64254f3d89e6ae13eba4bea92bc618e04e092e111f310734a4e2"
 }
