@@ -43,6 +43,7 @@ enum IconSize {
     static let md: CGFloat = 22
     static let lg: CGFloat = 24
     static let xl: CGFloat = 32
+    static let strokeWidth: CGFloat = 1.6
 }
 
 // MARK: - App Colors（不随主题切换的固定功能色）

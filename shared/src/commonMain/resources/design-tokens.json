@@ -20,10 +20,12 @@
     "thumbnail": 2
   },
   "icon": {
+    "_comment": "strokeWidth=统一线性icon描边(2026-08-18 topbar/icon统一化,spec=docs/superpowers/specs/2026-08-18-ardot-topbar-icon-unification-design.md)。",
     "sm": 18,
     "md": 22,
     "lg": 24,
-    "xl": 32
+    "xl": 32,
+    "strokeWidth": 1.6
   },
   "topBar": {
     "_comment": "AppTopBar 通用顶栏（Gallery/Settings/Editor 共享）。titleFontSize 17sp 为非 M3 标准定制值。",

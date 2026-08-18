@@ -12,11 +12,13 @@ import androidx.compose.ui.unit.dp
  * 页面代码引用这些 object，禁止内联硬编码 dp/hex（漂移扫描见 DESIGN_TOKENS_SPEC.md §4）。
  */
 
+/** strokeWidth=统一线性icon描边(2026-08-18 topbar/icon统一化,spec=docs/superpowers/specs/2026-08-18-ardot-topbar-icon-unification-design.md)。 */
 object IconSize {
     val sm = 18.dp
     val md = 22.dp
     val lg = 24.dp
     val xl = 32.dp
+    val strokeWidth = 1.6.dp
 }
 
 /** 透明度语义阶梯。绝大多数派生色 = colorScheme 角色 .copy(alpha=N)，如 onSurface@0.6=次要文本。iOS 须照搬这些 alpha 值以保证层级感还原。 */
