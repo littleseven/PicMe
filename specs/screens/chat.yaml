@@ -101,7 +101,7 @@ chat_history_sidebar:
 message_list:
   layout: lazy_column
   weight: 1                         # 填充可用空间
-  horizontal_padding: 12
+  horizontal_padding: 20            # 2026-08-18 三修：12→20（去头像后通栏文本需要更大呼吸感，用户定稿）
   item_spacing: 8                   # 消息间距 8dp
   auto_scroll:                      # 自动滚到底部
     triggers: [message_count_changed, last_message_content_changed]
@@ -120,9 +120,13 @@ empty_state:
     logo:
       box_size: 72                  # 72dp
       corner_radius: 22
-      background: "brandGradient"   # 品牌渐变 #0F766E→#5EA88F（chatBubble/brandGradient*）
+      background: "brandGradient"   # 品牌渐变 #0F766E→#5EA88F（chatBubble/brandGradient*），45° 对角，衬在图标残余透明角下
       border: none
-      inner_image_size: 96          # 品牌前景图，居中（不再 surfaceVariant+描边）
+      # 2026-08-18 二修（用户定稿）：内嵌图 = App launcher 前景（ic_launcher_foreground，108dp adaptive 画布，
+      # 不透明内容 190/324 宽），1.75 倍放大居中 + ContentScale.Crop，透明边全部裁出框外、插画填满 LogoBox。
+      # ⚠️ 禁止原尺寸/96dp 直接塞入（满幅插画顶满圆角、底部溢出）；曾评估 ardot 波浪标矢量方案，弃用。
+      inner_image: app_launcher_foreground
+      inner_image_zoom: 1.75        # 不透明区宽 190/324 → 需 ≥1.71 铺满盒宽；1.75 留密度桶余量，左右不得露渐变底
     title_spacer: 24
     title:
       text: "Hi, I'm Xiaolang, your smart assistant"  # 你好，我是智能助手小浪
@@ -151,16 +155,19 @@ empty_state:
       color: "onSurfaceVariant"
       padding_bottom: 10
     example_chips:
-      # 2026-08-18 定稿：两列成对网格（chunked(2)，行距 12/列距 14），surfaceContainerHigh 底 r22，
-      # 每 chip 带 16dp 彩色功能图标：日历#6BA6FF/相册#22D3EE/人物#FF7EB0/夜色#9B8CFF/统计#4ADE80/搜索#FFB020
-      layout: two_column_grid
+      # 2026-08-18 定稿 v2：FlowRow 流式自适应（行距 12/列距 14，每行整体居中），surfaceContainerHigh 底 r22，
+      # 每 chip 带 16dp 彩色功能图标：日历#6BA6FF/相册#22D3EE/人物#FF7EB0/夜色#9B8CFF/统计#4ADE80/搜索#FFB020。
+      # 设计稿 400px 宽行分组 2,2,1,1（长句独占一行）由流式换行自然形成，禁止 chunked(2) 硬切两行——
+      # 369dp 以下屏宽两长句同行会溢出；文本强制单行，极端窄屏/大字体省略号截断。
+      layout: flow_wrap_centered
       chip_style:
         shape: { corner_radius: 22 }
         background: "surfaceContainerHigh"
         leading_icon: 16            # 彩色 Material 图标（六彩轮转，按 index%6）
         text_font: { size: 14 }
         text_color: "onSurface"
-        padding: { start: 14, end: 16, vertical: 10 }
+        text_max_lines: 1           # 单行，溢出 ellipsis
+        padding: { start: 12, end: 14, vertical: 10 }
       prompts:
         - "Find photos from last summer"
         - "Search beach photos"
@@ -168,6 +175,10 @@ empty_state:
         - "Search night scenes"
         - "Give me an album health report"
         - "Analyze my photos by tag and time"
+    # ⚠️ iOS 缺口（2026-08-18 登记，走 /ios-follow 追齐）：iOS ChatEmptyState 仍为上一代设计——
+    # Logo=64pt surfaceVariant 描边块+104pt chat_logo 位图（应为 72pt 渐变底块+App 图标 1.5x 裁剪 r22）、
+    # 标题非渐变着色（应 brandGradient 26pt semibold）、chips 为无图标 Capsule（应 r22+16pt 六彩图标+flow 2,2,1,1）。
+    ios_gap: "ChatView.swift ChatEmptyState 整体落后 2026-08-18 定稿一代，见 §4 logo/example_chips"
 
 # ============================================================================
 # 5. 消息气泡（ChatMessageItem）
@@ -190,25 +201,25 @@ message_bubble:
   # 背景色（2026-08-18 豆包范式定稿，Android 已落地）
   background:
     user_text: "userBubbleBg"            # 品牌实色青玉 #0F766E（token chatBubble/userBubbleBg，双模式一致）
-    agent_text: "none"                   # ⚠️ AI 文本无气泡：28dp 渐变头像(chatBubble/brandGradient*)+通栏纯文本流
+    agent_text: "none"                   # ⚠️ AI 文本无气泡：通栏纯文本流（2026-08-18 二修：去 28dp 渐变头像，用户定稿——头像多余）
     image: "surfaceVariant.opacity(0.4)"
     error: "none"                        # 同 AI 正常（无气泡范式）
 
-  # 内边距（用户气泡 18/14；AI 无气泡故无 padding，头像↔文本 gap=12）
+  # 内边距（用户气泡 18/14；AI 无气泡故无 padding，通栏无头像缩进）
   padding:
     text: { horizontal: 18, vertical: 14 }
     image: { horizontal: 6, vertical: 6 }
 
-  # 文字样式
+  # 文字样式（2026-08-18 三修：14/20 → 16/24，配合去头像通栏排版，用户定稿）
   text:
     user:
       color: white                  # 硬编码白色
-      font_size: 14
-      line_height: 20
+      font_size: 16
+      line_height: 24
     agent:
       color: "onSurface"
-      font_size: 14
-      line_height: 20
+      font_size: 16
+      line_height: 24
       markdown: true                # MarkdownText 渲染
 
   # 无时间戳显示
@@ -225,7 +236,7 @@ message_bubble:
       scale: fill_width                  # ContentScale.FillWidth：宽撑满气泡内容区，高随原始宽高比，零裁切
       fixed_height: none                 # ⚠️ 禁固定高 + Crop（会砍头；2026-08-16 真机反馈回归点）
       corner_radius: 12                  # 图自身圆角（≠气泡圆角 20）
-      text_below: { color: white, size: 14, line_height: 20, top_padding: 6 }
+      text_below: { color: white, size: 16, line_height: 24, top_padding: 6 }
     agent_image:                         # AGENT_IMAGE（单发结果图）
       scale: fill_width                  # 同上；过期 → ExpiredImagePlaceholder
       corner_radius: 12

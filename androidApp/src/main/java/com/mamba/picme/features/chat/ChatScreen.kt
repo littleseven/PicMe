@@ -523,7 +523,7 @@ fun ChatScreen(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
-                            .padding(horizontal = 12.dp),
+                            .padding(horizontal = 20.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(messages, key = { it.id }) { message ->
@@ -1060,8 +1060,8 @@ private fun SegmentedAgentText(displayText: String, onTableClick: (MarkdownTable
             SegmentType.MARKDOWN -> MarkdownText(
                 markdown = segment.text,
                 color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
+                fontSize = 16.sp,
+                lineHeight = 24.sp,
             )
             SegmentType.CODE -> CodeBlock(raw = segment.text)
         }
@@ -1349,8 +1349,8 @@ private fun ChatMessageItem(
         contentAlignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart
     ) {
         if (isAgentText) {
-            // 豆包范式（设计稿 chat/conversation）：AI 文本消息去气泡 = 渐变头像 + 通栏纯文本流
-            Row(
+            // 豆包范式（设计稿 chat/conversation，2026-08-18 修订去头像）：AI 文本消息 = 通栏纯文本流
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .pointerInput(Unit) {
@@ -1361,37 +1361,33 @@ private fun ChatMessageItem(
                             }
                         )
                     },
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                GradientAgentAvatar()
-                Column(Modifier.weight(1f)) {
-                    // claude agent 消息：文本以 claudeAgent.text 为准（流式期 content=""，text 累积 delta）。
-                    val displayText = message.claudeAgent?.text ?: message.content
-                    if (message.isStreaming) {
-                        if (message.isThinking) {
-                            TypingIndicator()
-                        } else {
-                            Row(verticalAlignment = Alignment.Bottom) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    SegmentedAgentText(displayText, onTableClick)
-                                }
-                                if (message.showCursor) {
-                                    BlinkCursor()
-                                }
+                // claude agent 消息：文本以 claudeAgent.text 为准（流式期 content=""，text 累积 delta）。
+                val displayText = message.claudeAgent?.text ?: message.content
+                if (message.isStreaming) {
+                    if (message.isThinking) {
+                        TypingIndicator()
+                    } else {
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                SegmentedAgentText(displayText, onTableClick)
+                            }
+                            if (message.showCursor) {
+                                BlinkCursor()
                             }
                         }
-                    } else {
-                        SegmentedAgentText(displayText, onTableClick)
                     }
-                    AgentMessageExtras(
-                        message = message,
-                        onClaudeDeliver = onClaudeDeliver,
-                        onClaudeContinue = onClaudeContinue,
-                        canDeliverClaude = canDeliverClaude
-                    )
-                    message.performance?.let { perf ->
-                        MessagePerformanceRow(perf, isUser = false)
-                    }
+                } else {
+                    SegmentedAgentText(displayText, onTableClick)
+                }
+                AgentMessageExtras(
+                    message = message,
+                    onClaudeDeliver = onClaudeDeliver,
+                    onClaudeContinue = onClaudeContinue,
+                    canDeliverClaude = canDeliverClaude
+                )
+                message.performance?.let { perf ->
+                    MessagePerformanceRow(perf, isUser = false)
                 }
             }
         } else {
@@ -1443,8 +1439,8 @@ private fun ChatMessageItem(
                         Text(
                             text = message.content,
                             color = Color.White,
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp,
+                            fontSize = 16.sp,
+                            lineHeight = 24.sp,
                             modifier = Modifier.padding(top = 6.dp)
                         )
                     }
@@ -1488,8 +1484,8 @@ private fun ChatMessageItem(
                             Text(
                                 text = message.content,
                                 color = MaterialTheme.colorScheme.onSurface,
-                                fontSize = 14.sp,
-                                lineHeight = 20.sp,
+                                fontSize = 16.sp,
+                                lineHeight = 24.sp,
                                 modifier = Modifier.padding(top = 6.dp)
                             )
                         }
@@ -1498,8 +1494,8 @@ private fun ChatMessageItem(
                         Text(
                             text = message.content,
                             color = Color.White,
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp
+                            fontSize = 16.sp,
+                            lineHeight = 24.sp
                         )
                     }
                 }
@@ -1508,32 +1504,6 @@ private fun ChatMessageItem(
                 }
             }
         }
-    }
-}
-
-/** 豆包范式 AI 渐变头像：28dp 圆形品牌渐变底 + 白色 smart_toy 16dp。 */
-@Composable
-private fun GradientAgentAvatar() {
-    Box(
-        modifier = Modifier
-            .size(28.dp)
-            .clip(CircleShape)
-            .background(
-                Brush.linearGradient(
-                    listOf(
-                        ChatBubbleTokens.brandGradientStart,
-                        ChatBubbleTokens.brandGradientEnd
-                    )
-                )
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Rounded.SmartToy,
-            contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier.size(16.dp)
-        )
     }
 }
 
