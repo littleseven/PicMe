@@ -1,11 +1,11 @@
 {
   "endpoint": "http://127.0.0.1:50501/api/v1/mcp",
-  "exportedAt": "2026-08-18T02:10:00+08:00",
+  "exportedAt": "2026-08-18T09:07:53+08:00",
   "file": {
     "id": "715061534788814",
     "name": "polang-ui-spec",
     "permission": "readwrite",
-    "url": "cocraft://localhost/file/715061534788814?node_id=108%3A1"
+    "url": "cocraft://localhost/file/715061534788814?node_id=103%3A1"
   },
   "note": "云端画布为编辑工作区；本目录快照由 export-ardot-snapshot.py 生成（多页聚合，2026-08-16 起），重跑覆盖。变量 SSOT=shared/src/commonMain/resources/design-tokens.json，不在本快照内。",
   "pages": [
@@ -109,9 +109,24 @@
           "png": "chat-empty.png"
         },
         {
+          "id": "111:321",
+          "name": "chat/empty",
+          "png": "chat-empty.png"
+        },
+        {
           "id": "111:383",
           "name": "chat/conversation",
           "png": "chat-conversation.png"
+        },
+        {
+          "id": "111:383",
+          "name": "chat/conversation",
+          "png": "chat-conversation.png"
+        },
+        {
+          "id": "111:492",
+          "name": "chat/sidebar",
+          "png": "chat-sidebar.png"
         },
         {
           "id": "111:492",
@@ -124,9 +139,24 @@
           "png": "chat-sidebar_light.png"
         },
         {
+          "id": "116:26",
+          "name": "chat/sidebar_light",
+          "png": "chat-sidebar_light.png"
+        },
+        {
           "id": "116:72",
           "name": "chat/empty_light",
           "png": "chat-empty_light.png"
+        },
+        {
+          "id": "116:72",
+          "name": "chat/empty_light",
+          "png": "chat-empty_light.png"
+        },
+        {
+          "id": "116:150",
+          "name": "chat/conversation_light",
+          "png": "chat-conversation_light.png"
         },
         {
           "id": "116:150",
@@ -145,9 +175,24 @@
           "png": "settings-main_list.png"
         },
         {
+          "id": "108:94",
+          "name": "settings/main_list",
+          "png": "settings-main_list.png"
+        },
+        {
           "id": "108:363",
           "name": "settings/local_models",
           "png": "settings-local_models.png"
+        },
+        {
+          "id": "108:363",
+          "name": "settings/local_models",
+          "png": "settings-local_models.png"
+        },
+        {
+          "id": "111:1",
+          "name": "settings/remote_models",
+          "png": "settings-remote_models.png"
         },
         {
           "id": "111:1",
@@ -160,6 +205,16 @@
           "png": "settings-sandbox.png"
         },
         {
+          "id": "111:50",
+          "name": "settings/sandbox",
+          "png": "settings-sandbox.png"
+        },
+        {
+          "id": "111:129",
+          "name": "settings/developer",
+          "png": "settings-developer.png"
+        },
+        {
           "id": "111:129",
           "name": "settings/developer",
           "png": "settings-developer.png"
@@ -170,9 +225,24 @@
           "png": "settings-dialog_language.png"
         },
         {
+          "id": "111:276",
+          "name": "settings/dialog_language",
+          "png": "settings-dialog_language.png"
+        },
+        {
           "id": "111:294",
           "name": "settings/dialog_stage",
           "png": "settings-dialog_stage.png"
+        },
+        {
+          "id": "111:294",
+          "name": "settings/dialog_stage",
+          "png": "settings-dialog_stage.png"
+        },
+        {
+          "id": "111:446",
+          "name": "settings/dialog_theme",
+          "png": "settings-dialog_theme.png"
         },
         {
           "id": "111:446",
@@ -226,5 +296,5 @@
     }
   ],
   "scale": 1,
-  "structureSha256": "37208114532eeac958c3f539c3914c0a129525f02a56d074f8ad594aaa80adf1"
+  "structureSha256": "755aef1296fe2a7681946521dc79cc7256099b7b8feaa34611fec90b045f1226"
 }
