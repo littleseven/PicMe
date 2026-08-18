@@ -212,10 +212,10 @@ object CameraTokens {
     val wbChipSpacing = 8.dp
     val proSliderFontSize = 12.dp
     val topToolBarPaddingTop = 8.dp
-    val topToolBarItemPaddingH = 14.dp
+    val topToolBarItemPaddingH = 10.dp
     val topToolBarItemPaddingV = 9.dp
     val topToolBarItemRadius = 10.dp
-    val topToolBarSpacing = 8.dp
+    val topToolBarSpacing = 6.dp
     val modeSwitcherSpacing = 24.dp
     val zoomBarSpacing = 12.dp
     val zoomCapsulePaddingH = 14.dp

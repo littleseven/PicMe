@@ -419,10 +419,10 @@ enum CameraTokens {
     static let wbChipSpacing: CGFloat = 8
     static let proSliderFontSize: CGFloat = 12
     static let topToolBarPaddingTop: CGFloat = 8
-    static let topToolBarItemPaddingH: CGFloat = 14
+    static let topToolBarItemPaddingH: CGFloat = 10
     static let topToolBarItemPaddingV: CGFloat = 9
     static let topToolBarItemRadius: CGFloat = 10
-    static let topToolBarSpacing: CGFloat = 8
+    static let topToolBarSpacing: CGFloat = 6
     static let modeSwitcherSpacing: CGFloat = 24
     static let zoomBarSpacing: CGFloat = 12
     static let zoomCapsulePaddingH: CGFloat = 14

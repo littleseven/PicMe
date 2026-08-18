@@ -156,22 +156,24 @@ top_left_controls:
 # 4. 顶部居中工具栏（TopToolBar，2026-08-15 改版：右列图标列 → iOS 系统相机风格文字工具栏）
 # ============================================================================
 # 位置：Alignment.TopCenter，避让状态栏/刘海区域（同 §3 ignoring_visibility 语义）
-# 布局：Row 居中，spacing = camera.topToolBarSpacing(8dp)，padding_top = inset + camera.topToolBarPaddingTop(8dp)
+# 布局：Row 居中，spacing = camera.topToolBarSpacing(6dp)，padding_top = inset + camera.topToolBarPaddingTop(8dp)
 # 每个入口 = 文字胶囊：字号 12sp，选中 Bold/未选中 Medium，
-#   padding = H camera.topToolBarItemPaddingH(14) V camera.topToolBarItemPaddingV(9)，
+#   padding = H camera.topToolBarItemPaddingH(10) V camera.topToolBarItemPaddingV(9)，
 #   圆角 camera.topToolBarItemRadius(10)
 # 选中态：底 camera.toolBarSelectedBg(=cameraAccent #0F766E 固定深青玉，2026-08-18 起
 #   替代 colorScheme.primary——暗色主题下浅青玉与白字对比度不足)，字 camera.cameraAccentOn(白)
 # 未选中：底 camera.toolBarUnselectedBg(透明)，字 白色
 # ⚠️ 与 §3 左列（back/debug）垂直错开：左列需额外 top padding 避让工具栏高度
-# 2026-08-18 Ardot 定稿：恢复 08-16 收窄前的宽版（spacing 6→8、paddingH 10→14、paddingV 8→9）；
-#   back 箭头同时融入本行（icon 中心 x=28、与美颜间距 8dp，见 §3），不再有挤压问题
+# 2026-08-18 七修：back 融入本行后与美颜挤压（369dp 屏组宽 304 → 美颜左缘仅 32.5dp），
+#   工具栏收回紧凑版 spacing 8→6、paddingH 14→10（paddingV 9 不变）→ 组宽 256、
+#   美颜左缘右移至 ~54dp，与 back icon（右缘 40dp）间隙 13.7dp——08-16 收窄的原始动机
+#   即此，画布当时无 back 才回宽
 # 场景（scene）入口已下线（鸡肋功能，2026-08-15 用户决策）；ScenePreset 状态保留供 Agent 指令链路使用
 top_tool_bar:
   anchor: top_center
   layout: row_center
   status_bar_padding: ignoring_visibility
-  spacing: 8                      # camera.topToolBarSpacing
+  spacing: 6                      # camera.topToolBarSpacing
   items:
     - id: beauty_entry
       label: "美颜"                # "美颜" / "Beauty"
