@@ -39,7 +39,9 @@ class ThumbnailCache(
 ) {
     companion object {
         private const val TAG = "PoLang:ThumbCache"
-        private const val THUMBNAIL_SIZE_PX = 360
+
+        /** 缓存缩略图边长；[ThumbnailCacheFetcher] 按此值决定是否拦截，禁止用放大后的缓存图服务更大请求 */
+        internal const val THUMBNAIL_SIZE_PX = 360
         private const val JPEG_QUALITY = 80
         private const val DISK_CACHE_DIR = "thumbnails"
     }

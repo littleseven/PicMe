@@ -52,8 +52,14 @@
 core/image/
 ├── GpuBeautyProcessor.kt            # BeautyProcessor CPU 实现（Canvas + ColorMatrix）
 ├── ImageProcessor.kt                # 拍照/录像接口 + ImageProcessorImpl 实现
+├── ThumbnailCache.kt                # 双级缩略图缓存（L1 LRU 360px 位图 + L2 JPEG 磁盘）
+├── ThumbnailCacheFetcher.kt         # Coil Fetcher：content:// 且宽度 ≤ THUMBNAIL_SIZE_PX 才拦截走缓存
+├── BitmapSampling.kt                # 按目标尺寸降采样解码工具
+├── FaceAwareAlignment.kt            # 人脸感知纵向对齐（faceFocusY → ContentScale.Crop alignment）
 └── CoilConfig.kt                    # Coil 全局图片加载配置
 ```
+
+> **⚠️ 阈值联动约束**：`ThumbnailCacheFetcher` 的拦截阈值必须与 `ThumbnailCache.THUMBNAIL_SIZE_PX`（360px）保持一致（直接引用同一常量，禁止另写魔法数）——拦截更大请求会返回 360px 小图放大显示导致模糊（2026-08 人物页封面糊图的根因）。
 
 > **⚠️ 2026-05 架构下沉**：以下文件已从 `core/image/` 迁移至 `beauty-engine/api/`，实现美颜领域模型与引擎内聚：
 > - `BeautySettings.kt`、`BeautyParams.kt`、`BeautyParamsConverter.kt`

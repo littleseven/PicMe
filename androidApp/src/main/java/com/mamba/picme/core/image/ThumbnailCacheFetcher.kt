@@ -21,8 +21,11 @@ import coil.size.isOriginal
  *
  * 拦截条件（在 [Factory.create] 中判断）：
  *   1. URI scheme 为 "content"
- *   2. size 为固定像素且宽度 <= 640（缩略图请求）
+ *   2. size 为固定像素且宽度 <= [ThumbnailCache.THUMBNAIL_SIZE_PX]（与缓存分辨率匹配）
  *   3. 不拦截 Size.ORIGINAL（原图请求，如 MediaPager）
+ *
+ * 阈值必须与缓存实际分辨率一致：缓存位图只有 360px，若拦截更大请求
+ * （如人物页封面 ~486px），会返回小图放大显示导致模糊。
  */
 class ThumbnailCacheFetcher(
     private val uri: Uri,
@@ -51,11 +54,6 @@ class ThumbnailCacheFetcher(
      */
     class Factory(private val cache: ThumbnailCache) : Fetcher.Factory<Uri> {
 
-        companion object {
-            /** 超过此尺寸的请求不拦截，走 Coil 原图流程 */
-            private const val MAX_INTERCEPT_SIZE_PX = 640
-        }
-
         override fun create(
             data: Uri,
             options: Options,
@@ -67,9 +65,10 @@ class ThumbnailCacheFetcher(
             // 不拦截原图请求（MediaPager 全屏查看等）
             if (options.size.isOriginal) return null
 
-            // 仅拦截小尺寸缩略图请求
+            // 仅拦截与缓存分辨率匹配的请求；更大请求（如人物页封面 ~486px）
+            // 若返回 360px 缓存图会被放大模糊，必须走 Coil 正常解码
             val width = options.size.width
-            if (width is Dimension.Pixels && width.px <= MAX_INTERCEPT_SIZE_PX) {
+            if (width is Dimension.Pixels && width.px <= ThumbnailCache.THUMBNAIL_SIZE_PX) {
                 return ThumbnailCacheFetcher(data, cache)
             }
 
