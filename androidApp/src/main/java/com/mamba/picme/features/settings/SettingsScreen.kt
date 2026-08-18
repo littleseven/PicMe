@@ -517,7 +517,7 @@ private fun SettingsContent(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(SettingsTokens.listSectionSpacing)
                 ) {
-                // ── 组1 检测模型：ROI / 关键点 / 模型中心 ──
+                // ── 组1 检测模型：ROI / 关键点 / 照片打标（模型中心入口已在主菜单+语音行可达）──
                 SettingsListSection {
                     SettingsListRow(
                         title = stringResource(R.string.stage_roi_title),
@@ -536,11 +536,11 @@ private fun SettingsContent(
                     )
                     SettingsListDivider()
                     SettingsListRow(
-                        title = stringResource(R.string.model_center),
-                        onClick = { onNavigateToModelCenter("Vision") },
-                        icon = Icons.Rounded.CloudDownload,
-                        iconBlockColor = AppColors.vibrantGreen,
-                        subtitle = stringResource(R.string.model_center_desc)
+                        title = stringResource(R.string.tagging_model_label),
+                        onClick = { showTaggerDialog = true },
+                        icon = Icons.Rounded.Sell,
+                        iconBlockColor = AppColors.vibrantOrange,
+                        valueText = taggerLabel(taggerModelKey)
                     )
                 }
 
@@ -577,18 +577,7 @@ private fun SettingsContent(
                     }
                 }
 
-                // ── 组3 照片打标 ──
-                SettingsListSection {
-                    SettingsListRow(
-                        title = stringResource(R.string.tagging_model_label),
-                        onClick = { showTaggerDialog = true },
-                        icon = Icons.Rounded.Sell,
-                        iconBlockColor = AppColors.vibrantOrange,
-                        valueText = taggerLabel(taggerModelKey)
-                    )
-                }
-
-                // ── 组4 语音：语音识别 / 唤醒词 ──
+                // ── 组3 语音：语音识别 / 唤醒词 ──
                 SettingsListSection {
                     VoiceModelRow(
                         title = stringResource(R.string.local_asr_model),

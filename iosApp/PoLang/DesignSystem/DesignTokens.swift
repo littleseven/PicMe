@@ -56,6 +56,7 @@ enum AppColors {
     static let vibrantBlue = Color(hex: "FF2979FF")
     static let vibrantOrange = Color(hex: "FFFF9100")
     static let vibrantPink = Color(hex: "FFFF4081")
+    static let vibrantPurple = Color(hex: "FF4F378B")
 }
 
 // MARK: - Typography（M3 baseline 字号阶梯，仅 bodyLarge 为定制）
@@ -497,6 +498,7 @@ enum SettingsTokens {
     static let listDividerInsetStart: CGFloat = 56
     static let listTitleFontSize: CGFloat = 15
     static let listValueFontSize: CGFloat = 13
+    static let listValueMaxWidth: CGFloat = 160
 }
 
 // MARK: - Editor

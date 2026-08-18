@@ -285,6 +285,7 @@ object SettingsTokens {
     val listDividerInsetStart = 56.dp
     val listTitleFontSize = 15.dp
     val listValueFontSize = 13.dp
+    val listValueMaxWidth = 160.dp
 }
 
 /** 图片编辑器组件几何（结构 token）。内容色板（markup 7 色/lip 12 色/blush 3 色）见 DESIGN_TOKENS_SPEC.md palette 附录，属产品内容数据不入 token。 */

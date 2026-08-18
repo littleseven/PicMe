@@ -94,7 +94,8 @@
     "vibrantGreen": "#FF00E676",
     "vibrantBlue": "#FF2979FF",
     "vibrantOrange": "#FFFF9100",
-    "vibrantPink": "#FFFF4081"
+    "vibrantPink": "#FFFF4081",
+    "vibrantPurple": "#FF4F378B"
   },
   "typography": {
     "_comment": "M3 baseline 字号阶梯。仅 bodyLarge 为定制（Typography.kt），其余皆为 M3 默认。size/lineHeight/letterSpacing 单位 sp。iOS 映射：role→(size, weight→SwiftUI Font.Weight: Normal=.regular, Medium=.medium)。",
@@ -505,7 +506,8 @@
     "listSectionPaddingH": 16,
     "listDividerInsetStart": 56,
     "listTitleFontSize": 15,
-    "listValueFontSize": 13
+    "listValueFontSize": 13,
+    "listValueMaxWidth": 160
   },
   "editor": {
     "_comment": "图片编辑器组件几何（结构 token）。内容色板（markup 7 色/lip 12 色/blush 3 色）见 DESIGN_TOKENS_SPEC.md palette 附录，属产品内容数据不入 token。",

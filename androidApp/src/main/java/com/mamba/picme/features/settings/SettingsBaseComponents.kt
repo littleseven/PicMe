@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -446,7 +447,9 @@ internal fun SettingsListRow(
                 fontSize = SettingsTokens.listValueFontSize.value.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                // 长值（如模型目录名）不得挤压左侧标题：右值封顶 + 省略号
+                modifier = Modifier.widthIn(max = SettingsTokens.listValueMaxWidth)
             )
         }
         Icon(
