@@ -1706,8 +1706,7 @@ private fun StageConfigDialog(
                         else -> stringResource(labelRes)
                     },
                     selected = type == config.modelType,
-                    onClick = { selectModel(type) },
-                    ready = downloaded && !downloading
+                    onClick = { selectModel(type) }
                 )
             }
             SettingsOptionGroupLabel(stringResource(R.string.inference_device_preference))

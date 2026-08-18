@@ -491,13 +491,12 @@ internal fun SettingsSheetHandle(modifier: Modifier = Modifier) {
     )
 }
 
-/** 弹层选项行：48dp 高 r12；选中=surfaceVariant 底+绿✓+加粗；ready=已下载绿点。 */
+/** 弹层选项行：48dp 高 r12；选中=surfaceVariant 底+绿✓+加粗。下载状态由调用方写进 label（· 待下载/· N%）。 */
 @Composable
 internal fun SettingsOptionRow(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
-    ready: Boolean = false,
     trailing: @Composable (() -> Unit)? = null
 ) {
     Row(
@@ -511,14 +510,6 @@ internal fun SettingsOptionRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        if (ready) {
-            Box(
-                modifier = Modifier
-                    .size(6.dp)
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(AppColors.vibrantGreen)
-            )
-        }
         Text(
             text = label,
             fontSize = 15.sp,
