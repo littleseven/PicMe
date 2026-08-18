@@ -3,6 +3,7 @@
 package com.mamba.picme.features.gallery.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.*
@@ -14,7 +15,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.sp
+import com.mamba.picme.core.designsystem.ChatBubbleTokens
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -35,6 +45,7 @@ import com.mamba.picme.service.tag.TagGenerationService
 import com.mamba.picme.util.permission.BackgroundScanGuard
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
@@ -994,211 +1005,253 @@ private fun StatsCard(
     remainingPass3: Int,
     onNavigateToTagViewer: () -> Unit
 ) {
+    // 设计稿 gallery/settings「相册统计」定稿：渐变大数字 + 语义覆盖率圆环 + 2×2 彩色指标瓦片
+    // + 双阶段渐变进度条（替代旧的分组数字卡/表格）
+    val semanticPct = if (totalMedia > 0) withSemantic * 100 / totalMedia else 0
+    val pass1Pct = if (totalMedia > 0) (totalMedia - remainingPass1) * 100 / totalMedia else 0
+    val pass3Pct = if (totalMedia > 0) (totalMedia - remainingPass3) * 100 / totalMedia else 0
+
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                "数据库累计统计",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.height(12.dp))
-
-            // ── 媒体总量（两列卡片） ──────────────────
-            StatsSectionTitle("媒体总量")
-            Row(modifier = Modifier.fillMaxWidth()) {
-                StatsNumberCard(
-                    label = "总照片",
-                    value = totalMedia.toString(),
-                    modifier = Modifier.weight(1f)
+            // 头部：标题 + 标签查看入口（设计稿 header 行）
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "数据库累计统计",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
                 )
-                Spacer(Modifier.width(10.dp))
-                StatsNumberCard(
-                    label = "有语义向量",
-                    value = withSemantic.toString(),
-                    modifier = Modifier.weight(1f)
-                )
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onNavigateToTagViewer() }
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.tag_viewer_open_entry),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
+            Spacer(Modifier.height(14.dp))
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
+            // ── Hero：渐变大数字 + 语义覆盖率渐变圆环 ──
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = "%,d".format(Locale.ROOT, totalMedia),
+                        style = TextStyle(
+                            fontSize = 34.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            brush = Brush.linearGradient(
+                                listOf(
+                                    ChatBubbleTokens.brandGradientStart,
+                                    ChatBubbleTokens.brandGradientEnd
+                                )
+                            )
+                        )
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.stats_hero_caption, semanticPct),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                StatsProgressRing(progress = semanticPct)
+            }
+            Spacer(Modifier.height(14.dp))
 
-            // ── 人脸与人物（2×2 卡片网格） ────────────
-            StatsSectionTitle("人脸与人物")
+            // ── 2×2 彩色指标瓦片（设计稿 tile 阵列） ──
             Row(modifier = Modifier.fillMaxWidth()) {
-                StatsNumberCard(
+                StatsMetricTile(
+                    icon = Icons.Rounded.Face,
+                    iconColor = Color(0xFFFF7EB0),
                     label = "含人脸照片",
-                    value = withFace.toString(),
+                    value = withFace,
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(Modifier.width(10.dp))
-                StatsNumberCard(
+                StatsMetricTile(
+                    icon = Icons.Rounded.Fingerprint,
+                    iconColor = Color(0xFF22D3EE),
                     label = "人脸 Embedding",
-                    value = embeddingCount.toString(),
+                    value = embeddingCount,
                     modifier = Modifier.weight(1f)
                 )
             }
             Spacer(Modifier.height(10.dp))
             Row(modifier = Modifier.fillMaxWidth()) {
-                StatsNumberCard(
+                StatsMetricTile(
+                    icon = Icons.Rounded.Person,
+                    iconColor = Color(0xFF9B8CFF),
                     label = "识别出的人",
-                    value = personCount.toString(),
+                    value = personCount,
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(Modifier.width(10.dp))
-                StatsNumberCard(
+                StatsMetricTile(
+                    icon = Icons.Rounded.VerifiedUser,
+                    iconColor = Color(0xFF4ADE80),
                     label = "已命名人",
-                    value = namedPersonCount.toString(),
+                    value = namedPersonCount,
                     modifier = Modifier.weight(1f)
                 )
             }
+            Spacer(Modifier.height(14.dp))
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
-
-            // ── 各阶段进度（三列表格） ─────────────────
-            StatsSectionTitle("阶段进度")
-            StatsPassTableHeader()
-            HorizontalDivider()
-            StatsPassTableRow(
-                pass = stringResource(R.string.tag_pass_row_face),
-                done = (totalMedia - remainingPass1).toString(),
-                remaining = remainingPass1.toString()
+            // ── 阶段进度（渐变细进度条替代旧表格） ──
+            StatsStageBar(
+                label = stringResource(R.string.tag_pass_row_face),
+                progressPct = pass1Pct
             )
-            StatsPassTableRow(
-                pass = stringResource(R.string.tag_pass_row_content),
-                done = (totalMedia - remainingPass3).toString(),
-                remaining = remainingPass3.toString()
+            Spacer(Modifier.height(10.dp))
+            StatsStageBar(
+                label = stringResource(R.string.tag_pass_row_content),
+                progressPct = pass3Pct
             )
+        }
+    }
+}
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
+/** 72dp 渐变进度圆环（设计稿 ringSvg）：底环 surfaceVariant + 品牌渐变前景弧 + 中心百分比。 */
+@Composable
+private fun StatsProgressRing(progress: Int) {
+    val sweep = 360f * (progress.coerceIn(0, 100) / 100f)
+    val trackColor = MaterialTheme.colorScheme.surfaceVariant
+    Box(
+        modifier = Modifier.size(72.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val stroke = 6.dp.toPx()
+            drawArc(
+                color = trackColor,
+                startAngle = 0f,
+                sweepAngle = 360f,
+                useCenter = false,
+                style = Stroke(width = stroke, cap = StrokeCap.Round)
+            )
+            if (sweep > 0f) {
+                drawArc(
+                    brush = Brush.sweepGradient(
+                        listOf(
+                            ChatBubbleTokens.brandGradientStart,
+                            ChatBubbleTokens.brandGradientEnd,
+                            ChatBubbleTokens.brandGradientStart
+                        )
+                    ),
+                    startAngle = -90f,
+                    sweepAngle = sweep,
+                    useCenter = false,
+                    style = Stroke(width = stroke, cap = StrokeCap.Round)
+                )
+            }
+        }
+        Text(
+            text = "$progress%",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
 
-            // 标签查看入口（数据库统计模块底部）
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onNavigateToTagViewer() }
-                    .padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+/** 指标瓦片：彩色图标 + 数值 + 标签（surfaceVariant@0.5 底 r12 高 64）。 */
+@Composable
+private fun StatsMetricTile(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconColor: Color,
+    label: String,
+    value: Int,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .height(64.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(18.dp)
+            )
+            Column {
                 Text(
-                    text = stringResource(R.string.tag_viewer_title),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
+                    text = value.toString(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1
                 )
                 Text(
-                    text = stringResource(R.string.tag_viewer_open_entry),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
                 )
             }
         }
     }
 }
 
+/** 阶段进度条：标签 + 百分比 + 6dp 渐变轨道（设计稿 stageTrack/stageHead）。 */
 @Composable
-private fun StatsSectionTitle(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.primary,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.padding(top = 6.dp, bottom = 8.dp)
-    )
-}
-
-@Composable
-private fun StatsNumberCard(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+private fun StatsStageBar(label: String, progressPct: Int) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = value,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
                 text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
-                maxLines = 1
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "$progressPct%",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary
             )
         }
-    }
-}
-
-@Composable
-private fun StatsPassTableHeader() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-    ) {
-        Text(
-            text = stringResource(R.string.tag_pass_col_stage),
-            modifier = Modifier.weight(0.22f),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
-        Text(
-            text = stringResource(R.string.tag_pass_col_processed),
-            modifier = Modifier.weight(0.46f),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-            textAlign = TextAlign.End
-        )
-        Text(
-            text = stringResource(R.string.tag_pass_col_pending),
-            modifier = Modifier.weight(0.32f),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-            textAlign = TextAlign.End
-        )
-    }
-}
-
-@Composable
-private fun StatsPassTableRow(pass: String, done: String, remaining: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 5.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = pass,
-            modifier = Modifier.weight(0.22f),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
-        )
-        Text(
-            text = done,
-            modifier = Modifier.weight(0.46f),
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.End,
-            maxLines = 1
-        )
-        Text(
-            text = remaining,
-            modifier = Modifier.weight(0.32f),
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.End,
-            maxLines = 1
-        )
+        Spacer(Modifier.height(4.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(progressPct.coerceIn(0, 100) / 100f)
+                    .height(6.dp)
+                    .background(
+                        Brush.linearGradient(
+                            listOf(
+                                ChatBubbleTokens.brandGradientStart,
+                                ChatBubbleTokens.brandGradientEnd
+                            )
+                        )
+                    )
+            )
+        }
     }
 }

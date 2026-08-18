@@ -111,8 +111,8 @@ fun ChatThreadSidebar(
                 ) {
                     Text(
                         text = stringResource(R.string.sidebar_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
                     Row {
                         IconButton(onClick = onNewChat) {
@@ -209,12 +209,14 @@ private fun ChatThreadItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(14.dp))
             .background(
                 if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                 else Color.Transparent
             )
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {

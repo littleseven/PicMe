@@ -434,7 +434,7 @@ enum ChatBubbleTokens {
     static let tailCornerRadius: CGFloat = 4
     static let textSize: CGFloat = 14
     static let textLineHeight: CGFloat = 20
-    static let inputCornerRadius: CGFloat = 24
+    static let inputCornerRadius: CGFloat = 28
     static let inputShadowElevation: CGFloat = 4
     static let capsuleCornerRadius: CGFloat = 16
     static let capsuleActiveAlpha: Double = 0.12
@@ -445,6 +445,9 @@ enum ChatBubbleTokens {
     static let blinkMs: Double = 500
     static let circularButtonSize: CGFloat = 36
     static let circularButtonIconSize: CGFloat = 22
+    static let brandGradientStart = Color(hex: "FF0F766E")
+    static let brandGradientEnd = Color(hex: "FF5EA88F")
+    static let userBubbleBg = Color(hex: "FF0F766E")
 }
 
 // MARK: - Chat Carousel（媒体结果横滑卡）

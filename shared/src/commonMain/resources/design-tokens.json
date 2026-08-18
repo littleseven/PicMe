@@ -1,6 +1,6 @@
 {
   "_comment": "PoLang 双端 Design Token SSOT。Android/iOS 各自从此文件同步到代码常量。修改 token 时先改此文件，再两端同步。完整提取方法学/漂移记录见 docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md。",
-  "_version": "2.2.2",
+  "_version": "2.2.3",
   "_updated": "2026-08-18",
   "spacing": {
     "_comment": "语义间距阶梯。屏幕级 padding 多为 md(12)/lg(16)，组件内 gap 多为 sm(8)。",
@@ -435,7 +435,7 @@
     "zoomCapsuleHeight": 32
   },
   "chatBubble": {
-    "_comment": "聊天气泡。两套：ChatScreen(M3 浅色 DeepSeek 白卡输入) vs AiChatScreen(深色 overlay 黑底)。bubble 不对称圆角（tail 侧小）。",
+    "_comment": "聊天气泡（2026-08-18 豆包范式）：AI 消息=无气泡+28dp 渐变头像+纯文本；用户气泡=品牌实色 userBubbleBg；品牌渐变 brandGradientStart→End（头像/发送钮/空态 Logo 与标题）；输入卡 r28+描边。",
     "bubbleMaxWidth": 360,
     "imageMaxWidth": 240,
     "paddingH": 16,
@@ -444,7 +444,7 @@
     "tailCornerRadius": 4,
     "textSize": 14,
     "textLineHeight": 20,
-    "inputCornerRadius": 24,
+    "inputCornerRadius": 28,
     "inputShadowElevation": 4,
     "capsuleCornerRadius": 16,
     "capsuleActiveAlpha": 0.12,
@@ -455,7 +455,10 @@
     "typingMs": 400,
     "blinkMs": 500,
     "circularButtonSize": 36,
-    "circularButtonIconSize": 22
+    "circularButtonIconSize": 22,
+    "brandGradientStart": "#FF0F766E",
+    "brandGradientEnd": "#FF5EA88F",
+    "userBubbleBg": "#FF0F766E"
   },
   "chatCarousel": {
     "_comment": "聊天媒体结果轮播（MediaResultsCarousel）。ios-follow chat 2026-08-12 自 Android MediaResultsCarousel.kt 反向提取。卡片右侧竖排反馈按钮叠层。",

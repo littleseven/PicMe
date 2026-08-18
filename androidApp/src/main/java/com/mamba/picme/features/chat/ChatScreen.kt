@@ -3,7 +3,9 @@
 
 package com.mamba.picme.features.chat
 
+import com.mamba.picme.core.designsystem.ChatBubbleTokens
 import com.mamba.picme.domain.chat.ChatMessageType
+import com.mamba.picme.domain.chat.LlmPerformance
 import com.mamba.picme.domain.chat.ClaudeStepStatus
 import com.mamba.picme.domain.chat.ClaudeStepUi
 import com.mamba.picme.domain.chat.markdown.MarkdownTable
@@ -29,6 +31,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -1339,124 +1342,35 @@ private fun ChatMessageItem(
     val context = LocalContext.current
     val copySuccess = stringResource(R.string.copy_success)
 
+    val isAgentText = !isUser && !isImage && !isImageText && !isEditResult
+
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart
     ) {
-        Column(
-            modifier = Modifier
-                .widthIn(max = if (isImage || isImageText) 240.dp else 360.dp)
-                .clip(
-                    if (isUser) {
-                        RoundedCornerShape(20.dp, 20.dp, 4.dp, 20.dp)
-                    } else {
-                        RoundedCornerShape(20.dp, 20.dp, 20.dp, 4.dp)
-                    }
-                )
-                .background(
-                    if (isImage) {
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                    } else if (isUser) {
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
-                    } else {
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
-                    }
-                )
-                .padding(
-                    horizontal = if (isImage || isImageText) 6.dp else 16.dp,
-                    vertical = if (isImage || isImageText) 6.dp else 12.dp
-                )
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onLongPress = {
-                            clipboardManager.setText(AnnotatedString(message.content))
-                            Toast.makeText(context, copySuccess, Toast.LENGTH_SHORT).show()
-                        }
-                    )
-                }
-        ) {
-            when {
-                isImageText -> {
-                    // 用户「图 + 文字意图」：图在上、文字在下
-                    AsyncImage(
-                        model = message.imageUri,
-                        contentDescription = stringResource(R.string.photo),
-                        contentScale = ContentScale.FillWidth,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable { onImageClick(message) }
-                    )
-                    Text(
-                        text = message.content,
-                        color = Color.White,
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp,
-                        modifier = Modifier.padding(top = 6.dp)
-                    )
-                }
-                isImage -> {
-                    // 显示图片（可点击进入全屏预览）；agent 生成的结果图过期则显示占位
-                    val imgSrc = message.imageUri ?: message.content
-                    if (message.type == ChatMessageType.AGENT_IMAGE && !chatImageIsLive(imgSrc)) {
-                        ExpiredImagePlaceholder()
-                    } else {
-                        AsyncImage(
-                            model = imgSrc,
-                            contentDescription = stringResource(R.string.photo),
-                            contentScale = ContentScale.FillWidth,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable { onImageClick(message) }
+        if (isAgentText) {
+            // 豆包范式（设计稿 chat/conversation）：AI 文本消息去气泡 = 渐变头像 + 通栏纯文本流
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onLongPress = {
+                                clipboardManager.setText(AnnotatedString(message.content))
+                                Toast.makeText(context, copySuccess, Toast.LENGTH_SHORT).show()
+                            }
                         )
-                    }
-                }
-                isEditResult -> {
-                    // 对话式编辑结果：图片 + 说明文字；结果图过期则显示占位
-                    val imageUri = message.imageUri.orEmpty()
-                    if (imageUri.isNotBlank()) {
-                        if (!chatImageIsLive(imageUri)) {
-                            ExpiredImagePlaceholder(height = 200.dp)
-                        } else {
-                            AsyncImage(
-                                model = imageUri,
-                                contentDescription = stringResource(R.string.photo),
-                                contentScale = ContentScale.FillHeight,
-                                modifier = Modifier
-                                    .height(200.dp)
-                                    .widthIn(max = 260.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .clickable { onImageClick(message) }
-                            )
-                        }
-                    }
-                    if (message.content.isNotBlank()) {
-                        Text(
-                            text = message.content,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp,
-                            modifier = Modifier.padding(top = 6.dp)
-                        )
-                    }
-                }
-                isUser -> {
-                    Text(
-                        text = message.content,
-                        color = Color.White,
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp
-                    )
-                }
-                else -> {
-                    // claude agent 气泡：文本以 claudeAgent.text 为准（流式期 content=""，text 累积 delta）。
+                    },
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                GradientAgentAvatar()
+                Column(Modifier.weight(1f)) {
+                    // claude agent 消息：文本以 claudeAgent.text 为准（流式期 content=""，text 累积 delta）。
                     val displayText = message.claudeAgent?.text ?: message.content
                     if (message.isStreaming) {
                         if (message.isThinking) {
                             TypingIndicator()
                         } else {
-                            // 流式与最终态统一走 SegmentedAgentText：表格网格渲染、代码折叠、散文 Markdown。
                             Row(verticalAlignment = Alignment.Bottom) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     SegmentedAgentText(displayText, onTableClick)
@@ -1469,112 +1383,273 @@ private fun ChatMessageItem(
                     } else {
                         SegmentedAgentText(displayText, onTableClick)
                     }
-                }
-            }
-            // claude agent 步骤列表（tool_use↔tool_result 配对 + file_change 徽标）
-            message.claudeAgent?.let { cs ->
-                if (cs.steps.isNotEmpty()) {
-                    Spacer(Modifier.height(8.dp))
-                    ClaudeAgentSteps(cs.steps)
-                }
-            }
-            // 截断标识 + 继续（spec §3.4）：truncatedReason 粘滞，置位后只设不清。
-            message.claudeAgent?.truncatedReason?.let { reason ->
-                Spacer(Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "ⓘ " + stringResource(R.string.claude_truncated) +
-                            " " + truncationReasonLabel(reason),
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    AgentMessageExtras(
+                        message = message,
+                        onClaudeDeliver = onClaudeDeliver,
+                        onClaudeContinue = onClaudeContinue,
+                        canDeliverClaude = canDeliverClaude
                     )
-                    Spacer(Modifier.width(8.dp))
-                    TextButton(onClick = onClaudeContinue) {
-                        Text(stringResource(R.string.claude_continue), fontSize = 12.sp)
+                    message.performance?.let { perf ->
+                        MessagePerformanceRow(perf, isUser = false)
                     }
                 }
             }
-            // claude 交付按钮：file_change 后出现，pending 时可选 push/pr/auto（spec §8）
-            // 仅白名单账号展示写链路入口；非白名单只读诊断，不能改代码。
-            message.claudeDeliver?.let { cd ->
-                if (cd.pending && canDeliverClaude) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(R.string.claude_deliver_choose),
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+        } else {
+            Column(
+                modifier = Modifier
+                    .widthIn(max = if (isImage || isImageText) 240.dp else 360.dp)
+                    .clip(
+                        if (isUser) {
+                            RoundedCornerShape(20.dp, 20.dp, 4.dp, 20.dp)
+                        } else {
+                            RoundedCornerShape(20.dp, 20.dp, 20.dp, 4.dp)
+                        }
                     )
-                    Spacer(Modifier.height(4.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        DeliverModeButton(
-                            label = stringResource(R.string.claude_deliver_mode_push),
-                            onClick = { onClaudeDeliver(message.id, "push") }
-                        )
-                        DeliverModeButton(
-                            label = stringResource(R.string.claude_deliver_mode_pr),
-                            onClick = { onClaudeDeliver(message.id, "pr") }
-                        )
-                        DeliverModeButton(
-                            label = stringResource(R.string.claude_deliver_mode_auto),
-                            onClick = { onClaudeDeliver(message.id, "auto") }
-                        )
-                    }
-                }
-            }
-            message.performance?.let { perf ->
-                val metricTint = if (isUser) {
-                    Color.White.copy(alpha = 0.55f)
-                } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
-                }
-                FlowRow(
-                    modifier = Modifier
-                        .padding(top = 4.dp)
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    PerformanceMetric(
-                        icon = Icons.AutoMirrored.Rounded.ShortText,
-                        value = "${perf.promptLen}",
-                        tint = metricTint
+                    .background(
+                        if (isImage) {
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                        } else if (isUser) {
+                            // 用户气泡：品牌实色（青玉 #0F766E，双模式一致，设计稿定稿）
+                            ChatBubbleTokens.userBubbleBg
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
+                        }
                     )
-                    PerformanceMetric(
-                        icon = Icons.Rounded.ChatBubble,
-                        value = "${perf.decodeLen}",
-                        tint = metricTint
+                    .padding(
+                        horizontal = if (isImage || isImageText) 6.dp else 18.dp,
+                        vertical = if (isImage || isImageText) 6.dp else 14.dp
                     )
-                    if (perf.prefillTimeMs > 0) {
-                        PerformanceMetric(
-                            icon = Icons.Rounded.Bolt,
-                            value = "${perf.prefillTimeMs}ms",
-                            tint = metricTint
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onLongPress = {
+                                clipboardManager.setText(AnnotatedString(message.content))
+                                Toast.makeText(context, copySuccess, Toast.LENGTH_SHORT).show()
+                            }
                         )
                     }
-                    PerformanceMetric(
-                        icon = Icons.Rounded.Timer,
-                        value = "${perf.decodeTimeMs}ms",
-                        tint = metricTint
-                    )
-                    PerformanceMetric(
-                        icon = Icons.Rounded.Speed,
-                        value = "${String.format(Locale.ROOT, "%.1f", perf.decodeSpeed)}",
-                        tint = metricTint
-                    )
-                    if (perf.usedSandbox) {
-                        // 沙盒标记：与性能指标同风格的 Material 图标（10.dp，无数值标签）。
-                        // 裸图标比同行指标（图标+文字）矮，需显式垂直居中避免顶对齐错位。
-                        Icon(
-                            imageVector = Icons.Rounded.Terminal,
-                            contentDescription = null,
-                            tint = metricTint,
+            ) {
+                when {
+                    isImageText -> {
+                        // 用户「图 + 文字意图」：图在上、文字在下
+                        AsyncImage(
+                            model = message.imageUri,
+                            contentDescription = stringResource(R.string.photo),
+                            contentScale = ContentScale.FillWidth,
                             modifier = Modifier
-                                .align(Alignment.CenterVertically)
-                                .size(10.dp)
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { onImageClick(message) }
+                        )
+                        Text(
+                            text = message.content,
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp,
+                            modifier = Modifier.padding(top = 6.dp)
+                        )
+                    }
+                    isImage -> {
+                        // 显示图片（可点击进入全屏预览）；agent 生成的结果图过期则显示占位
+                        val imgSrc = message.imageUri ?: message.content
+                        if (message.type == ChatMessageType.AGENT_IMAGE && !chatImageIsLive(imgSrc)) {
+                            ExpiredImagePlaceholder()
+                        } else {
+                            AsyncImage(
+                                model = imgSrc,
+                                contentDescription = stringResource(R.string.photo),
+                                contentScale = ContentScale.FillWidth,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable { onImageClick(message) }
+                            )
+                        }
+                    }
+                    isEditResult -> {
+                        // 对话式编辑结果：图片 + 说明文字；结果图过期则显示占位
+                        val imageUri = message.imageUri.orEmpty()
+                        if (imageUri.isNotBlank()) {
+                            if (!chatImageIsLive(imageUri)) {
+                                ExpiredImagePlaceholder(height = 200.dp)
+                            } else {
+                                AsyncImage(
+                                    model = imageUri,
+                                    contentDescription = stringResource(R.string.photo),
+                                    contentScale = ContentScale.FillHeight,
+                                    modifier = Modifier
+                                        .height(200.dp)
+                                        .widthIn(max = 260.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable { onImageClick(message) }
+                                )
+                            }
+                        }
+                        if (message.content.isNotBlank()) {
+                            Text(
+                                text = message.content,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 14.sp,
+                                lineHeight = 20.sp,
+                                modifier = Modifier.padding(top = 6.dp)
+                            )
+                        }
+                    }
+                    isUser -> {
+                        Text(
+                            text = message.content,
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp
                         )
                     }
                 }
+                message.performance?.let { perf ->
+                    MessagePerformanceRow(perf, isUser = true)
+                }
             }
+        }
+    }
+}
+
+/** 豆包范式 AI 渐变头像：28dp 圆形品牌渐变底 + 白色 smart_toy 16dp。 */
+@Composable
+private fun GradientAgentAvatar() {
+    Box(
+        modifier = Modifier
+            .size(28.dp)
+            .clip(CircleShape)
+            .background(
+                Brush.linearGradient(
+                    listOf(
+                        ChatBubbleTokens.brandGradientStart,
+                        ChatBubbleTokens.brandGradientEnd
+                    )
+                )
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.SmartToy,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(16.dp)
+        )
+    }
+}
+
+/** AI 消息附加区：claude 步骤列表 / 截断继续 / 交付按钮（从气泡内拆出，随去气泡范式迁移）。 */
+@Composable
+private fun AgentMessageExtras(
+    message: ChatMessageUi,
+    onClaudeDeliver: (String, String) -> Unit,
+    onClaudeContinue: () -> Unit,
+    canDeliverClaude: Boolean,
+) {
+    // claude agent 步骤列表（tool_use↔tool_result 配对 + file_change 徽标）
+    message.claudeAgent?.let { cs ->
+        if (cs.steps.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            ClaudeAgentSteps(cs.steps)
+        }
+    }
+    // 截断标识 + 继续（spec §3.4）：truncatedReason 粘滞，置位后只设不清。
+    message.claudeAgent?.truncatedReason?.let { reason ->
+        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "ⓘ " + stringResource(R.string.claude_truncated) +
+                    " " + truncationReasonLabel(reason),
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.width(8.dp))
+            TextButton(onClick = onClaudeContinue) {
+                Text(stringResource(R.string.claude_continue), fontSize = 12.sp)
+            }
+        }
+    }
+    // claude 交付按钮：file_change 后出现，pending 时可选 push/pr/auto（spec §8）
+    // 仅白名单账号展示写链路入口；非白名单只读诊断，不能改代码。
+    message.claudeDeliver?.let { cd ->
+        if (cd.pending && canDeliverClaude) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.claude_deliver_choose),
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(4.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                DeliverModeButton(
+                    label = stringResource(R.string.claude_deliver_mode_push),
+                    onClick = { onClaudeDeliver(message.id, "push") }
+                )
+                DeliverModeButton(
+                    label = stringResource(R.string.claude_deliver_mode_pr),
+                    onClick = { onClaudeDeliver(message.id, "pr") }
+                )
+                DeliverModeButton(
+                    label = stringResource(R.string.claude_deliver_mode_auto),
+                    onClick = { onClaudeDeliver(message.id, "auto") }
+                )
+            }
+        }
+    }
+}
+
+/** 性能指标行（用户=白字@气泡内；AI=onSurface@文本流下，设计稿 PerfRow 11sp 55%）。 */
+@Composable
+private fun MessagePerformanceRow(perf: LlmPerformance, isUser: Boolean) {
+    val metricTint = if (isUser) {
+        Color.White.copy(alpha = 0.55f)
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
+    }
+    FlowRow(
+        modifier = Modifier
+            .padding(top = 4.dp)
+            .fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        PerformanceMetric(
+            icon = Icons.AutoMirrored.Rounded.ShortText,
+            value = "${perf.promptLen}",
+            tint = metricTint
+        )
+        PerformanceMetric(
+            icon = Icons.Rounded.ChatBubble,
+            value = "${perf.decodeLen}",
+            tint = metricTint
+        )
+        if (perf.prefillTimeMs > 0) {
+            PerformanceMetric(
+                icon = Icons.Rounded.Bolt,
+                value = "${perf.prefillTimeMs}ms",
+                tint = metricTint
+            )
+        }
+        PerformanceMetric(
+            icon = Icons.Rounded.Timer,
+            value = "${perf.decodeTimeMs}ms",
+            tint = metricTint
+        )
+        PerformanceMetric(
+            icon = Icons.Rounded.Speed,
+            value = "${String.format(Locale.ROOT, "%.1f", perf.decodeSpeed)}",
+            tint = metricTint
+        )
+        if (perf.usedSandbox) {
+            // 沙盒标记：与性能指标同风格的 Material 图标（10.dp，无数值标签）。
+            // 裸图标比同行指标（图标+文字）矮，需显式垂直居中避免顶对齐错位。
+            Icon(
+                imageVector = Icons.Rounded.Terminal,
+                contentDescription = null,
+                tint = metricTint,
+                modifier = Modifier
+                    .align(Alignment.CenterVertically)
+                    .size(10.dp)
+            )
         }
     }
 }
@@ -1705,11 +1780,12 @@ private fun ChatInputArea(
         }
     }
 
-    // DeepSeek 风格：白色大圆角卡片统一包裹输入区域（带阴影增强视觉层次）
+    // 豆包风格：大圆角输入卡（r28 + 细描边 + 阴影）统一包裹输入区域
+    val inputCardShape = RoundedCornerShape(ChatBubbleTokens.inputCornerRadius)
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .padding(horizontal = 12.dp, vertical = 12.dp)
             .navigationBarsPadding()
     ) {
         Column(
@@ -1717,13 +1793,18 @@ private fun ChatInputArea(
                 .fillMaxWidth()
                 .shadow(
                     elevation = 4.dp,
-                    shape = RoundedCornerShape(24.dp),
+                    shape = inputCardShape,
                     ambientColor = Color.Black.copy(alpha = 0.08f),
                     spotColor = Color.Black.copy(alpha = 0.12f)
                 )
-                .clip(RoundedCornerShape(24.dp))
+                .clip(inputCardShape)
                 .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                    inputCardShape
+                )
+                .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
             when (inputMode) {
                 ChatInputMode.TEXT -> ChatTextInputMode(
@@ -2002,20 +2083,22 @@ private fun ChatTextInputMode(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // 语音切换按钮
+                // 语音切换按钮：surfaceContainerHigh 实底圆钮（豆包式）
                 CircularIconButton(
                     icon = Icons.Rounded.KeyboardVoice,
                     contentDescription = stringResource(R.string.cd_switch_to_voice),
-                    onClick = onSwitchToVoice
+                    onClick = onSwitchToVoice,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                    container = MaterialTheme.colorScheme.surfaceContainerHigh
                 )
 
-                // 发送按钮（有内容时高亮）
+                // 发送按钮（有内容时显示；品牌渐变实底圆钮）
                 if (hasContent && !isProcessing) {
                     CircularIconButton(
                         icon = Icons.AutoMirrored.Rounded.Send,
                         contentDescription = stringResource(R.string.chat_send),
                         onClick = onSend,
-                        tint = MaterialTheme.colorScheme.primary
+                        brandGradient = true
                     )
                 }
             }
@@ -2105,26 +2188,45 @@ private fun modelDotColor(model: ChatViewModel.ChatRemoteModel?): Color =
     if (model?.id == "official") OFFICIAL_MODEL_COLOR else FALLBACK_MODEL_COLOR
 
 /**
- * 圆形图标按钮
+ * 圆形图标按钮：默认透明底；可指定 [container]（如 surfaceContainerHigh 语音钮）
+ * 或 [brandGradient]（豆包式渐变发送钮，白字+品牌色光晕）。
  */
 @Composable
 private fun CircularIconButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
-    tint: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+    tint: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+    container: Color? = null,
+    brandGradient: Boolean = false,
 ) {
+    val brandBrush = Brush.linearGradient(
+        listOf(ChatBubbleTokens.brandGradientStart, ChatBubbleTokens.brandGradientEnd)
+    )
     Box(
         modifier = Modifier
             .size(36.dp)
+            .shadow(
+                elevation = if (brandGradient) 4.dp else 0.dp,
+                shape = CircleShape,
+                ambientColor = ChatBubbleTokens.brandGradientStart.copy(alpha = 0.4f),
+                spotColor = ChatBubbleTokens.brandGradientStart.copy(alpha = 0.4f)
+            )
             .clip(CircleShape)
+            .then(
+                when {
+                    brandGradient -> Modifier.background(brandBrush)
+                    container != null -> Modifier.background(container)
+                    else -> Modifier
+                }
+            )
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = tint,
+            tint = if (brandGradient) Color.White else tint,
             modifier = Modifier.size(22.dp)
         )
     }

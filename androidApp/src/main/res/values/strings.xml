@@ -1124,4 +1124,5 @@
     <string name="report_issue_success">Reported (#%1$d)</string>
     <string name="report_issue_error">Report failed: %1$s</string>
     <string name="report_issue_guest_not_allowed">Please sign in to report issues</string>
+    <string name="stats_hero_caption">photos · semantic index covers %1$d%%</string>
 </resources>

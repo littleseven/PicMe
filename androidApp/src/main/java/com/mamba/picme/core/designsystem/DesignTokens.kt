@@ -215,7 +215,7 @@ object CameraTokens {
     val zoomCapsuleHeight = 32.dp
 }
 
-/** 聊天气泡。两套：ChatScreen(M3 浅色 DeepSeek 白卡输入) vs AiChatScreen(深色 overlay 黑底)。bubble 不对称圆角（tail 侧小）。 */
+/** 聊天气泡（2026-08-18 豆包范式）：AI 消息=无气泡+28dp 渐变头像+纯文本；用户气泡=品牌实色 userBubbleBg；品牌渐变 brandGradientStart→End（头像/发送钮/空态 Logo 与标题）；输入卡 r28+描边。 */
 object ChatBubbleTokens {
     val bubbleMaxWidth = 360.dp
     val imageMaxWidth = 240.dp
@@ -225,7 +225,7 @@ object ChatBubbleTokens {
     val tailCornerRadius = 4.dp
     val textSize = 14.dp
     val textLineHeight = 20.dp
-    val inputCornerRadius = 24.dp
+    val inputCornerRadius = 28.dp
     val inputShadowElevation = 4.dp
     val capsuleCornerRadius = 16.dp
     val capsuleActiveAlpha = 0.12f
@@ -236,6 +236,9 @@ object ChatBubbleTokens {
     val blinkMs = 500
     val circularButtonSize = 36.dp
     val circularButtonIconSize = 22.dp
+    val brandGradientStart = Color(0xFF0F766E)
+    val brandGradientEnd = Color(0xFF5EA88F)
+    val userBubbleBg = Color(0xFF0F766E)
 }
 
 /** 聊天媒体结果轮播（MediaResultsCarousel）。ios-follow chat 2026-08-12 自 Android MediaResultsCarousel.kt 反向提取。卡片右侧竖排反馈按钮叠层。 */

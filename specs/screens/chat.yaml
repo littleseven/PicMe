@@ -116,19 +116,19 @@ empty_state:
   horizontal_padding: 20
   alignment: center
   content:
-    top_spacer: 40
+    top_spacer: 60
     logo:
-      box_size: 64                  # 64dp
-      corner_radius: 18
-      background: "surfaceVariant"
-      border: { width: 1, color: "outlineVariant" }
-      inner_image_size: 104         # 品牌前景图（Android ic_launcher_foreground / iOS chat_logo imageset），溢出 box 但视觉居中，不裁切
-    title_spacer: 16
+      box_size: 72                  # 72dp
+      corner_radius: 22
+      background: "brandGradient"   # 品牌渐变 #0F766E→#5EA88F（chatBubble/brandGradient*）
+      border: none
+      inner_image_size: 96          # 品牌前景图，居中（不再 surfaceVariant+描边）
+    title_spacer: 24
     title:
       text: "Hi, I'm Xiaolang, your smart assistant"  # 你好，我是智能助手小浪
-      font: { size: 24, weight: bold }  # headlineSmall
-      color: "onSurface"
-    subtitle_spacer: 6
+      font: { size: 26, weight: semibold }
+      color: "brandGradient"        # 渐变着色文字（Brush.linearGradient）
+    subtitle_spacer: 8
     subtitle:
       text: "I can search, edit, adjust beauty, find people/scenes—ask anything!"
       font: { size: 14 }            # bodyMedium
@@ -151,14 +151,16 @@ empty_state:
       color: "onSurfaceVariant"
       padding_bottom: 10
     example_chips:
-      layout: flow_row
-      spacing: 8
+      # 2026-08-18 定稿：两列成对网格（chunked(2)，行距 12/列距 14），surfaceContainerHigh 底 r22，
+      # 每 chip 带 16dp 彩色功能图标：日历#6BA6FF/相册#22D3EE/人物#FF7EB0/夜色#9B8CFF/统计#4ADE80/搜索#FFB020
+      layout: two_column_grid
       chip_style:
-        shape: { corner_radius: 24 }
-        background: "surfaceVariant"
-        text_font: { size: 14, weight: medium }  # bodySmall
-        text_color: "onSurfaceVariant"
-        padding: { horizontal: 16, vertical: 10 }
+        shape: { corner_radius: 22 }
+        background: "surfaceContainerHigh"
+        leading_icon: 16            # 彩色 Material 图标（六彩轮转，按 index%6）
+        text_font: { size: 14 }
+        text_color: "onSurface"
+        padding: { start: 14, end: 16, vertical: 10 }
       prompts:
         - "Find photos from last summer"
         - "Search beach photos"
@@ -185,16 +187,16 @@ message_bubble:
     user: [20, 20, 4, 20]           # topLeft=20, topRight=20, bottomLeft=4, bottomRight=20
     agent: [20, 20, 20, 4]          # topLeft=20, topRight=20, bottomLeft=20, bottomRight=4
 
-  # 背景色
+  # 背景色（2026-08-18 豆包范式定稿，Android 已落地）
   background:
-    user_text: "primary.opacity(0.9)"    # 紫色 #6750A4 @ 90%
-    agent_text: "surfaceVariant.opacity(0.85)"
+    user_text: "userBubbleBg"            # 品牌实色青玉 #0F766E（token chatBubble/userBubbleBg，双模式一致）
+    agent_text: "none"                   # ⚠️ AI 文本无气泡：28dp 渐变头像(chatBubble/brandGradient*)+通栏纯文本流
     image: "surfaceVariant.opacity(0.4)"
-    error: "surfaceVariant.opacity(0.85)"  # ⚠️ 错误无特殊色，同 agent 正常
+    error: "none"                        # 同 AI 正常（无气泡范式）
 
-  # 内边距
+  # 内边距（用户气泡 18/14；AI 无气泡故无 padding，头像↔文本 gap=12）
   padding:
-    text: { horizontal: 16, vertical: 12 }
+    text: { horizontal: 18, vertical: 14 }
     image: { horizontal: 6, vertical: 6 }
 
   # 文字样式
@@ -282,10 +284,13 @@ input_bar:
     nav_bar_padding: true           # navigationBarsPadding
 
   card:
-    shape: { corner_radius: 24 }    # 大圆角卡片
+    shape: { corner_radius: 28 }    # r28（token chatBubble/inputCornerRadius）
+    border: { width: 1, color: "outlineVariant.opacity(0.35)" }  # 2026-08-18 新增细描边
     shadow: { elevation: 4, ambient_alpha: 0.08, spot_alpha: 0.12 }
-    background: "surfaceContainerLowest"  # 白色卡片
-    padding: { horizontal: 16, vertical: 12 }
+    background: "surfaceContainerLowest"
+    padding: { horizontal: 16, vertical: 14 }
+  # 语音钮：surfaceContainerHigh 实底圆钮 + onSurfaceVariant@0.85 图标
+  # 发送钮：品牌渐变实底圆钮（brandGradient*）+白字+品牌色光晕 shadow
 
     # 行 1：文本输入
     text_field:
