@@ -22,7 +22,8 @@ topbar:
   status_bar: 不手画               # 帧从 y0 起，状态栏区域由宿主让出（五页一致）
 
   title:
-    font_size: 17                  # sp，Medium（token topBar.titleFontWeight）
+    font_size: 17                  # sp
+    weight: Medium   # token topBar.titleFontWeight
     color: "onSurface"
     max_lines: 1
     single_line: true
@@ -64,12 +65,12 @@ topbar:
       leading_icon: { icon: "ic/search", size: 16, alpha: 0.5 }   # token searchField/iconAlpha
       placeholder: { size: 14, color: "onSurface@0.4" }   # token searchField/placeholderAlpha
       clear_button: { icon: "ic/clear", size: 16 }
-    trailing: { result_count: { size: 12, color: "onSurfaceVariant" } }
+    trailing: { result_count: { size: 12, color: "onSurface@0.6" } }   # token searchField/resultCountAlpha
     applies: [gallery/search, gallery/search_no_result]
 
   # ── 变体 D：图标行顶栏（无标题）— 2026-08-18 v2 新增 ─────────
   variant_iconrow:
-    leading: ["ic/menu"]           # 聊天主页；带返回入口的场合前置 ic/back
+    leading: ["ic/back", "ic/menu"]   # chat 常态双钮（返回+抽屉）
     trailing_max: 3                # chat: ic/bug_report, ic/add_comment, ic/delete_sweep
     spacer: fill_container         # 中部弹性
     applies: [chat/empty, chat/conversation (+light)]

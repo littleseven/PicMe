@@ -35,7 +35,7 @@
 #    仅色系换 cameraAccent；滑杆结构回老版（icon+标签行重置、数值默认 "--"），
 #    AppSlider 新增 CameraOverlay 档（白@15% 轨道+accent 激活段+纯白 thumb 无描边）。
 #
-# ── 顶栏归属 ── 相机 overlay 顶区遵循 specs/screens/topbar.yaml 附录 E（icon 体系见其 icons 节）
+# ── 顶栏归属 ── 相机 overlay 顶区遵循 specs/screens/topbar.yaml 附录 E（appendix_camera）（icon 体系见其 icons 节）
 #
 # ── SSOT 分工（2026-08-15 修订：codegen 工作流，原 Figma SSOT 方案已废止）──
 # 本文件只留：行为/状态机/交互规则/内容数据（色板等）+ 触发与绑定。
