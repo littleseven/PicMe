@@ -34,7 +34,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mamba.picme.core.designsystem.CameraTokens
 import com.mamba.picme.core.designsystem.components.AppSlider
+import com.mamba.picme.core.designsystem.components.AppSliderStyle
 
 @Composable
 private fun ExpandableSection(
@@ -102,6 +104,10 @@ private fun ExpandableSection(
     }
 }
 
+/**
+ * 美颜滑杆（2026-08-18 三修：结构回老版——icon+标签行点击重置、数值默认 "--"；
+ * 色系换 cameraAccent 深青玉；滑杆轨道走 [AppSliderStyle.CameraOverlay]）。
+ */
 @Composable
 fun BeautySlider(
     icon: ImageVector,
@@ -116,6 +122,7 @@ fun BeautySlider(
     } else {
         (value * 100 / valueRange.endInclusive).toInt()
     }
+    val isChanged = value != 0f
 
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(
@@ -130,28 +137,28 @@ fun BeautySlider(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = if (value != 0f) {
-                        MaterialTheme.colorScheme.primary
+                    tint = if (isChanged) {
+                        CameraTokens.cameraAccent
                     } else {
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        CameraTokens.cameraAccentOn.copy(alpha = 0.6f)
                     },
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = label,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = CameraTokens.cameraAccentOn,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
                 )
             }
 
             Text(
-                text = if (value != 0f) "$displayValue" else "--",
-                color = if (value != 0f) {
-                    MaterialTheme.colorScheme.primary
+                text = if (isChanged) "$displayValue" else "--",
+                color = if (isChanged) {
+                    CameraTokens.cameraAccent
                 } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                    CameraTokens.cameraAccentOn.copy(alpha = 0.4f)
                 },
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
@@ -162,6 +169,7 @@ fun BeautySlider(
             value = value,
             onValueChange = onValueChange,
             valueRange = valueRange,
+            style = AppSliderStyle.CameraOverlay,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(32.dp)

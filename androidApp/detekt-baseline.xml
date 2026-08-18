@@ -156,8 +156,10 @@
     <ID>LongMethod:SettingsAiAgent.kt$@Composable internal fun AiAgentRemoteModelsSection( configsJson: String, onConfigsChange: (String) -&gt; Unit, selectedModelId: String, onSelectedModelChange: (String) -&gt; Unit )</ID>
     <ID>LongMethod:SettingsAiAgent.kt$@Composable private fun RemoteModelConfigCard( config: RemoteModelConfig, isSelected: Boolean, onSelect: () -&gt; Unit, onConfigChange: (String, RemoteModelConfig) -&gt; Unit, onDelete: (String) -&gt; Unit, isPredefined: Boolean )</ID>
     <ID>LongMethod:SettingsRemoteModels.kt$@OptIn(ExperimentalLayoutApi::class) @Composable internal fun AddProviderModelDialog( onDismiss: () -&gt; Unit, onConfirm: (RemoteModelConfig) -&gt; Unit )</ID>
+    <ID>LongMethod:SettingsScreen.kt$@Composable private fun RemoteModelRow( config: RemoteModelConfig, isSelected: Boolean, onSelect: () -&gt; Unit, onMore: () -&gt; Unit )</ID>
+    <ID>LongMethod:SettingsScreen.kt$@Composable private fun RemoteModelsListSection( configsJson: String, onConfigsChange: (String) -&gt; Unit, selectedModelId: String, onSelectedModelChange: (String) -&gt; Unit )</ID>
     <ID>LongMethod:SettingsScreen.kt$@Composable private fun SettingsAccountHeroCard(onClick: () -&gt; Unit)</ID>
-    <ID>LongMethod:SettingsStageConfig.kt$@OptIn(ExperimentalLayoutApi::class) @Composable private fun ModelTypeSelection( currentType: DetectionModelType, stage: DetectionStage, onTypeSelected: (DetectionModelType) -&gt; Unit, isModelDownloaded: (DetectionModelType) -&gt; Boolean, getModelId: (DetectionModelType, DetectionStage) -&gt; String?, downloadModel: (String, ModelConfig) -&gt; Unit, downloadStates: Map&lt;String, DownloadState&gt;, allModels: List&lt;ModelConfig&gt; )</ID>
+    <ID>LongMethod:SettingsScreen.kt$@Suppress("LongParameterList") // 待重构：SettingsScreen 抽 SettingsNav holder @Composable private fun SettingsMainMenu( themeMode: ThemeMode, onThemeModeSelected: (ThemeMode) -&gt; Unit, appLanguage: AppLanguage, onAppLanguageSelected: (AppLanguage) -&gt; Unit, developerOptionsUnlocked: Boolean, onUnlockDeveloperOptions: () -&gt; Unit, onNavigateToCategory: (SettingsCategory) -&gt; Unit, onNavigateToModelCenter: () -&gt; Unit, onNavigateToDataPrivacy: () -&gt; Unit, onNavigateToCommunicationChannel: () -&gt; Unit, onNavigateToMemoryFacts: () -&gt; Unit, onNavigateToPeople: () -&gt; Unit, onNavigateToTagControl: () -&gt; Unit )</ID>
     <ID>LongMethod:TagDataBackupRepository.kt$TagDataBackupRepository$suspend fun exportToFile(file: File): ExportResult</ID>
     <ID>LongMethod:TagDataBackupRepository.kt$TagDataBackupRepository$suspend fun importFromFile( file: File, dryRun: Boolean = false ): RestoreResult</ID>
     <ID>LongMethod:TagGenerationControlScreen.kt$@Composable private fun PassControlCard( title: String, description: String, progress: TagPassProgress?, progressText: String, onIncremental: () -&gt; Unit, onFull: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
@@ -199,9 +201,7 @@
     <ID>LongParameterList:PersonInfoScreen.kt$( person: PersonEntity, relation: RelationDisplayItem?, cover: PersonCover?, photos: List&lt;MediaEntity&gt;, onSave: (RelationPredicate?, String, Boolean) -&gt; Unit, onNavigateBack: () -&gt; Unit, onUpdateCover: (MediaEntity) -&gt; Unit, onUpdateName: (String) -&gt; Unit, /** 仅给该人物聚类（重新）打美学/人脸画质分 + 刷新封面；null=不显示该入口。 */ onRescore: (suspend () -&gt; Unit)? = null )</ID>
     <ID>LongParameterList:PersonListItem.kt$( person: PersonEntity, cover: PersonCover?, relation: RelationDisplayItem?, photoCount: Int = person.faceCount, isEditingName: Boolean, onCoverClick: () -&gt; Unit, onNameClick: () -&gt; Unit, onNameSave: (String) -&gt; Unit, onNameCancel: () -&gt; Unit, onInfoClick: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
     <ID>LongParameterList:ProModeControls.kt$( exposure: Int, exposureRange: IntRange, onExposureChange: (Int) -&gt; Unit, whiteBalance: Int, onWhiteBalanceChange: (Int) -&gt; Unit, onTemperatureManualChange: () -&gt; Unit = {}, beautySettings: BeautySettings = BeautySettings(), onBeautySettingsChanged: (BeautySettings) -&gt; Unit = {}, modifier: Modifier = Modifier )</ID>
-    <ID>LongParameterList:SettingsScreen.kt$( onNavigateToCategory: (SettingsCategory) -&gt; Unit, onNavigateToModelCenter: () -&gt; Unit, onNavigateToDataPrivacy: () -&gt; Unit, onNavigateToCommunicationChannel: () -&gt; Unit, onNavigateToMemoryFacts: () -&gt; Unit, onNavigateToPeople: () -&gt; Unit, onNavigateToTagControl: () -&gt; Unit, developerOptionsUnlocked: Boolean, )</ID>
-    <ID>LongParameterList:SettingsStageConfig.kt$( currentType: DetectionModelType, stage: DetectionStage, onTypeSelected: (DetectionModelType) -&gt; Unit, isModelDownloaded: (DetectionModelType) -&gt; Boolean, getModelId: (DetectionModelType, DetectionStage) -&gt; String?, downloadModel: (String, ModelConfig) -&gt; Unit, downloadStates: Map&lt;String, DownloadState&gt;, allModels: List&lt;ModelConfig&gt; )</ID>
-    <ID>LongParameterList:SettingsStageConfig.kt$( stage: DetectionStage, config: StageConfig, onModelTypeSelected: (DetectionModelType) -&gt; Unit, onDevicePreferenceSelected: (InferenceDevicePreference) -&gt; Unit, onNavigateToModelManager: (String) -&gt; Unit, isModelDownloaded: (DetectionModelType) -&gt; Boolean, getModelId: (DetectionModelType, DetectionStage) -&gt; String?, downloadModel: (String, ModelConfig) -&gt; Unit, downloadStates: Map&lt;String, DownloadState&gt;, allModels: List&lt;ModelConfig&gt; )</ID>
+    <ID>LongParameterList:SettingsScreen.kt$( title: String, stage: DetectionStage, config: StageConfig, onModelTypeSelected: (DetectionModelType) -&gt; Unit, onDevicePreferenceSelected: (InferenceDevicePreference) -&gt; Unit, isModelDownloaded: (DetectionModelType) -&gt; Boolean, getModelId: (DetectionModelType, DetectionStage) -&gt; String?, downloadModel: (String, ModelConfig) -&gt; Unit, downloadStates: Map&lt;String, DownloadState&gt;, allModels: List&lt;ModelConfig&gt;, onDismiss: () -&gt; Unit )</ID>
     <ID>LoopWithTooManyJumpStatements:ChatImageStoreImpl.kt$ChatImageStoreImpl$while</ID>
     <ID>LoopWithTooManyJumpStatements:ClaudeChatClient.kt$ClaudeSseParser$for</ID>
     <ID>LoopWithTooManyJumpStatements:FaceClusterEngine.kt$FaceClusterEngine$for</ID>
@@ -325,6 +325,13 @@
     <ID>MagicNumber:CandidateSampler.kt$CandidateSampler$200f</ID>
     <ID>MagicNumber:CandidateSampler.kt$CandidateSampler$8000f</ID>
     <ID>MagicNumber:CandidateSampler.kt$CandidateSampler.Companion$50</ID>
+    <ID>MagicNumber:ChatEmptyState.kt$0xFF22D3EE</ID>
+    <ID>MagicNumber:ChatEmptyState.kt$0xFF4ADE80</ID>
+    <ID>MagicNumber:ChatEmptyState.kt$0xFF6BA6FF</ID>
+    <ID>MagicNumber:ChatEmptyState.kt$0xFF9B8CFF</ID>
+    <ID>MagicNumber:ChatEmptyState.kt$0xFFFF7EB0</ID>
+    <ID>MagicNumber:ChatEmptyState.kt$0xFFFFB020</ID>
+    <ID>MagicNumber:ChatEmptyState.kt$6</ID>
     <ID>MagicNumber:ChatImageStoreImpl.kt$ChatImageStoreImpl$10000</ID>
     <ID>MagicNumber:ChatScreen.kt$0xFF</ID>
     <ID>MagicNumber:ChatScreen.kt$ChatModelOption.Remote$0xFF2196F3</ID>
@@ -513,6 +520,8 @@
     <ID>MagicNumber:SearchRanker.kt$SearchRanker$3600</ID>
     <ID>MagicNumber:SemanticSearchEngine.kt$0xFF</ID>
     <ID>MagicNumber:SemanticSearchEngine.kt$SemanticSearchEngine$1e-6f</ID>
+    <ID>MagicNumber:SettingsScreen.kt$0xFF4F378B</ID>
+    <ID>MagicNumber:SettingsScreen.kt$0xFF938F99</ID>
     <ID>MagicNumber:TagGenerationPipeline.kt$TagGenerationPipeline$0.8f</ID>
     <ID>MagicNumber:TagGenerationPipeline.kt$TagGenerationPipeline$212</ID>
     <ID>MagicNumber:TagGenerationPipeline.kt$TagGenerationPipeline$49</ID>
@@ -569,7 +578,10 @@
     <ID>MaxLineLength:CameraPreviewContent.kt$"Face OK C(${"%.2f".format(uiState.faceWarpParams.faceCenterX)},${"%.2f".format(uiState.faceWarpParams.faceCenterY)}) R${"%.2f".format(uiState.faceWarpParams.faceRadius)}"</ID>
     <ID>MaxLineLength:CameraPreviewContent.kt$val perfCompact = "FPS ${"%.1f".format(uiState.beautyDebugState.fps)} | ${uiState.beautyDebugState.processingMs}ms/${uiState.beautyDebugState.delayMs}ms | D${uiState.beautyDebugState.nullFrames}"</ID>
     <ID>MaxLineLength:ChatViewModel.kt$ChatViewModel$Logger.w(TAG, "Capability dispatch failed in chat, falling back to full response. error=${actionValue.message}, detail=${actionValue.detail}")</ID>
+    <ID>MaxLineLength:DesignTokens.kt$CameraTokens$/** 相机强制深色 overlay 专属（2026-08-18 按 Ardot 画布 specs/screens/refs/ardot/camera-*.png 高精度还原）。focusRing 复用 color.focusRing。cameraAccent=固定深青玉 #0F766E（非 colorScheme.primary，白字对比度保障）。 */</ID>
+    <ID>MaxLineLength:DesignTokens.kt$IdPhotoTokens$/** 证照屏（IDPhoto）。强制深色屏：内容底近黑硬编码，Android PoLangForcedDarkTheme / iOS .preferredColorScheme(.dark)+AppColorScheme.dark 对齐 scheme。colorBlue/Red/White 为合成内容色（既作底色数据也作色板 UI 色，双端像素一致）。 */</ID>
     <ID>MaxLineLength:DesignTokens.kt$SearchFieldTokens$/** SearchTopBar 内嵌胶囊搜索框（Gallery/Chat 共用 SearchField）。ios-follow gallery-search 2026-08-11 自 Android SearchField.kt 反向提取。颜色全走 colorScheme 角色：bg=surfaceVariant@0.7，icon/placeholder/clear=onSurface@0.5/0.4/0.5，cursor=primary。 */</ID>
+    <ID>MaxLineLength:DesignTokens.kt$SettingsTokens$/** 设置页通用结构。SettingsClickableRow=主行模式，section=分组卡片容器。list*=主菜单列表式（2026-08-17 重设计，iOS 式分组列表）；图标块色映射（行到 vibrant 系、statusColor、colorScheme 角色的对应）属 UI 结构不入 token，双端各自在代码中映射并保持一致。注意注释内勿出现连续斜杠星号（会截断 Android KDoc 块注释）。 */</ID>
     <ID>MaxLineLength:FaceDetectionCacheTest.kt$FaceDetectionCacheGetTest.Companion$arrayOf&lt;Any&gt;("get after clear returns null", { FaceDetectionCache.updateLandmarks106(FloatArray(212) { it / 212f }); FaceDetectionCache.clear() }, true, -1)</ID>
     <ID>MaxLineLength:FaceDetectionCacheTest.kt$FaceDetectionCacheIsValidTest.Companion$arrayOf&lt;Any&gt;("isValid after clear returns false", { FaceDetectionCache.updateLandmarks106(FloatArray(212) { it / 212f }); FaceDetectionCache.clear() }, false)</ID>
     <ID>MaxLineLength:ImageProcessor.kt$ImageProcessorImpl$Logger.d(TAG, "processPhoto called: enabled=${beauty.enabled}, smoothing=${beauty.smoothing}, whitening=${beauty.whitening}, slimFace=${beauty.slimFace}, bigEyes=${beauty.bigEyes}, faces=${faces.size}, hasPreDetected=${preDetectedFaceData != null}")</ID>
@@ -585,7 +597,6 @@
     <ID>MaxLineLength:SemanticSearchEngine.kt$SemanticSearchEngine$Log.i(TAG, "Semantic recall: query='$query' -&gt; candidates=${queryCandidates}, embeddings=${textEmbeddings.size}, imageCandidates=${candidates.size}, returned=${scoredResults.size}, stats=[$scoreStats], nan=$nanCount, zeroNorm=$zeroNormCount, top3=[$topResults]")</ID>
     <ID>MaxLineLength:SemanticSearchEngine.kt$SemanticSearchEngine$Log.w(TAG, "Semantic recall empty: query='$query' -&gt; candidates=${queryCandidates}, imageCandidates=${candidates.size}, stats=[$scoreStats], nan=$nanCount, zeroNorm=$zeroNormCount")</ID>
     <ID>MaxLineLength:SentencePieceTestViewModel.kt$SentencePieceTestViewModel$log("模型文件已确认: source=${sourceFile.absolutePath} (${sourceFile.length()} bytes), target=${targetFile.absolutePath} (${targetFile.length()} bytes)")</ID>
-    <ID>MaxLineLength:SettingsScreen.kt$if (isAccessibilityEnabled) R.string.settings_accessibility_service_enabled else R.string.settings_accessibility_service_disabled</ID>
     <ID>MaxLineLength:WakeWordEngine.kt$WakeWordEngine$Logger.i(tag, "Triggering ASR (stability: $consecutiveSpeechFrames frames, confidence: ${(consecutiveSpeechFrames * 100 / VAD_STABILITY_FRAMES)}%)")</ID>
     <ID>MayBeConst:DesignTokens.kt$AppMotion$val blinkMs = 500</ID>
     <ID>MayBeConst:DesignTokens.kt$AppMotion$val fastMs = 150</ID>
@@ -613,16 +624,18 @@
     <ID>MayBeConst:DesignTokens.kt$CameraTokens$val controlButtonIdleAlpha = 0.5f</ID>
     <ID>MayBeConst:DesignTokens.kt$CameraTokens$val filterSelectedScale = 1.08f</ID>
     <ID>MayBeConst:DesignTokens.kt$CameraTokens$val filterSelectorColumns = 5</ID>
-    <ID>MayBeConst:DesignTokens.kt$CameraTokens$val modeTabUnselectedAlpha = 0.6f</ID>
+    <ID>MayBeConst:DesignTokens.kt$CameraTokens$val modeTabUnselectedAlpha = 1.0f</ID>
     <ID>MayBeConst:DesignTokens.kt$CameraTokens$val voicePulseAlphaFrom = 0.3f</ID>
     <ID>MayBeConst:DesignTokens.kt$CameraTokens$val voicePulseAlphaTo = 1.0f</ID>
     <ID>MayBeConst:DesignTokens.kt$CameraTokens$val voicePulseMs = 1200</ID>
+    <ID>MayBeConst:DesignTokens.kt$CameraTokens$val zoomUnselectedBgAlpha = 0.5f</ID>
     <ID>MayBeConst:DesignTokens.kt$ChatBubbleTokens$val blinkMs = 500</ID>
     <ID>MayBeConst:DesignTokens.kt$ChatBubbleTokens$val capsuleActiveAlpha = 0.12f</ID>
     <ID>MayBeConst:DesignTokens.kt$ChatBubbleTokens$val capsuleInactiveAlpha = 0.5f</ID>
     <ID>MayBeConst:DesignTokens.kt$ChatBubbleTokens$val typingMs = 400</ID>
     <ID>MayBeConst:DesignTokens.kt$ChipTokens$val unselectedContainerAlpha = 0.5f</ID>
     <ID>MayBeConst:DesignTokens.kt$EditorTokens$val cropTransformButtonBgAlpha = 0.45f</ID>
+    <ID>MayBeConst:DesignTokens.kt$IdPhotoTokens$val sizeChipUnselectedBorderAlpha = 0.5f</ID>
     <ID>MayBeConst:DesignTokens.kt$PersonTokens$val coverAspectRatio = 1.0f</ID>
     <ID>MayBeConst:DesignTokens.kt$PersonTokens$val coverPickerColumns = 3</ID>
     <ID>MayBeConst:DesignTokens.kt$PersonTokens$val detailCoverWidthRatio = 0.55f</ID>
@@ -783,7 +796,6 @@
     <ID>UnconditionalJumpStatementInLoop:FaceClusterEngine.kt$FaceClusterEngine$for (person in persons) { val entities = personDao.getEmbeddingsByPerson(person.personId) if (entities.size &lt; minSize) continue val feats = entities.map { entity -&gt; byteArrayToFloatArray(entity.embedding) } val (halfA, halfB) = twoWayPartition(feats) if (halfA.size &lt; 2 || halfB.size &lt; 2) continue val intraA = meanPairwiseSim(feats, halfA) val intraB = meanPairwiseSim(feats, halfB) val cross = meanCrossSim(feats, halfA, halfB) if (intraA &lt; intraMin || intraB &lt; intraMin || cross &gt; crossMax) continue // 较小的一半 spin off 为新 person，较大的一半留在原 person val (keepIdx, spinIdx) = if (halfA.size &gt;= halfB.size) halfA to halfB else halfB to halfA val spinMediaIds = spinIdx.map { idx -&gt; entities[idx].mediaId }.distinct() val newPersonId = personDao.insertPerson( PersonEntity(faceCount = spinIdx.size, coverMediaId = spinMediaIds.firstOrNull()) ) for (idx in spinIdx) { personDao.assignEmbedding(entities[idx].embeddingId, newPersonId) } if (spinMediaIds.isNotEmpty()) { personDao.setMediaFaceIds(spinMediaIds, newPersonId.toString()) } val keepMediaIds = keepIdx.map { idx -&gt; entities[idx].mediaId }.distinct() personDao.updatePersonStats( person.personId, faceCount = keepIdx.size, coverMediaId = keepMediaIds.firstOrNull() ?: person.coverMediaId ) centroidCache.remove(person.personId) totalSplits++ didSplit = true Log.i( TAG, "splitOvermergedClusters: ${person.personId} -&gt; keep ${keepIdx.size} + new $newPersonId ${spinIdx.size} " + "(intraA=${"%.2f".format(intraA)} intraB=${"%.2f".format(intraB)} cross=${"%.2f".format(cross)})" ) break // 拆分后 personId 变化，重新拉 persons }</ID>
     <ID>UnusedImports:AppContainer.kt$import com.mamba.picme.agent.core.facade.AgentOrchestrator</ID>
     <ID>UnusedImports:AppContainer.kt$import com.mamba.picme.data.indexing.IndexingTaskQueue</ID>
-    <ID>UnusedImports:BeautyPanel.kt$import androidx.compose.material.icons.rounded.LineStyle</ID>
     <ID>UnusedImports:BeautySelectors.kt$import androidx.compose.material.icons.rounded.LineStyle</ID>
     <ID>UnusedImports:ChatImageStoreImpl.kt$import android.net.Uri</ID>
     <ID>UnusedImports:ChatScreen.kt$import androidx.compose.animation.core.FastOutSlowInEasing</ID>
@@ -792,9 +804,7 @@
     <ID>UnusedImports:ChatScreen.kt$import androidx.compose.animation.slideInVertically</ID>
     <ID>UnusedImports:ChatScreen.kt$import androidx.compose.material.icons.rounded.Edit</ID>
     <ID>UnusedImports:ChatScreen.kt$import com.mamba.picme.features.chat.ChatThreadSidebar</ID>
-    <ID>UnusedImports:ChatThreadSidebar.kt$import androidx.compose.foundation.shape.RoundedCornerShape</ID>
     <ID>UnusedImports:ChatThreadSidebar.kt$import androidx.compose.material.icons.rounded.Search</ID>
-    <ID>UnusedImports:ChatThreadSidebar.kt$import androidx.compose.ui.draw.clip</ID>
     <ID>UnusedImports:ChatViewModel.kt$import android.content.Context</ID>
     <ID>UnusedImports:ChatViewModel.kt$import com.mamba.picme.agent.core.runtime.execution.InferenceResult</ID>
     <ID>UnusedImports:ChatViewModel.kt$import com.mamba.picme.data.local.ChatMessageDao</ID>
@@ -845,9 +855,14 @@
     <ID>UnusedImports:SettingsAiAgent.kt$import com.mamba.picme.data.download.LlmModelDownloadManager</ID>
     <ID>UnusedImports:SettingsAiAgent.kt$import com.mamba.picme.data.download.ModelConfig</ID>
     <ID>UnusedImports:SettingsAiAgent.kt$import java.util.Locale</ID>
-    <ID>UnusedImports:SettingsBaseComponents.kt$import androidx.compose.foundation.layout.width</ID>
+    <ID>UnusedImports:SettingsBaseComponents.kt$import androidx.compose.foundation.layout.fillMaxHeight</ID>
+    <ID>UnusedImports:SettingsScreen.kt$import androidx.compose.foundation.layout.Spacer</ID>
+    <ID>UnusedImports:SettingsScreen.kt$import androidx.compose.material.icons.rounded.CheckCircle</ID>
     <ID>UnusedImports:SettingsScreen.kt$import androidx.compose.material3.HorizontalDivider</ID>
+    <ID>UnusedImports:SettingsScreen.kt$import androidx.compose.material3.RadioButton</ID>
+    <ID>UnusedImports:SettingsVoice.kt$import androidx.compose.foundation.layout.Arrangement</ID>
     <ID>UnusedImports:SystemCapability.kt$import android.content.pm.ApplicationInfo</ID>
+    <ID>UnusedImports:TagGenerationControlScreen.kt$import androidx.compose.ui.text.style.TextAlign</ID>
     <ID>UnusedImports:TagGenerationService.kt$import kotlinx.coroutines.flow.StateFlow</ID>
     <ID>UnusedImports:TagGenerationService.kt$import kotlinx.coroutines.flow.asStateFlow</ID>
     <ID>UnusedParameter:AiChatPanel.kt$currentAsset: MediaAsset</ID>

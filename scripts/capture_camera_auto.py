@@ -14,14 +14,13 @@ PKG = "com.mamba.picme"
 # 预览区中央点一下 = 关闭面板(camera.yaml dismiss 规则,不会退出相机)
 PREVIEW_TAP = Bounds(520, 900, 680, 1060)
 
-# 右列控件(顶→底):美颜/比例/网格(icon-only,无文本)/场景/滤镜/专业模式
+# 顶部居中工具栏文字入口(2026-08-18 Ardot 定稿后,Text 无 cd,按 text 点击)
 PANELS = [
-    ("panel_beauty_face", "cd", "美颜"),
-    ("panel_ratio", "cd", "画面比例"),
-    ("panel_grid", "bounds", Bounds(992, 629, 1148, 785)),
-    ("panel_scene", "cd", "场景"),
-    ("panel_filter", "cd", "滤镜"),
-    ("panel_pro", "cd", "专业模式"),
+    ("panel_beauty_face", "text", "美颜"),
+    ("panel_ratio", "text", "比例"),
+    ("panel_grid", "text", "辅助线"),
+    ("panel_filter", "text", "滤镜"),
+    ("panel_pro", "text", "专业"),
 ]
 
 

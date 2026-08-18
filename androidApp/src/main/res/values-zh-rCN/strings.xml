@@ -234,6 +234,7 @@
     <string name="reset_camera_confirm_message">已保存的镜头、模式、滤镜、美颜、比例、变焦、曝光、白平衡、辅助线将全部恢复默认。</string>
     <string name="camera_tool_ratio">比例</string>
     <string name="camera_tool_pro">专业</string>
+    <string name="camera_label_flip">翻转</string>
     <string name="ratio_4_3">4:3</string>
     <string name="ratio_16_9">16:9</string>
     <string name="ratio_1_1">1:1</string>

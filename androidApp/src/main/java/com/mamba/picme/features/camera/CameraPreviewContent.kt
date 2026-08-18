@@ -442,13 +442,15 @@ private fun BoxScope.CameraPreviewSideControls(
     uiState: CameraPreviewUiState,
     actions: CameraPreviewActions
 ) {
-    // 返回箭头：与顶部工具栏同基线（statusBar inset + topToolBarPaddingTop）
+    // 返回箭头：融入顶部工具栏行——icon 中心与胶囊行垂直中心对齐（2026-08-18 六修：
+    // 胶囊 Text 有 48dp 最小触达垫高，行中心=inset+8+24；icon 中心=inset+P+20 → P=12；
+    // a11y 实测校准 icon 中心 67.7→72dp 与胶囊中心重合，P 取 8.8dp）
     CameraBackButton(
         onClick = actions.onNavigateBack,
         modifier = Modifier
             .align(Alignment.TopStart)
             .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility)
-            .padding(top = CameraTokens.topToolBarPaddingTop, start = 8.dp)
+            .padding(top = 8.8.dp, start = 8.dp)
     )
     CameraLeftControls(
         onToggleLogOverlay = actions.onToggleLogs,

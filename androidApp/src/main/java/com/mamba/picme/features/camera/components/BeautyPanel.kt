@@ -16,17 +16,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoFixHigh
 import androidx.compose.material.icons.rounded.ColorLens
 import androidx.compose.material.icons.rounded.Face
 import androidx.compose.material.icons.rounded.FaceRetouchingNatural
 import androidx.compose.material.icons.rounded.FavoriteBorder
-import androidx.compose.material.icons.rounded.LineStyle
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -45,12 +42,18 @@ import androidx.compose.ui.unit.dp
 import com.mamba.picme.R
 import com.mamba.picme.beauty.api.BeautySettings
 import com.mamba.picme.core.designsystem.BeautyPanelTokens
+import com.mamba.picme.core.designsystem.CameraTokens
 
 internal enum class BeautyTab(val labelRes: Int, val icon: ImageVector) {
     FACE(R.string.facial_refinement, Icons.Rounded.FaceRetouchingNatural),
     MAKEUP(R.string.makeup_adjustment, Icons.Rounded.ColorLens)
 }
 
+/**
+ * 美颜底部抽屉（2026-08-18 三修：几何全回老版，仅色系换 cameraAccent 深青玉 #0F766E）。
+ * 壳：顶部圆角 24 + surface@0.95 + 0.5dp 描边 + 16dp 阴影；高 40% 屏高；
+ * scrim：黑色渐变（透明→黑55→黑82）；Tab：底部 icon-only 栏，选中 accent@12% 底。
+ */
 @Composable
 fun BeautyPanel(
     settings: BeautySettings,
@@ -64,7 +67,7 @@ fun BeautyPanel(
         BeautyPanelTokens.heightRatioMax
     )
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = BeautyTab.values()
+    val tabs = BeautyTab.entries
 
     Box(
         modifier = Modifier
@@ -74,7 +77,7 @@ fun BeautyPanel(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(panelMaxHeight + 24.dp)
+                .heightIn(max = panelMaxHeight + 24.dp)
                 .align(Alignment.BottomCenter)
                 .background(
                     Brush.verticalGradient(
@@ -92,10 +95,13 @@ fun BeautyPanel(
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
                 .heightIn(max = panelMaxHeight),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+            color = Color(0xFF1C1A1F).copy(alpha = 0.95f),
+            shape = RoundedCornerShape(
+                topStart = BeautyPanelTokens.topCornerRadius,
+                topEnd = BeautyPanelTokens.topCornerRadius
+            ),
             shadowElevation = 16.dp,
-            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+            border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.12f))
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Box(
@@ -104,7 +110,7 @@ fun BeautyPanel(
                         .padding(top = 6.dp, bottom = 2.dp)
                         .size(width = 36.dp, height = 4.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                        .background(Color.White.copy(alpha = 0.2f))
                 )
 
                 Column(
@@ -124,7 +130,7 @@ fun BeautyPanel(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
+                        .background(Color(0xFF1C1A1F))
                         .padding(vertical = 4.dp)
                 ) {
                     tabs.forEach { tab ->
@@ -137,8 +143,11 @@ fun BeautyPanel(
                                 .weight(1f)
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(
-                                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                    else Color.Transparent
+                                    if (isSelected) {
+                                        CameraTokens.cameraAccent.copy(alpha = 0.12f)
+                                    } else {
+                                        Color.Transparent
+                                    }
                                 )
                                 .clickable { selectedTab = index }
                                 .padding(vertical = 8.dp)
@@ -146,8 +155,11 @@ fun BeautyPanel(
                             Icon(
                                 imageVector = tab.icon,
                                 contentDescription = tabLabel,
-                                tint = if (isSelected) MaterialTheme.colorScheme.primary
-                                       else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                tint = if (isSelected) {
+                                    CameraTokens.cameraAccent
+                                } else {
+                                    Color.White.copy(alpha = 0.5f)
+                                },
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -231,5 +243,3 @@ internal fun MakeupAdjustmentContent(
         onReset = { onSettingsChanged(settings.copy(blush = BeautySettings.DEFAULT_BLUSH)) }
     )
 }
-
-

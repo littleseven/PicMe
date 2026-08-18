@@ -51,8 +51,7 @@ SWIFT_CG_FLOAT_KEYS = {("searchField", "backgroundAlpha"), ("searchField", "icon
 # Android 对应语义走 colorScheme 角色，如相机 accent=primary）：
 # (group, key) → Swift 属性行（不含缩进），追加在该 group 枚举末尾。
 RAW_SWIFT_VALUES = {
-    # 相机 accent 与其他页面统一为 accentColor（系统蓝），不可冻结为 hex
-    ("camera", "cameraAccent"): "static let cameraAccent: Color = Color.accentColor",
+    # 相机 accent 2026-08-18 起按 Ardot 定稿冻结为固定深青玉 #0F766E（design-tokens.json 直存 hex，双端正常生成）
     ("camera", "toolBarSelectedBg"): "static let toolBarSelectedBg: Color = CameraTokens.cameraAccent",
 }
 # 显式跳过的键（语义引用或历史未镜像）：(group, key)
