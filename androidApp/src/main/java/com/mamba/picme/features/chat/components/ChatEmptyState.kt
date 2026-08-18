@@ -2,17 +2,17 @@ package com.mamba.picme.features.chat.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -24,15 +24,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
@@ -47,8 +50,9 @@ import com.mamba.picme.core.designsystem.ChatBubbleTokens
 
 /**
  * 聊天空状态（豆包范式，设计稿 chat/empty 定稿）：
- * 品牌渐变 Logo 块 + 渐变欢迎标题 + 能力副标题 + 底部两列彩色图标示例 chips。
+ * 圆角 Logo 块（App launcher 前景放大裁剪填满）+ 渐变欢迎标题 + 能力副标题 + 底部彩色图标示例 chips。
  * 渐变色 = chatBubble/brandGradient{Start,End}（青玉 #0F766E→#5EA88F）。
+ * 页面横向 padding 20dp（spec §4）；chips 用 FlowRow 自适应换行（≥369dp 宽呈 2,2,1,1 四行）。
  */
 @Composable
 fun ChatEmptyState(
@@ -63,12 +67,13 @@ fun ChatEmptyState(
     Column(
         modifier = modifier
             .fillMaxHeight()
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Spacer(Modifier.height(60.dp))
 
-        // 品牌渐变 Logo 块（72dp r22）：launcher 前景放大居中，渐变底透过 adaptive 透明区
+        // Logo 块（72dp r22）：App launcher 前景 1.75 倍放大居中，adaptive 透明边全部裁出框外
+        // （不透明区宽 190/324，需 ≥1.71 才能铺满盒宽；spec §4 logo）
         Box(
             modifier = Modifier
                 .size(72.dp)
@@ -79,7 +84,10 @@ fun ChatEmptyState(
             Image(
                 painter = painterResource(R.mipmap.ic_launcher_foreground),
                 contentDescription = null,
-                modifier = Modifier.requiredSize(96.dp),
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .scale(1.75f),
             )
         }
 
@@ -117,7 +125,7 @@ fun ChatEmptyState(
             text = stringResource(R.string.chat_empty_try_these),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 12.dp),
+            modifier = Modifier.padding(bottom = 10.dp),
         )
         val prompts = stringArrayResource(R.array.chat_example_prompts)
         ExampleChipGrid(prompts = prompts, onExampleClick = onExampleClick)
@@ -125,30 +133,26 @@ fun ChatEmptyState(
     }
 }
 
-/** 示例 chips 布局（设计稿 ChipsGrid）：两列成对 + 单列尾行，行距 12 / 列距 14。 */
+/**
+ * 示例 chips 布局（设计稿 ChipsGrid）：FlowRow 自适应流式换行，行距 12 / 列距 14，每行整体居中。
+ * chip 随行宽不足自动落到下一行（定稿行分组 2,2,1,1 即由此自然形成）；文本强制单行，
+ * 极端窄屏/大字体下省略号截断而不是折行撑高 chip。
+ */
 @Composable
 private fun ExampleChipGrid(prompts: Array<String>, onExampleClick: (String) -> Unit) {
-    val rows = prompts.toList().chunked(2)
-    Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+    FlowRow(
         modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        rows.forEachIndexed { rowIndex, rowPrompts ->
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                rowPrompts.forEachIndexed { colIndex, prompt ->
-                    val index = rowIndex * 2 + colIndex
-                    val (icon, iconColor) = exampleChipAccent(index)
-                    ExampleChip(
-                        text = prompt,
-                        icon = icon,
-                        iconColor = iconColor,
-                        onClick = { onExampleClick(prompt) },
-                    )
-                }
-            }
+        prompts.forEachIndexed { index, prompt ->
+            val (icon, iconColor) = exampleChipAccent(index)
+            ExampleChip(
+                text = prompt,
+                icon = icon,
+                iconColor = iconColor,
+                onClick = { onExampleClick(prompt) },
+            )
         }
     }
 }
@@ -163,7 +167,7 @@ private fun exampleChipAccent(index: Int): Pair<ImageVector, Color> = when (inde
     else -> Icons.Rounded.Search to Color(0xFFFFB020)
 }
 
-/** 单个示例 chip：surfaceContainerHigh 底 r22 高 44，彩色图标 16 + onSurface 文本。 */
+/** 单个示例 chip：surfaceContainerHigh 底 r22，彩色图标 16 + onSurface 单行文本（溢出省略号截断）。 */
 @Composable
 private fun ExampleChip(
     text: String,
@@ -177,7 +181,7 @@ private fun ExampleChip(
         onClick = onClick,
     ) {
         Row(
-            modifier = Modifier.padding(start = 14.dp, end = 16.dp, top = 10.dp, bottom = 10.dp),
+            modifier = Modifier.padding(start = 12.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -191,6 +195,8 @@ private fun ExampleChip(
                 text = text,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

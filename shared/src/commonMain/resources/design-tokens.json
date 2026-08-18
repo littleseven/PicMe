@@ -436,7 +436,7 @@
     "zoomCapsuleHeight": 32
   },
   "chatBubble": {
-    "_comment": "聊天气泡（2026-08-18 豆包范式）：AI 消息=无气泡+28dp 渐变头像+纯文本；用户气泡=品牌实色 userBubbleBg；品牌渐变 brandGradientStart→End（头像/发送钮/空态 Logo 与标题）；输入卡 r28+描边。",
+    "_comment": "聊天气泡（2026-08-18 豆包范式，同日二修去头像）：AI 消息=无气泡+通栏纯文本；用户气泡=品牌实色 userBubbleBg；品牌渐变 brandGradientStart→End（发送钮/空态 Logo 与标题）；输入卡 r28+描边。",
     "bubbleMaxWidth": 360,
     "imageMaxWidth": 240,
     "paddingH": 16,
