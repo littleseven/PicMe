@@ -460,12 +460,8 @@ private fun SettingsContent(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(
-                    horizontal = if (category == SettingsCategory.MAIN) {
-                        SettingsTokens.listSectionPaddingH
-                    } else {
-                        10.dp
-                    },
-                    vertical = 6.dp
+                    horizontal = SettingsTokens.listSectionPaddingH,
+                    vertical = 8.dp
                 )
         ) {
             if (category == SettingsCategory.MAIN) {
@@ -517,6 +513,10 @@ private fun SettingsContent(
                 var showProfileDialog by remember { mutableStateOf(false) }
                 var showTaggerDialog by remember { mutableStateOf(false) }
 
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(SettingsTokens.listSectionSpacing)
+                ) {
                 // ── 组1 检测模型：ROI / 关键点 / 模型中心 ──
                 SettingsListSection {
                     SettingsListRow(
@@ -610,6 +610,7 @@ private fun SettingsContent(
                         iconBlockColor = AppColors.vibrantGreen
                     )
                 }
+                }
 
                 if (showRoiDialog) {
                     StageConfigDialog(
@@ -684,6 +685,10 @@ private fun SettingsContent(
                 }
                 var showVoiceModeDialog by remember { mutableStateOf(false) }
 
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(SettingsTokens.listSectionSpacing)
+                ) {
                 // ── 组1 智能体执行 ──
                 SettingsListSection {
                     DebugOptionRow(
@@ -693,7 +698,7 @@ private fun SettingsContent(
                         horizontalPadding = SettingsTokens.listRowPaddingH,
                         rowHeight = SettingsTokens.listRowHeight,
                         icon = Icons.Rounded.Psychology,
-                        iconBlockColor = MaterialTheme.colorScheme.primaryContainer
+                        iconBlockColor = AppColors.vibrantPurple
                     )
                     SettingsListDivider()
                     DebugOptionRow(
@@ -703,7 +708,7 @@ private fun SettingsContent(
                         horizontalPadding = SettingsTokens.listRowPaddingH,
                         rowHeight = SettingsTokens.listRowHeight,
                         icon = Icons.Rounded.Code,
-                        iconBlockColor = MaterialTheme.colorScheme.primaryContainer
+                        iconBlockColor = AppColors.vibrantPurple
                     )
                 }
 
@@ -765,6 +770,7 @@ private fun SettingsContent(
                         icon = Icons.Rounded.KeyboardVoice,
                         iconBlockColor = AppColors.vibrantGreen
                     )
+                }
                 }
 
                 if (showVoiceModeDialog) {
@@ -983,7 +989,11 @@ private fun SettingsContent(
                 var showShaderDialog by remember { mutableStateOf(false) }
                 var showLogModulesDialog by remember { mutableStateOf(false) }
 
-                // ── 组1 预览调试 ──
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(SettingsTokens.listSectionSpacing)
+                ) {
+                // ── 组1 预览调试（设计稿 111:129：五行常显，不随调试开关折叠）──
                 SettingsListSection {
                     DebugOptionRow(
                         title = stringResource(R.string.debug),
@@ -994,46 +1004,44 @@ private fun SettingsContent(
                         icon = Icons.Rounded.BugReport,
                         iconBlockColor = StatusColor.warningAmber
                     )
-                    if (debugUiEnabled) {
-                        SettingsListDivider()
-                        DebugOptionRow(
-                            title = stringResource(R.string.show_camera_info),
-                            checked = showCameraInfoInPreview,
-                            onCheckedChange = onShowCameraInfoInPreviewChange,
-                            horizontalPadding = SettingsTokens.listRowPaddingH,
-                            rowHeight = SettingsTokens.listRowHeight,
-                            icon = Icons.Rounded.Language,
-                            iconBlockColor = StatusColor.warningAmber
-                        )
-                        SettingsListDivider()
-                        DebugOptionRow(
-                            title = stringResource(R.string.show_face_debug),
-                            checked = showFaceDebugOverlay,
-                            onCheckedChange = onShowFaceDebugOverlayChange,
-                            horizontalPadding = SettingsTokens.listRowPaddingH,
-                            rowHeight = SettingsTokens.listRowHeight,
-                            icon = Icons.Rounded.Face,
-                            iconBlockColor = StatusColor.warningAmber
-                        )
-                        SettingsListDivider()
-                        DebugOptionRow(
-                            title = stringResource(R.string.show_log_overlay),
-                            checked = showLogOverlay,
-                            onCheckedChange = onShowLogOverlayChange,
-                            horizontalPadding = SettingsTokens.listRowPaddingH,
-                            rowHeight = SettingsTokens.listRowHeight,
-                            icon = Icons.Rounded.Description,
-                            iconBlockColor = StatusColor.warningAmber
-                        )
-                        SettingsListDivider()
-                        SettingsListRow(
-                            title = stringResource(R.string.shader_debug_mode),
-                            onClick = { showShaderDialog = true },
-                            icon = Icons.Rounded.Gradient,
-                            iconBlockColor = StatusColor.warningAmber,
-                            valueText = shaderModeLabel(debugShaderMode)
-                        )
-                    }
+                    SettingsListDivider()
+                    DebugOptionRow(
+                        title = stringResource(R.string.show_camera_info),
+                        checked = showCameraInfoInPreview,
+                        onCheckedChange = onShowCameraInfoInPreviewChange,
+                        horizontalPadding = SettingsTokens.listRowPaddingH,
+                        rowHeight = SettingsTokens.listRowHeight,
+                        icon = Icons.Rounded.Language,
+                        iconBlockColor = StatusColor.warningAmber
+                    )
+                    SettingsListDivider()
+                    DebugOptionRow(
+                        title = stringResource(R.string.show_face_debug),
+                        checked = showFaceDebugOverlay,
+                        onCheckedChange = onShowFaceDebugOverlayChange,
+                        horizontalPadding = SettingsTokens.listRowPaddingH,
+                        rowHeight = SettingsTokens.listRowHeight,
+                        icon = Icons.Rounded.Face,
+                        iconBlockColor = StatusColor.warningAmber
+                    )
+                    SettingsListDivider()
+                    DebugOptionRow(
+                        title = stringResource(R.string.show_log_overlay),
+                        checked = showLogOverlay,
+                        onCheckedChange = onShowLogOverlayChange,
+                        horizontalPadding = SettingsTokens.listRowPaddingH,
+                        rowHeight = SettingsTokens.listRowHeight,
+                        icon = Icons.Rounded.Description,
+                        iconBlockColor = StatusColor.warningAmber
+                    )
+                    SettingsListDivider()
+                    SettingsListRow(
+                        title = stringResource(R.string.shader_debug_mode),
+                        onClick = { showShaderDialog = true },
+                        icon = Icons.Rounded.Gradient,
+                        iconBlockColor = StatusColor.warningAmber,
+                        valueText = shaderModeLabel(debugShaderMode)
+                    )
                 }
 
                 // 引擎与模型（人脸检测阶段配置 + 打标模型）已移至「本地模型」一级入口
@@ -1044,8 +1052,7 @@ private fun SettingsContent(
                         title = stringResource(R.string.llm_call_log),
                         onClick = onNavigateToLlmLog,
                         icon = Icons.Rounded.Terminal,
-                        iconBlockColor = StatusColor.warningAmber,
-                        subtitle = stringResource(R.string.llm_call_log_desc)
+                        iconBlockColor = StatusColor.warningAmber
                     )
                     SettingsListDivider()
                     SettingsListRow(
@@ -1066,24 +1073,21 @@ private fun SettingsContent(
                             title = stringResource(R.string.debug_image_download),
                             onClick = onNavigateToDebug,
                             icon = Icons.Rounded.CloudDownload,
-                            iconBlockColor = StatusColor.warningAmber,
-                            subtitle = stringResource(R.string.debug_image_download_desc)
+                            iconBlockColor = StatusColor.warningAmber
                         )
                         SettingsListDivider()
                         SettingsListRow(
                             title = stringResource(R.string.search_test_entry_title),
                             onClick = onNavigateToSearchTest,
                             icon = Icons.Rounded.Search,
-                            iconBlockColor = StatusColor.warningAmber,
-                            subtitle = stringResource(R.string.search_test_entry_subtitle)
+                            iconBlockColor = StatusColor.warningAmber
                         )
                         SettingsListDivider()
                         SettingsListRow(
                             title = stringResource(R.string.jsbridge_entry_title),
                             onClick = onNavigateToJsBridge,
                             icon = Icons.Rounded.Code,
-                            iconBlockColor = StatusColor.warningAmber,
-                            subtitle = stringResource(R.string.jsbridge_entry_subtitle)
+                            iconBlockColor = StatusColor.warningAmber
                         )
                         SettingsListDivider()
 
@@ -1118,6 +1122,7 @@ private fun SettingsContent(
                             )
                         )
                     }
+                }
                 }
 
                 if (showShaderDialog) {

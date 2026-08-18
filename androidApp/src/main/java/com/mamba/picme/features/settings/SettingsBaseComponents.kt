@@ -269,7 +269,8 @@ internal fun DebugOptionRow(
         }
         Text(
             text = title,
-            style = MaterialTheme.typography.bodyMedium,
+            fontSize = SettingsTokens.listTitleFontSize.value.sp,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f)
         )
         Switch(

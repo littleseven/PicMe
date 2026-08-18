@@ -77,6 +77,7 @@ val VibrantGreen = Color(0xFF00E676)
 val VibrantBlue = Color(0xFF2979FF)
 val VibrantOrange = Color(0xFFFF9100)
 val VibrantPink = Color(0xFFFF4081)
+val VibrantPurple = Color(0xFF4F378B)
 
 /** 功能色集合，通过 [MaterialTheme.appColors] 访问。 */
 object AppColors {
@@ -88,4 +89,5 @@ object AppColors {
     val vibrantBlue = VibrantBlue
     val vibrantOrange = VibrantOrange
     val vibrantPink = VibrantPink
+    val vibrantPurple = VibrantPurple
 }
