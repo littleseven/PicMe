@@ -11,6 +11,28 @@
 # 颜色引用：appColors.* 对应 design-tokens.json color 节点
 # 图标映射：Material Icons (Android) → SF Symbols (iOS)
 #
+# ── 2026-08-18 Ardot 高精度还原（三轮修正后定稿）──
+# 依据 Ardot 画布 specs/screens/refs/ardot/camera-*.png（07 帧）落地并三轮真机修正：
+# ① 底部控制区：行序改为 模式行→变焦胶囊行→快门行；快门底距屏底 60dp
+#   （camera.bottomControlsPaddingBottom；一轮 123 偏高/二轮 20 偏低的折中）；
+#   行距 模式→变焦 20dp、变焦→快门 28dp；快门行三元素垂直居中。
+# ② 变焦=独立胶囊（无容器）：未选 Black@50%+白 12sp Bold、选中白底黑字，h32 全圆。
+# ③ 模式行全白：选中仅 SemiBold（不用 accent 色）；13sp。
+# ④ 快门外环 #E4E4E4（color.shutterRing）76dp + 9dp 环厚 + 白核 58dp。
+# ⑤ 相册钮 #404040+浅色 Photo 占位图标、翻转钮白@20%+深色 #1C1B1F 图标；
+#   两钮下方各 11sp 白标签（相册/翻转，gap 4dp）。
+# ⑥ 返回箭头融入工具栏行：icon 中心 x=28dp、距「美颜」胶囊 8dp、与胶囊行垂直居中。
+# ⑦ 相机 accent 固定深青玉 #0F766E（camera.cameraAccent，替代 colorScheme.primary，
+#   白字对比度保障）——选中工具栏胶囊/选中 chip/WB 选中/滑杆激活段统一使用。
+# ⑧ 内联面板：圆角 16、#1C1A1F@72%、无描边、统一宽 = 屏宽−2×28(≤420)；
+#   chip 34 高/13sp/间距10/paddingH14（老版尺寸，08-18 画布加大版经真机否决回退）。
+# ⑨ 滤镜面板回 5 列圆形小缩略图（老版结构）+ accent 选中态（渐变边框/check/1.08x）。
+# ⑩ Pro 面板：WB 改全圆胶囊（34 高/12sp/间距8）；滑杆标签与数值 12sp、
+#    数值始终显示（默认白/已调 accent）；去 EV 下方分隔线。
+# ⑪ 美颜抽屉回老版几何（圆角24/高0.4/描边+阴影/黑渐变 scrim/底部 icon-only Tab），
+#    仅色系换 cameraAccent；滑杆结构回老版（icon+标签行重置、数值默认 "--"），
+#    AppSlider 新增 CameraOverlay 档（白@15% 轨道+accent 激活段+纯白 thumb 无描边）。
+#
 # ── SSOT 分工（2026-08-15 修订：codegen 工作流，原 Figma SSOT 方案已废止）──
 # 本文件只留：行为/状态机/交互规则/内容数据（色板等）+ 触发与绑定。
 # 样式值（尺寸/颜色/圆角/间距）SSOT = design-tokens.json，双端代码由 scripts/gen-design-tokens.py
@@ -72,9 +94,12 @@ top_left_controls:
     - id: back_button
       type: ghost_icon_button      # 幽灵样式：无圆形底（2026-08-16 重设计，与顶部文字工具栏同基线）
       size: 40                     # 触达目标 40dp，icon 24dp
-      position: top_start_toolbar_baseline  # 左上角，与 §4 工具栏行同基线（inset + topToolBarPaddingTop）
+      position: top_start_toolbar_baseline  # 左上角，融入 §4 工具栏行（2026-08-18 Ardot）：
+      #   icon 中心 x=28dp（start 8 + 40dp 触达盒中心）、距「美颜」胶囊左缘 8dp、
+      #   top=inset+4.5dp 使 24dp icon 与 33dp 胶囊行垂直居中
       icon:
-        material: arrow_back     # Icons.AutoMirrored.Rounded.ArrowBack
+        material: keyboard_arrow_left  # Icons.AutoMirrored.Rounded.KeyboardArrowLeft（2026-08-18
+                                       # 五修：ArrowBack 粗尾箭头 → 细 chevron，对齐 Ardot 设计稿）
         sf_symbol: "chevron.left"
       icon_size: 24
       content_color: "cameraAccentOn(白)"   # 与工具栏文字同色
@@ -129,21 +154,22 @@ top_left_controls:
 # 4. 顶部居中工具栏（TopToolBar，2026-08-15 改版：右列图标列 → iOS 系统相机风格文字工具栏）
 # ============================================================================
 # 位置：Alignment.TopCenter，避让状态栏/刘海区域（同 §3 ignoring_visibility 语义）
-# 布局：Row 居中，spacing = camera.topToolBarSpacing(6dp)，padding_top = inset + camera.topToolBarPaddingTop(8dp)
+# 布局：Row 居中，spacing = camera.topToolBarSpacing(8dp)，padding_top = inset + camera.topToolBarPaddingTop(8dp)
 # 每个入口 = 文字胶囊：字号 12sp，选中 Bold/未选中 Medium，
-#   padding = H camera.topToolBarItemPaddingH(10) V camera.topToolBarItemPaddingV(8)，
+#   padding = H camera.topToolBarItemPaddingH(14) V camera.topToolBarItemPaddingV(9)，
 #   圆角 camera.topToolBarItemRadius(10)
-# 选中态：底 camera.toolBarSelectedBg(=accent；Android=colorScheme.primary)，字 camera.cameraAccentOn(白)
+# 选中态：底 camera.toolBarSelectedBg(=cameraAccent #0F766E 固定深青玉，2026-08-18 起
+#   替代 colorScheme.primary——暗色主题下浅青玉与白字对比度不足)，字 camera.cameraAccentOn(白)
 # 未选中：底 camera.toolBarUnselectedBg(透明)，字 白色
-# ⚠️ 与 §3 左列（back/refresh/debug）垂直错开：左列需额外 top padding 避让工具栏高度
-# 2026-08-16 收窄：spacing 8→6、paddingH 14→10——整组变窄后左缘自然远离左上角返回箭头（间距 ~2dp→~26dp），
-#   同时收紧标签间距离（文字间距 36dp→26dp）
+# ⚠️ 与 §3 左列（back/debug）垂直错开：左列需额外 top padding 避让工具栏高度
+# 2026-08-18 Ardot 定稿：恢复 08-16 收窄前的宽版（spacing 6→8、paddingH 10→14、paddingV 8→9）；
+#   back 箭头同时融入本行（icon 中心 x=28、与美颜间距 8dp，见 §3），不再有挤压问题
 # 场景（scene）入口已下线（鸡肋功能，2026-08-15 用户决策）；ScenePreset 状态保留供 Agent 指令链路使用
 top_tool_bar:
   anchor: top_center
   layout: row_center
   status_bar_padding: ignoring_visibility
-  spacing: 6                      # camera.topToolBarSpacing
+  spacing: 8                      # camera.topToolBarSpacing
   items:
     - id: beauty_entry
       label: "美颜"                # "美颜" / "Beauty"
@@ -172,13 +198,17 @@ top_tool_bar:
         click: toggle_pro_panel
 
 # ── 顶部内联面板（InlineControlPanel）：ratio/grid/filter/pro 点开时挂在工具栏下方 ──
-# 外壳：maxWidth 420dp，圆角 camera.panelCornerRadius(16)，iOS=ultraThinMaterial /
-#   Android=surface@0.85 + 0.5dp outlineVariant@0.25 描边 + 12dp 阴影；padding H16 V10
+# 外壳（2026-08-18 Ardot 五修）：宽度分两档——filter/pro = 屏宽 − 2×camera.panelSideMargin(28)
+#   （≤panelMaxWidth 420，400dp 屏 → 343dp 定宽）；ratio/grid = hug 内容宽（紧凑精致，
+#   chip 行包裹即止，五修用户决策）；圆角 camera.panelCornerRadius(16)；
+#   底 camera.panelBackground(#1C1A1F@72%)；无描边；阴影 panelShadowElevation(12)；padding H16 V10
 # 动画：从顶部滑入 + 淡入；与美颜底部抽屉全互斥（见 §17）
 # chip 行样式（ratio/grid 用）：胶囊高 camera.chipHeight(34)、
-#   paddingH camera.chipPaddingH(14)、间距 camera.chipSpacing(10)、字号 13 Medium（2026-08-16 由 40/18/12/15 收窄）；
-#   选中=accent 底+白字，未选中=白 15% 底+白字；选择后立即收起面板
-# pro 面板 WB chips 为平台差异：Android 用 M3 FilterChip（12sp 既有组件），iOS 用同款胶囊 OptionButton（13pt）
+#   paddingH camera.chipPaddingH(14)、间距 camera.chipSpacing(10)、字号 chipFontSize(13) Medium
+#   （08-18 画布曾放大至 40/18/12/15，真机反馈偏大回退老版尺寸）；
+#   选中=cameraAccent(#0F766E) 底+白字，未选中=白 15% 底+白字；选择后立即收起面板
+# pro 面板 WB chips（2026-08-18 Ardot）：全圆胶囊 h34 / wbChipFontSize 12sp / 间距 wbChipSpacing(8) /
+#   paddingH wbChipPaddingH(10)；选中=cameraAccent+白字，未选中=白 15% 底——双端同构
 inline_panels:
   anchor: below_top_tool_bar
   container:
@@ -281,172 +311,120 @@ composition_grid:
   toggle: via_grid_panel            # 通过网格选择面板切换
 
 # ============================================================================
-# 7. 底部控件区（CameraBottomControls）
+# 7. 底部控件区（CameraBottomControls，2026-08-18 Ardot 定稿三轮修正）
 # ============================================================================
-# 位置：Alignment.BottomCenter
-# 布局：Column，center 水平对齐
-# padding: bottom=20dp, navigationBarsPadding
-# spacing: 20dp（行间距）
+# 位置：Alignment.BottomCenter；行序（上→下）：模式行 → 变焦胶囊行 → 快门行
+# padding_bottom = 60dp（camera.bottomControlsPaddingBottom，快门底距屏底；
+#   一轮 123dp 偏高 / 二轮 20dp 偏低后的折中）
+# 行距：模式→变焦 20dp；变焦→快门 28dp（快门大圆与胶囊行拉开呼吸感）
+# 快门行三元素垂直居中对齐（Row CenterVertically）
 bottom_area:
   anchor: bottom_center
   layout: column
   horizontal_alignment: center
-  padding_bottom: 20
-  navigation_bars_padding: true
-  row_spacing: 20                   # 行间距 20dp
-  background: none                  # 无背景（透明，预览内容直接可见）
+  padding_bottom: 60
+  row_spacing:
+    mode_to_zoom: 20
+    zoom_to_shutter: 28
+  background: none
   overlay_note: "🔴 面板打开时底栏保持原位被覆盖（Z 序在下），不得条件上移/顶起（2026-08-15 改版确认）"
 
-  # ── 第 1 行：变焦预设条（ZoomControls）──
-  # 🔴 iOS 完全缺失
-  zoom_presets:
-    visible_when: always             # 面板均改为顶部内联/底部覆盖（2026-08-15），变焦条常驻不隐藏
-    layout: row_center
-    spacing: 12                      # spacing.md = 12dp（按钮间距）
-    container:
-      shape: rounded_corner_20       # RoundedCornerShape(20dp)
-      background: "black_alpha_40"   # 黑 40% 透明底
-      padding_horizontal: 12
-      padding_vertical: 6
-    items:
-      - id: zoom_0_6x
-        label: "0.6x"
-        visible_when: "minZoomRatio <= 0.6"  # 仅设备支持超广角时显示
-        selected_when: "zoomRatio < 0.9"
-        size: 32                     # 32dp 圆形按钮
-        selected_style:
-          background: white           # 白底
-          text_color: black           # 黑字
-        unselected_style:
-          background: transparent
-          text_color: white
-        text_size: 10                # 10sp
-        text_weight: bold
-        behavior:
-          click: set_zoom_ratio(0.6)
-
-      - id: zoom_1x
-        label: "1x"
-        selected_when: "zoomRatio >= 0.9 && zoomRatio < 1.5"
-        default_selected: true
-        size: 32
-        behavior:
-          click: set_zoom_ratio(1.0)
-
-      - id: zoom_2x
-        label: "2x"
-        selected_when: "zoomRatio >= 1.5 && zoomRatio < 2.8"
-        size: 32
-        behavior:
-          click: set_zoom_ratio(2.0)
-
-      - id: zoom_3_2x
-        label: "3.2x"
-        visible_when: "maxZoomRatio >= 3.2"  # 仅设备支持时显示
-        selected_when: "zoomRatio >= 2.8"
-        size: 32
-        behavior:
-          click: set_zoom_ratio(3.2)
-
-  # ── 第 2 行：模式选择器（ModeSelector）──
-  # 🔴 iOS 完全缺失
+  # ── 第 1 行：模式选择器（全白文字，选中仅字重差异，不用 accent 色；Ardot 08-18）──
   mode_selector:
     layout: row_center
-    padding_vertical: 8
-    items:
-      - id: video_mode
-        label: "VIDEO"              # 文案常量（三语 i18n）
-        capture_mode: VIDEO
-        selected_style:
-          color: "colorScheme.primary"   # 当前模式 = primary 色
-          weight: bold                    # Bold
-          size: 13                        # 13sp
-        unselected_style:
-          color: "white_alpha_60"        # 白 60% 透明
-          weight: normal
-          size: 13
-        padding_horizontal: 12           # 左右各 12dp
+    font_size: 13                    # camera.modeTabFontSize
+    color: white                     # 选中/未选均白
+    selected_weight: SemiBold        # camera.modeTabSelectedWeight
+    unselected_weight: normal
+    padding_horizontal: 12
+    items: [video_mode, photo_mode(默认), document_mode]
 
-      - id: photo_mode
-        label: "PHOTO"
-        capture_mode: PHOTO
-        default_selected: true
-        padding_horizontal: 12
+  # ── 第 2 行：变焦预设（独立胶囊无容器；Ardot 08-18）──
+  zoom_presets:
+    visible_when: always
+    layout: row_center
+    spacing: 12                      # camera.zoomBarSpacing
+    pill:
+      height: 32                     # camera.zoomCapsuleHeight
+      shape: circle                  # 全圆胶囊
+      padding_horizontal: 14         # camera.zoomCapsulePaddingH
+      font_size: 12                  # camera.zoomFontSize
+      font_weight: bold
+      selected_style: { background: white, text_color: black }
+      unselected_style: { background: "black@0.5", text_color: white }  # zoomUnselectedBgAlpha
+    items: [0.6x(minZoomRatio<=0.6 才显示), 1x(默认选中), 2x, 3.2x(maxZoomRatio>=3.2 才显示)]
 
-      - id: document_mode
-        label: "DOCUMENT"
-        capture_mode: DOCUMENT
-        padding_horizontal: 12
-
-  # ── 第 3 行：快门行（缩略图 | 快门 | 翻转）──
+  # ── 第 3 行：快门行（三元素垂直居中）──
   shutter_row:
-    layout: row_space_between_center
-    padding_horizontal: 40           # 左右各 40dp
+    layout: row_space_between_center_vertically
+    padding_horizontal: 40
     items:
 
-      # ── 左侧：相册缩略图 ──
-      # 🔴 iOS 完全缺失
+      # ── 左侧：相册缩略图 + 钮下标签 ──
       - id: gallery_thumbnail
-        label: "相册"                  # "相册" / "Gallery"
         shape: circle
-        size: 48                       # 48dp 圆形
-        background: "dark_gray"        # Color.DarkGray 底（无媒体时）
+        size: 48
+        background: "camera.albumThumbColor(#404040)"   # 无媒体时
+        placeholder_icon:
+          material: photo             # Icons.Rounded.Photo 18dp，#E4E4E4（albumPlaceholderIconColor）
+        label_below:
+          text: "相册"                # R.string.gallery
+          size: 11                    # camera.controlLabelFontSize
+          weight: medium
+          color: white
+          gap: 4
         content:
-          type: latest_media_image     # 最近一张媒体缩略图
-          scale: crop                  # ContentScale.Crop
+          type: latest_media_image
+          scale: crop
           crossfade: true
         behavior:
-          click: navigate_to_gallery   # 跳转相册页
+          click: navigate_to_gallery
         accessibility_label: "Gallery"
 
-      # ── 中间：快门按钮 ──
-      # 🔴 iOS 尺寸差(72 vs 76)、缺录像态、缺防抖
+      # ── 中间：快门按钮（#E4E4E4 外环 + 白核；Ardot 08-18）──
       - id: shutter_button
         shape: circle
-        outer_diameter: 76             # shutter.diameter = 76dp
+        outer_diameter: 76            # shutter.diameter
         ring:
-          width: 4                     # 4dp 白色圆环边框
-          color: "white"               # appColors.shutterRing = #FFFFFFFF
-        inner_padding: 6               # 圆环与内填之间 6dp padding
-        inner_diameter: 58             # shutter.innerDiameter = 58dp
-        # 内填颜色随模式变化
+          width: 9                    # shutter.ringWidth = (76-58)/2
+          color: "appColors.shutterRing(#E4E4E4)"   # 08-18 由纯白改浅灰
+        inner_diameter: 58            # shutter.innerDiameter
         inner_color:
-          photo_mode: "white"          # 拍照 = 白色填充
-          video_mode: "red"            # 录像 = 红色填充（Color.Red）
-        # 录像态：内填变为 28dp 白色圆角方块
-        recording_state:
-          visible_when: "isRecording"
-          center_block:
-            size: 28                   # 28dp 白色圆角方块
-            corner_radius: 4           # RoundedCornerShape(4dp)
-            color: "white"
+          photo_mode: white
+          video_mode: red
+        recording_state:              # 录像态：内核内 28dp 白色圆角方块
+          center_block: { size: 28, corner_radius: 4, color: white }
         debounce:
-          interval_ms: 500             # 500ms 防抖（lastClickTime 模式）
+          interval_ms: 500
         accessibility_label: "Shutter"
 
-      # ── 右侧：翻转摄像头 ──
-      # 🔴 iOS 完全缺失
+      # ── 右侧：翻转摄像头（深色图标）+ 钮下标签 ──
       - id: flip_camera
-        label: "翻转"                  # "翻转" / "Flip"
         shape: circle
-        size: 48                       # 48dp 圆形
-        background: "white_alpha_20"   # 白 20% 透明底
+        size: 48
+        background: "white_alpha_20"
         icon:
-          material: cameraswitch       # Icons.Rounded.Cameraswitch
+          material: cameraswitch
           sf_symbol: "camera.rotate"
-        icon_color: white
+          size: 18                    # IconSize.sm
+          color: "camera.flipIconColor(#1C1B1F)"   # 08-18 由白改深色
+        label_below:
+          text: "翻转"                # R.string.camera_label_flip
+          size: 11
+          weight: medium
+          color: white
+          gap: 4
         behavior:
-          click: flip_camera           # 切换前/后摄
+          click: flip_camera
 
-  # ── 快门闪屏动画 ──
-  # 🔴 iOS 完全缺失
-  shutter_flash:
-    type: full_screen_overlay        # 全屏黑色覆盖层
-    color: black
-    animation:
-      property: opacity              # Animatable(0f) → 0→1→0
-      trigger: on_photo_captured     # 拍照触发
-      duration: "闪一下（短暂 opacity 峰值后回落）"
+    # ── 快门闪屏动画 ──
+    shutter_flash:
+      type: full_screen_overlay
+      color: black
+      animation:
+        property: opacity
+        trigger: on_photo_captured
+        duration: "闪一下（短暂 opacity 峰值后回落）"
 
 # ============================================================================
 # 8. 美颜面板（BeautyPanel）
@@ -459,9 +437,11 @@ beauty_panel:
   animation:
     enter: slide_in_vertically + fade_in   # 从底部滑入 + 淡入
     exit: slide_out_vertically + fade_out
-  # ── 视觉 SSOT=design-tokens.json:高度40%/clamp、容器圆角/底色/渐变/边框/阴影、内边距/间距
-  #    (token beautyPanel.heightRatio=0.40(容下磨皮/美白/瘦脸/大眼 4 行滑杆+Tab 栏)/bottomSheet,
-  #     经 gen-design-tokens.py 生成双端常量)──
+  # ── 2026-08-18 三修：几何全回老版（顶部圆角 beautyPanel.topCornerRadius=24、高 heightRatio=0.4、
+  #    0.5dp 描边、16dp 阴影、黑色渐变 scrim 透明→黑55→黑82、底部 icon-only Tab 栏），
+  #    仅色系换 cameraAccent(#0F766E)：Tab 选中 accent@12% 底+accent 图标、滑杆已调值 accent、
+  #    AppSlider 走 CameraOverlay 档（白@15% 轨道+accent 激活段+纯白 thumb 无描边）。
+  #    08-18 曾试直角抽屉+浅色 scrim+顶部大 Tab（画布方案），真机否决回退。──
   scrollable: true                   # 内容可垂直滚动(行为)
 
   # ── 拖拽手柄(行为:存在且可点关闭;形状 36×4 → token bottomSheet.handleWidth/Height)──

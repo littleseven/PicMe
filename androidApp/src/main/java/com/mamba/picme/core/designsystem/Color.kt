@@ -71,7 +71,7 @@ val SurfaceContainerHighestDark = Color(0xFF36312B)
 // ── 功能色（color 组，不随主题切换）。引用方式：MaterialTheme.appColors.focusRing ──────────
 val FocusRingColor = Color(0xFF00E5FF)
 val PanelBackgroundColor = Color(0xCC000000)
-val ShutterRingColor = Color.White
+val ShutterRingColor = Color(0xFFE4E4E4)
 val SliderThumbColor = Color.White
 val VibrantGreen = Color(0xFF00E676)
 val VibrantBlue = Color(0xFF2979FF)

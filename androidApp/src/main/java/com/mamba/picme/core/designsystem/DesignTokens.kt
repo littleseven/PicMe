@@ -86,19 +86,19 @@ object TopBarTokens {
     val horizontalPadding = 8.dp
 }
 
-/** 相机快门。diameter=外环; innerDiameter=照片态内核; 录像态内核缩为 28dp 4dp 圆角方。 */
+/** 相机快门。diameter=外环(#E4E4E4 实心圆); ringWidth=环厚((76-58)/2); innerDiameter=照片态内核(白); 录像态内核缩为 28dp 4dp 圆角方。 */
 object ShutterTokens {
     val diameter = 76.dp
     val innerDiameter = 58.dp
     val recordingInnerDiameter = 28.dp
     val recordingInnerCornerRadius = 4.dp
-    val ringWidth = 4.dp
+    val ringWidth = 9.dp
     val pressDebounceMs = 500
     val flashAlpha = 0.6f
     val flashFadeMs = 80
 }
 
-/** 相机美颜面板容器。slider 控件完整规格见 appSlider。 */
+/** 相机美颜面板容器（2026-08-18 三修回老版几何：圆角24/高0.4；色系走 cameraAccent）。slider 颜色见 appSlider CameraOverlay。 */
 object BeautyPanelTokens {
     val topCornerRadius = 24.dp
     val iconSize = 24.dp
@@ -174,7 +174,7 @@ object BadgeTokens {
     val requiredLabelColor = Color.White
 }
 
-/** 相机强制深色 overlay 专属。focusRing 复用 color.focusRing。controlButton idle=Black@0.5/active=primary。 */
+/** 相机强制深色 overlay 专属（2026-08-18 按 Ardot 画布 specs/screens/refs/ardot/camera-*.png 高精度还原）。focusRing 复用 color.focusRing。cameraAccent=固定深青玉 #0F766E（非 colorScheme.primary，白字对比度保障）。 */
 object CameraTokens {
     val focusRingDiameter = 100.dp
     val focusRingStrokeWidth = 3.dp
@@ -184,7 +184,7 @@ object CameraTokens {
     val controlButtonIconSize = 24.dp
     val controlButtonIdleAlpha = 0.5f
     val modeTabFontSize = 13.dp
-    val modeTabUnselectedAlpha = 0.6f
+    val modeTabUnselectedAlpha = 1.0f
     val voicePulseMs = 1200
     val voicePulseAlphaFrom = 0.3f
     val voicePulseAlphaTo = 1.0f
@@ -192,27 +192,42 @@ object CameraTokens {
     val filterSelectorHeight = 280.dp
     val filterSelectedScale = 1.08f
     val filterSelectedBorderWidth = 2.5.dp
-    val panelBackground = Color(0xF21C1A1F)
+    val filterLabelFontSize = 10.dp
+    val panelBackground = Color(0xB81C1A1F)
+    val cameraAccent = Color(0xFF0F766E)
     val cameraAccentOn = Color.White
     val toolBarUnselectedBg = Color(0x00000000)
     val inlineFilterPanelHeight = 200.dp
     val panelCornerRadius = 16.dp
     val panelMaxWidth = 420.dp
+    val panelSideMargin = 28.dp
     val panelPaddingH = 16.dp
     val panelPaddingV = 10.dp
     val panelShadowElevation = 12.dp
     val chipHeight = 34.dp
     val chipPaddingH = 14.dp
     val chipSpacing = 10.dp
+    val chipFontSize = 13.dp
+    val wbChipPaddingH = 10.dp
+    val wbChipSpacing = 8.dp
+    val proSliderFontSize = 12.dp
     val topToolBarPaddingTop = 8.dp
-    val topToolBarItemPaddingH = 10.dp
-    val topToolBarItemPaddingV = 8.dp
+    val topToolBarItemPaddingH = 14.dp
+    val topToolBarItemPaddingV = 9.dp
     val topToolBarItemRadius = 10.dp
-    val topToolBarSpacing = 6.dp
+    val topToolBarSpacing = 8.dp
     val modeSwitcherSpacing = 24.dp
     val zoomBarSpacing = 12.dp
-    val zoomCapsulePaddingH = 12.dp
+    val zoomCapsulePaddingH = 14.dp
     val zoomCapsuleHeight = 32.dp
+    val zoomFontSize = 12.dp
+    val zoomUnselectedBgAlpha = 0.5f
+    val bottomControlsPaddingBottom = 60.dp
+    val controlLabelFontSize = 11.dp
+    val albumThumbColor = Color(0xFF404040)
+    val albumPlaceholderIconColor = Color(0xFFE4E4E4)
+    val flipIconColor = Color(0xFF1C1B1F)
+    val wbChipFontSize = 12.dp
 }
 
 /** 聊天气泡（2026-08-18 豆包范式，同日二修去头像）：AI 消息=无气泡+通栏纯文本；用户气泡=品牌实色 userBubbleBg；品牌渐变 brandGradientStart→End（发送钮/空态 Logo 与标题）；输入卡 r28+描边。 */

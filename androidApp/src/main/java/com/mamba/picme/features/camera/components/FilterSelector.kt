@@ -61,7 +61,7 @@ fun UnifiedFilterSelector(
 ) {
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
-    val itemWidth = (screenWidth - 20.dp) / 5
+    val itemWidth = (screenWidth - 20.dp) / CameraTokens.filterSelectorColumns
 
     val allFilters = remember {
         listOf(
@@ -82,8 +82,9 @@ fun UnifiedFilterSelector(
         )
     }
 
+    // 2026-08-18 二修：弹框尺寸回老版——5 列圆形小缩略图（itemWidth*0.72）+ 选中描边/角标
     LazyVerticalGrid(
-        columns = GridCells.Fixed(5),
+        columns = GridCells.Fixed(CameraTokens.filterSelectorColumns),
         state = rememberLazyGridState(),
         modifier = Modifier
             .fillMaxWidth()
@@ -162,6 +163,10 @@ private fun styleAssetPath(style: StyleFilter): String {
     }
 }
 
+/**
+ * 滤镜项（2026-08-18 二修回老版尺寸）：圆形缩略图（itemWidth*0.72）+ 10sp 下置标签；
+ * 选中态 = cameraAccent(#0F766E) 2.5dp 描边 + accent 遮罩 + check 角标 + 1.08x 放大。
+ */
 @Composable
 private fun FilterItem(
     label: String,
@@ -170,7 +175,10 @@ private fun FilterItem(
     itemWidth: Dp,
     onClick: () -> Unit
 ) {
-    val scale by animateFloatAsState(if (isSelected) 1.08f else 1.0f, label = "scale")
+    val scale by animateFloatAsState(
+        targetValue = if (isSelected) CameraTokens.filterSelectedScale else 1.0f,
+        label = "scale"
+    )
     val imageSize = itemWidth * 0.72f
     val context = LocalContext.current
 
@@ -186,10 +194,14 @@ private fun FilterItem(
                 .size(imageSize)
                 .clip(CircleShape)
                 .border(
-                    width = if (isSelected) 2.5.dp else 1.dp,
+                    width = if (isSelected) {
+                        CameraTokens.filterSelectedBorderWidth
+                    } else {
+                        1.dp
+                    },
                     brush = if (isSelected) {
                         Brush.linearGradient(
-                            listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onSurface)
+                            listOf(CameraTokens.cameraAccent, MaterialTheme.colorScheme.onSurface)
                         )
                     } else {
                         Brush.linearGradient(
@@ -231,12 +243,12 @@ private fun FilterItem(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+                        .background(CameraTokens.cameraAccent.copy(alpha = 0.25f))
                 )
                 Icon(
                     imageVector = Icons.Rounded.Check,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = CameraTokens.cameraAccent,
                     modifier = Modifier.size(imageSize * 0.38f)
                 )
             }
@@ -245,11 +257,11 @@ private fun FilterItem(
         Text(
             text = label,
             color = if (isSelected) {
-                MaterialTheme.colorScheme.primary
+                CameraTokens.cameraAccent
             } else {
-                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
+                CameraTokens.cameraAccentOn.copy(alpha = 0.85f)
             },
-            fontSize = 10.sp,
+            fontSize = CameraTokens.filterLabelFontSize.value.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
             maxLines = 1
         )

@@ -50,7 +50,7 @@ enum IconSize {
 enum AppColors {
     static let focusRing = Color(hex: "FF00E5FF")
     static let panelBackground = Color(hex: "CC000000")
-    static let shutterRing = Color.white
+    static let shutterRing = Color(hex: "FFE4E4E4")
     static let sliderThumb = Color.white
     static let vibrantGreen = Color(hex: "FF00E676")
     static let vibrantBlue = Color(hex: "FF2979FF")
@@ -288,7 +288,7 @@ enum ShutterTokens {
     static let innerDiameter: CGFloat = 58
     static let recordingInnerDiameter: CGFloat = 28
     static let recordingInnerCornerRadius: CGFloat = 4
-    static let ringWidth: CGFloat = 4
+    static let ringWidth: CGFloat = 9
     static let pressDebounceMs: Double = 500
     static let flashAlpha: Double = 0.6
     static let flashFadeMs: Double = 80
@@ -391,7 +391,7 @@ enum CameraTokens {
     static let controlButtonIconSize: CGFloat = 24
     static let controlButtonIdleAlpha: Double = 0.5
     static let modeTabFontSize: CGFloat = 13
-    static let modeTabUnselectedAlpha: Double = 0.6
+    static let modeTabUnselectedAlpha: Double = 1.0
     static let voicePulseMs: Double = 1200
     static let voicePulseAlphaFrom: Double = 0.3
     static let voicePulseAlphaTo: Double = 1.0
@@ -399,28 +399,42 @@ enum CameraTokens {
     static let filterSelectorHeight: CGFloat = 280
     static let filterSelectedScale: Double = 1.08
     static let filterSelectedBorderWidth: CGFloat = 2.5
-    static let panelBackground = Color(hex: "F21C1A1F")
+    static let filterLabelFontSize: CGFloat = 10
+    static let panelBackground = Color(hex: "B81C1A1F")
+    static let cameraAccent = Color(hex: "FF0F766E")
     static let cameraAccentOn = Color.white
     static let toolBarUnselectedBg = Color(hex: "00000000")
     static let inlineFilterPanelHeight: CGFloat = 200
     static let panelCornerRadius: CGFloat = 16
     static let panelMaxWidth: CGFloat = 420
+    static let panelSideMargin: CGFloat = 28
     static let panelPaddingH: CGFloat = 16
     static let panelPaddingV: CGFloat = 10
     static let panelShadowElevation: CGFloat = 12
     static let chipHeight: CGFloat = 34
     static let chipPaddingH: CGFloat = 14
     static let chipSpacing: CGFloat = 10
+    static let chipFontSize: CGFloat = 13
+    static let wbChipPaddingH: CGFloat = 10
+    static let wbChipSpacing: CGFloat = 8
+    static let proSliderFontSize: CGFloat = 12
     static let topToolBarPaddingTop: CGFloat = 8
-    static let topToolBarItemPaddingH: CGFloat = 10
-    static let topToolBarItemPaddingV: CGFloat = 8
+    static let topToolBarItemPaddingH: CGFloat = 14
+    static let topToolBarItemPaddingV: CGFloat = 9
     static let topToolBarItemRadius: CGFloat = 10
-    static let topToolBarSpacing: CGFloat = 6
+    static let topToolBarSpacing: CGFloat = 8
     static let modeSwitcherSpacing: CGFloat = 24
     static let zoomBarSpacing: CGFloat = 12
-    static let zoomCapsulePaddingH: CGFloat = 12
+    static let zoomCapsulePaddingH: CGFloat = 14
     static let zoomCapsuleHeight: CGFloat = 32
-    static let cameraAccent: Color = Color.accentColor
+    static let zoomFontSize: CGFloat = 12
+    static let zoomUnselectedBgAlpha: Double = 0.5
+    static let bottomControlsPaddingBottom: CGFloat = 60
+    static let controlLabelFontSize: CGFloat = 11
+    static let albumThumbColor = Color(hex: "FF404040")
+    static let albumPlaceholderIconColor = Color(hex: "FFE4E4E4")
+    static let flipIconColor = Color(hex: "FF1C1B1F")
+    static let wbChipFontSize: CGFloat = 12
     static let toolBarSelectedBg: Color = CameraTokens.cameraAccent
 }
 
