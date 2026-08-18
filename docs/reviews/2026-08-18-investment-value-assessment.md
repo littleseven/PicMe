@@ -93,3 +93,37 @@
 ## 5. 一句话总结
 
 > **技术上投"面"不投"点"**：capability plane + KMP 编排层（引擎无关接缝）是平台级资产，VLM 打标与美颜引擎是功能级资产随产品走；**产品上 All-in 人物关系楔子**，Chat 做交互层、端侧隐私做叙事、PTT 做长辈入口；**一切推演用一次 50-100 人的真实测试版发版来定价**。
+
+---
+
+## 6. 附录：代码级通用性审查（2026-08-18，五模块源码实证）
+
+> 对 §2 各价值模块逐一做了源码级耦合审查（5 路并行 explore），核心发现：**估值与通用性存在错位**——§2.1 的 Capability Plane 是"设计通用、实现被业务锁死"（需 1-2 周重构才可复用），反而是其下层的 Koog 适配箱与 JS 沙箱"今天就能抽走"。若考虑开源/对外输出，真实优先级应按下表重排。
+
+### 6.1 第一梯队：实现层面就通用，可直接/近乎直接抽取
+
+| 模块 | 内容 | 规模 | 抽取成本 |
+|------|------|------|---------|
+| **JS 沙箱层**（commonMain `agent/core/js/`） | JsEngine/JsValue/JsBridge/JsRuntime/运行观测；全仓库解耦最干净模块，QuickJS（Android）+ JavaScriptCore（iOS）双引擎已验证同一契约，业务 handler 全在模块外经 `NativeHandler` 注入 | ~460 行 + 190 行通用测试 | ~1 人日（删 `GallerySummaryJs` 相册耦合文件、内联 `LlmCallRecord.cap` 错层依赖、参数化 `device.info` 硬编码） |
+| **Koog on KMP 生产级适配箱** | `KoogMessageMemory`（三不变式纯函数，解决 OpenAI 兼容 API 历史裁剪 400）、`poLangSingleRunStrategy`（修 Koog 1.1.1 丢"文本+tool_calls 同帧"缺陷）、`polangSystemPrompt`（绕过 systemPrompt 丢 LLMParams 坑）、Android ServiceLoader 发布缺陷绕过、`ChatMemoryStore` 抽象、LLM 调用观测三件套——**全是真机实证、Koog 官方文档未覆盖的生态级痛点** | ~1500-2000 行 | 复制 + 去包名级 |
+| **人脸聚类纯算法族** | `AdaptiveFaceClusterer`（k-NN 图 + 连通分量）+ shared commonMain 5 个纯逻辑文件（小簇合并决策/DBSCAN 精修/攒批策略/聚类配置）；KMP 纯 Kotlin、零平台依赖、带单测 | ~700 行 | 直接可开源 |
+| **帧同步机制**（beauty-engine `internal/framesync/`） | `FrameSyncBridge`（时间戳最近邻帧关联，O(logn)）+ `MotionTracker`（速度外推预测 + 双缓冲防 GC）——解决"低频检测对齐高频渲染"通用问题，有独创工程价值 | ~470 行 | 1-2 天（payload 从 106 点人脸泛化为通用关键点集、去进程级单例、offset 索引参数化） |
+
+### 6.2 第二梯队：设计通用、实现被业务锁死（需重构接口层）
+
+- **Capability Plane 机制内核**（`CrossPageCommandQueue` 223 行 + `CommandExecutor` 144 行 + `ExecutionEngine` 403 行 + Registry 场景路由主体，~1000 行）：审查确认 **Koog 原生 ToolRegistry 没有场景路由和端侧命令排队能力**，`CrossPageCommandQueue`（TTL 5min/去重/重试 3 次/页面激活后自动执行）是真实差异化单件。但锁死点明确：`AgentCommand` sealed 词汇表 46 个命令中 34 个是业务命令且 import `beauty.api`（编译期耦合）；`Scene` 枚举写死本 App 五页面；机制层 4 处中文用户文案硬编码（违反自身 [I18N] 红线）；`ExecutionEngine` 的 WaitCondition 塞了人脸检测条件。抽取需命令协议开放化（泛型 payload/接口扩展点）+ Scene 泛化 + AgentContext 拆基础/扩展两层，**1-2 周重构量级**。
+- **OpenClGuardian**：降级状态机/黑名单/24h 冷却是纯机制（端侧推理社区缺这类生产级容灾件），但 4 处硬绑 `LocalLlmEngine` 具体类 + `AgentOrchestrator` 单例 + `__ERROR_OPENCL_TIMEOUT__` 字符串哨兵私有协议。抽 `TimedInference`/`KeyValueStore`/backend 切换回调三个接口即可，1-2 天。
+
+### 6.3 第三梯队：业务本体，无通用性
+
+`AgentOrchestrator`（chat/相机/飞书三链路专用组合体）、`ChatToolService`/`CameraToolService`（40+ 业务 @Tool）、`RemoteModelConfig`（产品服务器/供应商硬编码）、三 Pass 打标编排（每条路径 touch 相册专属表结构，抽库成本高于重写精简版）、`FaceClusterEngine` 持久化层（~10 个 DAO 操作 + 人物关系 schema 深织）、`BeautyRenderer`/`FaceMakeupPass` 美颜算法本体（领域库非平台件）。
+
+### 6.4 审查暴露的三个结构性事实
+
+1. **GL/EGL 基础层通用但同质化**：`EGLCore`/`ShaderProgram`/`FramebufferPool` 等 ~1.5k 行质量不错，但 Grafika/GPUImage 早已覆盖该领域，护城河浅，不值得为抽取投入。
+2. **beauty-engine "独立模块"名不副实**：`beauty-api` 经 `api(project(":shared"))` 依赖整个 KMP shared（`BeautySettings`/`FilterType` 已迁走）；App 侧 10+ 处穿透 `beauty.internal.*`；api 包反向 import render 包——宣称的契约边界三处均被打破，不可能作为独立 SDK 抽出。不影响冻结决策。
+3. **"设计通用 vs 实现通用"的落差是普遍模式**：`PrivacyGuard`（概念通用、关键词表是相册中文）、`CapabilityRegistry`（机制干净、文案面向最终用户）、`ExecutionEngine`（执行器通用、写死 CAMERA 场景）——后续若认真走库化路线，第一步是建立"机制层禁止 import 业务类型"的架构门禁。
+
+### 6.5 修正后的对外输出/开源优先级
+
+> **Koog 适配箱**（生态痛点、最易获外部认可）→ **JS 沙箱**（最干净）→ **聚类算法族**（学术/工程价值）→ **OpenClGuardian**（1-2 天解耦后）→ **Capability Plane 机制内核**（1-2 周重构后，差异化最强但成本最高）。
