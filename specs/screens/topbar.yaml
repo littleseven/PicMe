@@ -1,68 +1,99 @@
 # ============================================================================
-# 全局顶栏统一规范（Unified TopBar Spec）— 2026-08-18 设立
+# 全局顶栏统一规范 v2（Unified TopBar Spec）— 2026-08-18 设立 / 同日 v2 五页全覆盖
 # ============================================================================
-# 适用：所有带标题顶栏的页面（设置族 / 相册族 / 信息页）。相机页（胶囊面板式）
-# 与 chat 页（无标题图标行）各有专属形态，不在本规范约束范围。
+# v2 变更：纳入 chat 图标行（变体 D）；新增相机/编辑器附录；标题字重统一 Medium；
+#         禁手画状态栏；icon 一律 ic/* 组件实例（IconSet 页，22网格/描边1.6）。
+# 设计依据：docs/superpowers/specs/2026-08-18-ardot-topbar-icon-unification-design.md
 #
 # 双端 SSOT：
 #   Android 实现 = AppTopBar.kt（features/common/topbar/，自建 Row）
+#   iOS 实现     = SwiftUI 顶栏（读本 spec + DesignTokens.swift）
 #   设计稿几何   = Ardot canvas 各帧 top_bar（400×890 帧内坐标）
 # 本文件为规格源；实现与设计稿向此对齐，发现漂移先改这里。
 
 topbar:
-  height: 48                       # dp（帧内 48px）
+  height: 48                       # dp（帧内 48px）；token topBar.height
   layout:
     type: horizontal_row
     vertical_alignment: center
-    padding: { start: 8, end: 8 }  # 触控热区起点；标题字面另有 8~16 起始（见变体）
-    spacing: 8                     # 相邻动作钮间距
+    padding: { start: 8, end: 8 }
+    spacing: 8
+  naming: { bar: "top_bar", icon: "ic/<语义名>" }   # 帧内命名统一（结构导出校验）
+  status_bar: 不手画               # 帧从 y0 起，状态栏区域由宿主让出（五页一致）
 
   title:
-    font_size: 17                  # sp，Medium
+    font_size: 17                  # sp，Medium（token topBar.titleFontWeight）
     color: "onSurface"
-    max_lines: 1                   # ⚠️ 禁止折行——宽度不足用省略号
+    max_lines: 1
     single_line: true
+
+  icons:                           # 统一线性 icon 体系（IconSet 页组件库）
+    grid: 22                       # token icon/md
+    stroke_width: 1.6              # token icon.strokeWidth
+    style: 细描边线性，圆头端点/圆角连接，单色
+    color: { default: "onSurface", secondary: "onSurfaceVariant@0.8" }
+    touch: 36                      # 热区；glyph 居中
+    platforms:
+      android: "Material Symbols Rounded Outlined w400（material-icons-extended Icons.Outlined.*）"
+      ios: "SF Symbols regular"
+    rule: 字形允许平台差异（平台材质项免检），笔画视觉重量必须对齐
 
   # ── 变体 A：子页顶栏（back + title）──────────────────────────
   variant_subpage:
-    leading:
-      back_button: { touch: 36, glyph: 22, tint: "onSurface" }   # 36dp 热区居中 22dp 字形
-    title:
-      align: start                 # 返回钮之后左对齐（Android x≈44）
-      # 设计稿几何（400 宽帧）：icon_back 22×22 @x8,y13；title @x38,y13.5 h21
+    leading: { back: "ic/back 36/22" }
+    title: { align: start }        # 返回钮之后左对齐（Android x≈44）
+    applies: [settings族, gallery/settings, gallery/info]
 
   # ── 变体 B：首页顶栏（title + actions）───────────────────────
   variant_home:
-    title:
-      align: start
-      padding_start: 16            # 无返回钮，标题从 16 起
-      # 设计稿几何：title @x16,y13.5 h21 w218(grow)
+    title: { align: start, padding_start: 16 }
     actions:
-      button: { touch: 36, glyph: 22, tint: "onSurfaceVariant@0.8" }
-      pack: end                    # 右对齐成组
-      # 设计稿几何（相册首页 5 钮）：22×22 @y13，x = 242/272/302/332/362
-      # （30px 节奏 = 22 图标 + 8 间距；最右图标右边 = 384，右缘留 16）
+      pack: end                    # 右对齐成组，30px 节奏 = 22 icon + 8 gap
+      count_max: 5
+      # 设计稿几何（相册首页 5 钮）：x = 242/272/302/332/362，最右图标右边 384
+    applies: [gallery/grid, gallery/empty]
 
   # ── 变体 C：搜索顶栏（back + field + count）──────────────────
   variant_search:
-    leading: { back: 36/22 }       # 同变体 A
+    leading: { back: "ic/back 36/22" }
     field:
       height: 36
       corner_radius: 18
       background: "surfaceVariant@0.5"
-      grow: true                   # 撑满中间
-      leading_icon: 16             # search
+      grow: true
+      leading_icon: { icon: "ic/search", size: 16 }
       placeholder: { size: 14, color: "onSurface@0.35" }
-      clear_button: 16
-    trailing:
-      result_count: { size: 12, color: "onSurfaceVariant" }
+      clear_button: { icon: "ic/clear", size: 16 }
+    trailing: { result_count: { size: 12, color: "onSurfaceVariant" } }
+    applies: [gallery/search, gallery/search_no_result]
 
-  # ── 禁止事项（历史病灶，2026-08-18 相册帧踩过）────────────────
+  # ── 变体 D：图标行顶栏（无标题）— 2026-08-18 v2 新增 ─────────
+  variant_iconrow:
+    leading: ["ic/menu"]           # 聊天主页；带返回入口的场合前置 ic/back
+    trailing_max: 3                # chat: ic/bug_report, ic/add_comment, ic/delete_sweep
+    spacer: fill_container         # 中部弹性
+    applies: [chat/empty, chat/conversation (+light)]
+
+  # ── 附录 E：相机 overlay 顶区（引用，不重复定义）──────────────
+  appendix_camera:
+    form: overlay（无标题栏，控件浮于取景器之上）
+    icon_rule: 顶部图标钮遵循本文件 icons 节 + 44 热区
+    geometry_ssot: specs/screens/camera.yaml（top_tool_bar / top_left_controls）
+
+  # ── 附录 F：编辑器浮层顶栏（引用，不重复定义）────────────────
+  appendix_editor:
+    form: "✕ 32圆钮 | undo·redo | 保存胶囊（方案 A glass-noir）"
+    icon_rule: 遵循本文件 icons 节；close 字形在 32 钮内为 18
+    geometry_ssot: specs/screens/editor.yaml §18 redesign_a
+
+  # ── 禁止事项 ─────────────────────────────────────────────────
   anti_patterns:
     - "标题盒锁窄宽（<文本宽）→ 竖排折行（gallery/grid 等四帧曾 title 30×42）"
     - "动作图标大间距散布（60px 节奏）——必须 30px 节奏右对齐成组"
     - "标题与返回钮重叠（icon 8..30 内起字）——标题起 x≥38"
     - "顶栏高度 44/56 混用——统一 48"
+    - "帧内散画 icon 矢量——必须 ic/* 组件实例（IconSet 页）"
+    - "手画状态栏（9:41/信号图标）——帧从 y0 起"
 
 # ── 状态栏避让 ────────────────────────────────────────────────
 # Android：AppTopBar 内置 statusBarsPadding + displayCutoutPadding。

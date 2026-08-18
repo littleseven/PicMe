@@ -71,8 +71,8 @@ grid_page:
   # 🔴 R1：自建，不用 NavigationStack 大标题。
 
   top_bar:
+    # 几何 SSOT → specs/screens/topbar.yaml 变体 B（variant_home）；本节仅保留相册页专属行为
     type: AppTopBar                         # 自建组件
-    height: topBar.height                   # 48dp
     background: colorScheme.surface
     anchor: safe_area_top                   # 自动避让状态栏
     layout: row_space_between               # 左标题 / 右操作组 HStack
@@ -80,24 +80,16 @@ grid_page:
     # ── 标题 ──
     title:
       text: "相册"
-      font_size: topBar.titleFontSize       # 17sp
-      font_weight: medium                   # iOS: .system(size: 17, weight: .medium)
       color: colorScheme.primary
       position: leading
-      padding_leading: topBar.horizontalPadding  # 8dp
 
     # ── 操作组 ──
     actions:
-      row:
-        spacing: topBar.spacing             # 8dp
-        padding_trailing: topBar.horizontalPadding  # 8dp
-
       items:
         # (a) 模型中心
         - id: model_center
           material_icon: smart_toy
           sf_symbol: "cpu"                  # 或 "sparkles"
-          size: topBar.iconSize             # 22dp
           tint: colorScheme.onSurface
           behavior: navigate_to_model_center
 
@@ -105,7 +97,6 @@ grid_page:
         - id: scan_toggle
           material_icon: radar
           sf_symbol: "antenna.radiowaves.left.and.right"
-          size: topBar.iconSize             # 22dp
           tint: colorScheme.onSurface
           behavior: toggle_tag_scanning     # 开始扫描→显示进度条；暂停→隐藏
           note: "图标可随状态切换：扫描中显示 stop/pause 图标"
@@ -114,7 +105,6 @@ grid_page:
         - id: search
           material_icon: search
           sf_symbol: "magnifyingglass"
-          size: topBar.iconSize             # 22dp
           tint: colorScheme.onSurface
           behavior: activate_search_mode    # → 顶栏切换为 SearchTopBar
 
@@ -122,7 +112,6 @@ grid_page:
         - id: sort_menu
           material_icon: sort
           sf_symbol: "arrow.up.arrow.down"
-          size: topBar.iconSize             # 22dp
           tint: colorScheme.onSurface
           behavior: show_dropdown_menu
           menu:
@@ -141,7 +130,6 @@ grid_page:
         - id: settings
           material_icon: settings
           sf_symbol: "gearshape"
-          size: topBar.iconSize             # 22dp
           tint: colorScheme.onSurface
           behavior: navigate_to_settings
 
@@ -151,14 +139,13 @@ grid_page:
   # placeholder/结果计数格式与位置以代码为准）。
 
   search_top_bar:
+    # 几何 SSOT → specs/screens/topbar.yaml 变体 C（variant_search）；本节仅保留相册搜索专属行为
     visible_when: search_active
     type: SearchTopBar                      # 替换普通 AppTopBar
-    height: topBar.height                   # 48dp
     background: colorScheme.surface
     layout:
       leading:
         icon: arrow_back                    # 返回，material: ArrowBack / SF: "chevron.left"
-        size: topBar.iconSize               # 22dp
         behavior: clear_search_and_close    # = back_stack search_active 分支
       center:
         type: search_field                  # 通用组件 SearchField（圆角胶囊，Chat/Gallery 共用）

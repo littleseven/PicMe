@@ -20,20 +20,17 @@ root:
 # 2. 顶部栏（ChatTopBar）
 # ============================================================================
 top_bar:
-  height: topBar.height             # 48dp（非 Material3 64dp）
+  # 几何 SSOT → specs/screens/topbar.yaml 变体 D（variant_iconrow）；本节仅保留 chat 专属行为
   background: "surface"
   status_bar_padding: true
   title: ""                         # ⚠️ 无标题文字
   left_actions:
-    - { icon: arrow_back, size: topBar.iconSize, button: topBar.buttonSize }  # 返回
-    - { icon: menu, size: topBar.iconSize, button: topBar.buttonSize, action: open_sidebar }  # 菜单 → 打开会话历史侧栏（§2.5）
+    - { icon: arrow_back }          # 返回
+    - { icon: menu, action: open_sidebar }  # 菜单 → 打开会话历史侧栏（§2.5）
   right_actions:
-    - { icon: bug_report, size: topBar.iconSize, button: topBar.buttonSize }   # 上报问题
-    - { icon: add_comment, size: topBar.iconSize, button: topBar.buttonSize, action: new_session }     # 新对话 = 新建会话并切换（非清空当前会话）
-    - { icon: delete_sweep, size: topBar.iconSize, button: topBar.buttonSize, action: clear_session }  # 清空对话 = 清当前会话消息 + 当前会话 LLM 记忆
-  left_spacing: topBar.spacing      # 8dp
-  right_spacing: topBar.spacing
-  horizontal_padding: topBar.horizontalPadding  # 8dp
+    - { icon: bug_report }          # 上报问题
+    - { icon: add_comment, action: new_session }     # 新对话 = 新建会话并切换（非清空当前会话）
+    - { icon: delete_sweep, action: clear_session }  # 清空对话 = 清当前会话消息 + 当前会话 LLM 记忆
   hide_when: fullscreen_preview_open
 
 # ============================================================================
