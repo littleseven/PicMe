@@ -32,8 +32,9 @@ import kotlin.math.abs
  * ProMode 面板内容（WB chips + EV/对比度/饱和度/色温滑杆）。
  * 2026-08-15 改版：由底部半屏 Sheet 改为顶部内联面板（specs/screens/camera.yaml §4 inline_panels），
  * 容器外壳由调用方 InlineControlPanel 提供，本组件仅承载内容、不自带滚动/手柄/关闭按钮。
- * 2026-08-18 Ardot 定稿：WB 改全圆胶囊（h40/15sp/间距4）；滑杆标签与数值 14sp，
- * 数值始终显示（默认白 / 已调 cameraAccent），去掉 EV 下方分隔线。
+ * 2026-08-18 六修重设计（画布同步）：三段式=WB 组(标签@70+胶囊行) → 0.5dp 分隔线 → 滑杆组；
+ * 滑杆标签默认白@85、数值默认白@40（未调态弱化）、已调 cameraAccent；
+ * WB 胶囊 h34/12sp/间距8，选中 #0F766E；滑杆标签与数值 12sp 常显实际值。
  */
 @Composable
 fun ProModeControlsContent(
@@ -49,7 +50,7 @@ fun ProModeControlsContent(
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -57,7 +58,7 @@ fun ProModeControlsContent(
         ) {
             Text(
                 text = stringResource(R.string.white_balance),
-                color = CameraTokens.cameraAccentOn,
+                color = CameraTokens.cameraAccentOn.copy(alpha = 0.7f),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -82,6 +83,14 @@ fun ProModeControlsContent(
                 }
             }
         }
+
+        // 分隔线：WB 组与滑杆组分界（六修重设计，对应画布 y=84 divider）
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(CameraTokens.cameraAccentOn.copy(alpha = 0.1f))
+        )
 
         val exposureValueRange = exposureRange.first.toFloat()..exposureRange.last.toFloat()
         val exposureDisplayText = if (exposure >= 0) "+$exposure" else "$exposure"
@@ -214,13 +223,21 @@ private fun ProModeSlider(
         ) {
             Text(
                 text = label,
-                color = if (isValueChanged) CameraTokens.cameraAccent else CameraTokens.cameraAccentOn,
+                color = if (isValueChanged) {
+                    CameraTokens.cameraAccent
+                } else {
+                    CameraTokens.cameraAccentOn.copy(alpha = 0.85f)
+                },
                 fontSize = CameraTokens.proSliderFontSize.value.sp,
                 fontWeight = FontWeight.Medium
             )
             Text(
                 text = valueText,
-                color = if (isValueChanged) CameraTokens.cameraAccent else CameraTokens.cameraAccentOn,
+                color = if (isValueChanged) {
+                    CameraTokens.cameraAccent
+                } else {
+                    CameraTokens.cameraAccentOn.copy(alpha = 0.4f)
+                },
                 fontSize = CameraTokens.proSliderFontSize.value.sp,
                 fontWeight = FontWeight.Bold
             )
