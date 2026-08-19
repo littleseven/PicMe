@@ -109,6 +109,8 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
         val LOCAL_ASR_MODEL = stringPreferencesKey("local_asr_model")
         val LOCAL_KWS_MODEL = stringPreferencesKey("local_kws_model")
         val VOICE_ENTRY_ENABLED = booleanPreferencesKey("voice_entry_enabled")
+        // 相机页 AI 对话入口（悬浮 FAB），默认关闭（2026-08-19 语音/AI 悬浮入口全面默认隐藏）
+        val AI_CHAT_ENTRY_ENABLED = booleanPreferencesKey("ai_chat_entry_enabled")
 
         // 相机参数记忆
         val CAMERA_MEMORY_USE_FRONT_CAMERA = booleanPreferencesKey("camera_memory_use_front_camera")
@@ -904,6 +906,24 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
     override suspend fun updateVoiceEntryEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.VOICE_ENTRY_ENABLED] = enabled
+        }
+    }
+
+    override val aiChatEntryEnabledFlow: Flow<Boolean> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.AI_CHAT_ENTRY_ENABLED] ?: false
+        }
+
+    override suspend fun updateAiChatEntryEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_CHAT_ENTRY_ENABLED] = enabled
         }
     }
 

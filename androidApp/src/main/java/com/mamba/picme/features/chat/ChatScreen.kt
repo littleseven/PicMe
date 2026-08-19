@@ -5,6 +5,7 @@ package com.mamba.picme.features.chat
 
 import com.mamba.picme.core.designsystem.ChatBubbleTokens
 import com.mamba.picme.domain.chat.ChatMessageType
+import com.mamba.picme.domain.model.VoiceCommandMode
 import com.mamba.picme.domain.chat.LlmPerformance
 import com.mamba.picme.domain.chat.ClaudeStepStatus
 import com.mamba.picme.domain.chat.ClaudeStepUi
@@ -1707,12 +1708,26 @@ private fun ChatInputArea(
     // AI 工程师模式（claude-tunnel）：状态在 ViewModel（进入时新建独立会话）
     val claudeMode by viewModel.claudeMode.collectAsState()
 
+    // 语音为默认关闭的实验能力（2026-08-19）：语音模式 ≠ DISABLED 时才显示语音入口
+    val voiceCommandMode by settingsRepository.voiceCommandModeFlow.collectAsState(
+        initial = VoiceCommandMode.DISABLED
+    )
+    val voiceEnabled = voiceCommandMode != VoiceCommandMode.DISABLED
+    // 开关关闭时，已处于语音输入态则强制回落文字模式
+    LaunchedEffect(voiceEnabled) {
+        if (!voiceEnabled && inputMode == ChatInputMode.VOICE) {
+            inputMode = ChatInputMode.TEXT
+        }
+    }
+
     // 语音输入：按需加载本地 Sherpa-ONNX ASR 模型，未配置时回退到系统 ASR
     val localAsrModel by settingsRepository.localAsrModelFlow.collectAsState(initial = "")
     var asrEngine by remember(context) {
         mutableStateOf<AsrEngine>(SystemAsrEngine(context))
     }
-    LaunchedEffect(context, localAsrModel) {
+    LaunchedEffect(context, localAsrModel, voiceEnabled) {
+        // 语音入口隐藏时不初始化 ASR 引擎（语音为非刚需，默认收敛）
+        if (!voiceEnabled) return@LaunchedEffect
         val engine = withContext(Dispatchers.IO) {
             if (localAsrModel.isNotBlank()) {
                 val modelDir = context.filesDir.resolve("llm_models/$localAsrModel")
@@ -1820,6 +1835,7 @@ private fun ChatInputArea(
                     availableModels = availableModels,
                     selectedModel = selectedModel,
                     onSwitchModel = viewModel::switchModel,
+                    voiceEnabled = voiceEnabled,
                     onSwitchToVoice = {
                         inputMode = ChatInputMode.VOICE
                         keyboardController?.hide()
@@ -1898,6 +1914,8 @@ private fun ChatTextInputMode(
     availableModels: List<ChatViewModel.ChatRemoteModel>,
     selectedModel: ChatViewModel.ChatRemoteModel?,
     onSwitchModel: (String) -> Unit,
+    /** 语音入口是否可用（2026-08-19：语音模式 ≠ DISABLED 才为 true，默认关闭） */
+    voiceEnabled: Boolean,
     onSwitchToVoice: () -> Unit,
     onShowPhotoPicker: () -> Unit,
     claudeMode: Boolean = false,
@@ -2054,13 +2072,16 @@ private fun ChatTextInputMode(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // 语音切换按钮：surfaceContainerHigh 实底圆钮（豆包式）
-                CircularIconButton(
-                    icon = Icons.Rounded.KeyboardVoice,
-                    contentDescription = stringResource(R.string.cd_switch_to_voice),
-                    onClick = onSwitchToVoice,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
-                    container = MaterialTheme.colorScheme.surfaceContainerHigh
-                )
+                // 2026-08-19：语音默认关闭，仅语音模式 ≠ DISABLED 时显示
+                if (voiceEnabled) {
+                    CircularIconButton(
+                        icon = Icons.Rounded.KeyboardVoice,
+                        contentDescription = stringResource(R.string.cd_switch_to_voice),
+                        onClick = onSwitchToVoice,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                        container = MaterialTheme.colorScheme.surfaceContainerHigh
+                    )
+                }
 
                 // 发送按钮（有内容时显示；品牌渐变实底圆钮）
                 if (hasContent && !isProcessing) {

@@ -266,6 +266,14 @@ class SettingsViewModel(
             initialValue = false
         )
 
+    /** 相机页 AI 对话入口（悬浮 FAB）显隐开关，默认关闭 */
+    val aiChatEntryEnabled: StateFlow<Boolean> = repository.aiChatEntryEnabledFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+
     val localAsrModel: StateFlow<String> = repository.localAsrModelFlow
         .stateIn(
             scope = viewModelScope,
@@ -1028,6 +1036,13 @@ class SettingsViewModel(
         viewModelScope.launch {
             Logger.d("UX", "Voice entry enabled changed: $enabled")
             repository.updateVoiceEntryEnabled(enabled)
+        }
+    }
+
+    fun setAiChatEntryEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            Logger.d("UX", "AI chat entry enabled changed: $enabled")
+            repository.updateAiChatEntryEnabled(enabled)
         }
     }
 

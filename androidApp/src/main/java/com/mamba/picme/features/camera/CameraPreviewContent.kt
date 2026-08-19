@@ -207,6 +207,7 @@ internal fun CameraPreviewContent(
             onToggleVoiceControl = actions.onToggleVoiceControl,
             isVoiceControlEnabled = uiState.isVoiceControlEnabled,
             showVoiceEntry = uiState.voiceEntryEnabled,
+            showAiChatEntry = uiState.aiChatEntryEnabled,
             modifier = Modifier.align(Alignment.BottomEnd)
         )
 
@@ -571,8 +572,11 @@ private fun BoxScope.CameraTopControls(
 
 /**
  * 相机预览页右下角浮动按钮组
- * - AI Chat 入口：使用 KeyboardVoice icon（与 Gallery/Settings 一致）
- * - 语音控制入口：使用 RecordVoiceOver icon（区别于 Chat 入口）
+ * - AI Chat 入口：使用 KeyboardVoice icon（与 Gallery/Settings 一致），
+ *   仅设置开启「相机页 AI 助手入口」时显示（2026-08-19 起默认隐藏）
+ * - 语音控制入口：使用 RecordVoiceOver icon（区别于 Chat 入口），
+ *   仅设置开启「语音控制入口」时显示
+ * 两个开关均关闭（默认）时不渲染任何按钮
  */
 @Composable
 private fun CameraFloatingActionButtons(
@@ -580,18 +584,25 @@ private fun CameraFloatingActionButtons(
     onToggleVoiceControl: () -> Unit,
     isVoiceControlEnabled: Boolean,
     showVoiceEntry: Boolean,
+    showAiChatEntry: Boolean,
     modifier: Modifier = Modifier
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    var inputDevice by remember { mutableStateOf(AudioRecorder(context).currentInputDevice) }
+    // 语音入口隐藏（默认）时保持 null，不创建 AudioRecorder、不查询音频设备
+    var inputDevice by remember { mutableStateOf<InputAudioDevice?>(null) }
 
-    // 初始检测
-    LaunchedEffect(Unit) {
-        inputDevice = AudioRecorder(context).currentInputDevice
+    // 初始检测；语音入口隐藏时无需检测
+    LaunchedEffect(showVoiceEntry) {
+        if (showVoiceEntry) {
+            inputDevice = AudioRecorder(context).currentInputDevice
+        }
     }
 
-    // 注册系统广播监听耳机连接/断开（替代轮询）
-    DisposableEffect(Unit) {
+    // 注册系统广播监听耳机连接/断开（替代轮询）；语音入口隐藏时无需监听
+    DisposableEffect(showVoiceEntry) {
+        if (!showVoiceEntry) {
+            return@DisposableEffect onDispose {}
+        }
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
                 when (intent.action) {
@@ -612,6 +623,9 @@ private fun CameraFloatingActionButtons(
 
     val isHeadsetConnected = inputDevice is InputAudioDevice.BluetoothSco ||
         inputDevice is InputAudioDevice.WiredHeadset
+
+    // 两个入口均隐藏（默认）时不渲染任何浮动按钮
+    if (!showVoiceEntry && !showAiChatEntry) return
 
     Column(
         modifier = modifier
@@ -642,9 +656,10 @@ private fun CameraFloatingActionButtons(
                     )
                 }
                 // 耳机连接状态小标记
-                if (isHeadsetConnected) {
+                val headsetDevice = inputDevice
+                if (isHeadsetConnected && headsetDevice != null) {
                     CameraHeadsetBadge(
-                        device = inputDevice,
+                        device = headsetDevice,
                         modifier = Modifier.align(Alignment.TopEnd)
                     )
                 }
@@ -652,18 +667,21 @@ private fun CameraFloatingActionButtons(
         }
 
         // AI Chat 入口按钮 - 使用 KeyboardVoice（与 Gallery/Settings 一致）
-        FloatingActionButton(
-            onClick = onToggleAiAgentPanel,
-            modifier = Modifier.size(52.dp),
-            shape = CircleShape,
-            containerColor = MaterialTheme.colorScheme.primary
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.KeyboardVoice,
-                contentDescription = stringResource(R.string.ai_agent),
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
-            )
+        // 2026-08-19：语音/AI 悬浮入口全面默认隐藏，仅设置开启「相机页 AI 助手入口」时显示
+        if (showAiChatEntry) {
+            FloatingActionButton(
+                onClick = onToggleAiAgentPanel,
+                modifier = Modifier.size(52.dp),
+                shape = CircleShape,
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.KeyboardVoice,
+                    contentDescription = stringResource(R.string.ai_agent),
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }

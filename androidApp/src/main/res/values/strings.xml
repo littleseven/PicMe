@@ -514,6 +514,7 @@
     <string name="voice_control">Voice Control</string>
     <string name="voice_control_desc">Enable voice-driven camera control via push-to-talk or wake word.</string>
     <string name="voice_entry_enabled">Voice Control Entry</string>
+    <string name="ai_chat_entry_enabled">Camera AI Chat Entry</string>
     <string name="voice_entry_section_desc">Show the floating voice control button on the camera page. Off by default.</string>
     <string name="voice_command_mode">Voice Interaction Mode</string>
     <string name="voice_command_mode_disabled">Disabled</string>

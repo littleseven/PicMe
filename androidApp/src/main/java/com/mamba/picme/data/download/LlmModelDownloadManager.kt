@@ -1437,9 +1437,12 @@ data class ModelConfig(
         /**
          * 推荐模型 ID 集合（Tier 2：非核心，WiFi 下可静默预下载）。
          *
-         * 含语音输入（[CHAT_MODEL_IDS]）、证件照抠图、相册人脸标记预览。
+         * 含语音输入/唤醒（[CHAT_MODEL_IDS] + KWS）、证件照抠图、相册人脸标记预览。
+         * 2026-08-19：语音能力降级为默认关闭的实验能力，语音模型（ASR/KWS）全部归入推荐，
+         * 任何语音模型都不得进入 [REQUIRED_MODEL_IDS]。
          */
         val RECOMMENDED_MODEL_IDS: Set<String> = CHAT_MODEL_IDS + setOf(
+            "sherpa-onnx-kws-zipformer-wenetspeech", // KWS（唤醒词）
             "modnet-onnx",                  // 证件照/抠图
             "u2netp-onnx",                  // 证件照/抠图（轻量）
             "mediapipe-face-landmarker",    // 相册人脸标记预览

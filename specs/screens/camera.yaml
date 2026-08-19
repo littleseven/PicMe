@@ -829,7 +829,7 @@ floating_actions:
   items:
 
     # ── 语音控制 FAB ──
-    # 仅设置中开启「语音控制入口」时显示
+    # 仅设置中开启「语音控制入口」时显示（默认关，2026-08-19 起全部语音入口默认隐藏）
     - id: voice_fab
       visible_when: voice_entry_enabled  # uiState.voiceEntryEnabled
       shape: circle
@@ -857,7 +857,9 @@ floating_actions:
           wired: "#81C784"           # 浅绿
 
     # ── AI Chat FAB ──
+    # 2026-08-19：默认隐藏，仅设置中开启「相机页 AI 助手入口」（ai_chat_entry_enabled，默认关）时显示
     - id: ai_chat_fab
+      visible_when: ai_chat_entry_enabled  # uiState.aiChatEntryEnabled
       shape: circle
       size: 52                       # 52dp
       container_color: "colorScheme.primary"  # 始终 primary 色
@@ -866,6 +868,8 @@ floating_actions:
         sf_symbol: "mic.fill"
         size: 24                     # icon.lg = 24dp
         tint: white
+
+  # 两个开关均关闭（默认）时，右下角不渲染任何浮动按钮
 
 # ============================================================================
 # 15. 唤醒词状态指示器（VoiceWakeIndicator）

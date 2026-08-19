@@ -339,16 +339,8 @@ struct ChatView: View {
 
                     Spacer()
 
-                    // 语音切换按钮（常驻，圆形；对齐 Android voice_button。
-                    // iOS chat v1 无语音输入模式，诚实占位）
-                    Button {
-                        comingSoonFeature = String(localized: "Voice input is not available in this version.")
-                    } label: {
-                        MatIcon(name: "mat_keyboard_voice", size: ChatBubbleTokens.circularButtonIconSize)
-                            .foregroundColor(Color(.label).opacity(0.7))
-                    }
-                    .frame(width: ChatBubbleTokens.circularButtonSize, height: ChatBubbleTokens.circularButtonSize)
-                    .accessibilityIdentifier("chat_voice")
+                    // 2026-08-19：语音降级为默认关闭的实验能力，iOS 无语音开关，
+                    // 占位语音按钮（chat_voice）按 spec settings.yaml/chat.yaml 平台差异登记移除。
 
                     // 发送按钮（品牌渐变实底圆钮+白 icon，对齐 Android brandGradient 形态；
                     // 仅有内容 && 非处理中时显示）

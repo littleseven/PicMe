@@ -39,6 +39,7 @@ import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.CenterFocusStrong
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.KeyboardVoice
+import androidx.compose.material.icons.rounded.SmartToy
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.GraphicEq
@@ -205,6 +206,7 @@ fun SettingsScreen(
     val taggerModelKey by viewModel.taggerModelKey.collectAsState()
     val voiceCommandMode by viewModel.voiceCommandMode.collectAsState()
     val voiceEntryEnabled by viewModel.voiceEntryEnabled.collectAsState()
+    val aiChatEntryEnabled by viewModel.aiChatEntryEnabled.collectAsState()
     val localAsrModel by viewModel.localAsrModel.collectAsState()
     val localKwsModel by viewModel.localKwsModel.collectAsState()
     val logModuleConfig by viewModel.logModuleConfig.collectAsState()
@@ -324,6 +326,8 @@ fun SettingsScreen(
             onVoiceCommandModeChange = { viewModel.setVoiceCommandMode(it) },
             voiceEntryEnabled = voiceEntryEnabled,
             onVoiceEntryEnabledChange = { viewModel.setVoiceEntryEnabled(it) },
+            aiChatEntryEnabled = aiChatEntryEnabled,
+            onAiChatEntryEnabledChange = { viewModel.setAiChatEntryEnabled(it) },
             localAsrModel = localAsrModel,
             onLocalAsrModelChange = { viewModel.setLocalAsrModel(it) },
             localKwsModel = localKwsModel,
@@ -393,6 +397,8 @@ private fun SettingsContent(
     onVoiceCommandModeChange: (VoiceCommandMode) -> Unit,
     voiceEntryEnabled: Boolean,
     onVoiceEntryEnabledChange: (Boolean) -> Unit,
+    aiChatEntryEnabled: Boolean,
+    onAiChatEntryEnabledChange: (Boolean) -> Unit,
     localAsrModel: String,
     onLocalAsrModelChange: (String) -> Unit,
     localKwsModel: String,
@@ -757,6 +763,16 @@ private fun SettingsContent(
                         horizontalPadding = SettingsTokens.listRowPaddingH,
                         rowHeight = SettingsTokens.listRowHeight,
                         icon = Icons.Rounded.KeyboardVoice,
+                        iconBlockColor = AppColors.vibrantGreen
+                    )
+                    SettingsListDivider()
+                    DebugOptionRow(
+                        title = stringResource(R.string.ai_chat_entry_enabled),
+                        checked = aiChatEntryEnabled,
+                        onCheckedChange = onAiChatEntryEnabledChange,
+                        horizontalPadding = SettingsTokens.listRowPaddingH,
+                        rowHeight = SettingsTokens.listRowHeight,
+                        icon = Icons.Rounded.SmartToy,
                         iconBlockColor = AppColors.vibrantGreen
                     )
                 }
@@ -1827,6 +1843,8 @@ fun SettingsScreenPreview() {
             onVoiceCommandModeChange = {},
             voiceEntryEnabled = false,
             onVoiceEntryEnabledChange = {},
+            aiChatEntryEnabled = false,
+            onAiChatEntryEnabledChange = {},
             localAsrModel = "",
             onLocalAsrModelChange = {},
             localKwsModel = "",

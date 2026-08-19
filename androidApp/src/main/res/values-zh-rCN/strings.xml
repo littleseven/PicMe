@@ -466,6 +466,7 @@
     <string name="voice_control">语音控制</string>
     <string name="voice_control_desc">通过语音指令控制相机拍摄和参数调整。</string>
     <string name="voice_entry_enabled">语音控制入口</string>
+    <string name="ai_chat_entry_enabled">相机页 AI 助手入口</string>
     <string name="voice_entry_section_desc">在相机页显示悬浮语音控制按钮，默认关闭。</string>
     <string name="voice_command_mode">语音交互模式</string>
     <string name="voice_command_mode_disabled">关闭</string>
