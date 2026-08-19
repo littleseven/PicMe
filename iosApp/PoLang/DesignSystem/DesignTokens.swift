@@ -536,7 +536,6 @@ enum SettingsTokens {
     static let listLabelColumnWidth: CGFloat = 56
     static let listSegmentedHeight: CGFloat = 36
     static let listSegmentedRadius: CGFloat = 10
-    static let listDividerColor = Color(hex: "FF4A453E")
     static let dialogOptionRowHeight: CGFloat = 48
 }
 

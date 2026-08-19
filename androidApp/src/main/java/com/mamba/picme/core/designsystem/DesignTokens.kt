@@ -290,7 +290,7 @@ object ChatSidebarTokens {
     val titleSize = 18.dp
 }
 
-/** 设置页通用结构。SettingsClickableRow=主行模式，section=分组卡片容器。list*=主菜单列表式（2026-08-17 重设计，iOS 式分组列表）；图标块色映射（行到 vibrant 系、statusColor、colorScheme 角色的对应）属 UI 结构不入 token，双端各自在代码中映射并保持一致。listLabelColumnWidth/listSegmentedHeight/listSegmentedRadius 2026-08-19 自画布回流（sync --check NEW）；listDividerColor/dialogOptionRowHeight 2026-08-19 绑定清扫候选入库；themeSwatch* 同日随主题弹框预览块删除而撤销（0edd118d3）。注意注释内勿出现连续斜杠星号（会截断 Android KDoc 块注释）。 */
+/** 设置页通用结构。SettingsClickableRow=主行模式，section=分组卡片容器。list*=主菜单列表式（2026-08-17 重设计，iOS 式分组列表）；图标块色映射（行到 vibrant 系、statusColor、colorScheme 角色的对应）属 UI 结构不入 token，双端各自在代码中映射并保持一致。listLabelColumnWidth/listSegmentedHeight/listSegmentedRadius 2026-08-19 自画布回流（sync --check NEW）；dialogOptionRowHeight 2026-08-19 绑定清扫候选入库；themeSwatch* 同日随主题弹框预览块删除而撤销（0edd118d3）；listDividerColor 同日撤销——分隔线改绑 scheme/outlineVariant（双 mode，浅色下不再呈深线）。注意注释内勿出现连续斜杠星号（会截断 Android KDoc 块注释）。 */
 object SettingsTokens {
     val rowHeightNoSubtitle = 56.dp
     val rowHeightWithSubtitle = 64.dp
@@ -319,7 +319,6 @@ object SettingsTokens {
     val listLabelColumnWidth = 56.dp
     val listSegmentedHeight = 36.dp
     val listSegmentedRadius = 10.dp
-    val listDividerColor = Color(0xFF4A453E)
     val dialogOptionRowHeight = 48.dp
 }
 
