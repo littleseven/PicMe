@@ -11,8 +11,6 @@
 # 颜色引用：appColors.* 对应 design-tokens.json color 节点
 # 图标映射：Material Icons (Android) → SF Symbols (iOS)
 #
-# ── ⚠️ 2026-08-19：画布重建中未随 393×852 迁移（本文件几何仍为 400 宽基准）；
-#    重建收尾后按迁移剧本（docs/superpowers/plans/2026-08-19-iphone15-canvas-migration.md M5）执行 ──
 #
 # ── 2026-08-18 Ardot 高精度还原（三轮修正后定稿）──
 # 依据 Ardot 画布 specs/screens/refs/ardot/camera-*.png（07 帧）落地并三轮真机修正：
@@ -40,6 +38,16 @@
 #
 # ── 顶栏归属 ── 相机 overlay 顶区遵循 specs/screens/topbar.yaml 附录 E（appendix_camera）（icon 体系见其 icons 节）
 #
+
+# ── 2026-08-19 iPhone 15（393×852）画布迁移定稿（M5）──
+# 帧根 393×852；底控新基准：模式行 y620、变焦行 y656、相册/翻转行 y722、
+# 快门外环 (158.5,716) 76dp（底距 60 保持）、标签 y774；
+# 顶部胶囊行 y67（x=68.5/118.5/168.5/230.5/280.5，256 跨居中）；
+# 内联面板统一宽 337（x28 居中，=393−2×28）；美颜抽屉 w393/scrim y320/抽屉 y440 h356；
+# 对焦指示 (196.5,350)：环 100×100 r20 @ (146.5,300) + 十字 (188.5,349)/(195.5,342)；
+# back 图标中心 x28 约束保持（ic/back @17,72.5）；ic/flip @ (311,737)。
+# 帧重放源=git 164273805 structure 存档（历史结构快照重建法）。
+
 # ── SSOT 分工（2026-08-15 修订：codegen 工作流，原 Figma SSOT 方案已废止）──
 # 本文件只留：行为/状态机/交互规则/内容数据（色板等）+ 触发与绑定。
 # 样式值（尺寸/颜色/圆角/间距）SSOT = design-tokens.json，双端代码由 scripts/gen-design-tokens.py
