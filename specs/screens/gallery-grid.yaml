@@ -647,7 +647,7 @@ media_pager:
     priority: P1
     trigger: info_button_tap                # 顶栏 info 图标
     type: bottom_sheet_or_dialog            # iOS: bottom sheet / Android: Dialog
-    max_width: pager.overlayMaxWidth        # 400dp
+    max_width: pager.overlayMaxWidth        # 393dp（2026-08-19 iPhone 15 画布宽）
     max_height: pager.overlayMaxHeight      # 500dp
 
     fields:

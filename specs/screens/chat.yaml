@@ -154,7 +154,7 @@ empty_state:
     example_chips:
       # 2026-08-18 定稿 v2：FlowRow 流式自适应（行距 12/列距 14，每行整体居中），surfaceContainerHigh 底 r22，
       # 每 chip 带 16dp 彩色功能图标：日历#6BA6FF/相册#22D3EE/人物#FF7EB0/夜色#9B8CFF/统计#4ADE80/搜索#FFB020。
-      # 设计稿 400px 宽行分组 2,2,1,1（长句独占一行）由流式换行自然形成，禁止 chunked(2) 硬切两行——
+      # 设计稿 393px 宽行分组 2,2,1,1（长句独占一行）由流式换行自然形成，禁止 chunked(2) 硬切两行——
       # 369dp 以下屏宽两长句同行会溢出；文本强制单行，极端窄屏/大字体省略号截断。
       layout: flow_wrap_centered
       chip_style:

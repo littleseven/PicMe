@@ -90,10 +90,10 @@
     "height": 36
   },
   "pager": {
-    "_comment": "4 页 App Shell（Camera=0/Gallery=1/Chat=2/People=3）HorizontalPager。",
+    "_comment": "4 页 App Shell（Camera=0/Gallery=1/Chat=2/People=3）HorizontalPager。overlayMaxWidth 2026-08-19 迁移 iPhone 15 画布宽 400→393。",
     "pageSpacing": 16,
     "actionIconSize": 32,
-    "overlayMaxWidth": 400,
+    "overlayMaxWidth": 393,
     "overlayMaxHeight": 500
   },
   "color": {

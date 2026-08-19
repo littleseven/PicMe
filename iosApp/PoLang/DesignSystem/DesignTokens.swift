@@ -615,7 +615,7 @@ enum SearchFieldTokens {
 enum PagerTokens {
     static let pageSpacing: CGFloat = 16
     static let actionIconSize: CGFloat = 32
-    static let overlayMaxWidth: CGFloat = 400
+    static let overlayMaxWidth: CGFloat = 393
     static let overlayMaxHeight: CGFloat = 500
 }
 

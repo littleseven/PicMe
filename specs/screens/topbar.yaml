@@ -8,7 +8,8 @@
 # 双端 SSOT：
 #   Android 实现 = AppTopBar.kt（features/common/topbar/，自建 Row）
 #   iOS 实现     = SwiftUI 顶栏（读本 spec + DesignTokens.swift）
-#   设计稿几何   = Ardot canvas 各帧 top_bar（400×890 帧内坐标）
+#   设计稿几何   = Ardot canvas 各帧 top_bar（393×852 帧内坐标）
+#                 2026-08-19 迁移 iPhone 15 尺寸（相机页除外，重建中）
 # 本文件为规格源；实现与设计稿向此对齐，发现漂移先改这里。
 # 代码落地：2026-08-19 Android 侧 icons.platforms/变体图标已切 Material Outlined（bf23003d9+2278d6f7a）；dynamicColor 全局关闭钉青玉（2c37c4bfd）
 
@@ -49,11 +50,11 @@ topbar:
 
   # ── 变体 B：首页顶栏（title + actions）───────────────────────
   variant_home:
-    title: { align: start, padding_start: 16 }
+    title: { align: start, padding_start: 16 }   # 画布 393 帧实测盒宽 w211 FIXED（防 30×42 窄盒复发）
     actions:
       pack: end                    # 右对齐成组，30px 节奏 = 22 icon + 8 gap
       count_max: 5
-      # 设计稿几何（相册首页 5 钮）：x = 242/272/302/332/362，最右图标右边 384
+      # 设计稿几何（相册首页 5 钮，393 宽）：x = 235/265/295/325/355，最右图标右边 377（余 16）
     applies: [gallery/grid, gallery/empty]
 
   # ── 变体 C：搜索顶栏（back + field + count）──────────────────
@@ -63,7 +64,7 @@ topbar:
       height: 36
       corner_radius: 24   # token searchField/cornerRadius
       background: "surfaceVariant@0.7"   # token searchField/backgroundAlpha
-      grow: true
+      grow: true          # 画布 393 帧实测 fill 宽 311
       leading_icon: { icon: "ic/search", size: 16, alpha: 0.5 }   # token searchField/iconAlpha
       placeholder: { size: 14, color: "onSurface@0.4" }   # token searchField/placeholderAlpha
       clear_button: { icon: "ic/clear", size: 16 }
@@ -74,6 +75,7 @@ topbar:
   variant_iconrow:
     leading: ["ic/back", "ic/menu"]   # chat 常态双钮（返回+抽屉）
     trailing_max: 3                # chat: ic/bug_report, ic/add_comment, ic/delete_sweep
+    # 画布几何（chat 393 宽）：trailing 三钮 x = 303/333/363（末钮迄 385 = 393−8）
     spacer: fill_container         # 中部弹性
     applies: [chat/empty, chat/conversation]   # light 三帧 2026-08-19 删除——全站统一 dark 正稿 + mode override 预览
 

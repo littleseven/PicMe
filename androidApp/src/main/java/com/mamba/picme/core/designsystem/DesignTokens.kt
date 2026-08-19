@@ -389,11 +389,11 @@ object SearchFieldTokens {
     val height = 36.dp
 }
 
-/** 4 页 App Shell（Camera=0/Gallery=1/Chat=2/People=3）HorizontalPager。 */
+/** 4 页 App Shell（Camera=0/Gallery=1/Chat=2/People=3）HorizontalPager。overlayMaxWidth 2026-08-19 迁移 iPhone 15 画布宽 400→393。 */
 object PagerTokens {
     val pageSpacing = 16.dp
     val actionIconSize = 32.dp
-    val overlayMaxWidth = 400.dp
+    val overlayMaxWidth = 393.dp
     val overlayMaxHeight = 500.dp
 }
 

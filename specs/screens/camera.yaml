@@ -11,6 +11,9 @@
 # 颜色引用：appColors.* 对应 design-tokens.json color 节点
 # 图标映射：Material Icons (Android) → SF Symbols (iOS)
 #
+# ── ⚠️ 2026-08-19：画布重建中未随 393×852 迁移（本文件几何仍为 400 宽基准）；
+#    重建收尾后按迁移剧本（docs/superpowers/plans/2026-08-19-iphone15-canvas-migration.md M5）执行 ──
+#
 # ── 2026-08-18 Ardot 高精度还原（三轮修正后定稿）──
 # 依据 Ardot 画布 specs/screens/refs/ardot/camera-*.png（07 帧）落地并三轮真机修正：
 # ① 底部控制区：行序改为 模式行→变焦胶囊行→快门行；快门底距屏底 60dp

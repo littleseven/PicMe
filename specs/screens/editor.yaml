@@ -586,3 +586,57 @@ gacha:
     presets_source: "assets presets/optimize_presets.json 打包进 iOS bundle（与 Android 同源）"
     nima_input: "NHWC 1×224×224×3 逐像素 RGB 交错；归一化 (x-127.5)/127.5；输出 10-bin softmax 期望分 Σpᵢ·(i+1) ∈[1,10]"
     db: "TagDatabase 加 optimize_feedback 表（sqlite3 C API，CREATE TABLE IF NOT EXISTS 幂等）"
+
+# ============================================================================
+# 18. 重设计稿 · 方案 A（醒图/Hypic 风 · glass-noir）— 2026-08-17 Ardot 定稿中
+# ============================================================================
+# 状态：🔄 设计稿（Ardot），用户已选定方向（方案 A）；非本轮实现契约。
+#   §1-17 仍是当前实现的双端对齐 SSOT；本节为下一代编辑器视觉改版的设计输入，
+#   实现排期确定后再将本节内容回写覆盖 §3/§5/§7-11 并走三同步（spec+双端+tokens）。
+# 画布：Ardot 文件 703421493701878，Page「Editor」(118:104)
+#   现状还原: editor/current_crop(118:105) / editor/current_adjust(118:165)
+#             （2026-08-19 随迁 393 宽实测：preview 393×622 / photo 393×495 / tab 行 x=8/85/162/239/316 / act 图标区 218..362）
+#   方案 A:   editor/concept_a_hypic(118:243 滤镜态·主帧) / concept_a_crop(118:480)
+#             / concept_a_adjust(118:372) / concept_a_beauty(118:583)
+#             / 标记态 / AI 抽卡态（待补）
+# 参照竞品：醒图（Hypic）——底部图标工具轨 + 面板浮层化 + 顶栏极简化
+redesign_a:
+  design_language: glass-noir
+    canvas: "#0F0E0E"               # 近黑底（非纯黑，比现状 #000 更柔）
+    overlay_primary: white @ 0.06   # 浮层底（工具轨块/参数 tile 未选中）
+    overlay_hover: white @ 0.08
+    radius_card: 12                 # 工具块/参数 tile/滤镜缩略图统一圆角
+    selected: 白底 #FFFFFF + 深色(#0F0E0E)图标/文字 + 白色 Medium 标签
+    unselected: 图标 white@0.85 / 标签 #808080 10px Regular
+    slider: track white@0.12 h4 r2 / active 白 / thumb 白圆 16
+  frame: 393×852 绝对布局（dp≈pt 度量）
+  layout_slots:                    # y 坐标为设计稿值
+    status_bar: y=12
+    top_bar: y=42                   # 左 ✕ 关闭(32 圆) / undo·redo x=227/261@47（0.35 灰禁用态）/ 「保存」白胶囊 x=311 y=42(w66)
+      note: 现状 §3 的标题「编辑」+ 5 图标 → 简化为 ✕/undo/redo/保存胶囊；去背景与 AI 优化入口收进工具轨
+    photo: x=21 y=82 w=351 h=440    # 照片卡（现状为全宽黑底 Fit；方案 A 改为带边距卡片式）
+    panel_slot: y=522..662          # 各 tab 面板（滤镜缩略图流/调节滑杆+参数流/美颜滑杆+参数 tile/标记工具行）
+    tool_rail: y=686                # 🔑 核心变更：7 项 44×44 圆角 12 图标块（x=16/69/122/175/228/281/334，step 53），
+                                    #   标签 y=738（x=14/67/120/173/226/279/330）w48 fs10；替代现状 §5 的 5 个文字 FilterChip tab
+      items: [构图(crop), 调节(tune), 美颜(face), 滤镜(filter), 标记(brush), 消除(erase·DEFER), AI(auto_fix_high)]
+      note: 比现状多 2 项入口（消除=去背景 DEFER 占位 / AI=抽卡），tab 数 5→7
+    home_indicator: y=828           # x=129.5
+  panels:                          # 滑杆行 track 宽 w361（393 帧实测）
+    filter: 强度滑杆行（label/value/track）+ 滤镜缩略图横滑流（54 宽 r12 缩略图，step 61：x=16/77/138/199/260/321 + fs10 标签）
+    adjust: 参数滑杆行（label/重置/value + track）+ 6 参数横滑（亮度/曝光/对比度/饱和/色温/色调）
+    beauty: 磨皮滑杆行 + 6 参数 tile（磨皮/美白/瘦脸/大眼/唇色/腮红，54×54 r12）
+    markup: 3 工具 tile（涂鸦/马赛克/文字）+ 7 色 swatch 圆 + 笔画粗细滑杆行 + 清除
+    gacha: 深色圆角 20 容器（#1A1919, 400 基准遗留 x=8 w=384，帧待补后重测）替换整个底部区：hint + 4 候选卡(84×84 r6, 方向标签下置,
+           推荐 badge 白底深字, 选中 2px 白描边) + 按钮行（应用=白胶囊 filled / 换一组 / 关闭 文字钮 #808080）
+  token_proposals:                 # 🔄 待设计定稿后入 design-tokens.json 走 codegen（本次不动 JSON）
+    editor.canvasDark: "#0F0E0E"
+    editor.glassOverlay: "white@0.06 / white@0.08"
+    editor.toolRailItemSize: 44
+    editor.toolRailItemRadius: 12
+    editor.paramTileSize: 54
+    editor.gachaBarBg: "#1A1919"   # 或复用 colorScheme.surfaceContainer
+  open_questions:
+    - 标记 7 色 swatch 与笔画滑杆在小屏的排布（原 400 宽设计稿已验证，393 迁移后待截图复验）
+    - 消除(erase) DEFER 入口的「敬请期待」呈现形态沿用 §3 unavailable_toast
+
+# 2026-08-19 画布已迁 393×852（M4）；§1-17 几何为代码现状描述，未随画布迁移变动。
