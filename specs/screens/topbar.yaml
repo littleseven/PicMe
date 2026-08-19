@@ -39,7 +39,7 @@ topbar:
     touch: 36                      # 热区；glyph 居中
     platforms:
       android: "Material Symbols Rounded Outlined w400（material-icons-extended Icons.Outlined.*）"
-      ios: "SF Symbols regular"
+      ios: "mat_o_* classic outlined SVG（24px @22pt，MaterialIconMap/字面名回退加载）；SF Symbols 仅为语义参考名"
     rule: 字形允许平台差异（平台材质项免检），笔画视觉重量必须对齐
 
   # ── 变体 A：子页顶栏（back + title）──────────────────────────
