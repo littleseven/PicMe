@@ -75,7 +75,7 @@ topbar:
     leading: ["ic/back", "ic/menu"]   # chat 常态双钮（返回+抽屉）
     trailing_max: 3                # chat: ic/bug_report, ic/add_comment, ic/delete_sweep
     spacer: fill_container         # 中部弹性
-    applies: [chat/empty, chat/conversation (+light)]
+    applies: [chat/empty, chat/conversation]   # light 三帧 2026-08-19 删除——全站统一 dark 正稿 + mode override 预览
 
   # ── 附录 E：相机 overlay 顶区（引用，不重复定义）──────────────
   appendix_camera:
