@@ -1298,8 +1298,7 @@ private fun SettingsMainMenu(
             ),
             isSelected = { it == themeMode },
             onSelected = { mode -> onThemeModeSelected(mode as ThemeMode) },
-            onDismiss = { showThemeDialog = false },
-            trailing = { mode -> ThemeModePreview(mode as ThemeMode) }
+            onDismiss = { showThemeDialog = false }
         )
     }
     if (showLanguageDialog) {
@@ -1370,33 +1369,6 @@ private fun <T> SettingsSingleChoiceDialog(
                     trailing = { trailing(value) }
                 )
             }
-        }
-    }
-}
-
-/** 主题预览块（dialog_theme spec）：系统默认=浅深双拼，浅色/深色=底色+顶栏示意。 */
-@Composable
-private fun ThemeModePreview(mode: ThemeMode) {
-    Row(
-        modifier = Modifier
-            .size(width = 28.dp, height = 20.dp)
-            .clip(RoundedCornerShape(6.dp))
-    ) {
-        when (mode) {
-            ThemeMode.SYSTEM -> {
-                Box(Modifier.width(14.dp).height(20.dp).background(Color(0xFFFCFDFE)))
-                Box(Modifier.width(14.dp).height(20.dp).background(Color(0xFF1C1B1F)))
-            }
-            ThemeMode.LIGHT -> Box(
-                Modifier
-                    .size(width = 28.dp, height = 20.dp)
-                    .background(Color(0xFFFCFDFE))
-            )
-            ThemeMode.DARK -> Box(
-                Modifier
-                    .size(width = 28.dp, height = 20.dp)
-                    .background(Color(0xFF1C1B1F))
-            )
         }
     }
 }
