@@ -14,7 +14,7 @@ struct AppTopBar<Actions: View>: View {
     var body: some View {
         HStack(spacing: 7) {  // dump：按钮 pitch 143px=43dp = 36 框 + 7 间距
             if showsBackButton {
-                AppTopBarAction(systemName: "chevron.left",
+                AppTopBarAction(systemName: "mat_o_arrow_back",
                                 accessibilityID: "topbar_back") { onBack?() }
             }
             Text(title)

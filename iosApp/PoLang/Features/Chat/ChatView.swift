@@ -136,7 +136,7 @@ struct ChatView: View {
         HStack(spacing: TopBarTokens.spacing) {
             // 返回（pager 场景回相册页）
             Button { onBack?() } label: {
-                MatIcon(name: "mat_arrow_back", size: TopBarTokens.iconSize)
+                MatIcon(name: "mat_o_arrow_back", size: TopBarTokens.iconSize)
                     .foregroundColor(Color(.label))
             }
             .frame(width: TopBarTokens.buttonSize, height: TopBarTokens.buttonSize)
@@ -144,7 +144,7 @@ struct ChatView: View {
 
             // 菜单（打开会话历史侧栏，spec §2.5）
             Button { withAnimation { isSidebarOpen = true } } label: {
-                MatIcon(name: "mat_menu", size: TopBarTokens.iconSize)
+                MatIcon(name: "mat_o_menu", size: TopBarTokens.iconSize)
                     .foregroundColor(Color(.label))
             }
             .frame(width: TopBarTokens.buttonSize, height: TopBarTokens.buttonSize)
@@ -154,7 +154,7 @@ struct ChatView: View {
 
             // 上报问题（Android 走 /v1/report-issue 建 GitHub issue，iOS 通道未接）
             Button { comingSoonFeature = String(localized: "Issue reporting is not available in this version.") } label: {
-                MatIcon(name: "mat_bug_report", size: TopBarTokens.iconSize)
+                MatIcon(name: "mat_o_bug_report", size: TopBarTokens.iconSize)
                     .foregroundColor(Color(.label))
             }
             .frame(width: TopBarTokens.buttonSize, height: TopBarTokens.buttonSize)
@@ -162,7 +162,7 @@ struct ChatView: View {
 
             // 新对话（= 新建会话并切换，对齐 Android onNewChat；非清空当前会话）
             Button { viewModel.newSession() } label: {
-                MatIcon(name: "mat_add_comment", size: TopBarTokens.iconSize)
+                MatIcon(name: "mat_o_add_comment", size: TopBarTokens.iconSize)
                     .foregroundColor(Color(.label))
             }
             .frame(width: TopBarTokens.buttonSize, height: TopBarTokens.buttonSize)
@@ -171,7 +171,7 @@ struct ChatView: View {
             // 清空对话（仅有消息时显示）
             if !viewModel.messages.isEmpty {
                 Button { showClearConfirm = true } label: {
-                    MatIcon(name: "mat_delete_sweep", size: TopBarTokens.iconSize)
+                    MatIcon(name: "mat_o_delete_sweep", size: TopBarTokens.iconSize)
                         .foregroundColor(Color(.label))
                 }
                 .frame(width: TopBarTokens.buttonSize, height: TopBarTokens.buttonSize)

@@ -40,7 +40,7 @@ struct ModelDownloadCenterView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button { dismiss() } label: {
-                    MatIcon(name: "mat_arrow_back", size: 22)
+                    MatIcon(name: "mat_o_arrow_back", size: 22)
                 }
                 .accessibilityIdentifier("model_center_back")
             }

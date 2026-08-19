@@ -197,7 +197,7 @@ struct DiagnosticLogView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack(spacing: 14) {
                     Button { reload() } label: {
-                        Image(systemName: "arrow.clockwise")
+                        MatIcon(name: "mat_o_refresh")
                     }
                     .accessibilityLabel(Text(L("Refresh")))
                     Button { showClearConfirm = true } label: {

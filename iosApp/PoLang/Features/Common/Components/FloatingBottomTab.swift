@@ -8,10 +8,10 @@ struct FloatingBottomTab: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            tabItem(icon: "camera", page: 0)
-            tabItem(icon: "bubble.left", page: 2) // Chat 已落地（Phase 6.2）
-            tabItem(icon: "tag", page: -1, isPlaceholder: true) // 打标无独立页
-            tabItem(icon: "person.2", page: 3)
+            tabItem(icon: "mat_o_photo_camera", page: 0) // 字形切换 camera_alt→photo_camera（对齐 Android 2278d6f7a）
+            tabItem(icon: "mat_o_chat_bubble", page: 2) // Chat 已落地（Phase 6.2）
+            tabItem(icon: "mat_o_sell", page: -1, isPlaceholder: true) // 打标无独立页
+            tabItem(icon: "mat_o_account_circle", page: 3)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -25,8 +25,9 @@ struct FloatingBottomTab: View {
     private func tabItem(icon: String, page: Int, isPlaceholder: Bool = false) -> some View {
         Button {
             if isPlaceholder {
-                // 占位页 — push 到占位 View（由父处理）
-                onPlaceholderTap?(icon)
+                // 占位页 — push 到占位 View（由父处理）；传稳定语义 key（非资产名），
+                // 父级 MainTabView 按 "tag" 路由 TagScanScreen，勿回传 mat_o_* 资产名
+                onPlaceholderTap?(tabId(for: icon))
             } else {
                 withAnimation { currentPage = page }
             }
@@ -42,8 +43,10 @@ struct FloatingBottomTab: View {
 
     private func tabId(for icon: String) -> String {
         switch icon {
-        case "bubble.left": return "chat"
-        case "person.2": return "person"
+        case "mat_o_photo_camera": return "camera"
+        case "mat_o_chat_bubble": return "chat"
+        case "mat_o_sell": return "tag"
+        case "mat_o_account_circle": return "person"
         default: return icon
         }
     }

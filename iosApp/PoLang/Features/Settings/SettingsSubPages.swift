@@ -27,7 +27,7 @@ struct AiAgentSettingsView: View {
                         }
                         .padding(.vertical, 8)
 
-                        Divider()
+                        SettingsM3Divider()
 
                         // 推理模式
                         HStack {
@@ -133,7 +133,7 @@ private struct AiAgentRemoteModelsSection: View {
                     .onTapGesture { store.select(modelId: config.modelId) }
                     .padding(.vertical, 6)
                     if config.uniqueKey != store.configs.last?.uniqueKey {
-                        Divider()
+                        SettingsM3Divider()
                     }
                 }
             }
@@ -351,13 +351,13 @@ struct DeveloperSettingsView: View {
                     VStack(spacing: 0) {
                         toggleRow(L("Debug"), isOn: $debugEnabled)
                         if debugEnabled {
-                            Divider()
+                            SettingsM3Divider()
                             toggleRow(L("Show Camera Info"), isOn: $showCameraInfo)
-                            Divider()
+                            SettingsM3Divider()
                             toggleRow(L("Show Face Debug"), isOn: $showFaceDebug)
-                            Divider()
+                            SettingsM3Divider()
                             toggleRow(L("Show Log Overlay"), isOn: $showLogOverlay)
-                            Divider()
+                            SettingsM3Divider()
                             // Shader Debug Mode 单选 chips
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(L("Shader Debug Mode"))
@@ -392,7 +392,7 @@ struct DeveloperSettingsView: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        Divider()
+                        SettingsM3Divider()
                         // Log Modules 多选 chips
                         VStack(alignment: .leading, spacing: 8) {
                             Text(L("Log Modules"))
@@ -427,11 +427,11 @@ struct DeveloperSettingsView: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        Divider()
+                        SettingsM3Divider()
                         disabledRow(title: L("Search Test"), subtitle: nil)
-                        Divider()
+                        SettingsM3Divider()
                         disabledRow(title: L("JSBridge"), subtitle: nil)
-                        Divider()
+                        SettingsM3Divider()
                         disabledRow(title: L("Accessibility Service"), subtitle: nil)
                     }
                 }
@@ -523,12 +523,12 @@ struct CameraBeautySettingsView: View {
                             .onChange(of: container.beautyParams.slimFace) { v in
                                 UserDefaults.standard.set(v, forKey: "beauty_slim_debug")
                             }
-                        Divider()
+                        SettingsM3Divider()
                         sliderRow(L("Big Eyes"), value: $container.beautyParams.bigEyes, range: 0...100)
                             .onChange(of: container.beautyParams.bigEyes) { v in
                                 UserDefaults.standard.set(v, forKey: "beauty_bigeyes_debug")
                             }
-                        Divider()
+                        SettingsM3Divider()
                         sliderRow(L("Warp Strength"), value: $container.beautyParams.warpStrength,
                                   range: 0...8, step: 0.5, format: { String(format: "%.1fx", $0) })
                             .onChange(of: container.beautyParams.warpStrength) { v in
@@ -556,7 +556,7 @@ struct CameraBeautySettingsView: View {
                     VStack(spacing: 0) {
                         toggleRow(L("Debug Overlay"), isOn: $debugOverlay)
                             .onChange(of: debugOverlay) { v in DebugOverlayState.shared.isEnabled = v }
-                        Divider()
+                        SettingsM3Divider()
                         toggleRow(L("Show Face Landmarks"), isOn: $showLandmarks)
                         Text(L("Draw detected face landmarks on the preview to verify detection feeds the renderer."))
                             .font(.system(size: 11))
@@ -711,11 +711,17 @@ struct SettingsM3Row: View {
     }
 }
 
-/// Android HorizontalDivider（outlineVariant 0.6）。
+/// Android HorizontalDivider（outlineVariant 绑定，双 mode；alpha 分档 0.3/0.5/0.6，默认 0.6）。
+/// 渲染注意：勿用 Divider 加 background 修饰——色垫在发丝线后、separator 材质仍在上层（实际显色=两者叠加，
+/// 双 mode 色值不纯）；此处 Rectangle 显式绘制，outlineVariant（浅 #CDC7BC / 深 #46413A）直接生效。
 struct SettingsM3Divider: View {
     @Environment(\.colorScheme) private var cs
+    var alpha: Double = SettingsTokens.rowChevronAlpha
+
     var body: some View {
-        Divider().background(appScheme(cs).outlineVariant.opacity(SettingsTokens.rowChevronAlpha))
+        Rectangle()
+            .fill(appScheme(cs).outlineVariant.opacity(alpha))
+            .frame(height: 0.5)
     }
 }
 

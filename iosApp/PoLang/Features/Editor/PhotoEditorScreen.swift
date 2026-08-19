@@ -98,13 +98,13 @@ struct PhotoEditorScreen: View {
         AppTopBar(title: String(localized: "Edit"),
                   showsBackButton: true,
                   onBack: { dismiss() }) {
-            EditorAction(system: "square.stack.3d.up.slash", enabled: false) { unavailable() } // 去背景 DEFER
-            EditorAction(system: "wand.and.stars",
+            EditorAction(system: "mat_o_layers_clear", enabled: false) { unavailable() } // 去背景 DEFER
+            EditorAction(system: "mat_o_auto_fix_high",
                          enabled: aiOptimizeEnabled,
                          accessibilityLabel: L("ai_optimize")) { vm.aiOptimize() } // AI 优化抽卡（§17）
-            EditorAction(system: "arrow.uturn.backward", enabled: vm.canUndo) { vm.undo() }
-            EditorAction(system: "arrow.uturn.forward", enabled: vm.canRedo) { vm.redo() }
-            EditorAction(system: "checkmark", enabled: !(ready?.isSaving ?? false)) { vm.save() }
+            EditorAction(system: "mat_o_undo", enabled: vm.canUndo) { vm.undo() }
+            EditorAction(system: "mat_o_redo", enabled: vm.canRedo) { vm.redo() }
+            EditorAction(system: "mat_o_check", enabled: !(ready?.isSaving ?? false)) { vm.save() }
         }
         .background(Color(.systemBackground))
     }
@@ -345,7 +345,8 @@ private struct EditorAction: View {
     let action: () -> Void
     var body: some View {
         Button(action: action) {
-            Image(systemName: system).font(.system(size: IconSize.md, weight: .medium))
+            // mat_o_* outlined 资产经 MatIcon template 渲染（对齐 Android Outlined.*；字形 22=IconSize.md，框 36 不变）
+            MatIcon(name: system, size: IconSize.md)
                 .frame(width: 36, height: 36).contentShape(Rectangle())
         }
         .buttonStyle(.plain)
