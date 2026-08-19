@@ -98,8 +98,7 @@ struct PersonInfoView: View {
     private var topBar: some View {
         HStack(spacing: 8) {
             Button { close() } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .semibold))
+                MatIcon(name: "mat_o_arrow_back", size: 18)
                     .foregroundColor(s.onBackground)
                     .frame(width: 36, height: 36)
             }
@@ -108,15 +107,13 @@ struct PersonInfoView: View {
                 .foregroundColor(s.onBackground)
             Spacer()
             Button { resetRelation() } label: {
-                Image(systemName: "arrow.uturn.backward")
-                    .font(.system(size: 18, weight: .medium))
+                MatIcon(name: "mat_o_undo", size: 18)
                     .foregroundColor(s.onBackground)
                     .frame(width: 36, height: 36)
             }
             .accessibilityLabel(Text(L("Reset")))
             Button { doSave() } label: {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 18, weight: .semibold))
+                MatIcon(name: "mat_o_check", size: 18)
                     .foregroundColor(s.onBackground)
                     .frame(width: 36, height: 36)
             }

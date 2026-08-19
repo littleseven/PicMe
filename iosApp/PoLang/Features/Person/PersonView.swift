@@ -55,8 +55,7 @@ struct PersonView: View {
             Button {
                 if let onBack { onBack() } else { dismiss() }
             } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .semibold))
+                MatIcon(name: "mat_o_arrow_back", size: 18)
                     .foregroundColor(s.onBackground)
                     .frame(width: 36, height: 36)
             }
@@ -69,8 +68,7 @@ struct PersonView: View {
             Button {
                 vm.toggleShowAll()
             } label: {
-                Image(systemName: vm.showAll ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease")
-                    .font(.system(size: 18, weight: .medium))
+                MatIcon(name: vm.showAll ? "mat_o_filter_list_off" : "mat_o_filter_list", size: 18)
                     .foregroundColor(s.onBackground)
                     .frame(width: 36, height: 36)
             }
@@ -79,8 +77,7 @@ struct PersonView: View {
             Button {
                 vm.recluster()
             } label: {
-                Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.system(size: 18, weight: .medium))
+                MatIcon(name: "mat_o_autorenew", size: 18)
                     .foregroundColor(s.onBackground)
                     .frame(width: 36, height: 36)
             }
@@ -198,8 +195,7 @@ private struct PersonCardView: View {
                         .foregroundColor(s.onSurfaceVariant)
                         .padding(.trailing, 4)
                     Button(action: onInfoTap) {
-                        Image(systemName: "info.circle")
-                            .font(.system(size: 20))
+                        MatIcon(name: "mat_o_auto_awesome", size: 20)
                             .foregroundColor(s.onSurfaceVariant)
                             .frame(width: 32, height: 32)
                     }
@@ -287,8 +283,7 @@ private struct NameEditor: View {
                 .submitLabel(.done)
                 .onSubmit { onSave(text) }
             Button { onSave(text) } label: {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 18, weight: .semibold))
+                MatIcon(name: "mat_o_check", size: 18)
                     .foregroundColor(s.primary)
                     .frame(width: 28, height: 28)
             }

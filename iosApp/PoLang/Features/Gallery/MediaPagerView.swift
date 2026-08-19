@@ -157,7 +157,7 @@ struct MediaPagerView: View {
     private var topBar: some View {
         HStack(spacing: 0) {
             Button { dismiss() } label: {
-                MatIcon(name: "mat_arrow_back", size: 24)
+                MatIcon(name: "mat_o_arrow_back", size: 24)
                     .frame(width: 48, height: 48)
                     .contentShape(Rectangle())
             }

@@ -43,7 +43,7 @@ struct SettingsScreen: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button { dismiss() } label: {
-                    MatIcon(name: "chevron.left", size: 20)
+                    MatIcon(name: "mat_o_arrow_back", size: 20)
                 }
             }
         }
@@ -416,7 +416,7 @@ struct AccountSettingsView: View {
                 Image(matIcon: "person").font(.system(size: 24)).foregroundColor(s.primary)
                 Text(storedEmail).font(AppTypography.titleSmall.font).foregroundColor(s.onSurface)
             }
-            Divider()
+            SettingsM3Divider()
             if let quota {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(L("LLM Quota")).font(AppTypography.bodySmall.font).foregroundColor(s.onSurfaceVariant)
@@ -592,7 +592,7 @@ struct AboutView: View {
 
                 VStack(spacing: 0) {
                     infoRow(label: L("Version"), value: appVersion)
-                    Divider().background(Color(.separator))
+                    SettingsM3Divider()
                     if let url = URL(string: "https://github.com/littleseven/polang") {
                         Link(destination: url) {
                             infoRow(label: "GitHub", value: "littleseven/polang", showArrow: true)
@@ -716,7 +716,7 @@ struct LocalModelsSettingsView: View {
                 chip("MediaPipe", isSelected: !useMnn) { useMnn = false }
             }
             // 细分项（iOS 不支持，占位灰显）
-            Divider().padding(.vertical, 2)
+            SettingsM3Divider().padding(.vertical, 2)
             HStack {
                 Text(L("Face landmark mode")).font(.system(size: 14))
                 Spacer()
@@ -837,7 +837,7 @@ struct SandboxSettingsView: View {
             Text(L("Control what the Agent can run autonomously."))
                 .font(.system(size: 12)).foregroundColor(.secondary)
             toggleRow(L("Auto-execute multi-step plans"), isOn: $autoExecute)
-            Divider()
+            SettingsM3Divider()
             toggleRow(L("JS engine execution"), isOn: $jsEngine)
             Text(L("Allow the Agent to execute JS sandbox scripts."))
                 .font(.system(size: 11)).foregroundColor(.secondary.opacity(0.7))
@@ -850,10 +850,10 @@ struct SandboxSettingsView: View {
                 .font(.system(size: 12)).foregroundColor(.secondary)
             toggleRow(L("Camera access"), isOn: $cameraAccess)
             systemPermissionRow(L("Camera permission (system)"))
-            Divider()
+            SettingsM3Divider()
             toggleRow(L("Gallery access"), isOn: $galleryAccess)
             systemPermissionRow(L("Gallery permission (system)"))
-            Divider()
+            SettingsM3Divider()
             // 语音（iOS 占位灰显）
             HStack {
                 Text(L("Voice interaction mode")).font(.system(size: 14)).foregroundColor(.secondary)

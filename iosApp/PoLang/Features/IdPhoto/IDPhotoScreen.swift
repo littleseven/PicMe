@@ -69,7 +69,7 @@ struct IDPhotoScreen: View {
         AppTopBar(title: L("id_photo_title"),
                   showsBackButton: true,
                   onBack: { dismiss() }) {
-            AppTopBarAction(systemName: "checkmark",
+            AppTopBarAction(systemName: "mat_o_check",
                             accessibilityID: "idphoto_save",
                             isEnabled: ready.map { readyState in !readyState.isSaving } ?? false) {
                 Task { await vm.save() }

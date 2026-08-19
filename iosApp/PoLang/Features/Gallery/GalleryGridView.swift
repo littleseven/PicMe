@@ -121,18 +121,18 @@ struct GalleryGridView: View {
     /// 分组菜单/设置可用。
     private var normalTopBar: some View {
         AppTopBar(title: String(localized: "Gallery")) {
-            AppTopBarAction(systemName: "icloud.and.arrow.down",
+            AppTopBarAction(systemName: "mat_o_cloud_download",
                             accessibilityID: "topbar_model_center") { showModelCenter = true }
-            AppTopBarAction(systemName: "play.circle",
+            AppTopBarAction(systemName: "mat_o_play_arrow",
                             accessibilityID: "topbar_scan") {
                 showScanScreen = true
             }
-            AppTopBarAction(systemName: "magnifyingglass",
+            AppTopBarAction(systemName: "mat_o_search",
                             accessibilityID: "topbar_search") {
                 vm.enterSearch()
             }
             groupingMenu
-            AppTopBarAction(systemName: "gearshape",
+            AppTopBarAction(systemName: "mat_o_settings",
                             accessibilityID: "topbar_settings") { showSettings = true }
         }
     }
@@ -142,12 +142,12 @@ struct GalleryGridView: View {
         AppTopBar(title: String(format: String(localized: "Selected %lld"), selected.count),
                   showsBackButton: true,
                   onBack: { exitSelectionMode() }) {
-            AppTopBarAction(systemName: "square.dashed",
+            AppTopBarAction(systemName: "mat_o_select_all",
                             accessibilityID: "topbar_select_all") { toggleSelectAll() }
-            AppTopBarAction(systemName: "square.and.arrow.up",
+            AppTopBarAction(systemName: "mat_o_share",
                             accessibilityID: "topbar_share",
                             isEnabled: !selected.isEmpty) { shareSelected() }
-            AppTopBarAction(systemName: "trash",
+            AppTopBarAction(systemName: "mat_o_delete",
                             accessibilityID: "topbar_delete",
                             isEnabled: !selected.isEmpty) { deleteSelected() }
         }
@@ -164,8 +164,7 @@ struct GalleryGridView: View {
             menuItem(String(localized: "Landscape"), mode: .landscape)
             menuItem(String(localized: "Location"), mode: .location)
         } label: {
-            Image(systemName: "line.3.horizontal.decrease")  // Android Sort 图标的 SF 语义映射
-                .font(.system(size: 22))
+            MatIcon(name: "mat_o_sort", size: 22)  // Android Outlined.Sort（iOS mat_o_* 资产）
                 .foregroundStyle(Color.primary)  // dump：图标深色（非 accent）
                 .frame(width: 36, height: 36)
                 .contentShape(Rectangle())

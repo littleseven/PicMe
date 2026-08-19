@@ -102,7 +102,7 @@ struct ChatThreadSidebarView: View {
 
     private var searchField: some View {
         HStack(spacing: 8) {
-            MatIcon(name: "mat_search", size: 18)
+            MatIcon(name: "mat_o_search", size: 18)
                 .foregroundColor(Color(.secondaryLabel))
             TextField(String(localized: "Search history"), text: $searchQuery)
                 .font(.system(size: 14))

@@ -25,7 +25,7 @@ struct SearchTopBar: View {
         HStack(spacing: SearchFieldTokens.iconGap) {
             // ── leading：返回 ──
             Button(action: onBack) {
-                MatIcon(name: "chevron.left", size: TopBarTokens.iconSize)
+                MatIcon(name: "mat_o_arrow_back", size: TopBarTokens.iconSize)
                     .frame(width: TopBarTokens.buttonSize, height: TopBarTokens.buttonSize)
                     .foregroundStyle(Color.primary)
                     .contentShape(Rectangle())
@@ -36,7 +36,7 @@ struct SearchTopBar: View {
             // ── center：胶囊搜索框 ──
             // spec: surfaceVariant@alpha0.7 → iOS semantic: secondarySystemBackground
             HStack(spacing: SearchFieldTokens.iconGap) {
-                MatIcon(name: "magnifyingglass", size: SearchFieldTokens.fontSize)
+                MatIcon(name: "mat_o_search", size: SearchFieldTokens.fontSize)
                     .foregroundStyle(Color.primary.opacity(AppAlpha.hint))
 
                 TextField(String(localized: "gallery_search_hint"), text: $query)
@@ -52,7 +52,7 @@ struct SearchTopBar: View {
                     Button {
                         query = ""          // 绑定直清；onChange 传播到 onQueryChange
                     } label: {
-                        MatIcon(name: "xmark", size: SearchFieldTokens.clearIconSize)
+                        MatIcon(name: "mat_o_close", size: SearchFieldTokens.clearIconSize)
                             .frame(width: SearchFieldTokens.clearButtonSize,
                                    height: SearchFieldTokens.clearButtonSize)
                             .foregroundStyle(Color.primary.opacity(AppAlpha.hint))
