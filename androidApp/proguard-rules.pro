@@ -54,9 +54,17 @@
 # === JS 引擎 + JSBridge（QuickJS）===
 # JS bridge：NativeHandler 工厂 object、JsBridge、JsEngine 实现经反射装配
 -keep class com.mamba.picme.agent.core.js.** { *; }
-# Koog 工具集（RemoteControlToolService 等 @Tool 工具类；ChatToolService/CameraToolService 自
-# Task 7 起不再实现 ToolSet 标记接口，组合根经 asToolsByClass 展开）为代码直接引用、无需反射 keep；
+# Koog @Tool 反射工具集：@Tool 方法只被 Koog 反射（组合根 asToolsByClass()/reflect tools()）
+# 调用，无任何直接调用点，R8 会把这些方法当无用代码裁剪——裁剪后 asTools() 的
+# require(isNotEmpty()) 抛 IllegalArgumentException("No tools found in ...")，
+# release 包启动即崩（Application.onCreate → AndroidAgentComposition.initialize）。
+# 必须保留三个工具类的全部成员；参数注解依赖上方全局 keepattributes。
 # langchain4j 时代的 @Tool 反射扫描 keep（PoLangToolService）已随 fork 删除（2026-08-07 Phase 6）。
+-keep class com.mamba.picme.agent.core.inference.remote.tool.ChatToolService { *; }
+-keep class com.mamba.picme.agent.core.inference.remote.tool.CameraToolService { *; }
+-keep class com.mamba.picme.agent.core.inference.remote.tool.RemoteControlToolService { *; }
+# Koog 注解类：@Tool/@LLMDescription 实例经 RuntimeVisibleAnnotations 保留，防御性保留注解类本体
+-keep class ai.koog.agents.core.tools.annotations.** { *; }
 
 # Ktor: IntellijIdeaDebugDetector 引用 java.lang.management（JVM 专属 API）探测 IDE 调试器，
 # Android 上不存在该类——Ktor 内部已做运行时防护（懒加载 + 异常兜底），安全忽略。
