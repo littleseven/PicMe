@@ -1,236 +1,231 @@
 {
-  "endpoint": "http://127.0.0.1:50501/api/v1/mcp",
-  "exportedAt": "2026-08-19T00:20:00+08:00",
-  "file": {
-    "id": "715061534788814",
-    "name": "polang-ui-spec",
-    "permission": "readwrite",
-    "url": "cocraft://localhost/file/715061534788814?node_id=132%3A153"
-  },
-  "note": "云端画布为编辑工作区；本目录快照由 export-ardot-snapshot.py 生成（多页聚合，2026-08-16 起），重跑覆盖。变量 SSOT=shared/src/commonMain/resources/design-tokens.json，不在本快照内。2026-08-19 重导补充：export_nodes 批量渲染对部分帧返回空图（渲染缓存/惰性加载缺陷），11 帧（gallery-sort_menu/selection/settings、chat-empty_light/conversation_light、settings-remote_models/sandbox/developer/dialog_language、editor-concept_a_crop/beauty）改用 capture_screenshot 客户端渲染回填；camera 7 帧 + settings-dialog_theme/stage 当前任何 API 路径均无法渲染（相机页画布仅存 ic/back+ic/flip 两实例的空壳，完整结构从未进入 structure dump——待从桌面端恢复后重导），此 9 帧暂用 git HEAD 上一版有效渲染占位。",
-  "pages": [
+ "endpoint": "http://127.0.0.1:50501/api/v1/mcp",
+ "exportedAt": "2026-08-19T13:01:32+08:00",
+ "file": {
+  "id": "715061534788814",
+  "name": "polang-ui-spec",
+  "permission": "readwrite",
+  "url": "cocraft://localhost/file/715061534788814?node_id=118%3A1146"
+ },
+ "note": "云端画布为编辑工作区；本目录快照由 export-ardot-snapshot.py 生成（多页聚合，2026-08-16 起），重跑覆盖。变量 SSOT=shared/src/commonMain/resources/design-tokens.json，不在本快照内。2026-08-19 T9 收口补注：本轮 export_nodes 有 13 帧渲染为空白（833~1748B，重跑复现）；其中 12 帧经 capture_screenshot 回填（chat-conversation_light/chat-empty_light/editor-concept_a_beauty/editor-concept_a_crop/gallery-selection/gallery-settings/gallery-sort_menu/settings-developer/settings-dialog_language/settings-dialog_stage/settings-dialog_theme/settings-remote_models），settings-sandbox.png 画布子树渲染空白（节点结构在，export+capture 均空白）→ 以 git HEAD 版保护性回填；camera 7 帧（含 manifest 外 camera-idle）及 editor-concept_b_pro 为历史导出健康产物，未回填。",
+ "pages": [
+  {
+   "frames": [
     {
-      "frames": [
-        {
-          "id": "118:1146",
-          "name": "camera/idle",
-          "png": "camera-idle.png"
-        },
-        {
-          "id": "118:1184",
-          "name": "camera/panel_beauty_face",
-          "png": "camera-panel_beauty_face.png"
-        },
-        {
-          "id": "118:1255",
-          "name": "camera/panel_ratio",
-          "png": "camera-panel_ratio.png"
-        },
-        {
-          "id": "118:1299",
-          "name": "camera/panel_grid",
-          "png": "camera-panel_grid.png"
-        },
-        {
-          "id": "118:1343",
-          "name": "camera/panel_filter",
-          "png": "camera-panel_filter.png"
-        },
-        {
-          "id": "118:1397",
-          "name": "camera/panel_pro",
-          "png": "camera-panel_pro.png"
-        },
-        {
-          "id": "118:1465",
-          "name": "camera/focusing",
-          "png": "camera-focusing.png"
-        }
-      ],
-      "id": "6:2",
-      "name": "Camera"
+     "id": "118:1184",
+     "name": "camera/panel_beauty_face",
+     "png": "camera-panel_beauty_face.png"
     },
     {
-      "frames": [
-        {
-          "id": "103:3",
-          "name": "gallery/empty",
-          "png": "gallery-empty.png"
-        },
-        {
-          "id": "105:1",
-          "name": "gallery/info",
-          "png": "gallery-info.png"
-        },
-        {
-          "id": "105:45",
-          "name": "gallery/grid",
-          "png": "gallery-grid.png"
-        },
-        {
-          "id": "107:112",
-          "name": "gallery/search",
-          "png": "gallery-search.png"
-        },
-        {
-          "id": "107:156",
-          "name": "gallery/search_no_result",
-          "png": "gallery-search_no_result.png"
-        },
-        {
-          "id": "107:189",
-          "name": "gallery/scanning",
-          "png": "gallery-scanning.png"
-        },
-        {
-          "id": "107:264",
-          "name": "gallery/sort_menu",
-          "png": "gallery-sort_menu.png"
-        },
-        {
-          "id": "107:353",
-          "name": "gallery/selection",
-          "png": "gallery-selection.png"
-        },
-        {
-          "id": "118:1",
-          "name": "gallery/settings",
-          "png": "gallery-settings.png"
-        }
-      ],
-      "id": "103:1",
-      "name": "Gallery"
+     "id": "118:1255",
+     "name": "camera/panel_ratio",
+     "png": "camera-panel_ratio.png"
     },
     {
-      "frames": [
-        {
-          "id": "111:321",
-          "name": "chat/empty",
-          "png": "chat-empty.png"
-        },
-        {
-          "id": "111:383",
-          "name": "chat/conversation",
-          "png": "chat-conversation.png"
-        },
-        {
-          "id": "111:492",
-          "name": "chat/sidebar",
-          "png": "chat-sidebar.png"
-        },
-        {
-          "id": "116:26",
-          "name": "chat/sidebar_light",
-          "png": "chat-sidebar_light.png"
-        },
-        {
-          "id": "116:72",
-          "name": "chat/empty_light",
-          "png": "chat-empty_light.png"
-        },
-        {
-          "id": "116:150",
-          "name": "chat/conversation_light",
-          "png": "chat-conversation_light.png"
-        }
-      ],
-      "id": "111:319",
-      "name": "Chat"
+     "id": "118:1299",
+     "name": "camera/panel_grid",
+     "png": "camera-panel_grid.png"
     },
     {
-      "frames": [
-        {
-          "id": "108:94",
-          "name": "settings/main_list",
-          "png": "settings-main_list.png"
-        },
-        {
-          "id": "108:363",
-          "name": "settings/local_models",
-          "png": "settings-local_models.png"
-        },
-        {
-          "id": "111:1",
-          "name": "settings/remote_models",
-          "png": "settings-remote_models.png"
-        },
-        {
-          "id": "111:50",
-          "name": "settings/sandbox",
-          "png": "settings-sandbox.png"
-        },
-        {
-          "id": "111:129",
-          "name": "settings/developer",
-          "png": "settings-developer.png"
-        },
-        {
-          "id": "111:276",
-          "name": "settings/dialog_language",
-          "png": "settings-dialog_language.png"
-        },
-        {
-          "id": "111:294",
-          "name": "settings/dialog_stage",
-          "png": "settings-dialog_stage.png"
-        },
-        {
-          "id": "111:446",
-          "name": "settings/dialog_theme",
-          "png": "settings-dialog_theme.png"
-        }
-      ],
-      "id": "108:1",
-      "name": "Settings"
+     "id": "118:1343",
+     "name": "camera/panel_filter",
+     "png": "camera-panel_filter.png"
     },
     {
-      "frames": [
-        {
-          "id": "118:105",
-          "name": "editor/current_crop",
-          "png": "editor-current_crop.png"
-        },
-        {
-          "id": "118:165",
-          "name": "editor/current_adjust",
-          "png": "editor-current_adjust.png"
-        },
-        {
-          "id": "118:243",
-          "name": "editor/concept_a_hypic",
-          "png": "editor-concept_a_hypic.png"
-        },
-        {
-          "id": "118:372",
-          "name": "editor/concept_a_adjust",
-          "png": "editor-concept_a_adjust.png"
-        },
-        {
-          "id": "118:480",
-          "name": "editor/concept_a_crop",
-          "png": "editor-concept_a_crop.png"
-        },
-        {
-          "id": "118:583",
-          "name": "editor/concept_a_beauty",
-          "png": "editor-concept_a_beauty.png"
-        }
-      ],
-      "id": "118:104",
-      "name": "Editor"
+     "id": "118:1397",
+     "name": "camera/panel_pro",
+     "png": "camera-panel_pro.png"
     },
     {
-      "frames": [
-        {
-          "id": "132:4",
-          "name": "icon/spec_sheet",
-          "png": "icon-spec_sheet.png"
-        }
-      ],
-      "id": "132:2",
-      "name": "IconSet"
+     "id": "118:1465",
+     "name": "camera/focusing",
+     "png": "camera-focusing.png"
     }
-  ],
-  "scale": 1,
-  "structureSha256": "d4451eb68f9e64254f3d89e6ae13eba4bea92bc618e04e092e111f310734a4e2"
+   ],
+   "id": "6:2",
+   "name": "Camera"
+  },
+  {
+   "frames": [
+    {
+     "id": "103:3",
+     "name": "gallery/empty",
+     "png": "gallery-empty.png"
+    },
+    {
+     "id": "105:1",
+     "name": "gallery/info",
+     "png": "gallery-info.png"
+    },
+    {
+     "id": "105:45",
+     "name": "gallery/grid",
+     "png": "gallery-grid.png"
+    },
+    {
+     "id": "107:112",
+     "name": "gallery/search",
+     "png": "gallery-search.png"
+    },
+    {
+     "id": "107:156",
+     "name": "gallery/search_no_result",
+     "png": "gallery-search_no_result.png"
+    },
+    {
+     "id": "107:189",
+     "name": "gallery/scanning",
+     "png": "gallery-scanning.png"
+    },
+    {
+     "id": "107:264",
+     "name": "gallery/sort_menu",
+     "png": "gallery-sort_menu.png"
+    },
+    {
+     "id": "107:353",
+     "name": "gallery/selection",
+     "png": "gallery-selection.png"
+    },
+    {
+     "id": "118:1",
+     "name": "gallery/settings",
+     "png": "gallery-settings.png"
+    }
+   ],
+   "id": "103:1",
+   "name": "Gallery"
+  },
+  {
+   "frames": [
+    {
+     "id": "111:321",
+     "name": "chat/empty",
+     "png": "chat-empty.png"
+    },
+    {
+     "id": "111:383",
+     "name": "chat/conversation",
+     "png": "chat-conversation.png"
+    },
+    {
+     "id": "111:492",
+     "name": "chat/sidebar",
+     "png": "chat-sidebar.png"
+    },
+    {
+     "id": "116:26",
+     "name": "chat/sidebar_light",
+     "png": "chat-sidebar_light.png"
+    },
+    {
+     "id": "116:72",
+     "name": "chat/empty_light",
+     "png": "chat-empty_light.png"
+    },
+    {
+     "id": "116:150",
+     "name": "chat/conversation_light",
+     "png": "chat-conversation_light.png"
+    }
+   ],
+   "id": "111:319",
+   "name": "Chat"
+  },
+  {
+   "frames": [
+    {
+     "id": "108:94",
+     "name": "settings/main_list",
+     "png": "settings-main_list.png"
+    },
+    {
+     "id": "108:363",
+     "name": "settings/local_models",
+     "png": "settings-local_models.png"
+    },
+    {
+     "id": "111:1",
+     "name": "settings/remote_models",
+     "png": "settings-remote_models.png"
+    },
+    {
+     "id": "111:50",
+     "name": "settings/sandbox",
+     "png": "settings-sandbox.png"
+    },
+    {
+     "id": "111:129",
+     "name": "settings/developer",
+     "png": "settings-developer.png"
+    },
+    {
+     "id": "111:276",
+     "name": "settings/dialog_language",
+     "png": "settings-dialog_language.png"
+    },
+    {
+     "id": "111:294",
+     "name": "settings/dialog_stage",
+     "png": "settings-dialog_stage.png"
+    },
+    {
+     "id": "111:446",
+     "name": "settings/dialog_theme",
+     "png": "settings-dialog_theme.png"
+    }
+   ],
+   "id": "108:1",
+   "name": "Settings"
+  },
+  {
+   "frames": [
+    {
+     "id": "118:105",
+     "name": "editor/current_crop",
+     "png": "editor-current_crop.png"
+    },
+    {
+     "id": "118:165",
+     "name": "editor/current_adjust",
+     "png": "editor-current_adjust.png"
+    },
+    {
+     "id": "118:243",
+     "name": "editor/concept_a_hypic",
+     "png": "editor-concept_a_hypic.png"
+    },
+    {
+     "id": "118:372",
+     "name": "editor/concept_a_adjust",
+     "png": "editor-concept_a_adjust.png"
+    },
+    {
+     "id": "118:480",
+     "name": "editor/concept_a_crop",
+     "png": "editor-concept_a_crop.png"
+    },
+    {
+     "id": "118:583",
+     "name": "editor/concept_a_beauty",
+     "png": "editor-concept_a_beauty.png"
+    }
+   ],
+   "id": "118:104",
+   "name": "Editor"
+  },
+  {
+   "frames": [
+    {
+     "id": "132:4",
+     "name": "icon/spec_sheet",
+     "png": "icon-spec_sheet.png"
+    }
+   ],
+   "id": "132:2",
+   "name": "IconSet"
+  }
+ ],
+ "scale": 1,
+ "structureSha256": "4b8f0141e686c09fce9cabc18030e8220f2b9968a7309672ec7738908d8f98e2"
 }
