@@ -259,6 +259,13 @@ class TagGenerationService : Service() {
     private var progressJob: Job? = null
 
     /**
+     * 在途美学打分任务（runUntilDone）句柄。
+     * 美学打分与扫描会话互斥（eDifFIQA 复用 pipeline 的 RetinaFace 检测，非线程安全）：
+     * 新扫描会话进入活跃态时取消本任务，扫描完成后再由 post-scan 钩子重新补分。
+     */
+    private var aestheticJob: Job? = null
+
+    /**
      * 控制线程：负责状态机、DB 队列操作、进度更新。
      * 必须与任务线程分离，防止 JNI 阻塞时控制命令无法响应。
      */
@@ -332,13 +339,22 @@ class TagGenerationService : Service() {
                 progress.value = sp.toLegacyProgress()
                 lastScanMessage.value = sp?.messages?.lastOrNull()?.text
                 updateNotification(sp)
+                // 扫描会话活跃 → 取消在途美学打分（互斥：eDifFIQA 复用 RetinaFace，非线程安全），
+                // 同时避免打标控制页在扫描期间显示「美学评分」进度而非扫描进度。
+                if (isScanning.value && aestheticJob?.isActive == true) {
+                    android.util.Log.i(TAG, "scan session active; cancelling in-flight aesthetic scoring")
+                    aestheticJob?.cancel()
+                    aestheticJob = null
+                }
                 // 扫描会话完成 → 后台触发全量美学/人脸画质打分（独立、幂等；复用同一 worker 实例）。
                 // fire-and-forget 到 serviceScope，不被 collectLatest 取消；按 sessionId 去重，每会话只触发一次。
                 // runUntilDone 循环跑批排空积压（旧版 runOnce 每会话仅 50 张，大图库永远补不齐）。
+                // 若完成态只是链式批次的中间态（紧接的下一批会话会把状态刷回 RUNNING），
+                // 本任务会被上方互斥逻辑取消，待全部扫描结束后最后一次 COMPLETED 再真正排空。
                 val sid = sp?.sessionId
                 if (sp?.state == ScanSessionState.COMPLETED && sid != null && sid != scoredSession) {
                     scoredSession = sid
-                    serviceScope.launch {
+                    aestheticJob = serviceScope.launch {
                         runCatching {
                             (applicationContext as? PoLangApplication)
                                 ?.container?.aestheticScoreWorker?.runUntilDone()
@@ -485,7 +501,7 @@ class TagGenerationService : Service() {
                 ACTION_SCORE_AESTHETIC -> if (isScanning.value) {
                     android.util.Log.i(TAG, "scan session active; incremental aesthetic scoring deferred to post-scan hook")
                 } else {
-                    serviceScope.launch {
+                    aestheticJob = serviceScope.launch {
                         runCatching {
                             (applicationContext as? PoLangApplication)
                                 ?.container?.aestheticScoreWorker?.runUntilDone()
@@ -495,7 +511,7 @@ class TagGenerationService : Service() {
                 ACTION_SCORE_AESTHETIC_FULL -> if (isScanning.value) {
                     android.util.Log.w(TAG, "scan session active; full aesthetic rescoring rejected, retry after scan")
                 } else {
-                    serviceScope.launch {
+                    aestheticJob = serviceScope.launch {
                         runCatching {
                             AppDatabase.getDatabase(applicationContext).mediaDao().clearAestheticScores()
                             (applicationContext as? PoLangApplication)

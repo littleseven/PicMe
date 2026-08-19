@@ -223,12 +223,14 @@ fun TagGenerationControlScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // ── 当前任务进度卡片（统一槽位）─────────────────────
-            // 活跃任务优先：美学评分运行时显示打分进度，否则显示扫描会话进度。
+            // 扫描会话活跃时优先显示扫描进度（美学打分此时已被 Service 互斥取消，
+            // 此处再兜底防竞态）；空闲时美学评分运行则显示打分进度，否则显示会话终态。
             // 美学评分非会话制（不进 TagScanOrchestrator），会话卡片只反映扫描本身。
-            AnimatedVisibility(visible = aestheticProgress != null) {
+            val scanActive = isScanning
+            AnimatedVisibility(visible = aestheticProgress != null && !scanActive) {
                 aestheticProgress?.let { AestheticProgressCard(it) }
             }
-            AnimatedVisibility(visible = sessionProgress != null && aestheticProgress == null) {
+            AnimatedVisibility(visible = sessionProgress != null && (scanActive || aestheticProgress == null)) {
                 sessionProgress?.let { ScanProgressCard(it) }
             }
 
