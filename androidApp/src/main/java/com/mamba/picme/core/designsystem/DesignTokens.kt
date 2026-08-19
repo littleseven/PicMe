@@ -161,7 +161,7 @@ object ChipTokens {
     val selectedShadowElevation = 2.dp
 }
 
-/** 标签徽章（模型卡 tag badge / 模型 must-have 必备徽章）。primary@0.12 bg + 圆点。 */
+/** 标签徽章（模型卡 tag badge / 模型 must-have 必备徽章）。primary@0.12 bg + 圆点。list*=设置列表行右侧计数徽章（2026-08-19 绑定清扫候选入库）。 */
 object BadgeTokens {
     val tagRadius = 6.dp
     val tagBackgroundAlpha = 0.12f
@@ -174,6 +174,8 @@ object BadgeTokens {
     val requiredBg = Color(0xFFE53935)
     val requiredLabelWeight = FontWeight.Bold
     val requiredLabelColor = Color.White
+    val listWidth = 44.dp
+    val listHeight = 26.dp
 }
 
 /** 相机强制深色 overlay 专属（2026-08-18 按 Ardot 画布 specs/screens/refs/ardot/camera-*.png 高精度还原）。focusRing 复用 color.focusRing。cameraAccent=固定深青玉 #0F766E（非 colorScheme.primary，白字对比度保障）。 */
@@ -232,7 +234,7 @@ object CameraTokens {
     val wbChipFontSize = 12.dp
 }
 
-/** 聊天气泡（2026-08-18 豆包范式，同日二修去头像）：AI 消息=无气泡+通栏纯文本；用户气泡=品牌实色 userBubbleBg；品牌渐变 brandGradientStart→End（发送钮/空态 Logo 与标题）；输入卡 r28+描边。 */
+/** 聊天气泡（2026-08-18 豆包范式，同日二修去头像）：AI 消息=无气泡+通栏纯文本；用户气泡=品牌实色 userBubbleBg；品牌渐变 brandGradientStart→End（发送钮/空态 Logo 与标题）；输入卡 r28+描边。userBubbleOn/tryChipHeight/inputBottomPadding/messageGap 2026-08-19 绑定清扫候选入库。 */
 object ChatBubbleTokens {
     val bubbleMaxWidth = 360.dp
     val imageMaxWidth = 240.dp
@@ -256,6 +258,10 @@ object ChatBubbleTokens {
     val brandGradientStart = Color(0xFF0F766E)
     val brandGradientEnd = Color(0xFF5EA88F)
     val userBubbleBg = Color(0xFF0F766E)
+    val userBubbleOn = Color.White
+    val tryChipHeight = 44.dp
+    val inputBottomPadding = 28.dp
+    val messageGap = 14.dp
 }
 
 /** 聊天媒体结果轮播（MediaResultsCarousel）。ios-follow chat 2026-08-12 自 Android MediaResultsCarousel.kt 反向提取。卡片右侧竖排反馈按钮叠层。 */
@@ -277,7 +283,14 @@ object ChatContextTokens {
     val intentChipSpacing = 8.dp
 }
 
-/** 设置页通用结构。SettingsClickableRow=主行模式，section=分组卡片容器。list*=主菜单列表式（2026-08-17 重设计，iOS 式分组列表）；图标块色映射（行到 vibrant 系、statusColor、colorScheme 角色的对应）属 UI 结构不入 token，双端各自在代码中映射并保持一致。listLabelColumnWidth/listSegmentedHeight/listSegmentedRadius 2026-08-19 自画布回流（sync --check NEW）。注意注释内勿出现连续斜杠星号（会截断 Android KDoc 块注释）。 */
+/** 侧栏抽屉（2026-08-19 绑定清扫候选入库）：threadRadius=会话条圆角; threadTitleSize=会话条标题字号; titleSize=抽屉主标题字号。 */
+object ChatSidebarTokens {
+    val threadRadius = 14.dp
+    val threadTitleSize = 15.dp
+    val titleSize = 18.dp
+}
+
+/** 设置页通用结构。SettingsClickableRow=主行模式，section=分组卡片容器。list*=主菜单列表式（2026-08-17 重设计，iOS 式分组列表）；图标块色映射（行到 vibrant 系、statusColor、colorScheme 角色的对应）属 UI 结构不入 token，双端各自在代码中映射并保持一致。listLabelColumnWidth/listSegmentedHeight/listSegmentedRadius 2026-08-19 自画布回流（sync --check NEW）；listDividerColor/dialogOptionRowHeight/themeSwatchWidth/themeSwatchHeight 2026-08-19 绑定清扫候选入库。注意注释内勿出现连续斜杠星号（会截断 Android KDoc 块注释）。 */
 object SettingsTokens {
     val rowHeightNoSubtitle = 56.dp
     val rowHeightWithSubtitle = 64.dp
@@ -306,9 +319,13 @@ object SettingsTokens {
     val listLabelColumnWidth = 56.dp
     val listSegmentedHeight = 36.dp
     val listSegmentedRadius = 10.dp
+    val listDividerColor = Color(0xFF4A453E)
+    val dialogOptionRowHeight = 48.dp
+    val themeSwatchWidth = 28.dp
+    val themeSwatchHeight = 20.dp
 }
 
-/** 图片编辑器组件几何（结构 token）。内容色板（markup 7 色/lip 12 色/blush 3 色）见 DESIGN_TOKENS_SPEC.md palette 附录，属产品内容数据不入 token。2026-08-19 editor.yaml §18 redesign_a 提案入库：canvasDark/gachaBarBg/overlayAlpha 三档（glassOverlay white@0.06/0.08 拆分）/toolRailItemSize/paramTileSize。 */
+/** 图片编辑器组件几何（结构 token）。内容色板（markup 7 色/lip 12 色/blush 3 色）见 DESIGN_TOKENS_SPEC.md palette 附录，属产品内容数据不入 token。2026-08-19 editor.yaml §18 redesign_a 提案入库：canvasDark/gachaBarBg/overlayAlpha 三档（glassOverlay white@0.06/0.08 拆分）/toolRailItemSize/paramTileSize。canvasPureBlack/toolLabelSize/paramLabelSize/ratioChipSize/topBarButtonSize/unselectedLabelColor 2026-08-19 绑定清扫候选入库。 */
 object EditorTokens {
     val filterPanelHeight = 120.dp
     val filterItemWidth = 72.dp
@@ -334,6 +351,12 @@ object EditorTokens {
     val paramTileSize = 54.dp
     val markupSwatchSelected = 32.dp
     val markupSwatchUnselected = 24.dp
+    val canvasPureBlack = Color.Black
+    val toolLabelSize = 10.dp
+    val paramLabelSize = 13.dp
+    val ratioChipSize = 44.dp
+    val topBarButtonSize = 32.dp
+    val unselectedLabelColor = Color(0xFF808080)
 }
 
 /** 相册/搜索网格。方形 Crop，minCellSize 控制列数。 */
@@ -343,7 +366,15 @@ object GridTokens {
     val cornerRadius = 2.dp
 }
 
-/** SearchTopBar 内嵌胶囊搜索框（Gallery/Chat 共用 SearchField）。ios-follow gallery-search 2026-08-11 自 Android SearchField.kt 反向提取。颜色全走 colorScheme 角色：bg=surfaceVariant@0.7，icon/placeholder/clear=onSurface@0.5/0.4/0.5，cursor=primary。 */
+/** 相册页结构（2026-08-19 绑定清扫候选入库）：groupHeaderHeight=日期分组头高; infoRowFontSize=资产信息行字号; statNumberFontSize=统计数字字号; sortRowHeight=排序菜单行高。 */
+object GalleryTokens {
+    val groupHeaderHeight = 36.dp
+    val infoRowFontSize = 15.dp
+    val statNumberFontSize = 17.dp
+    val sortRowHeight = 40.dp
+}
+
+/** SearchTopBar 内嵌胶囊搜索框（Gallery/Chat 共用 SearchField）。ios-follow gallery-search 2026-08-11 自 Android SearchField.kt 反向提取。颜色全走 colorScheme 角色：bg=surfaceVariant@0.7，icon/placeholder/clear=onSurface@0.5/0.4/0.5，cursor=primary。height=整胶囊高度（2026-08-19 绑定清扫候选入库）。 */
 object SearchFieldTokens {
     val cornerRadius = 24.dp
     val paddingH = 12.dp
@@ -358,6 +389,7 @@ object SearchFieldTokens {
     val resultCountFontSize = 12.dp
     val resultCountAlpha = 0.6f
     val resultCountGap = 8.dp
+    val height = 36.dp
 }
 
 /** 4 页 App Shell（Camera=0/Gallery=1/Chat=2/People=3）HorizontalPager。 */

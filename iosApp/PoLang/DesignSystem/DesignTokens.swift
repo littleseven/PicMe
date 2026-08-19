@@ -22,6 +22,7 @@ enum Spacing {
 
 enum AppRadius {
     static let panel: CGFloat = 24
+    static let lg: CGFloat = 16
     static let card: CGFloat = 12
     static let button: CGFloat = 10
     static let small: CGFloat = 8
@@ -30,6 +31,7 @@ enum AppRadius {
 
 enum AppShapes {
     static let panel = RoundedRectangle(cornerRadius: AppRadius.panel, style: .continuous)
+    static let lg = RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
     static let card = RoundedRectangle(cornerRadius: AppRadius.card, style: .continuous)
     static let button = RoundedRectangle(cornerRadius: AppRadius.button, style: .continuous)
     static let small = RoundedRectangle(cornerRadius: AppRadius.small, style: .continuous)
@@ -58,6 +60,9 @@ enum AppColors {
     static let vibrantOrange = Color(hex: "FFFF9100")
     static let vibrantPink = Color(hex: "FFFF4081")
     static let vibrantPurple = Color(hex: "FF4F378B")
+    static let vibrantAmber = Color(hex: "FFFFA000")
+    static let iconOnVibrant = Color.white
+    static let white = Color.white
 }
 
 // MARK: - Typography（M3 baseline 字号阶梯，仅 bodyLarge 为定制）
@@ -379,6 +384,8 @@ enum BadgeTokens {
     static let requiredBg = Color(hex: "FFE53935")
     static let requiredLabelWeight: Font.Weight = .bold
     static let requiredLabelColor = Color.white
+    static let listWidth: CGFloat = 44
+    static let listHeight: CGFloat = 26
 }
 
 // MARK: - Camera（强制深色 overlay）
@@ -464,6 +471,10 @@ enum ChatBubbleTokens {
     static let brandGradientStart = Color(hex: "FF0F766E")
     static let brandGradientEnd = Color(hex: "FF5EA88F")
     static let userBubbleBg = Color(hex: "FF0F766E")
+    static let userBubbleOn = Color.white
+    static let tryChipHeight: CGFloat = 44
+    static let inputBottomPadding: CGFloat = 28
+    static let messageGap: CGFloat = 14
 }
 
 // MARK: - Chat Carousel（媒体结果横滑卡）
@@ -485,6 +496,14 @@ enum ChatContextTokens {
     static let thumbSize: CGFloat = 72
     static let thumbCornerRadius: CGFloat = 8
     static let intentChipSpacing: CGFloat = 8
+}
+
+// MARK: - Chat Sidebar（侧栏抽屉）
+
+enum ChatSidebarTokens {
+    static let threadRadius: CGFloat = 14
+    static let threadTitleSize: CGFloat = 15
+    static let titleSize: CGFloat = 18
 }
 
 // MARK: - Settings
@@ -517,6 +536,10 @@ enum SettingsTokens {
     static let listLabelColumnWidth: CGFloat = 56
     static let listSegmentedHeight: CGFloat = 36
     static let listSegmentedRadius: CGFloat = 10
+    static let listDividerColor = Color(hex: "FF4A453E")
+    static let dialogOptionRowHeight: CGFloat = 48
+    static let themeSwatchWidth: CGFloat = 28
+    static let themeSwatchHeight: CGFloat = 20
 }
 
 // MARK: - Editor
@@ -546,6 +569,12 @@ enum EditorTokens {
     static let paramTileSize: CGFloat = 54
     static let markupSwatchSelected: CGFloat = 32
     static let markupSwatchUnselected: CGFloat = 24
+    static let canvasPureBlack = Color.black
+    static let toolLabelSize: CGFloat = 10
+    static let paramLabelSize: CGFloat = 13
+    static let ratioChipSize: CGFloat = 44
+    static let topBarButtonSize: CGFloat = 32
+    static let unselectedLabelColor = Color(hex: "FF808080")
 }
 
 // MARK: - Grid
@@ -554,6 +583,15 @@ enum GridTokens {
     static let minCellSize: CGFloat = 110
     static let spacing: CGFloat = 2
     static let cornerRadius: CGFloat = 2
+}
+
+// MARK: - Gallery（相册页结构）
+
+enum GalleryTokens {
+    static let groupHeaderHeight: CGFloat = 36
+    static let infoRowFontSize: CGFloat = 15
+    static let statNumberFontSize: CGFloat = 17
+    static let sortRowHeight: CGFloat = 40
 }
 
 // MARK: - SearchField（SearchTopBar 内嵌胶囊搜索框）
@@ -572,6 +610,7 @@ enum SearchFieldTokens {
     static let resultCountFontSize: CGFloat = 12
     static let resultCountAlpha: CGFloat = 0.6
     static let resultCountGap: CGFloat = 8
+    static let height: CGFloat = 36
 }
 
 // MARK: - Pager

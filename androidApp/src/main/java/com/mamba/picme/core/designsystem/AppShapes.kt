@@ -9,6 +9,7 @@ import androidx.compose.ui.unit.dp
 /** 全局圆角令牌。panel=底部面板顶角（仅顶部两角）；其余为全圆角。 */
 object AppShapes {
     val panel = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    val lg = RoundedCornerShape(16.dp)
     val card = RoundedCornerShape(12.dp)
     val button = RoundedCornerShape(10.dp)
     val small = RoundedCornerShape(8.dp)

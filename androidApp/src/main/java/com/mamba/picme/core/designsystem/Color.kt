@@ -78,6 +78,9 @@ val VibrantBlue = Color(0xFF2979FF)
 val VibrantOrange = Color(0xFFFF9100)
 val VibrantPink = Color(0xFFFF4081)
 val VibrantPurple = Color(0xFF4F378B)
+val VibrantAmber = Color(0xFFFFA000)
+val IconOnVibrantColor = Color.White
+val WhiteColor = Color.White
 
 /** 功能色集合，通过 [MaterialTheme.appColors] 访问。 */
 object AppColors {
@@ -90,4 +93,7 @@ object AppColors {
     val vibrantOrange = VibrantOrange
     val vibrantPink = VibrantPink
     val vibrantPurple = VibrantPurple
+    val vibrantAmber = VibrantAmber
+    val iconOnVibrant = IconOnVibrantColor
+    val white = WhiteColor
 }

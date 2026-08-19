@@ -68,7 +68,8 @@ ENUM_NAMES = {
     "elevation": "AppElevation", "appSlider": "AppSliderTokens", "bottomTab": "BottomTabTokens",
     "bottomSheet": "BottomSheetTokens", "chip": "ChipTokens", "badge": "BadgeTokens",
     "camera": "CameraTokens", "chatBubble": "ChatBubbleTokens", "chatCarousel": "ChatCarouselTokens",
-    "chatContext": "ChatContextTokens", "settings": "SettingsTokens", "editor": "EditorTokens",
+    "chatContext": "ChatContextTokens", "chatSidebar": "ChatSidebarTokens", "settings": "SettingsTokens",
+    "editor": "EditorTokens", "gallery": "GalleryTokens",
     "modelCenter": "ModelCenterTokens", "person": "PersonTokens", "motion": "AppMotion",
     "idphoto": "IdPhotoTokens",
 }
@@ -76,14 +77,14 @@ ENUM_NAMES = {
 IOS_ORDER = ["spacing", "radius", "icon", "color", "typography", "colorScheme", "alpha",
              "statusColor", "motion", "elevation", "topBar", "shutter", "beautyPanel",
              "appSlider", "bottomTab", "bottomSheet", "chip", "badge", "camera",
-             "chatBubble", "chatCarousel", "chatContext", "settings", "editor",
-             "grid", "searchField", "pager", "modelCenter", "person", "idphoto"]
+             "chatBubble", "chatCarousel", "chatContext", "chatSidebar", "settings", "editor",
+             "grid", "gallery", "searchField", "pager", "modelCenter", "person", "idphoto"]
 # Android 组件 token 文件的 object 顺序（spacing/radius/color/typography/colorScheme 有独立文件，不重复）
 ANDROID_TOKENS_ORDER = ["icon", "alpha", "statusColor", "motion", "elevation", "topBar",
                         "shutter", "beautyPanel", "appSlider", "bottomTab", "bottomSheet",
                         "chip", "badge", "camera", "chatBubble", "chatCarousel", "chatContext",
-                        "settings", "editor", "grid", "searchField", "pager", "modelCenter", "person",
-                        "idphoto"]
+                        "chatSidebar", "settings", "editor", "grid", "gallery", "searchField", "pager",
+                        "modelCenter", "person", "idphoto"]
 
 SWIFT_WEIGHTS = {"Normal": ".regular", "Medium": ".medium", "SemiBold": ".semibold", "Bold": ".bold"}
 KOTLIN_WEIGHTS = {"Normal": "FontWeight.Normal", "Medium": "FontWeight.Medium",
@@ -329,7 +330,8 @@ MARK_NAMES = {
     "bottomSheet": "Bottom Sheet（相机/编辑器共享面板外壳）", "chip": "Chip", "badge": "Badge",
     "camera": "Camera（强制深色 overlay）", "chatBubble": "Chat Bubble",
     "chatCarousel": "Chat Carousel（媒体结果横滑卡）", "chatContext": "Chat Context（上下文附件暂存区）",
-    "settings": "Settings", "editor": "Editor", "grid": "Grid",
+    "chatSidebar": "Chat Sidebar（侧栏抽屉）",
+    "settings": "Settings", "editor": "Editor", "grid": "Grid", "gallery": "Gallery（相册页结构）",
     "searchField": "SearchField（SearchTopBar 内嵌胶囊搜索框）", "pager": "Pager",
     "modelCenter": "Model Center", "person": "Person（人物页列表+详情，聚类模型）",
     "idphoto": "ID Photo（证照屏，强制深色）",

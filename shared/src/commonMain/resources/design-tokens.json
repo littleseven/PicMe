@@ -12,8 +12,9 @@
     "xxl": 32
   },
   "radius": {
-    "_comment": "圆角阶梯。panel=底部面板顶角; card=卡片/模型卡; button=按钮/标签; small=辅助元素; thumbnail=网格缩略图。",
+    "_comment": "圆角阶梯。panel=底部面板顶角; card=卡片/模型卡; button=按钮/标签; small=辅助元素; thumbnail=网格缩略图。lg=16 补 card(12)→panel(24) 阶梯空档（2026-08-19 绑定清扫候选入库）。",
     "panel": 24,
+    "lg": 16,
     "card": 12,
     "button": 10,
     "small": 8,
@@ -64,8 +65,15 @@
     "spacing": 2,
     "cornerRadius": 2
   },
+  "gallery": {
+    "_comment": "相册页结构（2026-08-19 绑定清扫候选入库）：groupHeaderHeight=日期分组头高; infoRowFontSize=资产信息行字号; statNumberFontSize=统计数字字号; sortRowHeight=排序菜单行高。",
+    "groupHeaderHeight": 36,
+    "infoRowFontSize": 15,
+    "statNumberFontSize": 17,
+    "sortRowHeight": 40
+  },
   "searchField": {
-    "_comment": "SearchTopBar 内嵌胶囊搜索框（Gallery/Chat 共用 SearchField）。ios-follow gallery-search 2026-08-11 自 Android SearchField.kt 反向提取。颜色全走 colorScheme 角色：bg=surfaceVariant@0.7，icon/placeholder/clear=onSurface@0.5/0.4/0.5，cursor=primary。",
+    "_comment": "SearchTopBar 内嵌胶囊搜索框（Gallery/Chat 共用 SearchField）。ios-follow gallery-search 2026-08-11 自 Android SearchField.kt 反向提取。颜色全走 colorScheme 角色：bg=surfaceVariant@0.7，icon/placeholder/clear=onSurface@0.5/0.4/0.5，cursor=primary。height=整胶囊高度（2026-08-19 绑定清扫候选入库）。",
     "cornerRadius": 24,
     "paddingH": 12,
     "paddingV": 8,
@@ -78,7 +86,8 @@
     "clearIconSize": 16,
     "resultCountFontSize": 12,
     "resultCountAlpha": 0.6,
-    "resultCountGap": 8
+    "resultCountGap": 8,
+    "height": 36
   },
   "pager": {
     "_comment": "4 页 App Shell（Camera=0/Gallery=1/Chat=2/People=3）HorizontalPager。",
@@ -88,7 +97,7 @@
     "overlayMaxHeight": 500
   },
   "color": {
-    "_comment": "不随主题切换的固定功能色。随主题切换的语义色见 colorScheme。",
+    "_comment": "不随主题切换的固定功能色。随主题切换的语义色见 colorScheme。vibrantAmber/iconOnVibrant/white 2026-08-19 绑定清扫候选入库（vibrantAmber 值同 statusColor.warningAmber；iconOnVibrant=vibrant 块上图标白）。",
     "focusRing": "#FF00E5FF",
     "panelBackground": "#CC000000",
     "shutterRing": "#FFE4E4E4",
@@ -97,7 +106,10 @@
     "vibrantBlue": "#FF2979FF",
     "vibrantOrange": "#FFFF9100",
     "vibrantPink": "#FFFF4081",
-    "vibrantPurple": "#FF4F378B"
+    "vibrantPurple": "#FF4F378B",
+    "vibrantAmber": "#FFFFA000",
+    "iconOnVibrant": "#FFFFFFFF",
+    "white": "#FFFFFFFF"
   },
   "typography": {
     "_comment": "M3 baseline 字号阶梯。仅 bodyLarge 为定制（Typography.kt），其余皆为 M3 默认。size/lineHeight/letterSpacing 单位 sp。iOS 映射：role→(size, weight→SwiftUI Font.Weight: Normal=.regular, Medium=.medium)。",
@@ -379,7 +391,7 @@
     "labelStyle": "labelLarge"
   },
   "badge": {
-    "_comment": "标签徽章（模型卡 tag badge / 模型 must-have 必备徽章）。primary@0.12 bg + 圆点。",
+    "_comment": "标签徽章（模型卡 tag badge / 模型 must-have 必备徽章）。primary@0.12 bg + 圆点。list*=设置列表行右侧计数徽章（2026-08-19 绑定清扫候选入库）。",
     "tagRadius": 6,
     "tagBackgroundAlpha": 0.12,
     "tagDotSize": 6,
@@ -392,7 +404,9 @@
     "requiredBg": "#FFE53935",
     "requiredLabelStyle": "labelSmall",
     "requiredLabelWeight": "Bold",
-    "requiredLabelColor": "#FFFFFFFF"
+    "requiredLabelColor": "#FFFFFFFF",
+    "listWidth": 44,
+    "listHeight": 26
   },
   "camera": {
     "_comment": "相机强制深色 overlay 专属（2026-08-18 按 Ardot 画布 specs/screens/refs/ardot/camera-*.png 高精度还原）。focusRing 复用 color.focusRing。cameraAccent=固定深青玉 #0F766E（非 colorScheme.primary，白字对比度保障）。",
@@ -452,7 +466,7 @@
     "wbChipFontSize": 12
   },
   "chatBubble": {
-    "_comment": "聊天气泡（2026-08-18 豆包范式，同日二修去头像）：AI 消息=无气泡+通栏纯文本；用户气泡=品牌实色 userBubbleBg；品牌渐变 brandGradientStart→End（发送钮/空态 Logo 与标题）；输入卡 r28+描边。",
+    "_comment": "聊天气泡（2026-08-18 豆包范式，同日二修去头像）：AI 消息=无气泡+通栏纯文本；用户气泡=品牌实色 userBubbleBg；品牌渐变 brandGradientStart→End（发送钮/空态 Logo 与标题）；输入卡 r28+描边。userBubbleOn/tryChipHeight/inputBottomPadding/messageGap 2026-08-19 绑定清扫候选入库。",
     "bubbleMaxWidth": 360,
     "imageMaxWidth": 240,
     "paddingH": 16,
@@ -475,7 +489,17 @@
     "circularButtonIconSize": 22,
     "brandGradientStart": "#FF0F766E",
     "brandGradientEnd": "#FF5EA88F",
-    "userBubbleBg": "#FF0F766E"
+    "userBubbleBg": "#FF0F766E",
+    "userBubbleOn": "#FFFFFFFF",
+    "tryChipHeight": 44,
+    "inputBottomPadding": 28,
+    "messageGap": 14
+  },
+  "chatSidebar": {
+    "_comment": "侧栏抽屉（2026-08-19 绑定清扫候选入库）：threadRadius=会话条圆角; threadTitleSize=会话条标题字号; titleSize=抽屉主标题字号。",
+    "threadRadius": 14,
+    "threadTitleSize": 15,
+    "titleSize": 18
   },
   "chatCarousel": {
     "_comment": "聊天媒体结果轮播（MediaResultsCarousel）。ios-follow chat 2026-08-12 自 Android MediaResultsCarousel.kt 反向提取。卡片右侧竖排反馈按钮叠层。",
@@ -495,7 +519,7 @@
     "intentChipSpacing": 8
   },
   "settings": {
-    "_comment": "设置页通用结构。SettingsClickableRow=主行模式，section=分组卡片容器。list*=主菜单列表式（2026-08-17 重设计，iOS 式分组列表）；图标块色映射（行到 vibrant 系、statusColor、colorScheme 角色的对应）属 UI 结构不入 token，双端各自在代码中映射并保持一致。listLabelColumnWidth/listSegmentedHeight/listSegmentedRadius 2026-08-19 自画布回流（sync --check NEW）。注意注释内勿出现连续斜杠星号（会截断 Android KDoc 块注释）。",
+    "_comment": "设置页通用结构。SettingsClickableRow=主行模式，section=分组卡片容器。list*=主菜单列表式（2026-08-17 重设计，iOS 式分组列表）；图标块色映射（行到 vibrant 系、statusColor、colorScheme 角色的对应）属 UI 结构不入 token，双端各自在代码中映射并保持一致。listLabelColumnWidth/listSegmentedHeight/listSegmentedRadius 2026-08-19 自画布回流（sync --check NEW）；listDividerColor/dialogOptionRowHeight/themeSwatchWidth/themeSwatchHeight 2026-08-19 绑定清扫候选入库。注意注释内勿出现连续斜杠星号（会截断 Android KDoc 块注释）。",
     "rowHeightNoSubtitle": 56,
     "rowHeightWithSubtitle": 64,
     "rowPaddingH": 12,
@@ -526,10 +550,14 @@
     "listValueMaxWidth": 160,
     "listLabelColumnWidth": 56,
     "listSegmentedHeight": 36,
-    "listSegmentedRadius": 10
+    "listSegmentedRadius": 10,
+    "listDividerColor": "#FF4A453E",
+    "dialogOptionRowHeight": 48,
+    "themeSwatchWidth": 28,
+    "themeSwatchHeight": 20
   },
   "editor": {
-    "_comment": "图片编辑器组件几何（结构 token）。内容色板（markup 7 色/lip 12 色/blush 3 色）见 DESIGN_TOKENS_SPEC.md palette 附录，属产品内容数据不入 token。2026-08-19 editor.yaml §18 redesign_a 提案入库：canvasDark/gachaBarBg/overlayAlpha 三档（glassOverlay white@0.06/0.08 拆分）/toolRailItemSize/paramTileSize。",
+    "_comment": "图片编辑器组件几何（结构 token）。内容色板（markup 7 色/lip 12 色/blush 3 色）见 DESIGN_TOKENS_SPEC.md palette 附录，属产品内容数据不入 token。2026-08-19 editor.yaml §18 redesign_a 提案入库：canvasDark/gachaBarBg/overlayAlpha 三档（glassOverlay white@0.06/0.08 拆分）/toolRailItemSize/paramTileSize。canvasPureBlack/toolLabelSize/paramLabelSize/ratioChipSize/topBarButtonSize/unselectedLabelColor 2026-08-19 绑定清扫候选入库。",
     "filterPanelHeight": 120,
     "filterItemWidth": 72,
     "filterThumbSize": 64,
@@ -553,7 +581,13 @@
     "toolRailItemSize": 44,
     "paramTileSize": 54,
     "markupSwatchSelected": 32,
-    "markupSwatchUnselected": 24
+    "markupSwatchUnselected": 24,
+    "canvasPureBlack": "#FF000000",
+    "toolLabelSize": 10,
+    "paramLabelSize": 13,
+    "ratioChipSize": 44,
+    "topBarButtonSize": 32,
+    "unselectedLabelColor": "#FF808080"
   },
   "modelCenter": {
     "_comment": "模型下载中心专属 token。getTagColor 代码用主题角色(recommended/chat/beauty-camera→tertiary/primary)与下方固定 hex 存在分歧，iOS 以本表固定 hex 为准。",
