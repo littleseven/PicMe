@@ -8,12 +8,22 @@
 
 建立 JSON token 与 Ardot 变量的**一比一镜像**，并按「有 token 必绑定」纪律清扫画布全部页面 UI 定义，使画布成为 JSON 的忠实投影。
 
-## 1. 四原则（映射形式）
+## 1. 五原则（映射形式）
 
 1. **形状保持两级 `域/键`，不升三级**。codegen 的 `parentKey+Capitalized(childKey)` 扁平规则已冻结双端 API 名，三级化 = 双端代码全炸。结构化 = 域的分层语义：基础域（spacing/radius/icon/alpha/elevation）→ 组件域（topBar/chip/bottomTab…）→ 页面域（camera/editor/settings…）→ 颜色角色域（colorScheme→scheme/*）。
-2. **一比一镜像**：JSON token ↔ 同名画布变量；`colorScheme.dark.X ↔ scheme/X@Dark`、`light.X ↔ @Light`（画布只有 scheme 域带双 mode，数值域全 mode 同值）。
-3. **绑定纪律**：语义 token 存在处必须绑变量（色 / alpha / 关键尺寸 / 字阶 / 圆角 / 间距）；一次性坐标、内容色（滤镜缩略图等）、派生布局值不绑。同值重复 ≥2 处且无 token 的字面量 → 补 token 再绑（单一语义除外）。
-4. **JSON 是唯一源**：改值先 JSON → `gen-design-tokens.py` → 增量 merge `apply_variables`；禁整包重灌（scope 会丢）。
+2. **一比一镜像**：JSON token ↔ 同名画布变量；`colorScheme.dark.X ↔ scheme/X@Dark`、`light.X ↔ @Light`（画布只有 scheme 域带双 mode，数值域全 mode 同值）。**模式化是体系必要组成**：凡主题可分叉的值（当前=全部语义色）必须双 mode 定义与引用。
+3. **双向调和（2026-08-19 用户定稿）**：`design-tokens.json` 是 **SSOT**（代码消费侧唯一源，codegen 只读它）；Ardot 变量是**辅助与精修面**——设计侧在画布内直接调 token 是合法工作流，但成果必须回流 SSOT 才算数。同步工具按**显式方向**搬运，常态保持逐项一致：
+   ```
+   design-tokens.json ⇄ sync-ardot-variables.py（--push / --pull / --check）⇄ Ardot「PoLang Tokens」
+        ↓ gen-design-tokens.py（只读 JSON）                 ↓ 变量绑定
+   双端代码常量                                           画布节点
+   ```
+   - `--push`：JSON → 画布（现有能力，merge apply）
+   - `--pull`：画布 → JSON（新增：fetch_variables 全量 → 按 gen_ardot_payload 的逆变换回写 JSON；mode id→名映射；float32 精度归一；`_comment/_version` 保留；画布新增键归入对应域；JSON 有而画布无的键只报告不删，`--prune` 显式删除）
+   - `--check`：双向漂移检测（CI 门禁），零漂移才绿
+   - 冲突语义：不做自动合并，**每次执行显式选方向**；两侧同改先 pull 或 push 其一再改另一
+4. **绑定纪律**：语义 token 存在处必须绑变量（色 / alpha / 关键尺寸 / 字阶 / 圆角 / 间距）；一次性坐标、内容色（滤镜缩略图等）、派生布局值不绑。同值重复 ≥2 处且无 token 的字面量 → 补 token 再绑（单一语义除外）。
+5. **增量优先**：`apply_variables` 按键 merge；scope 规则修复后整包 push 才安全，仍以增量为主。
 
 ## 2. 已签核的三项范围决策
 
@@ -29,9 +39,10 @@
 `fetch_variables` 全量 vs `design-tokens.json` 四维 diff：名称（双向缺失）/ 值 / mode / scope。已知输入态：画布有另一会话加的 `editor/*` 变量（JSON editor 域部分存在）；`icon/strokeWidth` 手工带 scope。产出漂移清单，其中「画布有 JSON 无」的项按语义吸收进 JSON（画布值优先入 JSON，因彼时它是唯一记录）。
 
 ### B 补缺（JSON + 脚本 + 画布）
+0. **同步工具升级（新增，双向调和的基础设施）**：`sync-ardot-variables.py` 增 `--pull`（画布→JSON，gen_ardot_payload 逆变换）与 `--check`（双向漂移、可作 CI 门禁）；更新两脚本头部教义注释（画布=平等编辑面）。`--pull` 落地后先对当前态跑一次 `--check` 产出基线漂移报告，作为 A 阶段审计的机器化形态。
 1. gen 脚本 scope 修复（决策 2）+ `--check` 回归
-2. editor 域补缺入库（决策 3）：候选键 canvasDark #0F0E0E、gachaBarBg #1A1919、overlayAlphaPrimary 0.06、overlayAlphaHover 0.08、overlayAlphaTrack 0.12、toolRailItemSize 44、paramTileSize 54（先与画布既有 editor/* 及 radius/card 12 等去重，重复语义复用既有键）
-3. codegen → 增量 apply → `fetch_variables` 复核双向零漂移
+2. editor 域补缺入库（决策 3）：候选键 canvasDark #0F0E0E、gachaBarBg #1A1919、overlayAlphaPrimary 0.06、overlayAlphaHover 0.08、overlayAlphaTrack 0.12、toolRailItemSize 44、paramTileSize 54（先与画布既有 editor/* 及 radius/card 12 等去重，重复语义复用既有键）——经 `--pull` 或手动归并，方向=画布值优先
+3. codegen → `--push` → `--check` 零漂移收口
 
 ### C 清扫（画布，按页串行）
 页面顺序 Chat → Gallery → Settings → Editor → IconSet（相机帧当前为空壳仅存 icon 实例，实例已绑变量，无清扫面）。每页任务：
