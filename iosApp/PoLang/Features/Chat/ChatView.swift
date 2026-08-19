@@ -350,13 +350,23 @@ struct ChatView: View {
                     .frame(width: ChatBubbleTokens.circularButtonSize, height: ChatBubbleTokens.circularButtonSize)
                     .accessibilityIdentifier("chat_voice")
 
-                    // 发送按钮（圆形，primary tint；仅有内容 && 非处理中时显示）
+                    // 发送按钮（品牌渐变实底圆钮+白 icon，对齐 Android brandGradient 形态；
+                    // 仅有内容 && 非处理中时显示）
                     if canSend {
                         Button(action: send) {
                             MatIcon(name: "mat_send", size: ChatBubbleTokens.circularButtonIconSize)
-                                .foregroundColor(.accentColor)
+                                .foregroundColor(ChatBubbleTokens.userBubbleOn)
                         }
                         .frame(width: ChatBubbleTokens.circularButtonSize, height: ChatBubbleTokens.circularButtonSize)
+                        .background(
+                            Circle().fill(
+                                LinearGradient(
+                                    colors: [ChatBubbleTokens.brandGradientStart, ChatBubbleTokens.brandGradientEnd],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                        )
                         .accessibilityIdentifier("chat_send")
                     }
                 }
