@@ -157,6 +157,7 @@ import com.mamba.picme.features.common.topbar.AppTopBar
 import com.mamba.picme.features.common.topbar.AppTopBarAction
 import com.mamba.picme.features.common.topbar.AppTopBarNavBack
 import com.mamba.picme.features.chat.ChatThreadSidebar
+import com.mamba.picme.data.download.ModelPathConfig
 import com.mamba.picme.data.preferences.UserPreferencesRepository
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import androidx.compose.foundation.text.KeyboardActions
@@ -1722,6 +1723,24 @@ private fun ChatInputArea(
 
     // 语音输入：按需加载本地 Sherpa-ONNX ASR 模型，未配置时回退到系统 ASR
     val localAsrModel by settingsRepository.localAsrModelFlow.collectAsState(initial = "")
+    // 语音模型就绪状态：未就绪时输入区不显示语音入口（无内容时回退为禁用态发送按钮）
+    var voiceModelReady by remember { mutableStateOf(false) }
+    LaunchedEffect(context, localAsrModel, voiceEnabled) {
+        voiceModelReady = if (!voiceEnabled) {
+            false
+        } else {
+            withContext(Dispatchers.IO) {
+                if (localAsrModel.isNotBlank()) {
+                    val modelDir = context.filesDir.resolve("llm_models/$localAsrModel")
+                    modelDir.exists() && modelDir.isDirectory &&
+                        modelDir.walkTopDown().any { file -> file.name.endsWith(".onnx") } &&
+                        File(modelDir, "tokens.txt").exists()
+                } else {
+                    ModelPathConfig.isAsrModelReady(context)
+                }
+            }
+        }
+    }
     var asrEngine by remember(context) {
         mutableStateOf<AsrEngine>(SystemAsrEngine(context))
     }
@@ -1836,6 +1855,7 @@ private fun ChatInputArea(
                     selectedModel = selectedModel,
                     onSwitchModel = viewModel::switchModel,
                     voiceEnabled = voiceEnabled,
+                    voiceModelReady = voiceModelReady,
                     onSwitchToVoice = {
                         inputMode = ChatInputMode.VOICE
                         keyboardController?.hide()
@@ -1916,6 +1936,8 @@ private fun ChatTextInputMode(
     onSwitchModel: (String) -> Unit,
     /** 语音入口是否可用（2026-08-19：语音模式 ≠ DISABLED 才为 true，默认关闭） */
     voiceEnabled: Boolean,
+    /** 语音依赖的 ASR 模型是否已下载就绪；未就绪时不显示语音入口 */
+    voiceModelReady: Boolean,
     onSwitchToVoice: () -> Unit,
     onShowPhotoPicker: () -> Unit,
     claudeMode: Boolean = false,
@@ -2072,8 +2094,9 @@ private fun ChatTextInputMode(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // 语音切换按钮：surfaceContainerHigh 实底圆钮（豆包式）
-                // 2026-08-19：语音默认关闭，仅语音模式 ≠ DISABLED 时显示
-                if (voiceEnabled) {
+                // 2026-08-19：语音默认关闭，仅语音模式 ≠ DISABLED 且 ASR 模型已下载就绪时显示
+                val showVoiceEntry = voiceEnabled && voiceModelReady
+                if (showVoiceEntry) {
                     CircularIconButton(
                         icon = Icons.Rounded.KeyboardVoice,
                         contentDescription = stringResource(R.string.cd_switch_to_voice),
@@ -2090,6 +2113,15 @@ private fun ChatTextInputMode(
                         contentDescription = stringResource(R.string.chat_send),
                         onClick = onSend,
                         brandGradient = true
+                    )
+                } else if (voiceEnabled && !voiceModelReady) {
+                    // 语音模型未下载且无内容：默认显示禁用态发送按钮（替代不可用的语音入口）
+                    CircularIconButton(
+                        icon = Icons.AutoMirrored.Rounded.Send,
+                        contentDescription = stringResource(R.string.chat_send),
+                        onClick = {},
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                        container = MaterialTheme.colorScheme.surfaceContainerHigh
                     )
                 }
             }

@@ -333,12 +333,19 @@ input_bar:
         items:
           - voice_button: *circular_button
             icon: keyboard_voice
-            show_when: "voice_mode != disabled"  # 2026-08-19：语音默认关闭，语音模式开关（设置→沙盒与权限→语音控制）非 DISABLED 时才显示；隐藏时输入框仅文字模式
+            show_when: "voice_mode != disabled && asr_model_ready"  # 2026-08-19：语音默认关闭，语音模式开关（设置→沙盒与权限→语音控制）非 DISABLED 且语音 ASR 模型已下载就绪时才显示；隐藏时输入框仅文字模式
           - send_button:
               show_when: "hasContent && !isProcessing"
               style: *circular_button
               icon: send
               tint: "primary"
+          - send_button_disabled_placeholder:  # 2026-08-19：语音模型未下载且无内容时，默认显示禁用态发送钮（替代不可用的语音入口）
+              show_when: "voice_mode != disabled && !asr_model_ready && !hasContent"
+              style: *circular_button
+              icon: send
+              tint: "onSurfaceVariant.opacity(0.4)"
+              background: "surfaceContainerHigh"
+              enabled: false
 
 # ============================================================================
 # 8. 复用组件规格
@@ -440,7 +447,7 @@ interaction_model:
     stop_button: none  # ⚠️ Android 无 stop/abort 按钮（设计决策）
     model_capsule_visible_when: "hasUserKey (only if user configured own API key)"
     gallery_capsule: "opens photo picker (disabled during processing)"
-    voice_button: "switches to push-to-talk voice mode（2026-08-19：默认隐藏，voice_mode != disabled 时显示；语音输入态整体受同一开关门控，开关关闭时已记忆的 voice 输入态回落 text）"
+    voice_button: "switches to push-to-talk voice mode（2026-08-19：默认隐藏，voice_mode != disabled 且 ASR 模型已下载就绪时显示；语音模型未下载且无内容时右侧显示禁用态发送按钮替代；语音输入态整体受同一开关门控，开关关闭时已记忆的 voice 输入态回落 text）"
 
   # 顶部栏操作
   top_bar_actions:
