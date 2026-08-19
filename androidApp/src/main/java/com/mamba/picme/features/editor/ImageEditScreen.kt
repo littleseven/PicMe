@@ -31,11 +31,11 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Undo
+import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.filled.BlurOn
 import androidx.compose.material.icons.filled.Brush
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -183,14 +183,14 @@ private fun ImageEditContent(
                 centered = true,
                 navigationIcon = {
                     AppTopBarAction(
-                        icon = Icons.Rounded.Close,
+                        icon = Icons.Outlined.Close,
                         contentDescription = stringResource(R.string.cancel),
                         onClick = onDismiss
                     )
                 },
                 actions = {
                     AppTopBarAction(
-                        icon = Icons.AutoMirrored.Rounded.Undo,
+                        icon = Icons.AutoMirrored.Outlined.Undo,
                         contentDescription = stringResource(R.string.undo),
                         onClick = {
                             onUndo()
@@ -199,7 +199,7 @@ private fun ImageEditContent(
                         enabled = actions.isNotEmpty()
                     )
                     AppTopBarAction(
-                        icon = Icons.Rounded.Check,
+                        icon = Icons.Outlined.Check,
                         contentDescription = stringResource(R.string.save),
                         onClick = onSave,
                         enabled = originalBitmap != null

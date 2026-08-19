@@ -23,8 +23,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ContentCopy
-import androidx.compose.material.icons.rounded.DeleteSweep
-import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.outlined.DeleteSweep
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -107,13 +107,13 @@ fun LlmCallLogScreen(onNavigateBack: () -> Unit) {
                 },
                 actions = {
                     AppTopBarAction(
-                        icon = Icons.Rounded.Refresh,
+                        icon = Icons.Outlined.Refresh,
                         contentDescription = stringResource(R.string.refresh),
                         onClick = { vm.refresh() }
                     )
                     if (!inDetail) {
                         AppTopBarAction(
-                            icon = Icons.Rounded.DeleteSweep,
+                            icon = Icons.Outlined.DeleteSweep,
                             contentDescription = stringResource(R.string.clear),
                             onClick = { showClearDialog = true }
                         )

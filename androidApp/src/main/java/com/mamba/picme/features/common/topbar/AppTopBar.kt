@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -161,7 +161,7 @@ fun AppTopBarAction(
 }
 
 /**
- * 标准返回键 —— 锁死 AutoMirrored.Rounded.ArrowBack + 36/22。
+ * 标准返回键 —— 锁死 AutoMirrored.Outlined.ArrowBack + 36/22。
  *
  * 同时注册 [BackHandler]，使系统返回键（虚拟导航栏返回 / 手势返回）与顶栏返回箭头
  * 共享同一个 [onClick] 回调，按构造保证两路返回语义完全一致。规则收敛在此处，
@@ -179,7 +179,7 @@ fun AppTopBarNavBack(
     BackHandler(enabled = enabled, onBack = onClick)
     IconButton(onClick = onClick, modifier = Modifier.size(TopBarButtonSize)) {
         Icon(
-            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
             contentDescription = contentDescription,
             tint = LocalContentColor.current,
             modifier = Modifier.size(TopBarIconSize)

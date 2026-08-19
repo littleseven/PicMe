@@ -3,17 +3,17 @@ package com.mamba.picme.features.gallery.components
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Sort
+import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.CloudDownload
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.SelectAll
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.outlined.CloudDownload
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Pause
+import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.SelectAll
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -88,19 +88,19 @@ fun GalleryTopBar(
         },
         actions = {
             if (isSelectionMode) {
-                AppTopBarAction(Icons.Rounded.SelectAll, stringResource(R.string.select_all), onSelectAll)
-                AppTopBarAction(Icons.Rounded.Share, stringResource(R.string.ocr_share), onShareSelected)
-                AppTopBarAction(Icons.Rounded.Delete, stringResource(R.string.delete), onDeleteSelected)
+                AppTopBarAction(Icons.Outlined.SelectAll, stringResource(R.string.select_all), onSelectAll)
+                AppTopBarAction(Icons.Outlined.Share, stringResource(R.string.ocr_share), onShareSelected)
+                AppTopBarAction(Icons.Outlined.Delete, stringResource(R.string.delete), onDeleteSelected)
             } else {
                 val scanTint = if (isScanning) MaterialTheme.colorScheme.primary else null
                 // 模型中心入口（从悬浮入口移入顶栏，置最左）
                 AppTopBarAction(
-                    icon = Icons.Rounded.CloudDownload,
+                    icon = Icons.Outlined.CloudDownload,
                     contentDescription = stringResource(R.string.model_center),
                     onClick = onNavigateToModelCenter
                 )
                 AppTopBarAction(
-                    icon = if (isScanning) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                    icon = if (isScanning) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
                     contentDescription = if (isScanning) {
                         stringResource(R.string.pause)
                     } else {
@@ -109,9 +109,9 @@ fun GalleryTopBar(
                     onClick = onToggleScan,
                     tint = scanTint
                 )
-                AppTopBarAction(Icons.Rounded.Search, stringResource(R.string.search_photos), onSearchClick)
+                AppTopBarAction(Icons.Outlined.Search, stringResource(R.string.search_photos), onSearchClick)
                 GroupingMenu(currentMode = groupingMode, onModeSelected = onGroupingModeSelected)
-                AppTopBarAction(Icons.Rounded.Settings, stringResource(R.string.settings), onNavigateToSettings)
+                AppTopBarAction(Icons.Outlined.Settings, stringResource(R.string.settings), onNavigateToSettings)
             }
         }
     )
@@ -126,13 +126,13 @@ fun DuplicateManagerTopBar(
         title = { Text(stringResource(R.string.manage_duplicates)) },
         navigationIcon = {
             AppTopBarAction(
-                icon = Icons.Rounded.Close,
+                icon = Icons.Outlined.Close,
                 contentDescription = stringResource(R.string.close),
                 onClick = onNavigateBack
             )
         },
         actions = {
-            AppTopBarAction(Icons.Rounded.Delete, stringResource(R.string.delete_all_duplicates), onDeleteAllDuplicates)
+            AppTopBarAction(Icons.Outlined.Delete, stringResource(R.string.delete_all_duplicates), onDeleteAllDuplicates)
         }
     )
 }
@@ -145,7 +145,7 @@ private fun GroupingMenu(
     var showMenu by remember { mutableStateOf(false) }
     Box {
         AppTopBarAction(
-            icon = Icons.AutoMirrored.Rounded.Sort,
+            icon = Icons.AutoMirrored.Outlined.Sort,
             contentDescription = stringResource(R.string.group_by),
             onClick = { showMenu = true }
         )

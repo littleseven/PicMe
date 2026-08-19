@@ -11,10 +11,10 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.Autorenew
-import androidx.compose.material.icons.rounded.FilterList
-import androidx.compose.material.icons.rounded.FilterListOff
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Autorenew
+import androidx.compose.material.icons.outlined.FilterList
+import androidx.compose.material.icons.outlined.FilterListOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -121,7 +121,7 @@ fun PersonScreen(
                 actions = {
                     // 显示全部 / 隐藏单张未命名单人分组
                     AppTopBarAction(
-                        icon = if (showAll) Icons.Rounded.FilterListOff else Icons.Rounded.FilterList,
+                        icon = if (showAll) Icons.Outlined.FilterListOff else Icons.Outlined.FilterList,
                         contentDescription = stringResource(
                             if (showAll) R.string.people_filter_hide_singletons else R.string.people_filter_show_all
                         ),
@@ -141,7 +141,7 @@ fun PersonScreen(
                         }
                     } else {
                         AppTopBarAction(
-                            icon = Icons.Rounded.AutoAwesome,
+                            icon = Icons.Outlined.AutoAwesome,
                             contentDescription = stringResource(R.string.people_rescore),
                             onClick = {
                                 scope.launch {
@@ -159,7 +159,7 @@ fun PersonScreen(
                     }
                     // 重新聚类：仅重提已有人脸 embedding（对齐路径）+ 全量重聚类（保名），后台 FGS 运行
                     AppTopBarAction(
-                        icon = Icons.Rounded.Autorenew,
+                        icon = Icons.Outlined.Autorenew,
                         contentDescription = stringResource(R.string.people_recluster),
                         onClick = {
                             context.startForegroundService(TagGenerationService.intentReembedFaces(context))

@@ -1,11 +1,11 @@
 package com.mamba.picme.features.editor.components
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Redo
-import androidx.compose.material.icons.automirrored.rounded.Undo
-import androidx.compose.material.icons.rounded.AutoFixHigh
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.LayersClear
+import androidx.compose.material.icons.automirrored.outlined.Redo
+import androidx.compose.material.icons.automirrored.outlined.Undo
+import androidx.compose.material.icons.outlined.AutoFixHigh
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.LayersClear
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.mamba.picme.R
@@ -31,31 +31,31 @@ fun EditorTopBar(
         onBack = onCancel,
         actions = {
             AppTopBarAction(
-                icon = Icons.Rounded.LayersClear,
+                icon = Icons.Outlined.LayersClear,
                 contentDescription = stringResource(R.string.remove_background),
                 onClick = onRemoveBackground,
                 enabled = !isSaving
             )
             AppTopBarAction(
-                icon = Icons.Rounded.AutoFixHigh,
+                icon = Icons.Outlined.AutoFixHigh,
                 contentDescription = stringResource(R.string.ai_optimize),
                 onClick = onAiOptimize,
                 enabled = !isSaving
             )
             AppTopBarAction(
-                icon = Icons.AutoMirrored.Rounded.Undo,
+                icon = Icons.AutoMirrored.Outlined.Undo,
                 contentDescription = stringResource(R.string.undo),
                 onClick = onUndo,
                 enabled = canUndo
             )
             AppTopBarAction(
-                icon = Icons.AutoMirrored.Rounded.Redo,
+                icon = Icons.AutoMirrored.Outlined.Redo,
                 contentDescription = stringResource(R.string.redo),
                 onClick = onRedo,
                 enabled = canRedo
             )
             AppTopBarAction(
-                icon = Icons.Rounded.Check,
+                icon = Icons.Outlined.Check,
                 contentDescription = stringResource(R.string.done),
                 onClick = onDone,
                 enabled = !isSaving

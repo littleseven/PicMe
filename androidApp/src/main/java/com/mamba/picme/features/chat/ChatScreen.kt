@@ -83,12 +83,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.automirrored.rounded.ShortText
 import androidx.compose.material.icons.rounded.Bolt
-import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.rounded.ChatBubble
 import androidx.compose.material.icons.rounded.ContentCopy
-import androidx.compose.material.icons.rounded.DeleteSweep
+import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.AddComment
+import androidx.compose.material.icons.outlined.AddComment
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.ImageNotSupported
 import androidx.compose.material.icons.rounded.Keyboard
@@ -149,7 +149,7 @@ import java.util.Locale
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mamba.picme.R
 import com.mamba.picme.core.common.Logger
-import androidx.compose.material.icons.rounded.Menu
+import androidx.compose.material.icons.outlined.Menu
 import androidx.activity.compose.BackHandler
 import androidx.core.net.toUri
 import com.mamba.picme.features.common.topbar.AppTopBar
@@ -842,16 +842,16 @@ private fun ChatTopBar(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AppTopBarNavBack(onClick = onNavigateBack, enabled = isActivePage)
                 AppTopBarAction(
-                    icon = Icons.Rounded.Menu,
+                    icon = Icons.Outlined.Menu,
                     contentDescription = stringResource(R.string.cd_open_sidebar),
                     onClick = onOpenSidebar
                 )
             }
         },
         actions = {
-            AppTopBarAction(Icons.Rounded.BugReport, stringResource(R.string.report_issue_cd), onReportIssue)
-            AppTopBarAction(Icons.Rounded.AddComment, stringResource(R.string.new_chat), onNewChat)
-            AppTopBarAction(Icons.Rounded.DeleteSweep, stringResource(R.string.clear_chat), onClearChat)
+            AppTopBarAction(Icons.Outlined.BugReport, stringResource(R.string.report_issue_cd), onReportIssue)
+            AppTopBarAction(Icons.Outlined.AddComment, stringResource(R.string.new_chat), onNewChat)
+            AppTopBarAction(Icons.Outlined.DeleteSweep, stringResource(R.string.clear_chat), onClearChat)
         }
     )
 }

@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Clear
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -52,7 +52,7 @@ fun SearchField(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Filled.Search,
+            imageVector = Icons.Outlined.Search,
             contentDescription = "搜索图标",
             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
             modifier = Modifier.padding(end = 8.dp)
@@ -86,7 +86,7 @@ fun SearchField(
                 modifier = Modifier.size(20.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Clear,
+                    imageVector = Icons.Outlined.Clear,
                     contentDescription = stringResource(R.string.cd_clear_search),
                     tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                     modifier = Modifier.size(16.dp)

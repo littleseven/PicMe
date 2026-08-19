@@ -1,7 +1,7 @@
 package com.mamba.picme.features.common.topbar
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
@@ -20,7 +20,7 @@ class AppTopBarTest {
         var clicked = false
         composeRule.setContent {
             AppTopBarAction(
-                icon = Icons.Rounded.Settings,
+                icon = Icons.Outlined.Settings,
                 contentDescription = "settings",
                 onClick = { clicked = true }
             )
@@ -34,7 +34,7 @@ class AppTopBarTest {
         var clicked = false
         composeRule.setContent {
             AppTopBarAction(
-                icon = Icons.Rounded.Settings,
+                icon = Icons.Outlined.Settings,
                 contentDescription = "settings",
                 onClick = { clicked = true },
                 enabled = false
