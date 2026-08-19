@@ -12,6 +12,9 @@ SSOT: shared/src/commonMain/resources/design-tokens.json
   - androidApp/src/main/java/com/mamba/picme/core/designsystem/DesignTokens.kt（组件级 token）
   - build/design-tokens/ardot-variables.json（Ardot apply_variables 预览层输入）
 
+Ardot 画布双向同步：本文件只读 SSOT 单向生成；画布↔JSON 的 --push/--pull/--check
+（含 gen_ardot_payload 的精确逆变换）见 scripts/sync-ardot-variables.py。
+
 用法：
   python3 scripts/gen-design-tokens.py           # 就地生成/覆盖所有产物
   python3 scripts/gen-design-tokens.py --check   # 校验模式：与磁盘 diff，不一致 exit 1（CI 门禁）
@@ -541,12 +544,28 @@ def ardot_color(hex_str):
     return {"r": round(r, 4), "g": round(g, 4), "b": round(b, 4), "a": round(a, 4)}
 
 
+def ardot_float_scopes(var_name):
+    """FLOAT 变量全名（group/name）→ scopes（无歧义键发窄域，其余 None=不发、保持全域可绑）。
+
+    sync-ardot-variables.py --check 按同一规则比对画布侧 scopes，改这里必须同步那边。
+    """
+    if "strokeWidth" in var_name:
+        return ["STROKE_FLOAT"]
+    if var_name.startswith("radius/") or "Radius" in var_name or "radius" in var_name:
+        return ["CORNER_RADIUS"]
+    return None
+
+
 def gen_ardot_payload(tokens):
     """输出 apply_variables 入参：单变量集 'PoLang Tokens'。
 
     模式顺序 ["Dark", "Light"]：Ardot 侧既有集合（2026-08-14 Figma 先导期创建）唯一模式
     就叫 Dark，apply_variables 会把 "Mode 1" 重命名为 modes[0]，必须保持 Dark 在前，
     否则会把存量深色值错标为 Light。语义色命名沿用既有 `scheme/<key>` 前缀（勿改，避免双份漂移）。
+
+    scopes 规约（2026-08-19 双向化）：COLOR 一律 ALL_FILLS；FLOAT 中 strokeWidth 类 →
+    STROKE_FLOAT、radius 类 → CORNER_RADIUS（见 ardot_float_scopes），其余 FLOAT/STRING
+    不发 scopes 字段（Ardot 默认全域可绑）。
     """
     variables = {}
     for key, hexv in tokens["colorScheme"]["light"].items():
@@ -568,7 +587,12 @@ def gen_ardot_payload(tokens):
             continue
         for name, kind, value in flatten(group, data):
             if kind in ("size", "int", "ms", "float"):
-                variables[f"{group}/{name}"] = {"type": "FLOAT", "value": value}
+                full_name = f"{group}/{name}"
+                entry = {"type": "FLOAT", "value": value}
+                scopes = ardot_float_scopes(full_name)
+                if scopes:
+                    entry["scopes"] = scopes
+                variables[full_name] = entry
             elif kind == "color":
                 variables[f"{group}/{name}"] = {"type": "COLOR", "value": ardot_color(value), "scopes": ["ALL_FILLS"]}
             elif kind == "weight":
