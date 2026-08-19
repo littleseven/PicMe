@@ -650,6 +650,9 @@ fun CameraContent(
     val voiceEntryEnabled by userPreferencesRepository.voiceEntryEnabledFlow.collectAsState(
         initial = false
     )
+    val aiChatEntryEnabled by userPreferencesRepository.aiChatEntryEnabledFlow.collectAsState(
+        initial = false
+    )
 
     // 解析远程模型配置
     // 注意：aiAgentSelectedRemoteModel 保存的是 uniqueKey（providerId:modelId），
@@ -1564,6 +1567,7 @@ CameraPreviewContent(
         beautyStrategy = beautyStrategy,
         isVoiceControlEnabled = voiceCommandMode != VoiceCommandMode.DISABLED,
         voiceEntryEnabled = voiceEntryEnabled,
+        aiChatEntryEnabled = aiChatEntryEnabled,
         roiStageConfig = runtimeContext.roiStageConfig,
         landmarkStageConfig = runtimeContext.landmarkStageConfig,
         showLogOverlay = showLogOverlay

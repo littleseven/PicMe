@@ -996,6 +996,8 @@ OFF 模式直接返回「AI Agent 已关闭」，不发远程调用。
 
 仅相机页、**默认隐藏**（`voiceEntryEnabled` DataStore 默认 `false`）；由设置「沙盒与权限 → 设备访问 → 语音控制入口」开关控制（2026-08-16 自「相机与美颜」迁入）。FAB 用 `RecordVoiceOver`（区别于 Chat 的 `KeyboardVoice`）。模式 `VoiceCommandMode` 默认 `DISABLED`，三档：DISABLED / PUSH_TO_TALK / WAKE_WORD。**Push-to-Talk 无模型基线**（系统 ASR）；**WakeWord(KWS) 需下载模型，不默认下载**。
 
+**2026-08-19 语音全面默认关闭**：① 相机页 AI 对话悬浮钮（`KeyboardVoice` 图标）同样默认隐藏，由新增开关 `ai_chat_entry_enabled`（默认 `false`，同区「相机页 AI 助手入口」）控制；② Chat 页与 Agent 共享面板输入框的语音按钮/语音输入态由 `voice_command_mode ≠ DISABLED` 门控，默认不显示，已记忆的语音输入态自动回落文字；③ 语音模型（ASR/KWS）全部归模型中心「推荐」分类。
+
 #### 3.8 场景识别 🔄（仅 Agent 链路，无手动入口）
 
 `ScenePreset = { NONE, NIGHT, MOON }`。**无自动光照检测**：`CameraFrameAnalyzer` 不含亮度/lux/夜景判定逻辑。手动场景选择器 UI 已于 2026-08-15 相机页改版时下线；NIGHT/MOON 仅由 Agent/语音命令（`switch_scene`）设置。
@@ -1109,7 +1111,7 @@ SettingsScreen (MAIN)
 
 ### 6. 数据模型概要
 
-- **UserPreferences/DataStore**（`name = "user_preferences"`）：主题/语言、AI Agent（`ai_agent_mode` 默认 REMOTE、远程模型配置、`auto_execute_plans` 默认 true）、语音（`voice_command_mode` 默认 DISABLED、`voice_entry_enabled` 默认 false）、TAG 生成（`tag_generation_use_opencl` 默认 true、`tagger_model_key` 默认 AUTO、`auto_download_recommended_on_wifi` 默认 true）、相机记忆（`camera_memory_*` ~30 键）、Chat（`chat_input_mode`/`chat_current_session_id`）、远程通道（飞书/Telegram 凭据）、服务端认证（`server_auth_token`/`server_auth_email`）。详见 §3.3。
+- **UserPreferences/DataStore**（`name = "user_preferences"`）：主题/语言、AI Agent（`ai_agent_mode` 默认 REMOTE、远程模型配置、`auto_execute_plans` 默认 true）、语音（`voice_command_mode` 默认 DISABLED、`voice_entry_enabled` 默认 false、`ai_chat_entry_enabled` 默认 false）、TAG 生成（`tag_generation_use_opencl` 默认 true、`tagger_model_key` 默认 AUTO、`auto_download_recommended_on_wifi` 默认 true）、相机记忆（`camera_memory_*` ~30 键）、Chat（`chat_input_mode`/`chat_current_session_id`）、远程通道（飞书/Telegram 凭据）、服务端认证（`server_auth_token`/`server_auth_email`）。详见 §3.3。
 - **账号 Token**：`server_auth_token` / `server_auth_email`。Guest 标识 = `DeviceIdProvider.get()`（非 DataStore 键）。
 - **模型清单**：`res/raw/llm_models.json`（16 模型，全 ModelScope）；不内置，运行时下载到 `filesDir/llm_models/<modelId>/`。
 - **远程模型配置**：`ai_agent_remote_model_configs_v2`（JSON 多供应商）+ `ai_agent_selected_remote_model`（默认 `deepseek-v4-flash`）。
@@ -1196,7 +1198,7 @@ SettingsScreen (MAIN)
 
 > **无自定义相册（custom/smart album）表**。`album` grep 命中均为 MediaStore bucketId 查询字段或「保存到系统相册」动作。
 
-**DataStore 主要键**（`name = "user_preferences"`，分类摘要，全量见 `UserPreferencesRepository.kt:56-164`）：主题/语言（`theme_mode`/`app_language` 默认 SYSTEM）、AI Agent（`ai_agent_mode` 默认 REMOTE、`ai_agent_remote_model_configs_v2`、`ai_agent_selected_remote_model` 默认 `deepseek-v4-flash`、`auto_execute_plans` 默认 true）、语音（`voice_command_mode` 默认 DISABLED、`voice_entry_enabled` 默认 false）、TAG（`tag_generation_use_opencl` 默认 true、`tagger_model_key` 默认 AUTO、`auto_download_recommended_on_wifi` 默认 true）、相机记忆（`camera_memory_*` ~30 键）、Chat（`chat_input_mode`/`chat_current_session_id`）、远程通道（飞书/Telegram 凭据）、服务端认证（`server_auth_token`/`server_auth_email`）、引擎（`gl_engine_recovery_available_at_ms`、`beauty_strategy` 默认 BIG_BEAUTY）。
+**DataStore 主要键**（`name = "user_preferences"`，分类摘要，全量见 `UserPreferencesRepository.kt:56-164`）：主题/语言（`theme_mode`/`app_language` 默认 SYSTEM）、AI Agent（`ai_agent_mode` 默认 REMOTE、`ai_agent_remote_model_configs_v2`、`ai_agent_selected_remote_model` 默认 `deepseek-v4-flash`、`auto_execute_plans` 默认 true）、语音（`voice_command_mode` 默认 DISABLED、`voice_entry_enabled` 默认 false、`ai_chat_entry_enabled` 默认 false）、TAG（`tag_generation_use_opencl` 默认 true、`tagger_model_key` 默认 AUTO、`auto_download_recommended_on_wifi` 默认 true）、相机记忆（`camera_memory_*` ~30 键）、Chat（`chat_input_mode`/`chat_current_session_id`）、远程通道（飞书/Telegram 凭据）、服务端认证（`server_auth_token`/`server_auth_email`）、引擎（`gl_engine_recovery_available_at_ms`、`beauty_strategy` 默认 BIG_BEAUTY）。
 
 **shared commonMain DTO（iOS 可直接消费的契约面）**：`MediaAsset` / `UserPreferences`（`ThemeMode`/`AppLanguage`/`AiAgentMode` 等）/ `RemoteChannelType` / `VoiceCommandMode` / `StructuredFilter` / `DuplicateGroup` / Agent 编排契约（`AgentContext`/`AgentAction`/`ExecutionPlan`/`AiAgentConfig`）/ `RemoteModelConfig`/`RemoteModelConfigs`（**iOS `ModelConfigStore.swift` 已直接消费**）/ `ChatStreamEvent`。iOS 契约面结论：`:shared` 编译为 XCFramework，commonMain 类型经 K/N 直接消费，互操作链路已验证畅通。
 

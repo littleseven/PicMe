@@ -333,6 +333,7 @@ input_bar:
         items:
           - voice_button: *circular_button
             icon: keyboard_voice
+            show_when: "voice_mode != disabled"  # 2026-08-19：语音默认关闭，语音模式开关（设置→沙盒与权限→语音控制）非 DISABLED 时才显示；隐藏时输入框仅文字模式
           - send_button:
               show_when: "hasContent && !isProcessing"
               style: *circular_button
@@ -439,7 +440,7 @@ interaction_model:
     stop_button: none  # ⚠️ Android 无 stop/abort 按钮（设计决策）
     model_capsule_visible_when: "hasUserKey (only if user configured own API key)"
     gallery_capsule: "opens photo picker (disabled during processing)"
-    voice_button: "switches to push-to-talk voice mode"
+    voice_button: "switches to push-to-talk voice mode（2026-08-19：默认隐藏，voice_mode != disabled 时显示；语音输入态整体受同一开关门控，开关关闭时已记忆的 voice 输入态回落 text）"
 
   # 顶部栏操作
   top_bar_actions:
@@ -486,7 +487,7 @@ allowed_differences:
   - "字体回退（Roboto vs SF Pro）"
   - "阴影渲染（elevation vs shadow）"
   - "键盘交互（Android imePadding vs iOS focused state）"
-  - "语音输入（sherpa-onnx Android vs iOS Phase 6 未实现）"
+  - "语音输入（sherpa-onnx Android vs iOS 未实现；2026-08-19 起双端默认隐藏语音按钮，Android 由语音模式开关门控，iOS 占位按钮已移除）"
   - "代码块折叠/复制 UI 细节"
   - "表格渲染（Android Compose Grid vs iOS LazyVGrid）"
   - "性能指标行（Android LlmPerformance 展示，iOS v1 省略）"

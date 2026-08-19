@@ -112,13 +112,21 @@ ai_agent:
         - remote_models_section:
             type: custom                # AiAgentRemoteModelsSection（已在 iOS 实现）
 
-    - title: "Voice Control"            # 语音控制
+    - title: "Voice Control"            # 语音控制（2026-08-19：语音全面默认关闭，本组为唯一开启入口）
       items:
         - voice_mode:
             type: chips
             title: "Voice Command"
             options: [disabled, push_to_talk, wake_word]
-            default: disabled
+            default: disabled           # 门控 Chat 页 / Agent 共享面板输入框语音按钮：≠disabled 才显示
+        - voice_entry:
+            type: switch
+            title: "Voice Control Entry"  # 相机页语音控制悬浮钮（RecordVoiceOver）
+            default: false
+        - ai_chat_entry:                # 2026-08-19 新增
+            type: switch
+            title: "Camera AI Chat Entry" # 相机页 AI 对话悬浮钮（KeyboardVoice 图标）
+            default: false
         - asr_model:                   # 仅 mode≠disabled 时显示
             type: chips
             show_when: "voice_mode != disabled"
@@ -403,5 +411,5 @@ allowed_differences:
   - "开发者选项部分开发工具 iOS 灰显标注 Android only（Search Test/JSBridge/Accessibility 无对应页）"
   - "诊断日志：Android 存 Room 三表 + 同 traceId 横滑 pager；iOS 存 JSONL 文件 + 单条详情（pager 台账登记）"
   - "Log Modules 门控范围：双端均只门控 shared/平台 Logger 通道；iOS Swift 侧 print 不经门控"
-  - "语音控制（iOS 暂无 sherpa-onnx）"
+  - "语音控制（iOS 暂无 sherpa-onnx；2026-08-19 起 Android 全部语音入口默认关闭，iOS Chat 语音占位按钮同步移除，voice 三组开关为 Android only 平台差异）"
   - "相册 TAG 控制页（iOS Phase 6.1 未落地）"

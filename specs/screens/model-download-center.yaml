@@ -63,9 +63,9 @@ category_tabs:
       icon:
         material: star
         sf_symbol: "star.fill"
-      models_source: "isRequired == true"  # 出现条件：模型 isRequired
+      models_source: "isRequired == true"  # 出现条件：模型 isRequired；2026-08-19 起不含任何语音模型（ASR/KWS 全部归「推荐」）
     - id: "recommended"
-      label: "Recommended"     # 推荐
+      label: "Recommended"     # 推荐（含语音模型：sherpa-onnx-zipformer-zh-en ASR + sherpa-onnx-kws-zipformer-wenetspeech KWS）
       icon:
         material: download
         sf_symbol: "arrow.down.circle"

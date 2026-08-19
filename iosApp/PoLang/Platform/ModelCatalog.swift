@@ -32,6 +32,7 @@ struct ModelEntry: Codable, Identifiable {
 
     private static let recommendedIds: Set<String> = [
         "sherpa-onnx-zipformer-zh-en",
+        "sherpa-onnx-kws-zipformer-wenetspeech", // KWS 唤醒词（2026-08-19：语音模型全部归推荐）
         "modnet-onnx",
         "u2netp-onnx",
         "mediapipe-face-landmarker",

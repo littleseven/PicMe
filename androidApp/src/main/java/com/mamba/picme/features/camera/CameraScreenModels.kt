@@ -117,6 +117,8 @@ internal data class CameraPreviewUiState(
     val isVoiceControlEnabled: Boolean,
     /** 相机页语音入口（悬浮 FAB）显隐，由设置开关控制，默认 false */
     val voiceEntryEnabled: Boolean,
+    /** 相机页 AI 对话入口（悬浮 FAB）显隐，由设置开关控制，默认 false（2026-08-19 起默认隐藏） */
+    val aiChatEntryEnabled: Boolean,
     val roiStageConfig: StageConfig,
     val landmarkStageConfig: StageConfig,
     val showProPanel: Boolean,
@@ -196,6 +198,7 @@ internal fun buildCameraPreviewUiState(
     beautyStrategy: BeautyStrategy,
     isVoiceControlEnabled: Boolean,
     voiceEntryEnabled: Boolean,
+    aiChatEntryEnabled: Boolean,
     roiStageConfig: StageConfig,
     landmarkStageConfig: StageConfig,
     showLogOverlay: Boolean
@@ -238,6 +241,7 @@ internal fun buildCameraPreviewUiState(
         beautyStrategy = beautyStrategy,
         isVoiceControlEnabled = isVoiceControlEnabled,
         voiceEntryEnabled = voiceEntryEnabled,
+        aiChatEntryEnabled = aiChatEntryEnabled,
         roiStageConfig = roiStageConfig,
         landmarkStageConfig = landmarkStageConfig,
         showProPanel = panelState.showProPanel,

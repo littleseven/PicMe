@@ -147,6 +147,10 @@ interface UserSettingsRepository {
     val voiceEntryEnabledFlow: Flow<Boolean>
     suspend fun updateVoiceEntryEnabled(enabled: Boolean)
 
+    /** 相机页 AI 对话入口（悬浮 FAB）是否显示，默认 false（2026-08-19 语音/AI 悬浮入口全面默认隐藏） */
+    val aiChatEntryEnabledFlow: Flow<Boolean>
+    suspend fun updateAiChatEntryEnabled(enabled: Boolean)
+
     val localAsrModelFlow: Flow<String>
     suspend fun updateLocalAsrModel(modelId: String)
 

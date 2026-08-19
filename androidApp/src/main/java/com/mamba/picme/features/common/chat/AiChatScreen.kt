@@ -84,6 +84,7 @@ import com.mamba.picme.R
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.data.preferences.UserPreferencesRepository
 import com.mamba.picme.domain.model.AiAgentCommand
+import com.mamba.picme.domain.model.VoiceCommandMode
 import com.mamba.picme.agent.core.platform.voice.AudioRecorder
 import com.mamba.picme.agent.core.platform.voice.InputAudioDevice
 import com.mamba.picme.features.camera.voice.VoiceCommandCoordinator
@@ -657,9 +658,14 @@ private fun ChatInputBar(
     val scope = rememberCoroutineScope()
     val settingsRepository = remember { UserPreferencesRepository(context) }
     val savedInputMode by settingsRepository.chatInputModeFlow.collectAsState(initial = "text")
-    var inputMode by remember(savedInputMode) {
+    // 语音为默认关闭的实验能力（2026-08-19）：语音模式 ≠ DISABLED 时才显示语音入口
+    val voiceCommandMode by settingsRepository.voiceCommandModeFlow.collectAsState(
+        initial = VoiceCommandMode.DISABLED
+    )
+    val voiceEnabled = voiceCommandMode != VoiceCommandMode.DISABLED
+    var inputMode by remember(savedInputMode, voiceEnabled) {
         mutableStateOf(
-            if (savedInputMode == "text") InputMode.TEXT else InputMode.VOICE
+            if (savedInputMode == "text" || !voiceEnabled) InputMode.TEXT else InputMode.VOICE
         )
     }
 
@@ -686,6 +692,7 @@ private fun ChatInputBar(
                         settingsRepository.updateChatInputMode("voice")
                     }
                 },
+                voiceEnabled = voiceEnabled,
                 voiceCoordinator = voiceCoordinator
             )
             InputMode.VOICE -> VoiceInputMode(
@@ -766,11 +773,11 @@ private fun TextInputMode(
     isProcessing: Boolean,
     onSend: () -> Unit,
     onSwitchToVoice: () -> Unit,
+    /** 语音入口是否可用（2026-08-19：语音模式 ≠ DISABLED 才为 true，默认关闭） */
+    voiceEnabled: Boolean,
     voiceCoordinator: VoiceCommandCoordinator? = null
 ) {
-    val inputDevice = rememberInputAudioDevice(voiceCoordinator)
-    val isHeadsetConnected = inputDevice is InputAudioDevice.BluetoothSco ||
-        inputDevice is InputAudioDevice.WiredHeadset
+    // 语音关闭时不注册耳机广播监听（2026-08-19：rememberInputAudioDevice 仅在 voiceEnabled 分支内调用）
     val hasContent = text.isNotBlank()
 
     // 单行布局：语音按钮 + 输入框 + 发送按钮，全部在同一行
@@ -783,25 +790,31 @@ private fun TextInputMode(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        // 左侧：语音切换按钮
-        Box {
-            IconButton(
-                onClick = onSwitchToVoice,
-                modifier = Modifier.size(36.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.KeyboardVoice,
-                    contentDescription = stringResource(R.string.cd_switch_to_voice),
-                    tint = Color.White.copy(alpha = 0.7f),
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-            // 耳机连接状态小标记
-            if (isHeadsetConnected) {
-                HeadsetBadge(
-                    device = inputDevice,
-                    modifier = Modifier.align(Alignment.TopEnd)
-                )
+        // 左侧：语音切换按钮（2026-08-19：语音默认关闭，仅语音模式 ≠ DISABLED 时显示）
+        if (voiceEnabled) {
+            // 仅语音开启时才注册耳机广播监听
+            val inputDevice = rememberInputAudioDevice(voiceCoordinator)
+            val isHeadsetConnected = inputDevice is InputAudioDevice.BluetoothSco ||
+                inputDevice is InputAudioDevice.WiredHeadset
+            Box {
+                IconButton(
+                    onClick = onSwitchToVoice,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.KeyboardVoice,
+                        contentDescription = stringResource(R.string.cd_switch_to_voice),
+                        tint = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                // 耳机连接状态小标记
+                if (isHeadsetConnected) {
+                    HeadsetBadge(
+                        device = inputDevice,
+                        modifier = Modifier.align(Alignment.TopEnd)
+                    )
+                }
             }
         }
 

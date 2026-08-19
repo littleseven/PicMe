@@ -115,14 +115,19 @@
 - **存储路径**：应用私有目录 `files/llm_models/{modelId}/`
 - **下载管理**：`LlmModelDownloadManager` 支持断点续传、暂停和进度回调
 - **模型配置**：`res/raw/llm_models.json` 定义所有可用模型的元数据；每个模型通过 `tags` 中的服务功能标签（`must-have` / `chat` / `voice` / `photo-tagging` / `beauty-camera`）决定所属分类
-- **必须模型清单（`ModelConfig.REQUIRED_MODEL_IDS`）**：
-  - `sherpa-onnx-zipformer-zh-en`（ASR，语音输入）
-  - `sherpa-onnx-kws-zipformer-wenetspeech`（KWS，唤醒词）
+- **必须模型清单（`ModelConfig.REQUIRED_MODEL_IDS`）**（2026-08-19 校正：语音模型全部移出必须，归「推荐」）：
   - `face-det-retina500m-mnn`（默认人脸检测，Det10G 已降级为可选）
   - `face-landmark-2d106-mnn`（人脸关键点）
   - `face-embedding-glint360k-r100-mnn`（人脸聚类/识别，Glint360K R100）
+  - `florence2_base`（图片打标，默认 tagger）
   - `mobileclip-onnx`（语义搜索/相册打标）
-  - `opus-mt-zh-en`（中文查询翻译）
+  - `opus-mt-zh-en`（中文查询翻译）/ `opus-mt-en-zh`（英文 summary 汉化）
+- **推荐模型含语音**：`sherpa-onnx-zipformer-zh-en`（ASR）、`sherpa-onnx-kws-zipformer-wenetspeech`（KWS）均在 `RECOMMENDED_MODEL_IDS`，按需下载
+
+**语音开关组（设置 → 沙盒与权限 → 语音，2026-08-19 全面默认关闭）**
+- `voiceCommandMode`（默认 DISABLED）：门控 Chat 页与 Agent 共享面板输入框的语音按钮/语音输入态，≠ DISABLED 才显示
+- `voiceEntryEnabled`（默认 false）：相机页语音控制悬浮钮（RecordVoiceOver）
+- `aiChatEntryEnabled`（默认 false，2026-08-19 新增）：相机页 AI 对话悬浮钮（KeyboardVoice 图标）
 
 **Agent 模式设置**
 - **远程模式**：使用云端 LLM API（OpenAI 兼容协议）；端侧文本 LLM（qwen3_5_2b）已移除，相机/聊天指令统一走远程 tool_calls 链路
