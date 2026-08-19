@@ -73,10 +73,17 @@ private val DarkColorScheme = darkColorScheme(
     onSurface = OnSurfaceDark,
 )
 
+/**
+ * 全局主题入口。
+ *
+ * 动态取色决策（2026-08-19 签核）：全局关闭壁纸动态取色，钉青玉品牌色 scheme。
+ * 原因：双端一致（iOS 无 Material You 动态色机制）；Ardot 设计稿恒为青玉。
+ * 口子保留——未来如需恢复，调用方显式传 [dynamicColor] = true 即可。
+ */
 @Composable
 fun PoLangTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val darkTheme = when (themeMode) {
@@ -107,11 +114,12 @@ fun PoLangTheme(
  * 用于相机、证件照等「强制深色背景」的页面：这些页面无论用户主题如何都以深色
  * 为背景呈现，但全局 scheme 跟随用户主题，浅色 scheme 下 onSurface 派生色
  * （如 AppSlider 未激活轨道 onSurface 12%）在深色背景上不可见。用本包装让
- * scheme 与视觉场景对齐。动态取色策略与 [PoLangTheme] 一致。
+ * scheme 与视觉场景对齐。动态取色策略与 [PoLangTheme] 一致（默认关闭，钉青玉，
+ * 2026-08-19 签核；恢复动态取色需显式传 dynamicColor = true）。
  */
 @Composable
 fun PoLangForcedDarkTheme(
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

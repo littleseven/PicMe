@@ -69,7 +69,8 @@ class BackupRestoreActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            PoLangTheme(themeMode = ThemeMode.SYSTEM) {
+            // dynamicColor 显式钉 false：2026-08-19 签核全局钉青玉，防 Theme.kt 默认值未来回摆
+            PoLangTheme(themeMode = ThemeMode.SYSTEM, dynamicColor = false) {
                 BackupRestoreScreen(onBack = ::finish)
             }
         }

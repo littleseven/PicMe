@@ -38,7 +38,6 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -72,6 +71,7 @@ import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.features.common.topbar.AppTopBar
 import com.mamba.picme.features.common.topbar.AppTopBarAction
+import com.mamba.picme.features.editor.components.EditorChip
 import com.mamba.picme.features.gallery.MediaViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -219,13 +219,13 @@ private fun ImageEditContent(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        FilterChip(
+                        EditorChip(
                             selected = currentMode == EditMode.DOODLE,
                             onClick = { onModeChange(EditMode.DOODLE) },
                             label = { Text(stringResource(R.string.doodle)) },
                             leadingIcon = { Icon(Icons.Default.Brush, contentDescription = null) }
                         )
-                        FilterChip(
+                        EditorChip(
                             selected = currentMode == EditMode.MOSAIC,
                             onClick = { onModeChange(EditMode.MOSAIC) },
                             label = { Text(stringResource(R.string.mosaic)) },

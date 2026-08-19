@@ -14,7 +14,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.RotateLeft
 import androidx.compose.material.icons.filled.Flip
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,7 +52,7 @@ fun CropPanel(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             AspectRatio.entries.forEach { ratio ->
-                FilterChip(
+                EditorChip(
                     selected = crop.aspectRatio == ratio,
                     onClick = { onChange(crop.copy(aspectRatio = ratio)) },
                     label = { Text(stringResource(ratio.labelRes)) }

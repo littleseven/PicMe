@@ -145,7 +145,8 @@ class MainActivity : ComponentActivity() {
                     setLocale(getLocaleFromLanguage(appLanguage))
                 }
             ) {
-                PoLangTheme(themeMode = themeMode) {
+                // dynamicColor 显式钉 false：2026-08-19 签核全局钉青玉，防 Theme.kt 默认值未来回摆
+                PoLangTheme(themeMode = themeMode, dynamicColor = false) {
                     val navController = rememberNavController()
                     // 主页面 Pager 状态：提升到此层，保证导航到二级页再返回后页位与滚动状态保留
                     val pagerState = rememberPagerState(

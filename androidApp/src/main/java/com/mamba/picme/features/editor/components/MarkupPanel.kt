@@ -15,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BlurOn
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.Title
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -125,7 +124,7 @@ private fun MarkupToolChip(
     onClick: () -> Unit
 ) {
     val label = stringResource(labelRes)
-    FilterChip(
+    EditorChip(
         selected = selected,
         onClick = onClick,
         label = { Icon(icon, contentDescription = label) },

@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -120,7 +119,7 @@ fun AdjustPanel(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             params.forEachIndexed { index, param ->
-                FilterChip(
+                EditorChip(
                     selected = selectedIndex == index,
                     onClick = { selectedIndex = index },
                     label = { Text(param.label) }
