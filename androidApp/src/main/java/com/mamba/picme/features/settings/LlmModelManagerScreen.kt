@@ -94,6 +94,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.mamba.picme.R
+import com.mamba.picme.core.designsystem.ModelCenterTokens
 import com.mamba.picme.data.download.DownloadStatus
 import com.mamba.picme.data.download.ModelConfig
 import com.mamba.picme.domain.model.ModelCategory
@@ -535,11 +536,11 @@ internal fun RecommendedHeaderCard(
 @Composable
 internal fun getTagColor(tag: String): Color {
     return when (tag.lowercase()) {
-        "must-have" -> Color(0xFFE53935)
-        "recommended" -> MaterialTheme.colorScheme.tertiary
-        "chat" -> MaterialTheme.colorScheme.primary
-        "photo-tagging" -> Color(0xFF9C27B0)
-        "beauty-camera" -> MaterialTheme.colorScheme.tertiary
+        "must-have" -> ModelCenterTokens.tagColorMustHave
+        "recommended" -> ModelCenterTokens.tagColorRecommended
+        "chat" -> ModelCenterTokens.tagColorChat
+        "photo-tagging" -> ModelCenterTokens.tagColorPhotoTagging
+        "beauty-camera" -> ModelCenterTokens.tagColorBeautyCamera
         // 保留旧标签兼容
         "voice" -> MaterialTheme.colorScheme.secondary
         "think" -> MaterialTheme.colorScheme.primary

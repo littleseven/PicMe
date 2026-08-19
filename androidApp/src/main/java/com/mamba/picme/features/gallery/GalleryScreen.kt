@@ -102,10 +102,10 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AccountCircle
-import androidx.compose.material.icons.rounded.CameraAlt
-import androidx.compose.material.icons.rounded.ChatBubble
-import androidx.compose.material.icons.rounded.Sell
+import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.ChatBubble
+import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.Sell
 
 private const val TAG = "Gallery"
 private const val TAG_AGENT = "GalleryAgent"
@@ -841,22 +841,22 @@ fun GalleryScreen(
             if (selectedMediaIndex == null) {
                 val tabItems = listOf(
                     FloatingBottomTabItem(
-                        icon = Icons.Rounded.CameraAlt,
+                        icon = Icons.Outlined.PhotoCamera,
                         contentDescription = stringResource(R.string.camera),
                         onClick = onNavigateToCamera
                     ),
                     FloatingBottomTabItem(
-                        icon = Icons.Rounded.ChatBubble,
+                        icon = Icons.Outlined.ChatBubble,
                         contentDescription = stringResource(R.string.chat),
                         onClick = onNavigateToChat
                     ),
                     FloatingBottomTabItem(
-                        icon = Icons.Rounded.Sell,
+                        icon = Icons.Outlined.Sell,
                         contentDescription = stringResource(R.string.tag_scan_control),
                         onClick = onNavigateToTagControl
                     ),
                     FloatingBottomTabItem(
-                        icon = Icons.Rounded.AccountCircle,
+                        icon = Icons.Outlined.AccountCircle,
                         contentDescription = stringResource(R.string.gallery_people_entry),
                         onClick = onNavigateToPeople
                     )

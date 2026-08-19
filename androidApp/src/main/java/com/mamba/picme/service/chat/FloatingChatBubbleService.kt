@@ -85,6 +85,7 @@ import com.mamba.picme.MainActivity
 import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
 import com.mamba.picme.core.common.Logger
+import com.mamba.picme.core.designsystem.ChatBubbleTokens
 import com.mamba.picme.domain.agent.capability.SystemCapability
 import com.mamba.picme.domain.chat.ChatMessageType
 import com.mamba.picme.features.chat.ChatMessageUi
@@ -667,8 +668,8 @@ private fun ModelIndicatorChip(currentModel: ChatModelOption) {
     // chat 仅远程：模型指示为静态标签（本地切换已移除）
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = Color(0xFFE3F2FD),
-        contentColor = Color(0xFF1565C0)
+        color = ChatBubbleTokens.brandGradientStart.copy(alpha = ChatBubbleTokens.capsuleActiveAlpha),
+        contentColor = ChatBubbleTokens.brandGradientStart
     ) {
         Text(
             text = currentModel.label,
