@@ -514,6 +514,9 @@ enum SettingsTokens {
     static let listTitleFontSize: CGFloat = 15
     static let listValueFontSize: CGFloat = 13
     static let listValueMaxWidth: CGFloat = 160
+    static let listLabelColumnWidth: CGFloat = 56
+    static let listSegmentedHeight: CGFloat = 36
+    static let listSegmentedRadius: CGFloat = 10
 }
 
 // MARK: - Editor
@@ -528,12 +531,19 @@ enum EditorTokens {
     static let gachaCardThumbSize: CGFloat = 84
     static let gachaCardCornerRadius: CGFloat = 8
     static let gachaCardThumbCornerRadius: CGFloat = 6
+    static let gachaBarBg = Color(hex: "FF1A1919")
     static let checkerboardCellSize: CGFloat = 16
     static let checkerboardLight = Color(hex: "FFE6E6E6")
     static let checkerboardDark = Color(hex: "FFBDBDBD")
+    static let canvasDark = Color(hex: "FF0F0E0E")
     static let cropTransformButtonSize: CGFloat = 44
     static let cropTransformButtonBgAlpha: Double = 0.45
+    static let overlayAlphaPrimary: Double = 0.06
+    static let overlayAlphaHover: Double = 0.08
+    static let overlayAlphaTrack: Double = 0.12
     static let adjustPanelMaxHeight: CGFloat = 220
+    static let toolRailItemSize: CGFloat = 44
+    static let paramTileSize: CGFloat = 54
     static let markupSwatchSelected: CGFloat = 32
     static let markupSwatchUnselected: CGFloat = 24
 }

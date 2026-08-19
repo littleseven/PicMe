@@ -567,7 +567,7 @@ def main():
     elif args.pull:
         do_pull(args.endpoint, args.prune)
     else:
-        do_push(args.payload, args.endpoint)
+        do_push(args.endpoint, args.payload)
 
 
 if __name__ == "__main__":

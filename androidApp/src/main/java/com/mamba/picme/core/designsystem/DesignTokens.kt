@@ -277,7 +277,7 @@ object ChatContextTokens {
     val intentChipSpacing = 8.dp
 }
 
-/** 设置页通用结构。SettingsClickableRow=主行模式，section=分组卡片容器。list*=主菜单列表式（2026-08-17 重设计，iOS 式分组列表）；图标块色映射（行到 vibrant 系、statusColor、colorScheme 角色的对应）属 UI 结构不入 token，双端各自在代码中映射并保持一致。注意注释内勿出现连续斜杠星号（会截断 Android KDoc 块注释）。 */
+/** 设置页通用结构。SettingsClickableRow=主行模式，section=分组卡片容器。list*=主菜单列表式（2026-08-17 重设计，iOS 式分组列表）；图标块色映射（行到 vibrant 系、statusColor、colorScheme 角色的对应）属 UI 结构不入 token，双端各自在代码中映射并保持一致。listLabelColumnWidth/listSegmentedHeight/listSegmentedRadius 2026-08-19 自画布回流（sync --check NEW）。注意注释内勿出现连续斜杠星号（会截断 Android KDoc 块注释）。 */
 object SettingsTokens {
     val rowHeightNoSubtitle = 56.dp
     val rowHeightWithSubtitle = 64.dp
@@ -303,9 +303,12 @@ object SettingsTokens {
     val listTitleFontSize = 15.dp
     val listValueFontSize = 13.dp
     val listValueMaxWidth = 160.dp
+    val listLabelColumnWidth = 56.dp
+    val listSegmentedHeight = 36.dp
+    val listSegmentedRadius = 10.dp
 }
 
-/** 图片编辑器组件几何（结构 token）。内容色板（markup 7 色/lip 12 色/blush 3 色）见 DESIGN_TOKENS_SPEC.md palette 附录，属产品内容数据不入 token。 */
+/** 图片编辑器组件几何（结构 token）。内容色板（markup 7 色/lip 12 色/blush 3 色）见 DESIGN_TOKENS_SPEC.md palette 附录，属产品内容数据不入 token。2026-08-19 editor.yaml §18 redesign_a 提案入库：canvasDark/gachaBarBg/overlayAlpha 三档（glassOverlay white@0.06/0.08 拆分）/toolRailItemSize/paramTileSize。 */
 object EditorTokens {
     val filterPanelHeight = 120.dp
     val filterItemWidth = 72.dp
@@ -316,12 +319,19 @@ object EditorTokens {
     val gachaCardThumbSize = 84.dp
     val gachaCardCornerRadius = 8.dp
     val gachaCardThumbCornerRadius = 6.dp
+    val gachaBarBg = Color(0xFF1A1919)
     val checkerboardCellSize = 16.dp
     val checkerboardLight = Color(0xFFE6E6E6)
     val checkerboardDark = Color(0xFFBDBDBD)
+    val canvasDark = Color(0xFF0F0E0E)
     val cropTransformButtonSize = 44.dp
     val cropTransformButtonBgAlpha = 0.45f
+    val overlayAlphaPrimary = 0.06f
+    val overlayAlphaHover = 0.08f
+    val overlayAlphaTrack = 0.12f
     val adjustPanelMaxHeight = 220.dp
+    val toolRailItemSize = 44.dp
+    val paramTileSize = 54.dp
     val markupSwatchSelected = 32.dp
     val markupSwatchUnselected = 24.dp
 }
