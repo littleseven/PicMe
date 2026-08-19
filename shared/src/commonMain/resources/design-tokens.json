@@ -519,7 +519,7 @@
     "intentChipSpacing": 8
   },
   "settings": {
-    "_comment": "设置页通用结构。SettingsClickableRow=主行模式，section=分组卡片容器。list*=主菜单列表式（2026-08-17 重设计，iOS 式分组列表）；图标块色映射（行到 vibrant 系、statusColor、colorScheme 角色的对应）属 UI 结构不入 token，双端各自在代码中映射并保持一致。listLabelColumnWidth/listSegmentedHeight/listSegmentedRadius 2026-08-19 自画布回流（sync --check NEW）；listDividerColor/dialogOptionRowHeight/themeSwatchWidth/themeSwatchHeight 2026-08-19 绑定清扫候选入库。注意注释内勿出现连续斜杠星号（会截断 Android KDoc 块注释）。",
+    "_comment": "设置页通用结构。SettingsClickableRow=主行模式，section=分组卡片容器。list*=主菜单列表式（2026-08-17 重设计，iOS 式分组列表）；图标块色映射（行到 vibrant 系、statusColor、colorScheme 角色的对应）属 UI 结构不入 token，双端各自在代码中映射并保持一致。listLabelColumnWidth/listSegmentedHeight/listSegmentedRadius 2026-08-19 自画布回流（sync --check NEW）；listDividerColor/dialogOptionRowHeight 2026-08-19 绑定清扫候选入库；themeSwatch* 同日随主题弹框预览块删除而撤销（0edd118d3）。注意注释内勿出现连续斜杠星号（会截断 Android KDoc 块注释）。",
     "rowHeightNoSubtitle": 56,
     "rowHeightWithSubtitle": 64,
     "rowPaddingH": 12,
@@ -552,9 +552,7 @@
     "listSegmentedHeight": 36,
     "listSegmentedRadius": 10,
     "listDividerColor": "#FF4A453E",
-    "dialogOptionRowHeight": 48,
-    "themeSwatchWidth": 28,
-    "themeSwatchHeight": 20
+    "dialogOptionRowHeight": 48
   },
   "editor": {
     "_comment": "图片编辑器组件几何（结构 token）。内容色板（markup 7 色/lip 12 色/blush 3 色）见 DESIGN_TOKENS_SPEC.md palette 附录，属产品内容数据不入 token。2026-08-19 editor.yaml §18 redesign_a 提案入库：canvasDark/gachaBarBg/overlayAlpha 三档（glassOverlay white@0.06/0.08 拆分）/toolRailItemSize/paramTileSize。canvasPureBlack/toolLabelSize/paramLabelSize/ratioChipSize/topBarButtonSize/unselectedLabelColor 2026-08-19 绑定清扫候选入库。",

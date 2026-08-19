@@ -538,8 +538,6 @@ enum SettingsTokens {
     static let listSegmentedRadius: CGFloat = 10
     static let listDividerColor = Color(hex: "FF4A453E")
     static let dialogOptionRowHeight: CGFloat = 48
-    static let themeSwatchWidth: CGFloat = 28
-    static let themeSwatchHeight: CGFloat = 20
 }
 
 // MARK: - Editor
