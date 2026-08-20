@@ -585,6 +585,16 @@ suspend fun triggerManualGlEngineRecovery() {
 
 > 当前实现仅持久化冷却时间，不再写入任何已删除的旧兜底引擎状态。
 
+### 6.4 相机绑定自愈（2026-08-20 新增）
+
+针对「翻转后预览冻结 + 拍照静默失败」问题（根因：rebind 完成后 `isActivePage` 异常翻 false 触发 `unbindAll`，Compose 侧残留的 `ImageCapture` 指向已解绑实例，拍照抛 `Not bound to a valid Camera` 被吞），相机绑定链路增加三层自愈：
+
+- **stale 引用清零**：解绑（非活跃页 `unbindAll`）或绑定失败时立即将 `imageCapture`/`cameraControl` 置空，拍照走 fail-fast 分支而非带陈旧实例执行
+- **自愈看门狗**：页面活跃且状态机处于 `Previewing` 但相机未绑定时，1.5s 间隔触发重绑，上限 4 次（`Logger.e` 常驻可见，不受日志模块开关影响）
+- **交互覆盖**：用户点击快门/翻转且相机未绑定时置 `interactionRebindOverride`，强制走绑定分支——覆盖 `isActivePage` 卡 false 的极端场景；override 仅在该标记恢复 true 时复位，避免「绑定→复位→解绑」死循环
+
+实现细节与约束见 `androidApp/src/main/java/com/mamba/picme/features/camera/AGENTS.md` §2.1「绑定生命周期与自愈」。
+
 ---
 
 ## 7. 测试与验收

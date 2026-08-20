@@ -181,6 +181,7 @@ adb install -r androidApp/build/outputs/apk/debug/polang-debug.apk
 - **文本推理全远程** — 端侧文本 LLM（Qwen3.5-2B）已移除以简化架构、降低功耗；文本对话 / 指令统一走远程 OpenAI 兼容 ReAct（tool_calls），相机指令亦改远程 tool_calls（`CameraToolService` + `AgentOrchestrator.processCameraInput`）
 - **媒体处理 100% 端侧** — 打标（Florence-2 / Qwen3-VL-2B）、人脸检测、美颜、相册搜索、抠图均在端侧，仅文本 / 元数据上云（隐私红线，ADR-008）
 - **多引擎资源隔离** — MNN/MediaPipe 共存时 OpenCL/EGL 资源竞争是隐形崩溃源（NCNN 路径已移除）
+- **CameraX 绑定必须自愈** — `unbindAll` 后残留指向已解绑实例的 `ImageCapture` 会让拍照静默失败、预览冻结；相机绑定链路内置三层自愈（stale 引用清零 / 重绑看门狗 / 交互覆盖），详见 camera 模块 `AGENTS.md` §2.1
 - **远程推理优先** — 文本对话与指令解析明确上云，端侧算力聚焦媒体处理（VLM 打标 / 人脸 / 美颜）
 
 ### 度量指标
