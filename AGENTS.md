@@ -145,6 +145,7 @@ Logger.log(AgentCommandParsedEvent(...))
 | `./scripts/doc-sync-guardian.sh` | 文档同步检查 |
 | `./scripts/test-generator.py` | 基于 public 方法生成测试骨架 |
 | `./scripts/screenshot-diff.py` | UI 回归检测 |
+| `./scripts/play-publish.sh` | Google Play 自动发布（GPP 封装：上传 AAB / 同步文案 / 轨道晋升），手册见 `docs/05-DEVELOPMENT/GOOGLE_PLAY_RELEASE_AUTOMATION.md` |
 
 > **闭环验证习惯**：代码改动后走「编译 → 安装 → 测试 → 日志」闭环（`auto-dev-loop.sh`）；失败时基于日志定位根因再修，单任务自动重试最多 2 次，不盲目堆尝试。
 
@@ -294,6 +295,7 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 | **服务端部署** | `docs/03-TECHNICAL-SPECS/OVERSEAS_SERVER_DEPLOYMENT.md`（香港 VPS + Nginx + certbot，DNS-only 无 Cloudflare 代理） |
 | **服务端实现** | `docs/03-TECHNICAL-SPECS/SERVER_IMPLEMENTATION_PLAN.md`（Ktor 后端：AI 网关、账号、管理后台） |
 | **备份恢复** | `docs/05-DEVELOPMENT/RELEASE_PACKAGE_BACKUP_RESTORE.md`（Release 包数据备份与恢复） |
+| **Google Play 发布自动化** | `docs/05-DEVELOPMENT/GOOGLE_PLAY_RELEASE_AUTOMATION.md`（GPP 4.1.1：internal 自动 + production 人工晋升；文案 SSOT `androidApp/src/main/play/listings/`） |
 | **KMP 最佳实践评估** | `docs/reviews/2026-08-10-kmp-best-practices-architecture-review.md`（KMP 路线评估：方向不修正；行动项 SKIE spike / CrashKiOS / AndroidX KMP 存储收编盘点） |
 
 > **架构说明（2026-08-07 更新）**：

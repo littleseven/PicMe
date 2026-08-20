@@ -1,0 +1,91 @@
+name: Google Play Release
+
+# Google Play 自动发布：tag v* 或手动触发 → 构建 release AAB → 上传 internal 轨道。
+# production 不在此工作流直发：internal 验证后人工晋升（Console 或
+# ./scripts/play-publish.sh --promote --from-track internal --track production）。
+#
+# 需要的 GitHub Secrets：
+#   ANDROID_PUBLISHER_CREDENTIALS  Play service account JSON 全文
+#   POLANG_RELEASE_STORE_PASSWORD  release keystore 密码
+#   POLANG_RELEASE_KEY_ALIAS       key alias
+#   POLANG_RELEASE_KEY_PASSWORD    key 密码
+# （keystore 文件本身已随仓库提交：androidApp/keystore/picme-release.jks）
+
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      track:
+        description: '目标轨道（internal/alpha/beta；production 请人工晋升）'
+        required: false
+        default: 'internal'
+      status:
+        description: '发布状态（completed/draft）'
+        required: false
+        default: 'completed'
+        type: choice
+        options: [ completed, draft ]
+
+jobs:
+  publish:
+    name: Build AAB & Publish to Play
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: google-play
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission
+        run: chmod +x gradlew scripts/build.sh scripts/play-publish.sh
+
+      - name: Determine track/status
+        id: rel
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "track=${{ inputs.track }}" >> "$GITHUB_OUTPUT"
+            echo "status=${{ inputs.status }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "track=internal" >> "$GITHUB_OUTPUT"
+            echo "status=completed" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Guard rail — never auto-publish production
+        run: |
+          if [ "${{ steps.rel.outputs.track }}" = "production" ]; then
+            echo "::error::production 轨道禁止 CI 直发，请用 internal 验证后人工晋升"
+            exit 1
+          fi
+
+      - name: Build release AAB
+        env:
+          POLANG_RELEASE_STORE_PASSWORD: ${{ secrets.POLANG_RELEASE_STORE_PASSWORD }}
+          POLANG_RELEASE_KEY_ALIAS: ${{ secrets.POLANG_RELEASE_KEY_ALIAS }}
+          POLANG_RELEASE_KEY_PASSWORD: ${{ secrets.POLANG_RELEASE_KEY_PASSWORD }}
+        run: ./scripts/build.sh aab
+
+      - name: Publish to Google Play
+        env:
+          ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}
+        run: >-
+          ./scripts/play-publish.sh
+          --track ${{ steps.rel.outputs.track }}
+          --status ${{ steps.rel.outputs.status }}
+          --artifact-dir androidApp/build/outputs/bundle/release
+
+      - name: Upload AAB artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-aab
+          path: androidApp/build/outputs/bundle/release/
+          retention-days: 30

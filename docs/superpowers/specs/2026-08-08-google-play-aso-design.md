@@ -4,7 +4,7 @@
 > **应用**：破浪相册 / PoLang（`com.mamba.picme`，v1.0.33）
 > **目标**：提升搜索曝光 / 下载量
 > **覆盖语言**：en-US + zh-CN + zh-TW
-> **配套文案**：`google-play-listing/{en-US,zh-CN,zh-TW}/`
+> **配套文案**：`androidApp/src/main/play/listings/{en-US,zh-CN,zh-TW}/`（2026-08-20 自 `google-play-listing/` 迁移至 GPP 约定目录，自动化同步）
 
 ---
 
@@ -74,7 +74,7 @@ A 为主锚放标题；B/C 及搜索、整理、抠图、美颜等作为**支撑
 
 ### 完整描述（≤4000 字符）
 
-完整文本见 `google-play-listing/<locale>/full-description.txt`。三语结构对齐，核心词（photo gallery / album / editor / search / on-device）自然重复 3–5 次，重建摄影主题聚类。
+完整文本见 `androidApp/src/main/play/listings/<locale>/full-description.txt`。三语结构对齐，核心词（photo gallery / album / editor / search / on-device）自然重复 3–5 次，重建摄影主题聚类。
 
 > 设计取舍：完整描述**未纳入 IM 远程控制**（飞书/Telegram），因该功能实验性且会冲淡主线关键词密度。
 

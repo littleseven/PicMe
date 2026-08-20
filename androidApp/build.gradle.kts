@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.google.devtools.ksp)
     alias(libs.plugins.ktlint)
     alias(libs.plugins.detekt)
+    alias(libs.plugins.gpp)
 }
 
 // Release signing config —— 从环境变量读取（System.getenv，非 gradle.properties）。
@@ -80,6 +81,20 @@ ktlint {
 // tasks.named("preBuild").configure {
 //     dependsOn("checkNoFullyQualifiedName")
 // }
+
+// Google Play 自动发布（GPP，com.github.triplet.play）——脚本入口 ./scripts/play-publish.sh，
+// 运维手册见 docs/05-DEVELOPMENT/GOOGLE_PLAY_RELEASE_AUTOMATION.md。
+// 认证二选一：
+//   本地：export POLANG_PLAY_SERVICE_ACCOUNT_JSON=/path/to/service-account.json（文件路径）
+//   CI：  export ANDROID_PUBLISHER_CREDENTIALS='<json 全文>'（GPP 内置读取，不落盘）
+play {
+    System.getenv("POLANG_PLAY_SERVICE_ACCOUNT_JSON")
+        ?.takeIf { it.isNotBlank() }
+        ?.let { serviceAccountCredentials.set(file(it)) }
+    // 默认发 internal 轨道；可用 -PplayTrack=production 或任务 CLI --track 覆盖
+    track.set(providers.gradleProperty("playTrack").orElse("internal"))
+    defaultToAppBundles.set(true)
+}
 
 android {
     ndkVersion = "28.2.13676358"
