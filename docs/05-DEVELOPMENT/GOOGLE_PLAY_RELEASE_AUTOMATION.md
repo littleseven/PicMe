@@ -31,8 +31,10 @@ release-automation.sh          play-publish.sh                Play Console
 > **bootstrap 实测（2026-08-20）**：
 > - 任务尾段对 `inappproducts` 端点报 `403 Please migrate to the new publishing API`——Google 已废弃该端点，
 >   **无内购商品的 app 可忽略**，listing/图文/release notes 均已正常拉取（任务退出码非零属 GPP 已知问题）
-> - Console 线上**默认语言实为 zh-CN**（非早期假设的 en-US），`default-language.txt` 以 bootstrap 拉取的线上值为准，
->   改默认语言会影响 Console 全 listing 关联，勿在本地擅自改回
+> - Console 线上默认语言已于 **2026-08-20 改为 en-US**（面向海外市场；早期为 zh-CN）。
+>   `default-language.txt` 必须与 Console 线上值保持一致（本地改为 en-US 已对齐），
+>   默认语言只能在 Console 设置 → 商店设置里改，API/GPP 均不支持；
+>   改默认语言会影响 Console 全 listing 关联，改动后务必同步本地文件
 > - 线上存在本地没有的 **zh-HK** listing 及 zh-CN graphics，bootstrap 后已入库对齐
 
 > 若开发者账号为 2023-11 后注册的**个人账号**：production 权限需 closed testing 满 12 名测试者 / 14 天，提前规划。
@@ -56,8 +58,14 @@ git tag v1.0.37 && git push origin v1.0.37                # tag 触发 release.y
 ### 3.3 只同步商店文案
 
 ```bash
-./scripts/play-publish.sh --listing-only
+./scripts/play-publish.sh --listing-only              # CI / 海外网络：GPP 一把梭（文本+图像）
+./scripts/play-publish.sh --listing-only --resumable  # 本地直连：文本 GPP + 图像 Python 增量通道
 ```
+
+> 本地直连网络务必加 `--resumable`：GPP 对 graphics 目录无 diff 全量上传，
+> zh-CN 33MB 累计会在长连接上卡死（2026-08-20 实测 publishListing 挂起 10 分钟超时）。
+> 组合通道会把 graphics 暂存出 play/ → GPP 只传文本 → Python 脚本逐张上传图像
+> （远端 sha256 比对，只传增量，不删除远端图像）→ 自动恢复目录。
 
 ### 3.4 封闭式测试（alpha）
 
@@ -141,6 +149,10 @@ git tag v1.0.37 && git push origin v1.0.37                # tag 触发 release.y
 实战记录（v10037 internal）：上传 57MB 中断 2 次均自动续传完成；**commit 偶发 400**
 （上传完成后服务端 bundle 校验有异步窗口，立即 commit 会抢跑）——用 `--edit-id <id> --skip-upload`
 复用原 edit 重试 commit 即可成功，无需重传。
+
+**listing 图像通道（2026-08-20 扩展）**：`play-upload-resumable.py --images <listings目录>`
+逐张 media upload（单文件 ≤3MB 无需分块），远端 sha256 比对只传增量、不删远端图像；
+已被 `play-publish.sh --listing-only --resumable` 自动编排（见 §3.3）。
 
 **选型建议**：本地直连网络默认就用 `--resumable`；CI（GitHub Actions 海外 runner）用 GPP 默认通道即可。
 

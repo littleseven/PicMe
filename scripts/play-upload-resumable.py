@@ -1,17 +1,28 @@
 #!/usr/bin/env python3
 #
-# play-upload-resumable.py - Google Play AAB 分块续传上传（GPP 上传失败时的 fallback）
+# play-upload-resumable.py - Google Play 上传 fallback（AAB 分块续传 + listing 图像上传）
 #
 # 背景：直连网络下 GPP（JVM Google API 客户端）上传 60MB AAB 会在 ~1 分钟处被掐断
-# （"Unexpected end of file from server"）。本脚本用 Play Developer API 的 resumable
+# （"Unexpected end of file from server"）。AAB 用 Play Developer API 的 resumable
 # upload 协议：8MB 分块 + 断点查询续传，单块失败自动从重传点继续，专治长连接不稳。
+#
+# listing 图像（--images 模式）：GPP publishListing 对 graphics 目录无 diff 全量上传，
+# zh-CN 33MB 累计易在同一网络下卡死；图像单文件 ≤3MB，普通 media upload 秒级完成，
+# 本模式逐张上传 + 远端 sha256 比对跳过未变更图像，只传增量。
+#
+# listing 全量同步（--listing 模式）：文本（title/short/full/video）+ 全局详情
+# （defaultLanguage/contactEmail/contactWebsite）+ 图像，全部走本脚本单一 edit 一次 commit——
+# GPP publishListing 在直连网络下连 OAuth token 都可能超时时的完整替代通道。
 #
 # 用法:
 #   export POLANG_PLAY_SERVICE_ACCOUNT_JSON=/path/to/service-account.json
 #   ./scripts/play-upload-resumable.py --aab androidApp/build/outputs/bundle/release/polang-release.aab
 #   ./scripts/play-upload-resumable.py --aab <path> --track alpha --status draft
+#   ./scripts/play-upload-resumable.py --images androidApp/src/main/play/listings   # 仅图像
+#   ./scripts/play-upload-resumable.py --listing androidApp/src/main/play/listings  # 文本+详情+图像
 #
-# 仅做上传 + 挂轨道 + commit，不含商店文案同步（文案用 play-publish.sh --listing-only）。
+# AAB 模式仅做上传 + 挂轨道 + commit；listing 模式只做新增/更新，不删除远端图像
+# （删除需在 Console 操作，防误删线上素材）。
 #
 
 import argparse
@@ -190,9 +201,153 @@ def commit_edit(package: str, edit_id: str, token: str) -> None:
     api_request("POST", f"{API_BASE}/applications/{package}/edits/{edit_id}:commit", token)
 
 
+# ---- listing 图像上传（--images 模式） ----
+
+# GPP graphics 目录名 → Play API imageType
+IMAGE_TYPE_MAP = {
+    "feature-graphic": "featureGraphic",
+    "icon": "icon",
+    "phone-screenshots": "phoneScreenshots",
+    "tablet-screenshots": "sevenInchScreenshots",
+    "large-tablet-screenshots": "tenInchScreenshots",
+    "tv-banner": "tvBanner",
+    "tv-screenshots": "tvScreenshots",
+    "wear-screenshots": "wearScreenshots",
+}
+IMAGE_UPLOAD_MAX_RETRIES = 5
+
+
+def list_remote_image_hashes(package: str, edit_id: str, token: str,
+                             lang: str, image_type: str) -> set:
+    """远端该 language/imageType 下已有图像的 sha256 集合（用于跳过未变更图像）。"""
+    url = f"{API_BASE}/applications/{package}/edits/{edit_id}/listings/{lang}/{image_type}"
+    try:
+        body, _ = api_request("GET", url, token)
+    except RuntimeError as e:
+        if "HTTP 404" in str(e):
+            return set()  # 该 language/imageType 远端尚无任何图像
+        raise
+    return {img["sha256"] for img in body.get("images", []) if "sha256" in img}
+
+
+def upload_image(package: str, edit_id: str, token: str,
+                 lang: str, image_type: str, path: str) -> None:
+    """单张图像 media upload（≤3MB 秒级完成，无需 resumable 分块）。"""
+    import hashlib
+    with open(path, "rb") as f:
+        data = f.read()
+    mime = "image/png" if path.lower().endswith(".png") else "image/jpeg"
+    url = (f"{UPLOAD_BASE}/applications/{package}/edits/{edit_id}"
+           f"/listings/{lang}/{image_type}?uploadType=media")
+    last_err = None
+    for attempt in range(1, IMAGE_UPLOAD_MAX_RETRIES + 1):
+        try:
+            req = urllib.request.Request(url, data=data, method="POST", headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": mime,
+            })
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                resp.read()
+            return
+        except (urllib.error.URLError, ConnectionError, TimeoutError, OSError) as e:
+            last_err = e
+            wait = min(2 ** attempt, 30)
+            log(f"  上传中断（{e}），{wait}s 后重试（第 {attempt} 次）")
+            time.sleep(wait)
+    raise RuntimeError(f"图像上传重试 {IMAGE_UPLOAD_MAX_RETRIES} 次仍失败: {path}: {last_err}")
+
+
+def sync_listing_text(package: str, edit_id: str, token: str, listings_dir: str) -> None:
+    """文本 listing + 全局详情（app details）同步。listings_dir = play/listings。"""
+    import glob
+    play_dir = os.path.dirname(listings_dir.rstrip("/"))
+    # 全局详情：play/ 根目录下的 default-language/contact-email/contact-website
+    details = {}
+    for fname, key in [("default-language.txt", "defaultLanguage"),
+                       ("contact-email.txt", "contactEmail"),
+                       ("contact-website.txt", "contactWebsite")]:
+        p = os.path.join(play_dir, fname)
+        if os.path.isfile(p):
+            details[key] = open(p, encoding="utf-8").read().strip()
+    if details:
+        api_request("PUT", f"{API_BASE}/applications/{package}/edits/{edit_id}/details",
+                    token, payload=details)
+        log(f"  全局详情: {', '.join(details.keys())}")
+    # 每语言文本 listing
+    for lang_dir in sorted(glob.glob(os.path.join(listings_dir, "*"))):
+        if not os.path.isdir(lang_dir):
+            continue
+        lang = os.path.basename(lang_dir)
+        payload = {}
+        for fname, key in [("title.txt", "title"),
+                           ("short-description.txt", "shortDescription"),
+                           ("full-description.txt", "fullDescription"),
+                           ("video.txt", "video")]:
+            p = os.path.join(lang_dir, fname)
+            if os.path.isfile(p):
+                payload[key] = open(p, encoding="utf-8").read().strip()
+        if payload:
+            api_request("PUT",
+                        f"{API_BASE}/applications/{package}/edits/{edit_id}/listings/{lang}",
+                        token, payload=payload)
+            log(f"  文本 listing: {lang}（{len(payload)} 个字段）")
+
+
+def sync_listing_images(package: str, edit_id: str, token: str, listings_dir: str) -> tuple:
+    """上传 listings_dir/<lang>/graphics/<imageTypeDir>/ 下所有有变更的图像（不含 commit）。
+
+    只做新增/更新，不删除远端图像（删除需在 Console 操作，防误删线上素材）。
+    """
+    import glob
+    import hashlib
+    uploaded = skipped = 0
+    for graphics_dir in sorted(glob.glob(os.path.join(listings_dir, "*", "graphics"))):
+        lang = os.path.basename(os.path.dirname(graphics_dir))
+        for type_dir in sorted(glob.glob(os.path.join(graphics_dir, "*"))):
+            dir_name = os.path.basename(type_dir)
+            image_type = IMAGE_TYPE_MAP.get(dir_name)
+            if not image_type:
+                log(f"  跳过未知图像目录: {lang}/{dir_name}")
+                continue
+            files = sorted(f for f in glob.glob(os.path.join(type_dir, "*"))
+                           if f.lower().endswith((".png", ".jpg", ".jpeg")))
+            if not files:
+                continue
+            remote_hashes = list_remote_image_hashes(package, edit_id, token, lang, image_type)
+            for path in files:
+                local_sha = hashlib.sha256(open(path, "rb").read()).hexdigest()
+                if local_sha in remote_hashes:
+                    skipped += 1
+                    continue
+                log(f"  上传 {lang}/{dir_name}/{os.path.basename(path)}")
+                upload_image(package, edit_id, token, lang, image_type, path)
+                uploaded += 1
+    return uploaded, skipped
+
+
+def sync_listing(package: str, listings_dir: str, token: str, with_text: bool) -> None:
+    edit_id = create_edit(package, token)
+    log(f"edit id: {edit_id}")
+    try:
+        if with_text:
+            sync_listing_text(package, edit_id, token, listings_dir)
+        uploaded, skipped = sync_listing_images(package, edit_id, token, listings_dir)
+        commit_edit(package, edit_id, token)
+        log(f"✅ listing 同步完成（{'文本+详情+' if with_text else ''}图像）: "
+            f"上传 {uploaded} 张，跳过未变更 {skipped} 张")
+    except Exception as e:
+        log(f"❌ 失败: {e}")
+        log("提示: 未 commit 的 edit 会自动过期，无需手工清理")
+        sys.exit(1)
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Google Play AAB 分块续传上传")
-    parser.add_argument("--aab", help="AAB 文件路径（--skip-upload 时可省略）")
+    parser = argparse.ArgumentParser(description="Google Play 上传 fallback（AAB 续传 / listing 图像）")
+    parser.add_argument("--aab", help="AAB 文件路径（--skip-upload/--images 时可省略）")
+    parser.add_argument("--images", metavar="LISTINGS_DIR", default="",
+                        help="listing 图像同步模式：上传 LISTINGS_DIR/<lang>/graphics/ 下有变更的图像")
+    parser.add_argument("--listing", metavar="LISTINGS_DIR", default="",
+                        help="listing 全量同步模式：文本+全局详情+图像（GPP publishListing 的替代通道）")
     parser.add_argument("--package", default="com.mamba.picme")
     parser.add_argument("--track", default="internal")
     parser.add_argument("--status", default="completed",
@@ -214,6 +369,18 @@ def main():
     if not sa_path or not os.path.isfile(sa_path):
         log("错误: POLANG_PLAY_SERVICE_ACCOUNT_JSON（文件路径）或 ANDROID_PUBLISHER_CREDENTIALS（JSON 全文）未设置")
         sys.exit(1)
+
+    listings_dir = args.listing or args.images
+    if listings_dir:
+        if not os.path.isdir(listings_dir):
+            log(f"错误: listings 目录不存在: {listings_dir}")
+            sys.exit(1)
+        log("获取 access token...")
+        token = get_access_token(sa_path)
+        log(f"同步 listing: {listings_dir}（{'文本+详情+图像' if args.listing else '仅图像'}）")
+        sync_listing(args.package, listings_dir, token, with_text=bool(args.listing))
+        return
+
     if not args.skip_upload and (not args.aab or not os.path.isfile(args.aab)):
         log(f"错误: AAB 不存在: {args.aab}")
         sys.exit(1)

@@ -140,6 +140,19 @@ fi
 
 if $LISTING_ONLY; then
     check_credentials
+    if $RESUMABLE; then
+        # 直连网络下 GPP publishListing 不可靠（graphics 全量上传卡死 / OAuth token 超时）：
+        # 文本+详情+图像全部走 Python 通道，单 edit 一次 commit，图像 sha256 比对只传增量。
+        PLAY_DIR="androidApp/src/main/play/listings"
+        log_info "同步商店文案（Python 通道：文本+全局详情+图像增量）..."
+        if $DRY_RUN; then
+            log_info "[dry-run] python3 scripts/play-upload-resumable.py --listing $PLAY_DIR"
+        else
+            python3 scripts/play-upload-resumable.py --listing "$PLAY_DIR"
+        fi
+        log_success "商店文案已同步（resumable 通道）"
+        exit 0
+    fi
     log_info "同步商店文案（listings + 全局元数据）..."
     run_gradle ./gradlew :androidApp:publishReleaseListing
     log_success "商店文案已同步"
