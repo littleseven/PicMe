@@ -55,7 +55,8 @@ internal fun bindCameraUseCases(
     onActualLensFacingChanged: (Int) -> Unit,
     onFacePointChanged: (Offset) -> Unit,
     onFaceWarpParamsChanged: (FaceWarpParams) -> Unit,
-    onShowFocusIndicatorChanged: (Boolean) -> Unit
+    onShowFocusIndicatorChanged: (Boolean) -> Unit,
+    onBindFailed: () -> Unit = {}
 ) {
     Log.d(TAG, "bindCameraUseCases START: aspectRatio=$aspectRatio, captureMode=$captureMode")
     val cameraProvider = cameraProviderFuture.get()
@@ -189,13 +190,16 @@ internal fun bindCameraUseCases(
             "Camera bound: lensFacing=${camera.cameraInfo.lensFacing}, selector=$lensFacing, " +
                 "useCaseGroup=${useCaseGroup != null}, aspectRatio=$aspectRatio"
         )
-    } catch (error: IllegalStateException) {
-        Logger.e("Camera", "Camera binding failed (IllegalState), attempting recovery", error)
+    } catch (error: Exception) {
+        // CameraX bindToLifecycle 可能抛 IllegalStateException / IllegalArgumentException 等，
+        // 统一兜底：通知调用方清空已下发的 ImageCapture/CameraControl 引用，避免残留指向未绑定实例。
+        Logger.e("Camera", "Camera binding failed, attempting recovery", error)
+        onBindFailed()
         // 相机绑定失败时尝试清理并重新绑定
         try {
             cameraProvider.unbindAll()
             Logger.d("Camera", "Unbound all use cases after failure, retry may be triggered by recomposition")
-        } catch (cleanupError: IllegalStateException) {
+        } catch (cleanupError: Exception) {
             Logger.e("Camera", "Cleanup after binding failure also failed", cleanupError)
         }
     }

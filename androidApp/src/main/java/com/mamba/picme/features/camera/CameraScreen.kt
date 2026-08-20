@@ -134,6 +134,9 @@ private const val TAG = "Camera"
 private const val PROVIDER_VIEW_BIND_TIMEOUT_MS = 5000L
 private const val DEBUG_RELEASE_TOAST_DELAY_MS = 350L
 
+/** 自愈看门狗重绑尝试上限：1.5s 间隔 × 4 次 ≈ 6s 内完成自愈，避免相机被占用时无限重试 */
+private const val MAX_REBIND_WATCHDOG_ATTEMPTS = 4
+
 private var activeReleaseDialog: AlertDialog? = null
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {
@@ -933,6 +936,9 @@ voiceCoordinator.stopPushToTalk()
     var currentGrid by remember { mutableStateOf(GridType.NONE) }
 
     var cameraControl: CameraControl? by remember { mutableStateOf(null) }
+    // 交互触发的重绑覆盖：用户点击快门/翻转证明正在查看相机页，
+    // 即使 isActivePage 因 Pager 状态异常停在 false，也强制走绑定分支自愈
+    var interactionRebindOverride by remember { mutableStateOf(false) }
     var zoomRatio by remember { mutableFloatStateOf(1f) }
     var minZoomRatio by remember { mutableFloatStateOf(1f) }
     var maxZoomRatio by remember { mutableFloatStateOf(1f) }
@@ -1275,9 +1281,15 @@ voiceCoordinator.stopPushToTalk()
         previewRebindSignal,
         isActivePage
     ) {
-        if (!isActivePage) {
+        // interactionRebindOverride 刻意不作为 key：避免绑定成功后复位 override 触发 effect 重启，
+        // 在 isActivePage 异常停在 false 时把刚绑好的相机又解绑（自愈失效）。override 仅在
+        // isActivePage 恢复 true 时由独立 LaunchedEffect 复位。
+        if (!isActivePage && !interactionRebindOverride) {
             // 非活跃页（Pager 常驻组合）：解绑相机，释放摄像头资源
             runCatching { cameraProviderFuture.get().unbindAll() }
+            // 清空对已解绑 use case 的引用，避免拍照路径持有 stale ImageCapture
+            imageCapture = null
+            cameraControl = null
             Logger.d("Camera", "Camera page inactive, unbind all use cases")
             return@LaunchedEffect
         }
@@ -1324,8 +1336,38 @@ voiceCoordinator.stopPushToTalk()
             },
             onShowFocusIndicatorChanged = { show ->
                 isFaceLocked = show
+            },
+            onBindFailed = {
+                // 绑定失败：清空已下发的 stale 引用，拍照路径走 fail-fast 分支，等待看门狗触发重绑
+                imageCapture = null
+                cameraControl = null
             }
         )
+    }
+
+    // isActivePage 恢复正常后复位交互覆盖，重新允许非活跃页解绑释放相机
+    LaunchedEffect(isActivePage) {
+        if (isActivePage && interactionRebindOverride) {
+            interactionRebindOverride = false
+        }
+    }
+
+    // 自愈看门狗：页面活跃但相机长时间未绑定（例如 bind 完成后被意外 unbindAll），
+    // 主动触发重绑。正常 bind <100ms 即设置 cameraControl，1.5s 阈值不会与正常流程抢跑；
+    // 重绑失败时重试（带上限），离开相机页即停止。
+    LaunchedEffect(isActivePage, cameraControl) {
+        if (!isActivePage || cameraControl != null) return@LaunchedEffect
+        var attempts = 0
+        while (attempts < MAX_REBIND_WATCHDOG_ATTEMPTS) {
+            delay(1_500)
+            if (!isActivePage || cameraControl != null) return@LaunchedEffect
+            // 仅兜底「绑定完成后被意外解绑」的场景；冷启动(Idle)/重绑中(Rebinding)不介入
+            if (cameraStateManager.getState() !is CameraStateMachine.Previewing) return@LaunchedEffect
+            attempts++
+            Logger.e("Camera", "Camera unbound while page active, requesting rebind (attempt $attempts)")
+            previewRebindSignal += 1
+        }
+        Logger.e("Camera", "Rebind watchdog exhausted attempts, camera left unbound")
     }
 
     // 第二阶段瘦身后：实时预览在 runRealtimeBeautyPreviewLoop 中统一处理。
@@ -1602,7 +1644,13 @@ CameraPreviewContent(
                 onNavigateBack = onNavigateBack,
                 lensFacing = lensFacing,
 
-        onLensFacingChanged = { updatedLensFacing -> lensFacing = updatedLensFacing },
+        onLensFacingChanged = { updatedLensFacing ->
+            // 自愈：用户点击翻转证明正在查看相机页，相机未绑定则强制走绑定分支
+            if (cameraControl == null) {
+                interactionRebindOverride = true
+            }
+            lensFacing = updatedLensFacing
+        },
         onActualLensFacingChanged = { updatedLensFacing ->
             Logger.d("Camera", "Action lens sync: $updatedLensFacing")
         },
@@ -1611,6 +1659,12 @@ CameraPreviewContent(
         onCurrentGridChanged = { grid -> currentGrid = grid },
         onNavigateToGallery = onNavigateToGallery,
         onCaptureClick = {
+            // 自愈：用户点击快门证明正在查看相机页，相机未绑定则强制触发重绑（本次快门走 fail-fast，重绑后下次可用）
+            if (imageCapture == null || cameraControl == null) {
+                Logger.e(TAG, "Capture tapped while camera unbound, forcing rebind")
+                interactionRebindOverride = true
+                previewRebindSignal += 1
+            }
             // [状态机保护] 仅在 Previewing 状态允许拍照
             if (!cameraStateManager.canCapture()) {
                 Logger.w(TAG, "Capture click rejected: state=${cameraStateManager.getState().name}")

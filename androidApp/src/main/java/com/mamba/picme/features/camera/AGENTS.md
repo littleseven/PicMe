@@ -31,6 +31,11 @@
 - **ImageCapture**：必须使用 `CAPTURE_MODE_MINIMIZE_LATENCY` 模式，JPEG 质量设为 85（平衡画质与体积）
 - **Preview**：锁定目标帧率 30fps，避免帧率波动导致卡顿
 - **闪光灯**：默认使用自动模式（FLASH_MODE_AUTO）
+- **绑定生命周期与自愈（2026-08-20 修复）**：
+  - `bindCameraUseCases`（`CameraUseCasesBinder.kt`）catch 放宽到 `Exception`（CameraX `bindToLifecycle` 会抛 `IllegalArgumentException` 等非 IllegalState 异常），失败时经 `onBindFailed` 回调通知调用方
+  - 绑定失败或页面非活跃 `unbindAll` 后，`CameraScreen` 必须立即将 `imageCapture`/`cameraControl` 置空——**禁止残留指向已解绑实例的 stale 引用**（否则拍照抛 `ImageCaptureException: Not bound to a valid Camera` 静默失败、预览冻结）
+  - 自愈看门狗：页面活跃且 `cameraControl == null` 且状态机处于 `Previewing` 时，每 1.5s 触发一次重绑（`previewRebindSignal++`），上限 `MAX_REBIND_WATCHDOG_ATTEMPTS = 4` 次；冷启动(Idle)/重绑中(Rebinding) 不介入
+  - 交互覆盖自愈：用户点击快门/翻转即证明正在查看相机页，若 `cameraControl == null` 则置 `interactionRebindOverride = true`，强制绑定分支即使 `isActivePage` 异常停在 false 也执行绑定；override 刻意不作绑定 effect 的 key（避免绑定成功后复位引发「绑定→解绑」死循环），仅在 `isActivePage` 恢复 true 时由独立 `LaunchedEffect` 复位
 
 ### 2.2 场景识别实现逻辑（2026-08-15 起：仅 Agent 链路）
 
