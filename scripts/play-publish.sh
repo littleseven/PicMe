@@ -22,12 +22,16 @@
 #   --from-track <track>      晋升源轨道（--promote 时使用）
 #   --update-rollout <track>  仅调整某轨道在途发布的 rollout 比例（配合 --user-fraction）
 #   --dry-run                 只打印将执行的 gradle 命令，不实际执行
+#   --resumable               上传走 scripts/play-upload-resumable.py（Python 分块续传），
+#                             直连网络下 GPP/JVM 客户端大文件上传易被掐断时的 fallback
 #
 # 示例:
 #   ./scripts/play-publish.sh                                  # 构建 AAB → internal 全量
 #   ./scripts/play-publish.sh --notes /tmp/notes.txt           # 带发布说明
 #   ./scripts/play-publish.sh --artifact-dir androidApp/build/outputs/bundle/release
 #   ./scripts/play-publish.sh --listing-only                   # 只同步三语商店文案
+#   ./scripts/play-publish.sh --promote --from-track internal --track alpha --status completed
+#                                                              # 晋升封闭式（beta 同理换 --track beta）
 #   ./scripts/play-publish.sh --promote --from-track internal --track production --status draft
 #   ./scripts/play-publish.sh --update-rollout production --user-fraction 0.5
 #
@@ -60,6 +64,7 @@ PROMOTE=false
 FROM_TRACK=""
 UPDATE_ROLLOUT=""
 DRY_RUN=false
+RESUMABLE=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -75,6 +80,7 @@ while [[ $# -gt 0 ]]; do
         --from-track)      FROM_TRACK="$2"; shift 2 ;;
         --update-rollout)  UPDATE_ROLLOUT="$2"; shift 2 ;;
         --dry-run)         DRY_RUN=true; shift ;;
+        --resumable)       RESUMABLE=true; shift ;;
         *) log_error "未知参数: $1"; exit 1 ;;
     esac
 done
@@ -169,6 +175,26 @@ fi
 # 默认：上传 AAB
 check_credentials
 write_release_notes
+
+if $RESUMABLE; then
+    # Python 分块续传路径：直连网络下 GPP/JVM 大文件上传易被掐断时的 fallback
+    aab_dir="${ARTIFACT_DIR:-androidApp/build/outputs/bundle/release}"
+    aab_file=$(find "$aab_dir" -maxdepth 1 -name "*.aab" | head -1)
+    if [ -z "$aab_file" ]; then
+        log_error "未找到 AAB: $aab_dir（先跑 ./scripts/build.sh aab 或用 --artifact-dir 指定）"
+        exit 1
+    fi
+    py_args=(scripts/play-upload-resumable.py --aab "$aab_file" --track "$TRACK" --status "$STATUS")
+    [ -n "$USER_FRACTION" ] && py_args+=(--user-fraction "$USER_FRACTION")
+    log_info "分块续传发布 AAB → track=${TRACK}, status=${STATUS}（${aab_file}）"
+    if $DRY_RUN; then
+        log_info "[dry-run] python3 ${py_args[*]}"
+    else
+        python3 "${py_args[@]}"
+    fi
+    log_success "发布完成（track=${TRACK}，resumable 通道）"
+    exit 0
+fi
 
 args=(./gradlew :androidApp:publishReleaseBundle --track "$TRACK" --release-status "$STATUS")
 [ -n "$USER_FRACTION" ] && args+=(--user-fraction "$USER_FRACTION")

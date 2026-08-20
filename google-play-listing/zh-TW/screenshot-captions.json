@@ -1,0 +1,46 @@
+{
+  "note": "Google Play 截圖行銷文案（zh-TW）。與 Ardot 頁面「Play Store Assets」中的 frame 一一對應，frame 命名 <序號>-<scene>/zh-TW。image 為 docs-site/assets/ 下的真實截圖。",
+  "shots": [
+    {
+      "id": "01-gallery",
+      "image": "screenshot-2.jpg",
+      "headline": "AI 相簿，\n井井有條",
+      "subline": "智慧整理 · 自動標記 · 人物分組"
+    },
+    {
+      "id": "02-search",
+      "image": "screenshot-10.jpg",
+      "headline": "說句話，\n就能找到照片",
+      "subline": "自然語言搜尋 · 照片絕不上傳"
+    },
+    {
+      "id": "03-chat",
+      "image": "screenshot-1.jpg",
+      "headline": "和相簿\n聊聊天",
+      "subline": "對話式 AI 助理 · 看懂每一張照片"
+    },
+    {
+      "id": "04-people",
+      "image": "screenshot-4.jpg",
+      "headline": "按人瀏覽，\n自動分組",
+      "subline": "端側人臉辨識 · 自動聚類 · 本機完成"
+    },
+    {
+      "id": "05-privacy",
+      "image": "screenshot-6.jpg",
+      "headline": "AI 在本機跑，\n照片不出手機",
+      "subline": "端側模型 · 無需聯網 · 隱私優先"
+    },
+    {
+      "id": "06-insight",
+      "image": "screenshot-9.jpg",
+      "headline": "AI 讀懂\n你的相簿",
+      "subline": "一句話生成相簿盤點與洞察"
+    }
+  ],
+  "featureGraphic": {
+    "image": "screenshot-2.jpg",
+    "headline": "AI 智慧相簿",
+    "subline": "隱私優先 · 自然語言搜尋 · 對話式修圖"
+  }
+}

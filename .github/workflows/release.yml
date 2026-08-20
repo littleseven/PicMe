@@ -17,9 +17,11 @@ on:
   workflow_dispatch:
     inputs:
       track:
-        description: '目标轨道（internal/alpha/beta；production 请人工晋升）'
+        description: '目标轨道：internal=内部测试 / alpha=封闭式 / beta=开放式（production 请人工晋升）'
         required: false
         default: 'internal'
+        type: choice
+        options: [ internal, alpha, beta ]
       status:
         description: '发布状态（completed/draft）'
         required: false

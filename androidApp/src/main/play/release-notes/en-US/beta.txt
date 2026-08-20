@@ -1,0 +1,9 @@
+PicMe — a smart gallery you talk to.
+
+• Natural language: "Find last summer's photos," "More beauty," "Make it retro" — search and edit by voice.
+• Real-time beauty: smooth, whiten, slim, eyes, lips, blush, brows — preview matches output.
+• Filters: Leica, film, retro, warm/cool, plus cartoon & sketch.
+• One-tap AI optimize detects the scene and recommends params.
+• Privacy-first: AI & face detection run 100% on-device — no uploads, works offline.
+
+Free, no ads, no subscriptions.

@@ -1,0 +1,46 @@
+{
+  "note": "Google Play 截图营销文案（zh-CN）。与 Ardot 页面「Play Store Assets」中的 frame 一一对应，frame 命名 <序号>-<scene>/zh-CN。image 为 docs-site/assets/ 下的真实截图。",
+  "shots": [
+    {
+      "id": "01-gallery",
+      "image": "screenshot-2.jpg",
+      "headline": "AI 相册，\n井井有条",
+      "subline": "智能整理 · 自动打标 · 人物分组"
+    },
+    {
+      "id": "02-search",
+      "image": "screenshot-10.jpg",
+      "headline": "说句话，\n就能找到照片",
+      "subline": "自然语言搜索 · 照片绝不上传"
+    },
+    {
+      "id": "03-chat",
+      "image": "screenshot-1.jpg",
+      "headline": "和相册\n聊聊天",
+      "subline": "对话式 AI 助手 · 看懂每一张照片"
+    },
+    {
+      "id": "04-people",
+      "image": "screenshot-4.jpg",
+      "headline": "按人浏览，\n自动分组",
+      "subline": "端侧人脸识别 · 自动聚类 · 本地完成"
+    },
+    {
+      "id": "05-privacy",
+      "image": "screenshot-6.jpg",
+      "headline": "AI 在本地跑，\n照片不出手机",
+      "subline": "端侧模型 · 无需联网 · 隐私优先"
+    },
+    {
+      "id": "06-insight",
+      "image": "screenshot-9.jpg",
+      "headline": "AI 读懂\n你的相册",
+      "subline": "一句话生成相册盘点与洞察"
+    }
+  ],
+  "featureGraphic": {
+    "image": "screenshot-2.jpg",
+    "headline": "AI 智能相册",
+    "subline": "隐私优先 · 自然语言搜索 · 对话式修图"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "note": "Google Play screenshot marketing copy (en-US, default locale). Frames in Ardot page 'Play Store Assets' named <nn>-<scene>/en-US. image = real screenshot from docs-site/assets/.",
+  "shots": [
+    {
+      "id": "01-gallery",
+      "image": "screenshot-2.jpg",
+      "headline": "AI gallery,\nperfectly organized",
+      "subline": "Auto tagging · People grouping · Smart cleanup"
+    },
+    {
+      "id": "02-search",
+      "image": "screenshot-10.jpg",
+      "headline": "Just say it.\nFind any photo.",
+      "subline": "Natural language search · Photos never uploaded"
+    },
+    {
+      "id": "03-chat",
+      "image": "screenshot-1.jpg",
+      "headline": "Chat with\nyour gallery",
+      "subline": "Conversational AI that understands every photo"
+    },
+    {
+      "id": "04-people",
+      "image": "screenshot-4.jpg",
+      "headline": "Browse by people,\nauto-grouped",
+      "subline": "On-device face recognition · Fully local"
+    },
+    {
+      "id": "05-privacy",
+      "image": "screenshot-6.jpg",
+      "headline": "AI runs on-device.\nPhotos stay put.",
+      "subline": "Local models · Works offline · Privacy first"
+    },
+    {
+      "id": "06-insight",
+      "image": "screenshot-9.jpg",
+      "headline": "AI insights for\nyour gallery",
+      "subline": "Ask anything — get instant photo stats"
+    }
+  ],
+  "featureGraphic": {
+    "image": "screenshot-2.jpg",
+    "headline": "AI Photo Gallery",
+    "subline": "Private & on-device · Search by words · Edit by chat"
+  }
+}

@@ -1,0 +1,262 @@
+#!/usr/bin/env python3
+#
+# play-upload-resumable.py - Google Play AAB 分块续传上传（GPP 上传失败时的 fallback）
+#
+# 背景：直连网络下 GPP（JVM Google API 客户端）上传 60MB AAB 会在 ~1 分钟处被掐断
+# （"Unexpected end of file from server"）。本脚本用 Play Developer API 的 resumable
+# upload 协议：8MB 分块 + 断点查询续传，单块失败自动从重传点继续，专治长连接不稳。
+#
+# 用法:
+#   export POLANG_PLAY_SERVICE_ACCOUNT_JSON=/path/to/service-account.json
+#   ./scripts/play-upload-resumable.py --aab androidApp/build/outputs/bundle/release/polang-release.aab
+#   ./scripts/play-upload-resumable.py --aab <path> --track alpha --status draft
+#
+# 仅做上传 + 挂轨道 + commit，不含商店文案同步（文案用 play-publish.sh --listing-only）。
+#
+
+import argparse
+import base64
+import json
+import os
+import subprocess
+import sys
+import tempfile
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+
+OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token"
+API_BASE = "https://androidpublisher.googleapis.com/androidpublisher/v3"
+UPLOAD_BASE = "https://androidpublisher.googleapis.com/upload/androidpublisher/v3"
+SCOPE = "https://www.googleapis.com/auth/androidpublisher"
+CHUNK_SIZE = 8 * 1024 * 1024  # 8MB
+CHUNK_MAX_RETRIES = 10
+
+
+def log(msg):
+    print(f"[play-upload] {msg}", flush=True)
+
+
+def b64url(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
+
+def get_access_token(sa_json_path: str) -> str:
+    with open(sa_json_path) as f:
+        sa = json.load(f)
+    now = int(time.time())
+    header = b64url(json.dumps({"alg": "RS256", "typ": "JWT"}).encode())
+    claims = b64url(json.dumps({
+        "iss": sa["client_email"],
+        "scope": SCOPE,
+        "aud": OAUTH_TOKEN_URL,
+        "iat": now,
+        "exp": now + 3600,
+    }).encode())
+    signing_input = f"{header}.{claims}".encode("ascii")
+
+    with tempfile.NamedTemporaryFile("w", suffix=".pem", delete=False) as kf:
+        kf.write(sa["private_key"])
+        key_path = kf.name
+    try:
+        sig = subprocess.run(
+            ["openssl", "dgst", "-sha256", "-sign", key_path],
+            input=signing_input, capture_output=True, check=True,
+        ).stdout
+    finally:
+        os.unlink(key_path)
+
+    jwt = f"{header}.{claims}.{b64url(sig)}"
+    body = urllib.parse.urlencode({
+        "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        "assertion": jwt,
+    }).encode()
+    with urllib.request.urlopen(urllib.request.Request(OAUTH_TOKEN_URL, data=body)) as resp:
+        return json.load(resp)["access_token"]
+
+
+def api_request(method: str, url: str, token: str, payload=None, extra_headers=None):
+    headers = {"Authorization": f"Bearer {token}"}
+    if extra_headers:
+        headers.update(extra_headers)
+    data = None
+    if payload is not None:
+        data = json.dumps(payload).encode()
+        headers["Content-Type"] = "application/json"
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req) as resp:
+            text = resp.read().decode()
+            return json.loads(text) if text else {}, dict(resp.headers)
+    except urllib.error.HTTPError as e:
+        body = e.read().decode(errors="replace")
+        raise RuntimeError(f"HTTP {e.code} {method} {url}\n响应体: {body}") from e
+
+
+def create_edit(package: str, token: str) -> str:
+    body, _ = api_request("POST", f"{API_BASE}/applications/{package}/edits", token, payload={})
+    return body["id"]
+
+
+def start_resumable_session(package: str, edit_id: str, token: str, total_size: int) -> str:
+    url = f"{UPLOAD_BASE}/applications/{package}/edits/{edit_id}/bundles?uploadType=resumable"
+    req = urllib.request.Request(url, data=b"", method="POST", headers={
+        "Authorization": f"Bearer {token}",
+        "X-Upload-Content-Type": "application/octet-stream",
+        "X-Upload-Content-Length": str(total_size),
+        "Content-Length": "0",
+    })
+    with urllib.request.urlopen(req) as resp:
+        return resp.headers["Location"]
+
+
+def query_resume_offset(session_uri: str, total_size: int) -> int:
+    """询问服务器已收到的字节数，返回下一块的起始偏移。"""
+    req = urllib.request.Request(session_uri, data=b"", method="PUT", headers={
+        "Content-Length": "0",
+        "Content-Range": f"bytes */{total_size}",
+    })
+    try:
+        with urllib.request.urlopen(req) as resp:
+            # 200/201 说明其实已经传完了
+            return total_size
+    except urllib.error.HTTPError as e:
+        if e.code == 308:
+            range_header = e.headers.get("Range")
+            if range_header:  # "bytes=0-N"
+                return int(range_header.split("-")[1]) + 1
+            return 0
+        raise
+
+
+def upload_chunk(session_uri: str, data: bytes, start: int, total_size: int) -> bool:
+    """上传一个分块。返回 True 表示服务器已确认（含最终块）。连接中断抛异常由上层重试。"""
+    end = start + len(data) - 1
+    req = urllib.request.Request(session_uri, data=data, method="PUT", headers={
+        "Content-Type": "application/octet-stream",
+        "Content-Range": f"bytes {start}-{end}/{total_size}",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=300) as resp:
+            return resp.status in (200, 201)
+    except urllib.error.HTTPError as e:
+        if e.code == 308:  # Resume Incomplete：中间块的正常确认
+            return False
+        raise
+
+
+def resumable_upload(session_uri: str, aab_path: str) -> None:
+    total = os.path.getsize(aab_path)
+    log(f"文件大小 {total / 1024 / 1024:.1f}MB，分块 {CHUNK_SIZE // 1024 // 1024}MB")
+    offset = 0
+    with open(aab_path, "rb") as f:
+        while offset < total:
+            retries = 0
+            while True:
+                try:
+                    f.seek(offset)
+                    chunk = f.read(min(CHUNK_SIZE, total - offset))
+                    upload_chunk(session_uri, chunk, offset, total)
+                    offset += len(chunk)
+                    log(f"进度 {offset / total * 100:.0f}%（{offset / 1024 / 1024:.1f}MB / {total / 1024 / 1024:.1f}MB）")
+                    break
+                except (urllib.error.URLError, ConnectionError, TimeoutError, OSError) as e:
+                    retries += 1
+                    if retries > CHUNK_MAX_RETRIES:
+                        raise RuntimeError(f"分块偏移 {offset} 重试 {CHUNK_MAX_RETRIES} 次仍失败: {e}")
+                    wait = min(2 ** retries, 30)
+                    log(f"连接中断（{e}），{wait}s 后从断点查询续传（第 {retries} 次）")
+                    time.sleep(wait)
+                    offset = query_resume_offset(session_uri, total)
+                    log(f"断点位置: {offset / 1024 / 1024:.1f}MB")
+
+
+def assign_track(package: str, edit_id: str, token: str, track: str,
+                 version_code: int, status: str, user_fraction: str = "") -> None:
+    url = f"{API_BASE}/applications/{package}/edits/{edit_id}/tracks/{track}"
+    release = {
+        "versionCodes": [str(version_code)],
+        "status": status,
+    }
+    # userFraction 仅 inProgress/halted 合法；completed 收尾时严禁携带（1.0 会被拒）
+    if user_fraction and status in ("inProgress", "halted"):
+        release["userFraction"] = float(user_fraction)
+    payload = {"track": track, "releases": [release]}
+    api_request("PUT", url, token, payload=payload)
+
+
+def commit_edit(package: str, edit_id: str, token: str) -> None:
+    api_request("POST", f"{API_BASE}/applications/{package}/edits/{edit_id}:commit", token)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Google Play AAB 分块续传上传")
+    parser.add_argument("--aab", help="AAB 文件路径（--skip-upload 时可省略）")
+    parser.add_argument("--package", default="com.mamba.picme")
+    parser.add_argument("--track", default="internal")
+    parser.add_argument("--status", default="completed",
+                        choices=["completed", "draft", "inProgress", "halted"])
+    parser.add_argument("--user-fraction", default="",
+                        help="分阶段发布比例 0-1（仅 inProgress/halted 生效）")
+    parser.add_argument("--edit-id", default="",
+                        help="复用已有 edit（跳过创建；配合 --skip-upload 直接挂轨道+commit）")
+    parser.add_argument("--skip-upload", action="store_true",
+                        help="跳过上传（AAB 已在 edit 中，用于 commit 失败后的重试）")
+    args = parser.parse_args()
+
+    sa_path = os.environ.get("POLANG_PLAY_SERVICE_ACCOUNT_JSON", "")
+    if not sa_path and os.environ.get("ANDROID_PUBLISHER_CREDENTIALS"):
+        # CI 场景：JSON 全文在环境变量里，落临时文件
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as tf:
+            tf.write(os.environ["ANDROID_PUBLISHER_CREDENTIALS"])
+            sa_path = tf.name
+    if not sa_path or not os.path.isfile(sa_path):
+        log("错误: POLANG_PLAY_SERVICE_ACCOUNT_JSON（文件路径）或 ANDROID_PUBLISHER_CREDENTIALS（JSON 全文）未设置")
+        sys.exit(1)
+    if not args.skip_upload and (not args.aab or not os.path.isfile(args.aab)):
+        log(f"错误: AAB 不存在: {args.aab}")
+        sys.exit(1)
+
+    log("获取 access token...")
+    token = get_access_token(sa_path)
+
+    if args.edit_id:
+        edit_id = args.edit_id
+        log(f"复用 edit id: {edit_id}")
+    else:
+        log(f"创建 edit（package={args.package}）...")
+        edit_id = create_edit(args.package, token)
+        log(f"edit id: {edit_id}")
+
+    try:
+        if not args.skip_upload:
+            log("初始化 resumable 上传会话...")
+            session_uri = start_resumable_session(
+                args.package, edit_id, token, os.path.getsize(args.aab))
+
+            resumable_upload(session_uri, args.aab)
+            log("上传完成")
+
+        # 从 edit 内的 bundle 列表取 versionCode（上传响应未保留，这里统一回查）
+        bundles, _ = api_request(
+            "GET", f"{API_BASE}/applications/{args.package}/edits/{edit_id}/bundles", token)
+        version_codes = [b["versionCode"] for b in bundles.get("bundles", [])]
+        if not version_codes:
+            raise RuntimeError("上传后 edit 内未找到 bundle")
+        version_code = max(version_codes)
+        log(f"挂轨道: track={args.track}, versionCode={version_code}, status={args.status}")
+        assign_track(args.package, edit_id, token, args.track, version_code,
+                     args.status, args.user_fraction)
+
+        log("提交 edit（触发审核）...")
+        commit_edit(args.package, edit_id, token)
+        log(f"✅ 发布完成: v{version_code} → {args.track} ({args.status})")
+    except Exception as e:
+        log(f"❌ 失败: {e}")
+        log("提示: 未 commit 的 edit 会自动过期，无需手工清理")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
