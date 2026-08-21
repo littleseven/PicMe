@@ -433,6 +433,9 @@
     <string name="model_id">Model ID</string>
     <string name="add_model">Add Model</string>
     <string name="add_custom_model">Add Custom Model</string>
+    <string name="add_remote_model_title">Add Remote Model</string>
+    <string name="remote_model_provider_label">Provider</string>
+    <string name="remote_model_model_label">Model</string>
     <string name="add">Add</string>
     <string name="log_management">Module Logs</string>
     <string name="log_modules_all">All</string>

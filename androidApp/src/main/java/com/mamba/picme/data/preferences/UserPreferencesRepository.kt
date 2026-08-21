@@ -43,8 +43,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import java.io.IOException
 import com.mamba.picme.domain.model.LogModuleConfig
-import com.mamba.picme.domain.model.ProviderConfig
-import com.mamba.picme.domain.model.ProviderConfigs
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfigs
 
 // 枚举已迁移至 domain.model.UserPreferences，调用方请从 com.mamba.picme.domain.model 导入
@@ -725,18 +723,18 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
     }
 
     /**
-     * 从旧版 RemoteModelConfigs 迁移到新版 ProviderConfigs
+     * 从旧版（v1 key）迁移远程模型配置。
+     *
+     * v1 key `ai_agent_remote_model_configs` 与 v2 同为 [RemoteModelConfigs] JSON 格式，
+     * 这里只做 fromJson→toJson 归一化（丢弃坏数据），不做格式转换。
+     * 历史上曾错误地转换为 ProviderConfigs 格式（`provider` 字段），与写入端
+     * （设置页写 `providerId` 格式）和解析端都不一致，已随配置链收口移除。
      */
     private fun migrateOldRemoteConfigs(preferences: Preferences): String? {
         val oldJson = preferences[stringPreferencesKey("ai_agent_remote_model_configs")] ?: return null
         return try {
             val oldConfigs = RemoteModelConfigs.fromJson(oldJson)
-            val newConfigs = ProviderConfigs(
-                configs = oldConfigs.configs.map { old ->
-                    ProviderConfig.fromRemoteModelConfig(old)
-                }
-            )
-            ProviderConfigs.toJson(newConfigs)
+            if (oldConfigs.configs.isEmpty()) null else RemoteModelConfigs.toJson(oldConfigs)
         } catch (_: Exception) {
             null
         }

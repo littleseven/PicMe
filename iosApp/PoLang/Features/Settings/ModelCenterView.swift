@@ -177,6 +177,8 @@ struct AddModelSheet: View {
 
     @State private var selectedProvider: RemoteModelProvider?
     @State private var selectedModelId: String = ""
+    @State private var isCustomModel: Bool = false
+    @State private var customModelId: String = ""
     @State private var apiKey: String = ""
 
     private var providers: [RemoteModelProvider] {
@@ -189,8 +191,13 @@ struct AddModelSheet: View {
         return provider.models as? [String] ?? []
     }
 
+    /// 生效模型 ID：预置选项或自定义输入（对齐 Android AddProviderModelDialog 的自定义 chip）
+    private var effectiveModelId: String {
+        isCustomModel ? customModelId.trimmingCharacters(in: .whitespaces) : selectedModelId
+    }
+
     private var canConfirm: Bool {
-        selectedProvider != nil && !selectedModelId.isEmpty && !apiKey.trimmingCharacters(in: .whitespaces).isEmpty
+        selectedProvider != nil && !effectiveModelId.isEmpty && !apiKey.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     var body: some View {
@@ -203,11 +210,17 @@ struct AddModelSheet: View {
                     }
                 }
 
-                // 模型选择
-                if !availableModels.isEmpty {
+                // 模型选择（预置 + 自定义模型 ID）
+                if selectedProvider != nil {
                     Section(L("Model")) {
                         ForEach(availableModels, id: \.self) { modelId in
                             modelChip(modelId)
+                        }
+                        customModelChip
+                        if isCustomModel {
+                            TextField(L("Model ID"), text: $customModelId)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
                         }
                     }
                 }
@@ -233,7 +246,7 @@ struct AddModelSheet: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(L("Add")) {
                         if let provider = selectedProvider {
-                            onConfirm(provider, selectedModelId, apiKey.trimmingCharacters(in: .whitespaces))
+                            onConfirm(provider, effectiveModelId, apiKey.trimmingCharacters(in: .whitespaces))
                             dismiss()
                         }
                     }
@@ -260,15 +273,17 @@ struct AddModelSheet: View {
         .onTapGesture {
             selectedProvider = provider
             selectedModelId = ""
+            isCustomModel = false
+            customModelId = ""
         }
     }
 
     private func modelChip(_ modelId: String) -> some View {
         HStack {
-            Image(matIcon: selectedModelId == modelId
+            Image(matIcon: !isCustomModel && selectedModelId == modelId
                 ? "radio_button_checked" : "radio_button_unchecked")
                 .font(.system(size: 20))
-                .foregroundColor(selectedModelId == modelId ? .accentColor : .secondary)
+                .foregroundColor(!isCustomModel && selectedModelId == modelId ? .accentColor : .secondary)
             Text(modelId)
                 .font(.system(size: 14))
             Spacer()
@@ -276,6 +291,24 @@ struct AddModelSheet: View {
         .contentShape(Rectangle())
         .onTapGesture {
             selectedModelId = modelId
+            isCustomModel = false
+        }
+    }
+
+    private var customModelChip: some View {
+        HStack {
+            Image(matIcon: isCustomModel
+                ? "radio_button_checked" : "radio_button_unchecked")
+                .font(.system(size: 20))
+                .foregroundColor(isCustomModel ? .accentColor : .secondary)
+            Text(L("Add Custom Model"))
+                .font(.system(size: 14))
+            Spacer()
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            isCustomModel = true
+            selectedModelId = ""
         }
     }
 
@@ -284,6 +317,8 @@ struct AddModelSheet: View {
         case "tencent-tokenhub": return "https://console.cloud.tencent.com/"
         case "kimi-official": return "https://platform.moonshot.cn/"
         case "deepseek-official": return "https://platform.deepseek.com/"
+        case "openai-official": return "https://platform.openai.com/"
+        case "anthropic-official": return "https://console.anthropic.com/"
         default: return "https://api.polang.net/"
         }
     }

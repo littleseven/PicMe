@@ -86,6 +86,22 @@ data class RemoteModelConfig(
                 baseUrl = "https://api.deepseek.com/",
                 protocol = RemoteProtocol.OPENAI,
                 models = listOf("deepseek-v4-flash", "deepseek-v4-pro", "deepseek-chat")
+            ),
+            RemoteModelProvider(
+                providerId = "openai-official",
+                displayName = "OpenAI 官方",
+                baseUrl = "https://api.openai.com/v1/",
+                protocol = RemoteProtocol.OPENAI,
+                models = listOf("gpt-5", "gpt-5-mini", "gpt-4.1", "gpt-4o")
+            ),
+            RemoteModelProvider(
+                providerId = "anthropic-official",
+                displayName = "Anthropic 官方",
+                // Anthropic Messages API 路径为 v1/messages（由 Koog AnthropicClientSettings
+                // 默认 messagesPath 拼接），baseUrl 不带 /v1 后缀（与 OpenAI 协议不同）。
+                baseUrl = "https://api.anthropic.com",
+                protocol = RemoteProtocol.CLAUDE,
+                models = listOf("claude-sonnet-4-5", "claude-haiku-4-5", "claude-opus-4-1")
             )
         )
 

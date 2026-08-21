@@ -110,7 +110,9 @@ ai_agent:
     - title: "Remote Models"           # 远程推理
       items:
         - remote_models_section:
-            type: custom                # AiAgentRemoteModelsSection（已在 iOS 实现）
+            type: custom                # RemoteModelsListSection（iOS 对等 ModelCenterView）；
+                                        # 供应商清单 SSOT 在 shared RemoteModelConfig.PROVIDERS
+                                        # （tokenhub/kimi/deepseek/openai/anthropic），添加弹窗支持自定义模型 ID
 
     - title: "Voice Control"            # 语音控制（2026-08-19：语音全面默认关闭，本组为唯一开启入口）
       items:

@@ -118,7 +118,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 |------|------|------|
 | `usecase/` | `AiAgentUseCase`, `FindDuplicateMediaUseCase`, `GetGroupedMediaUseCase`, `OcrUseCase`, `ChatEditProcessor` | 业务用例：Agent Facade、去重、分组、OCR、对话式图片编辑渲染与保存 |
 | `repository/` | `MediaRepository`, `UserPreferencesRepository`, `UserSettingsRepository` 等接口 | 仓储抽象 |
-| `model/` | `AiAgentCommand`, `LlmProviderConfig`, `MediaAsset`, `UserPreferences`, `ChatEditRecipeBuilder` 等 | 领域数据模型；`ChatEditRecipeBuilder` 将 LLM 编辑意图转换为 `EditRecipe`（delta 相对调整带单次步进上限保护：美颜 ±10、slim_face ±5、亮度/曝光 ±15、对比度/饱和度 ±15、色温 ±500K、tint ±15；绝对值视为显式数值请求不限幅） |
+| `model/` | `AiAgentCommand`, `MediaAsset`, `UserPreferences`, `ChatEditRecipeBuilder` 等 | 领域数据模型；`ChatEditRecipeBuilder` 将 LLM 编辑意图转换为 `EditRecipe`（delta 相对调整带单次步进上限保护：美颜 ±10、slim_face ±5、亮度/曝光 ±15、对比度/饱和度 ±15、色温 ±500K、tint ±15；绝对值视为显式数值请求不限幅） |
 | `matting/` | `MattingEngine`, `MaskPostProcessor`, `StrokeLayer`, `EdgeParams`, `IDPhotoComposer`, `BackgroundComposer` 等 | 抠图与证件照合成：融合管线不再固定 sharpen（边缘锐化已迁移参数层，`EdgeParams.DEFAULT_CONTRAST=2.5` 复现旧行为，MIN/MAX 常量供 UI 钳制）；`MaskPostProcessor` 参数层 `erode/dilate/adjustEdges`（对比度→收缩扩张→羽化，各环节默认值自然短路）；`StrokeLayer` 矢量描边层（RESTORE/ERASE、undo/redo，撤销=移除尾条重放；`snapshot` + companion `replay` 纯函数保证跨线程安全） |
 | `search/` | `MediaSearchEngine`, `ExplicitFirstSearchPipeline`, `QuerySegmenter`, `QueryParser`, `SegmentedQuery`, `ExplicitFilter`, `ContentFilter` | 自然语言图片搜索：显式约束优先分段检索 + 规则/LLM/语义混合排序；Chat 场景由 `SearchIntent` 直接驱动 `MediaSearchEngine.search(filter)` |
 | `tag/` | `TagGenerationScheduler`, `TagScanOrchestrator`, `OpenClGuardian`, `TagCategory` | TAG 生成编排、OpenCL 守护、类别定义 |
@@ -189,7 +189,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | Agent 交互 | `AiAgentUseCase` → `AgentOrchestrator` | Facade 模式，委托给 :shared 的 `AgentOrchestrator` |
 | 美颜预览 | `BeautyPreviewProvider` → `BeautyPreviewEngine` | 通过 beauty-api 接口调用 |
 | 人脸检测 | `FaceDetector`（beauty-api 接口） | MediaPipe/MNN 双引擎 |
-| 远程推理 | `KoogReActAgent`（:shared） | OpenAI Chat Completions API + tool_calls |
+| 远程推理 | `KoogReActAgent`（:shared） | OpenAI Chat Completions / Anthropic Messages 双协议（`RemoteProtocol` 分流）+ tool_calls |
 | TAG 生成 | `TagGenerationService` → `TagScanOrchestrator` | 3-Pass 混合管道（FACE_DETECTION/DBSCAN/IMAGE_TAGGING，另有 legacy `MOBILE_CLIP_ENCODING`），OpenCL 超时自动降级 CPU；人脸对齐采用方案 B（2D106 关键点替换 RetinaFace 5 点），ROI/2D106/ArcFace R100 均优先走 MNN OpenCL GPU；ETA 按 Pass 独立统计、取中位数并设冷启动默认值 |
 | 自然语言搜索 | `GallerySearchBar` → `MediaSearchEngine`<br>`ChatViewModel` → `ChatSearchCapability` → `MediaSearchEngine` | **Gallery 入口**：Layer 0.5 QuerySegmenter → Layer 1 QueryParser → Layer 2 显式召回 → Layer 2.5 MobileCLIP 语义 → Layer 3 融合排序。<br>**Chat 入口**：远程 LLM 输出 `AgentCommand.SearchMedia(query, intent)`，`ChatViewModel` 将 `SearchIntent` 转为 `StructuredFilter` 后直接调用 `MediaSearchEngine.search(filter)`；多轮细化走 `RefineMediaSearch` 并在上一轮结果集内过滤。`QueryParser` 新增近半年/近 N 个月规则作为兜底。 |
 | JS 沙箱脚本 | `ChatRunScriptCapability` → `ChatViewModel.onRunScript/onDrawChart` → `JsRuntime`（QuickJS） | LLM tool_call（run_gallery_script/draw_chart）经 CapabilityRegistry（CHAT 场景）落入持久 JsRuntime；`jsEvalMutex` 串行 eval，超时 5s（含 capability.dispatch 写脚本放宽至 180s）；写操作经 CommandRisk 分级 + 用户确认 → `ChatMediaWriteCapability` |

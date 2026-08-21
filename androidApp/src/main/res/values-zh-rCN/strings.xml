@@ -422,6 +422,9 @@
     <string name="model_id">模型 ID</string>
     <string name="add_model">添加模型</string>
     <string name="add_custom_model">添加自定义模型</string>
+    <string name="add_remote_model_title">添加远程模型</string>
+    <string name="remote_model_provider_label">供应商</string>
+    <string name="remote_model_model_label">模型</string>
     <string name="add">添加</string>
     <string name="log_management">模块日志</string>
     <string name="log_modules_all">全部</string>

@@ -33,21 +33,25 @@ internal fun AddProviderModelDialog(
 ) {
     var selectedProvider by remember { mutableStateOf<RemoteModelProvider?>(null) }
     var selectedModel by remember { mutableStateOf("") }
+    var isCustomModel by remember { mutableStateOf(false) }
+    var customModelId by remember { mutableStateOf("") }
     var apiKey by remember { mutableStateOf("") }
 
     val providers = RemoteModelConfig.PROVIDERS.filter { it.isVisible }
     val availableModels = selectedProvider?.models ?: emptyList()
+    // 生效模型 ID：预置 chip 或自定义输入（OpenClaw 式自定义模型）
+    val effectiveModelId = if (isCustomModel) customModelId.trim() else selectedModel
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("添加远程模型") },
+        title = { Text(stringResource(R.string.add_remote_model_title)) },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "供应商",
+                    text = stringResource(R.string.remote_model_provider_label),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -61,16 +65,18 @@ internal fun AddProviderModelDialog(
                             onClick = {
                                 selectedProvider = provider
                                 selectedModel = ""
+                                isCustomModel = false
+                                customModelId = ""
                             },
                             label = { Text(provider.displayName) }
                         )
                     }
                 }
 
-                if (availableModels.isNotEmpty()) {
+                if (selectedProvider != null) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "模型",
+                        text = stringResource(R.string.remote_model_model_label),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -80,11 +86,31 @@ internal fun AddProviderModelDialog(
                     ) {
                         availableModels.forEach { model ->
                             FilterChip(
-                                selected = selectedModel == model,
-                                onClick = { selectedModel = model },
+                                selected = !isCustomModel && selectedModel == model,
+                                onClick = {
+                                    selectedModel = model
+                                    isCustomModel = false
+                                },
                                 label = { Text(model) }
                             )
                         }
+                        FilterChip(
+                            selected = isCustomModel,
+                            onClick = {
+                                isCustomModel = true
+                                selectedModel = ""
+                            },
+                            label = { Text(stringResource(R.string.add_custom_model)) }
+                        )
+                    }
+                    if (isCustomModel) {
+                        OutlinedTextField(
+                            value = customModelId,
+                            onValueChange = { customModelId = it },
+                            label = { Text(stringResource(R.string.model_id)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
 
@@ -103,10 +129,10 @@ internal fun AddProviderModelDialog(
             TextButton(
                 onClick = {
                     selectedProvider?.let { provider ->
-                        if (selectedModel.isNotBlank()) {
+                        if (effectiveModelId.isNotBlank()) {
                             onConfirm(
                                 RemoteModelConfig(
-                                    modelId = selectedModel,
+                                    modelId = effectiveModelId,
                                     providerId = provider.providerId,
                                     protocol = provider.protocol,
                                     baseUrl = provider.baseUrl,
@@ -116,7 +142,7 @@ internal fun AddProviderModelDialog(
                         }
                     }
                 },
-                enabled = selectedProvider != null && selectedModel.isNotBlank()
+                enabled = selectedProvider != null && effectiveModelId.isNotBlank()
             ) {
                 Text(stringResource(R.string.add))
             }

@@ -222,6 +222,8 @@ class AgentConfigurator(
                 || cachedFeishuAgentConfig?.baseUrl != currentConfig.baseUrl
                 || cachedFeishuAgentConfig?.apiKey != currentConfig.apiKey
                 || cachedFeishuAgentConfig?.gatewayToken != currentConfig.gatewayToken
+                || cachedFeishuAgentConfig?.protocol != currentConfig.protocol
+                || cachedFeishuAgentConfig?.providerId != currentConfig.providerId
             if (configChanged) {
                 Logger.i("AgentConfigurator", "Remote config changed (model=${currentConfig.modelId}), rebuilding Feishu Agent")
                 existing.shutdown()
@@ -242,6 +244,8 @@ class AgentConfigurator(
                 .modelName(currentConfig.modelId)
                 .gatewayToken(currentConfig.gatewayToken)
                 .deviceId(deviceId)
+                .protocol(currentConfig.protocol)
+                .providerId(currentConfig.providerId)
                 .apply { if (memProvider != null) memoryContextProvider(memProvider) }
                 .build()
         } catch (e: Exception) {

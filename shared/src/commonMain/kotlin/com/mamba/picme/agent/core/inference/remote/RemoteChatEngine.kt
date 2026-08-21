@@ -267,6 +267,8 @@ class RemoteChatEngine internal constructor(
                 || cachedChatAgentConfig?.baseUrl != currentConfig.baseUrl
                 || cachedChatAgentConfig?.apiKey != currentConfig.apiKey
                 || cachedChatAgentConfig?.gatewayToken != currentConfig.gatewayToken
+                || cachedChatAgentConfig?.protocol != currentConfig.protocol
+                || cachedChatAgentConfig?.providerId != currentConfig.providerId
             if (configChanged) {
                 Logger.i(tag, "Remote config changed (model=${currentConfig.modelId}), rebuilding Chat Agent")
                 cachedChatAgent = null
@@ -285,6 +287,8 @@ class RemoteChatEngine internal constructor(
                 .modelName(currentConfig.modelId)
                 .gatewayToken(currentConfig.gatewayToken)
                 .deviceId(configurator.getDeviceId())
+                .protocol(currentConfig.protocol)
+                .providerId(currentConfig.providerId)
                 .systemPrompt(chatSystemPrompt + "\n\n当前日期：${today()}。用户说「去年」「上个月」等相对时间时，据此计算具体日期范围。")
                 .apply { if (memProvider != null) memoryContextProvider(memProvider) }
                 .build()

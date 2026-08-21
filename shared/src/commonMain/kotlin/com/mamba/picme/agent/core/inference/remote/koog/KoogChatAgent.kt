@@ -52,9 +52,12 @@ class KoogChatAgent(
 ) {
     private val tag = "KoogChatAgent"
 
-    private val executorBundle = RemoteModelFactory.createKoogExecutor(
+    // internal（非 private）：commonTest 契约测试需断言 protocol/providerId 透传到工厂产物
+    internal val executorBundle = RemoteModelFactory.createKoogExecutor(
         config = RemoteModelConfig(
             modelId = config.modelName,
+            providerId = config.providerId,
+            protocol = config.protocol,
             apiKey = config.apiKey,
             baseUrl = config.baseUrl,
             gatewayToken = config.gatewayToken ?: "",

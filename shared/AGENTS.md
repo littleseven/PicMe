@@ -46,7 +46,7 @@ Gradle target：`android`（KMP android library 插件）+ `jvm()` + `iosX64()` 
 | `runtime/` | `CapabilityRegistry`/`CommandExecutor`/`CrossPageCommandQueue`（capability/）、`PrivacyGuard`（policy/）、`SceneManager`（state/）、`ExecutionEngine`（execution/） |
 | `model/` | `AgentCommands`/`CommandRisk`/`EditParams`（command/）、`AiAgentConfig`/`AiAgentMode`（config/）、`AgentContext`/`GallerySummary`/`SearchIntent`/`MediaAsset`（context/） |
 | `platform/` | `DispatcherProvider`/`ChatMemoryStore`/`KoogMessageMemoryCodec`/`Logger`/`AsrEngine` 等接口与 expect |
-| `remote/config/` | `RemoteModelFactory`/`RemoteModelConfig`/`KoogHttpClientFactoryProvider`（DeepSeek `thinking.type=disabled` 注入点） |
+| `remote/config/` | `RemoteModelFactory`/`RemoteModelConfig`/`KoogHttpClientFactoryProvider`（按 `RemoteProtocol` 分流 OpenAI/Anthropic 客户端；DeepSeek 系 `thinking.type=disabled` 注入点，仅 tokenhub/kimi/deepseek 保留） |
 | `tool/` | `CameraToolHelper`、`perception/UiObservationFormatter` |
 
 另有 `beauty/api/`（BeautySettings/FilterType/StyleFilter，供 beauty-api 经 `api(project(":shared"))` 透出）、`domain/`（UserPreferences/MediaRepository/StructuredFilter/DuplicateGroup/tag 聚类纯算法）。

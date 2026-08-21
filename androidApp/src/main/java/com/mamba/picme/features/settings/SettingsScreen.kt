@@ -1981,12 +1981,16 @@ private fun RemoteModelsListSection(
     }
 }
 
-/** 供应商字母徽章品牌色（与设计稿映射一致：DeepSeek 蓝 / Moonshot 紫 / OpenAI 绿 / 其他灰）。 */
-private fun providerBadgeColor(providerId: String): Color = when (providerId.lowercase()) {
-    "deepseek" -> AppColors.vibrantBlue
-    "moonshot", "kimi" -> Color(0xFF4F378B)
-    "openai" -> AppColors.vibrantGreen
-    else -> Color(0xFF938F99)
+/** 供应商字母徽章品牌色（与设计稿映射一致：DeepSeek 蓝 / Moonshot 紫 / OpenAI 绿 / Anthropic 橙 / 其他灰）。 */
+private fun providerBadgeColor(providerId: String): Color {
+    val id = providerId.lowercase()
+    return when {
+        id.startsWith("deepseek") -> AppColors.vibrantBlue
+        id.startsWith("moonshot") || id.startsWith("kimi") -> Color(0xFF4F378B)
+        id.startsWith("openai") -> AppColors.vibrantGreen
+        id.startsWith("anthropic") -> Color(0xFFD97757)
+        else -> Color(0xFF938F99)
+    }
 }
 
 /** 远程模型行：字母徽章 + 双行文本（模型名+可选「使用中」胶囊 / 供应商·已配置）+ 行尾 ⋯。 */

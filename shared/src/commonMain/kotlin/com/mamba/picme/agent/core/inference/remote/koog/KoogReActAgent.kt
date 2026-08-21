@@ -89,6 +89,8 @@ class KoogReActAgent(
     private val executorBundle = RemoteModelFactory.createKoogExecutor(
         config = RemoteModelConfig(
             modelId = config.modelName,
+            providerId = config.providerId,
+            protocol = config.protocol,
             apiKey = config.apiKey,
             baseUrl = config.baseUrl,
             gatewayToken = config.gatewayToken ?: "",

@@ -1,6 +1,7 @@
 package com.mamba.picme.agent.core.inference.remote.react
 
 import com.mamba.picme.agent.core.inference.remote.tool.MemoryContextProvider
+import com.mamba.picme.agent.core.remote.config.RemoteProtocol
 
 data class RemoteReActAgentConfig(
     val apiKey: String,
@@ -12,7 +13,11 @@ data class RemoteReActAgentConfig(
     val streaming: Boolean = false,
     val gatewayToken: String? = null,
     val deviceId: String = "",
-    val memoryContextProvider: MemoryContextProvider? = null
+    val memoryContextProvider: MemoryContextProvider? = null,
+    // 协议与供应商 id 必须从 RemoteModelConfig 透传：RemoteModelFactory 据此分流
+    // OpenAI/Anthropic 客户端与 thinking 参数注入，缺失会导致 CLAUDE 配置静默走 OpenAI 协议。
+    val protocol: RemoteProtocol = RemoteProtocol.OPENAI,
+    val providerId: String = "",
 ) {
     companion object {
         const val DEFAULT_SYSTEM_PROMPT = """
@@ -170,6 +175,8 @@ data class RemoteReActAgentConfig(
         private var gatewayToken: String? = null
         private var deviceId: String = ""
         private var memoryContextProvider: MemoryContextProvider? = null
+        private var protocol: RemoteProtocol = RemoteProtocol.OPENAI
+        private var providerId: String = ""
 
         fun apiKey(apiKey: String) = apply {
             this.apiKey = apiKey
@@ -183,10 +190,12 @@ data class RemoteReActAgentConfig(
         fun gatewayToken(token: String) = apply { this.gatewayToken = token }
         fun deviceId(deviceId: String) = apply { this.deviceId = deviceId }
         fun memoryContextProvider(provider: MemoryContextProvider) = apply { this.memoryContextProvider = provider }
+        fun protocol(protocol: RemoteProtocol) = apply { this.protocol = protocol }
+        fun providerId(providerId: String) = apply { this.providerId = providerId }
 
         fun build(): RemoteReActAgentConfig {
             require(apiKey.isNotEmpty() || gatewayToken != null) { "API key or gateway token is required" }
-            return RemoteReActAgentConfig(apiKey, baseUrl, modelName, systemPrompt, maxIterations, temperature, streaming, gatewayToken, deviceId, memoryContextProvider)
+            return RemoteReActAgentConfig(apiKey, baseUrl, modelName, systemPrompt, maxIterations, temperature, streaming, gatewayToken, deviceId, memoryContextProvider, protocol, providerId)
         }
     }
 }

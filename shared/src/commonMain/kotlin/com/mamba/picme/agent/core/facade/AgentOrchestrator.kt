@@ -501,6 +501,8 @@ class AgentOrchestrator private constructor(
                 || cachedCameraAgentConfig?.baseUrl != currentConfig.baseUrl
                 || cachedCameraAgentConfig?.apiKey != currentConfig.apiKey
                 || cachedCameraAgentConfig?.gatewayToken != currentConfig.gatewayToken
+                || cachedCameraAgentConfig?.protocol != currentConfig.protocol
+                || cachedCameraAgentConfig?.providerId != currentConfig.providerId
             if (configChanged) {
                 Logger.i(tag, "Remote config changed (model=${currentConfig.modelId}), rebuilding Camera Agent")
                 existing.shutdown()
@@ -520,6 +522,8 @@ class AgentOrchestrator private constructor(
                 .modelName(currentConfig.modelId)
                 .gatewayToken(currentConfig.gatewayToken)
                 .deviceId(configurator.getDeviceId())
+                .protocol(currentConfig.protocol)
+                .providerId(currentConfig.providerId)
                 .systemPrompt(cameraSystemPrompt)
                 .apply { if (memProvider != null) memoryContextProvider(memProvider) }
                 .build()

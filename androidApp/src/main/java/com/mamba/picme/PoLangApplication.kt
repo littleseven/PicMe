@@ -28,7 +28,6 @@ import com.mamba.picme.data.local.ChatSessionEntity
 import com.mamba.picme.di.AppContainer
 import com.mamba.picme.di.AppContainerImpl
 import com.mamba.picme.domain.memory.MemoryContextProviderImpl
-import com.mamba.picme.domain.model.ProviderConfigs
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfigs
 import com.mamba.picme.agent.core.remote.config.RemoteModelFactory
@@ -482,8 +481,11 @@ class PoLangApplication : Application(), ImageLoaderFactory {
      * 当用户在设置中添加/修改/删除远程模型配置时，
      * 自动解析并同步到 AgentOrchestrator，确保远程推理使用最新配置。
      *
-     * **注意**：DataStore 中存储的是新版 ProviderConfigs 格式（{"provider":"DEEPSEEK","modelId":"...","apiKey":"..."}），
-     * 需先解析为 ProviderConfigs，再转换为 RemoteModelConfig 供推理引擎使用。
+     * **注意**：DataStore `ai_agent_remote_model_configs_v2` 存储的是
+     * [RemoteModelConfigs] JSON（字段 `providerId`，由设置页 RemoteModelsListSection 写入）；
+     * `ai_agent_selected_remote_model` 存的是选中项的 [RemoteModelConfig.uniqueKey]
+     * （"providerId:modelId"）。此处解析格式必须与写入端一致——历史上误用
+     * ProviderConfigs.fromJson（找 `provider` 字段）导致 BYOK 配置解析为空、恒落服务端代理。
      */
     private val deviceIdProvider = DeviceIdProvider(this)
 
@@ -505,20 +507,28 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                     // deviceId 独立注入 AgentConfigurator，不受后续 remoteConfig 覆盖影响（访客试用 X-Device-Id）
                     orchestrator.setDeviceId(deviceIdProvider.get())
 
-                    val providerConfigs = ProviderConfigs.fromJson(configsJson)
-                    val selectedProviderConfig = providerConfigs.configs
-                        .find { it.modelId == selectedModelId && it.isConfigured }
-                        ?: providerConfigs.configs.firstOrNull { it.isConfigured }
+                    val remoteConfigs = RemoteModelConfigs.fromJson(configsJson)
+                    // selectedModelId 实为 uniqueKey（"providerId:modelId"），兼容按 modelId 匹配旧值
+                    val selectedRemoteConfig = remoteConfigs.getConfig(selectedModelId)
+                        ?.takeIf { it.isConfigured }
+                        ?: remoteConfigs.getConfigByModelId(selectedModelId)
+                            ?.takeIf { it.isConfigured }
+                        ?: remoteConfigs.configs.firstOrNull { it.isConfigured }
 
-                    if (selectedProviderConfig != null && selectedProviderConfig.isConfigured) {
+                    if (selectedRemoteConfig != null) {
                         // BYOK 模式：用户配置了自己的 API Key，直连 provider
-                        val remoteConfig = selectedProviderConfig.toRemoteModelConfig()
                         orchestrator.updateRemoteRuntimeConfig(
-                            remoteConfig = remoteConfig
+                            remoteConfig = selectedRemoteConfig
                         )
                         orchestrator.clearFeishuAgent()
-                        Logger.i(TAG, "Remote model config synced: model=${remoteConfig.modelId}, provider=${remoteConfig.providerId}")
+                        Logger.i(TAG, "Remote model config synced: model=${selectedRemoteConfig.modelId}, provider=${selectedRemoteConfig.providerId}")
                     } else {
+                        // 存量旧 ProviderConfigs 格式数据（{"provider":...}）经 RemoteModelConfigs
+                        // 解析会得到 baseUrl 为空的配置行 → isConfigured=false → 静默落代理。
+                        // 打 W 日志区分「没配过」与「配置格式不识别」，便于用户支持定位。
+                        if (configsJson.isNotBlank() && remoteConfigs.configs.isNotEmpty()) {
+                            Logger.w(TAG, "Stored remote model configs not usable (legacy/unknown format?), falling back to server proxy")
+                        }
                         // 服务端代理模式：使用邮箱注册的 token 认证
                         val remoteConfig = RemoteModelConfig.PICME_SERVER_DEFAULT.copy(
                             gatewayToken = serverToken,
