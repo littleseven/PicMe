@@ -26,7 +26,8 @@ class ParallelFileDownloader(private val client: OkHttpClient) {
      *
      * @param onBytes 每写入一段字节时回调增量（会被多线程并发调用，调用方需自行保证聚合线程安全）
      * @param isCancelled 调用方取消检测（取消时抛 IOException）
-     * @throws IOException 区段 HTTP 非 206/200、响应体空、或最终大小不符
+     * @throws IOException 区段 HTTP 非 206/200、非零偏移区段收到 200（Range 被忽略）、
+     * 响应体空、区段实际写入字节数不足（短读）、或最终大小不符
      */
     @Suppress("ThrowsCount") // 多区段下载错误需抛 IOException 触发重试/失败
     suspend fun download(
@@ -61,16 +62,32 @@ class ParallelFileDownloader(private val client: OkHttpClient) {
                             throw IOException("Chunk $index HTTP ${response.code} for ${destFile.name} (Range 不支持?)")
                         }
                         val body = response.body ?: throw IOException("Empty body, chunk $index ${destFile.name}")
+                        val expectedChunkBytes = range.last - range.first + 1
+                        // 200 = 服务器忽略 Range 回了全量内容：只允许第 0 段（偏移 0）接受，
+                        // 否则整文件内容会写到非零偏移，覆盖/撑爆后续区段。
+                        if (response.code == HTTP_OK && range.first != 0L) {
+                            throw IOException("Chunk $index got HTTP 200 (Range ignored) at non-zero offset for ${destFile.name}")
+                        }
                         body.byteStream().use { input ->
                             RandomAccessFile(destFile, "rw").use { raf ->
                                 raf.seek(range.first)
                                 val buffer = ByteArray(BUFFER_SIZE)
-                                while (true) {
+                                var written = 0L
+                                while (written < expectedChunkBytes) {
                                     if (isCancelled()) throw IOException("Download cancelled")
                                     val n = input.read(buffer)
                                     if (n == -1) break
                                     raf.write(buffer, 0, n)
+                                    written += n
                                     onBytes(n.toLong())
+                                }
+                                // 逐段字节校验：流提前结束（CDN 断流/限速重置）必须判失败，
+                                // 否则预分配的 setLength 会让「大小正确、内容损坏」的文件静默通过。
+                                if (written != expectedChunkBytes) {
+                                    throw IOException(
+                                        "Chunk $index short read for ${destFile.name}: " +
+                                            "expected=$expectedChunkBytes, written=$written"
+                                    )
                                 }
                             }
                         }
