@@ -1,28 +1,25 @@
-AI Photo Gallery — search, edit, and organize your photos with on-device AI.
+PoLang is a photo gallery app that helps you organize, find, and edit the photos and videos on your phone. It works like a regular gallery — browse, view, and manage your media — and adds an on-device AI assistant that tags your photos automatically, so you can search and manage them in plain language.
 
-PoLang is an AI photo gallery that turns your photo album into a smart, searchable, private gallery. Search photos in natural language ("beach photos with friends"), edit images by chatting ("make this photo warmer"), and let AI auto-tag and organize your whole album — with every AI feature running 100% on your device. No photo is ever uploaded.
+What you can do with PoLang:
 
-🖼️ Smart AI Photo Gallery
-AI auto-tags each photo by scene, people, objects, and activity. Browse your album by People, Places, or Things, run natural-language photo search, and let AI build smart albums. Finding any photo takes a single sentence.
+• Browse your gallery
+View all photos and videos in a fast, clean gallery. Photos are automatically tagged on your device by scene, people, objects, and activities, and you can browse them by tag or by person.
 
-🔍 Natural-Language Photo Search
-Stop scrolling. Just ask: "photos from last summer", "sunsets", "screenshots". On-device AI understands your intent and instantly surfaces matching photos — no internet required, and your images never leave your phone.
+• Search photos in plain language
+Instead of scrolling, type or say what you are looking for — "sunset photos", "screenshots", "pictures of my dog". PoLang matches your words against the on-device tags and shows the right photos instantly.
 
-✨ AI Photo Editor & Beauty
-GPU-accelerated photo editing: skin smoothing, whitening, face slimming, eye enlarging, lip color, blush, with precise left/right control. One-tap AI enhancement analyzes each photo and recommends the best settings — or just describe the look you want.
+• Chat with the AI assistant
+A built-in chat assistant answers questions about your gallery and helps you act on it: find photos, summarize your collection, or organize media — with your confirmation before anything is changed or deleted.
 
-✂️ Cutout & ID Photo
-Remove or swap a background in one tap, isolate any subject, and generate standard ID / passport photos (1-inch, 2-inch, passport) with a clean background — all on-device.
+• Take photos with the beauty camera
+A built-in camera with real-time beauty preview (skin smoothing, face shaping) and live filters, powered by on-device face tracking.
 
-🎨 Filters & Effects
-Leica-style looks (Classic, Vibrant, B&W), film simulations (Gold, Fuji, Vintage), and real-time GPU effects (Cartoon, Sketch, Emboss). Apply to one photo or batch-apply across the album.
+• Edit photos
+Adjust and enhance photos with the built-in editor: beauty retouch, filters, and one-tap cutout that can also create standard ID photos with a clean background.
 
-📷 Beauty Camera
-Real-time beauty preview with a near-zero-lag shutter (<50 ms). Frame-sync face tracking keeps makeup locked in, even during fast movement.
+• Keep your photos private
+All photo tagging, face detection, and search run entirely on your device. Your photos are never uploaded to a server for processing.
 
-🔒 Private by Design
-Unlike cloud galleries, PoLang runs all AI photo search, face detection, tagging, and editing locally on your device. Zero photo upload, zero data collection — your gallery stays yours.
+PoLang is free, with no ads, no subscriptions, and no in-app purchases.
 
-Completely free — no ads, no subscriptions, no in-app purchases.
-
-PoLang: the private, AI-powered photo gallery for searching, editing, and organizing your photos with natural language.
+In short: PoLang is a private, AI-assisted photo gallery for finding, organizing, and editing your photos on your phone.
