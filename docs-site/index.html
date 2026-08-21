@@ -6,158 +6,10 @@
   <title>PoLang 破浪相册 · 隐私优先的智能相册</title>
   <meta name="description" content="零图片上传隐私安全,用自然语言搜索本地相册、编辑照片。AI 对话相册、智能搜索、专业美颜、创意滤镜,全部本地处理。">
   <link rel="alternate" hreflang="zh-CN" href="https://polang.net/">
+  <link rel="alternate" hreflang="zh-TW" href="https://polang.net/tw/">
   <link rel="alternate" hreflang="en" href="https://polang.net/en/">
   <link rel="alternate" hreflang="x-default" href="https://polang.net/">
-  <style>
-    :root {
-      --bg: #ffffff;
-      --bg-alt: #f7f8fb;
-      --text: #0f172a;
-      --text-soft: #334155;
-      --text-muted: #64748b;
-      --border: #e6e8ee;
-      --primary: #4f46e5;
-      --primary-soft: #eef2ff;
-      --radius: 16px;
-      --shadow-sm: 0 1px 2px rgba(15,23,42,.04), 0 2px 6px rgba(15,23,42,.05);
-      --shadow-md: 0 14px 34px rgba(15,23,42,.10);
-      --section-py: 56px;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-      color: var(--text); background: var(--bg); line-height: 1.7;
-      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
-    }
-    a { color: inherit; text-decoration: none; }
-    .container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
-
-    /* 顶栏 */
-    .topnav { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.82); backdrop-filter: saturate(180%) blur(12px); -webkit-backdrop-filter: saturate(180%) blur(12px); border-bottom: 1px solid var(--border); }
-    .topnav-inner { display: flex; align-items: center; justify-content: space-between; height: 60px; }
-    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -.01em; }
-    .brand img { width: 30px; height: 30px; border-radius: 8px; }
-    .nav-links { display: flex; align-items: center; gap: 24px; font-size: 14px; color: var(--text-muted); font-weight: 500; }
-    .nav-links a { transition: color .12s; }
-    .nav-links a:hover { color: var(--primary); }
-    .lang-switch { border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; color: var(--text-soft); }
-
-    /* Hero */
-    .hero { padding: 56px 24px 44px; text-align: center; background: radial-gradient(125% 100% at 50% 0%, #efeefe 0%, #ffffff 60%); }
-    .hero-icon { width: 92px; height: 92px; border-radius: 22px; box-shadow: var(--shadow-md); }
-    .hero h1 { font-size: 40px; line-height: 1.15; letter-spacing: -.02em; font-weight: 800; margin: 22px 0 12px; }
-    .hero h1 .zh { color: var(--text-muted); font-weight: 600; font-size: 24px; margin-left: 14px; }
-    .hero .tagline { font-size: 19px; color: var(--text-soft); max-width: 680px; margin: 0 auto; }
-    .badges { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 24px 0 32px; }
-    .badge { background: var(--primary-soft); color: var(--primary); border-radius: 999px; padding: 6px 14px; font-size: 13px; font-weight: 600; }
-    .cta-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
-    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 22px; border-radius: 12px; font-weight: 600; font-size: 15px; transition: transform .12s, box-shadow .12s, border-color .12s; }
-    .btn:hover { transform: translateY(-1px); }
-    .cta-row .btn { background: #fff; color: var(--text); border: 1px solid var(--border); box-shadow: var(--shadow-sm); flex: 1 1 0; max-width: 230px; justify-content: center; }
-    .cta-row .btn:hover { box-shadow: var(--shadow-md); border-color: #cbd5e1; }
-    .btn svg { width: 20px; height: 20px; flex-shrink: 0; }
-
-    /* 区块通用 */
-    section { padding: var(--section-py) 0; }
-    .alt { background: var(--bg-alt); }
-    .section-title { font-size: 30px; font-weight: 800; text-align: center; letter-spacing: -.02em; margin-bottom: 12px; }
-    .section-sub { text-align: center; color: var(--text-muted); font-size: 16px; margin-bottom: 28px; }
-
-    /* 核心功能 */
-    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-    .card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 26px 24px; transition: box-shadow .18s, transform .18s; }
-    .card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
-    .card .icon { font-size: 30px; }
-    .card h3 { font-size: 17px; font-weight: 700; margin: 12px 0 8px; }
-    .card p { font-size: 14.5px; color: var(--text-muted); line-height: 1.65; }
-
-    /* 一眼所见(截图) */
-    .shots { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; }
-    .shots img { height: 360px; width: auto; border-radius: 16px; border: 1px solid var(--border); box-shadow: var(--shadow-md); }
-
-    /* 使用示例 */
-    .demo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
-    .demo-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 24px; }
-    .demo-card .say { font-size: 15px; color: var(--primary); font-weight: 600; margin-bottom: 8px; }
-    .demo-card .say::before { content: "💬 "; }
-    .demo-card .do { font-size: 14.5px; color: var(--text-muted); }
-
-    /* 常见问题 */
-    .faq { max-width: 760px; margin: 0 auto; }
-    .faq-item { border-bottom: 1px solid var(--border); padding: 20px 0; }
-    .faq-item:first-child { padding-top: 0; }
-    .faq-item:last-child { border-bottom: none; padding-bottom: 0; }
-    .faq-item h3 { font-size: 16.5px; font-weight: 700; margin-bottom: 8px; }
-    .faq-item p { font-size: 14.5px; color: var(--text-muted); line-height: 1.7; }
-    .faq-item a { color: var(--primary); font-weight: 500; }
-
-    /* 页脚 */
-    footer { background: #0b1220; color: #94a3b8; padding: 40px 0; }
-    footer .inner { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; }
-    footer .nav-links a { transition: color .12s; }
-    footer .nav-links a:hover { color: #fff; }
-    footer .contact-author { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 28px; }
-    footer .contact-title { font-size: 13px; color: #64748b; letter-spacing: .04em; }
-    footer .contact-items { display: flex; gap: 36px; align-items: flex-start; }
-    footer .contact-item { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12px; color: #94a3b8; text-decoration: none; transition: color .12s; }
-    footer .contact-item:hover { color: #fff; }
-    footer .contact-qr { width: 88px; height: 88px; border-radius: 10px; background: #fff; padding: 4px; box-sizing: border-box; display: block; }
-    footer .x-logo { width: 88px; height: 88px; border-radius: 10px; background: #fff; display: flex; align-items: center; justify-content: center; }
-    footer .x-logo svg { width: 56px; height: 56px; }
-
-    /* 上手指南轮播 */
-    .guide-carousel { position: relative; max-width: 880px; margin: 0 auto; }
-    .guide-viewport { overflow: hidden; border-radius: var(--radius); box-shadow: var(--shadow-md); }
-    .guide-track { display: flex; transition: transform .55s cubic-bezier(.4,0,.2,1); will-change: transform; }
-    .guide-slide { min-width: 100%; display: flex; align-items: center; gap: 32px; padding: 30px 34px; background: linear-gradient(120deg, #ffffff 48%, #eef2ff 100%); border: 1px solid var(--border); box-sizing: border-box; }
-    .guide-slide > img { height: 400px; width: auto; flex-shrink: 0; border-radius: 14px; border: 1px solid var(--border); box-shadow: var(--shadow-md); display: block; }
-    .guide-cap { flex: 1 1 auto; min-width: 0; }
-    .guide-cap .gs { display: inline-flex; align-items: center; gap: 7px; color: #fff; background: linear-gradient(135deg, #6366f1, #4f46e5); border-radius: 999px; padding: 6px 15px; font-size: 13px; font-weight: 700; margin-bottom: 14px; box-shadow: 0 6px 16px rgba(79,70,229,.28); letter-spacing: .02em; }
-    .guide-cap .gs::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: #fff; opacity: .9; }
-    .guide-cap h3 { font-size: 23px; font-weight: 800; margin-bottom: 10px; letter-spacing: -.01em; color: var(--text); }
-    .guide-cap p { font-size: 15px; color: var(--text-soft); line-height: 1.75; }
-    .guide-cap p b { color: var(--primary); font-weight: 700; }
-    .guide-cap .gtags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
-    .guide-cap .gtag { background: #fff; color: #475569; border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 600; box-shadow: var(--shadow-sm); }
-    .guide-cap .gtag.must { background: #fff1f2; color: #e11d48; border-color: #ffe4e6; }
-    .guide-cap .gtag.opt { background: var(--primary-soft); color: var(--primary); border-color: #e0e7ff; }
-    .guide-arrow { position: absolute; top: 50%; transform: translateY(-50%); width: 42px; height: 42px; border-radius: 999px; border: 1px solid var(--border); background: #fff; box-shadow: var(--shadow-sm); cursor: pointer; font-size: 22px; line-height: 1; color: var(--text-soft); display: flex; align-items: center; justify-content: center; z-index: 2; transition: box-shadow .15s, color .15s, transform .15s; }
-    .guide-arrow:hover { box-shadow: var(--shadow-md); color: var(--primary); transform: translateY(-50%) scale(1.06); }
-    .guide-prev { left: 10px; } .guide-next { right: 10px; }
-    .guide-dots { display: flex; gap: 7px; justify-content: center; margin-top: 20px; }
-    .guide-dots button { width: 8px; height: 8px; border-radius: 999px; border: none; background: #cbd5e1; cursor: pointer; padding: 0; transition: background .2s, width .2s; }
-    .guide-dots button.on { background: var(--primary); width: 24px; }
-    .guide-more { text-align: center; margin-top: 6px; }
-    .guide-more a { color: var(--primary); font-weight: 600; font-size: 14px; }
-    .guide-more a:hover { text-decoration: underline; }
-
-    /* 图片放大查看（灯箱） */
-    .lightbox { position: fixed; inset: 0; background: rgba(8,10,20,.94); display: none; align-items: center; justify-content: center; z-index: 999; padding: 18px; cursor: zoom-out; }
-    .lightbox.show { display: flex; }
-    .lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
-
-    @media (max-width: 768px) {
-      :root { --section-py: 40px; }
-      .container { padding: 0 18px; }
-      .hero { padding: 40px 18px 36px; }
-      .hero h1 { font-size: 28px; }
-      .hero h1 .zh { font-size: 18px; }
-      .hero .tagline { font-size: 16px; }
-      .section-title { font-size: 24px; }
-      .section-sub { font-size: 15px; margin-bottom: 24px; }
-      .grid, .demo-grid { grid-template-columns: 1fr; }
-      .shots img { height: 260px; }
-      .nav-links { gap: 12px; font-size: 13px; }
-      .nav-sm-hide { display: none; }
-      .guide-slide { flex-direction: column; text-align: center; gap: 16px; padding: 22px 18px; }
-      .guide-slide > img { height: 300px; }
-      .guide-arrow { display: none; }
-      .guide-cap .gtags { justify-content: center; }
-      .cta-row { flex-direction: column; }
-      .cta-row .btn { max-width: 100%; flex: 0 0 auto; white-space: nowrap; }
-    }
-  </style>
+  <link rel="stylesheet" href="assets/site.css">
 </head>
 <body>
   <nav class="topnav">
@@ -166,7 +18,8 @@
       <div class="nav-links">
         <a href="#features">功能</a>
         <a class="nav-sm-hide" href="getting-started.html">上手指南</a>
-        <a class="lang-switch" href="en/index.html" hreflang="en" lang="en">English</a>
+        <a class="lang-switch" href="tw/index.html" hreflang="zh-TW" lang="zh-TW">繁體</a>
+        <a class="lang-switch" href="en/index.html" hreflang="en" lang="en">EN</a>
         <a href="https://github.com/littleseven/polang" target="_blank" rel="noopener">GitHub</a>
       </div>
     </div>
@@ -174,25 +27,27 @@
 
   <header class="hero">
     <div class="container">
-      <img class="hero-icon" src="assets/icon.png" alt="破浪相册 PoLang">
-      <h1>破浪相册</h1>
-      <p class="tagline">零图片上传隐私安全,用自然语言搜索本地相册、编辑照片。</p>
+      <span class="eyebrow">破浪相册 · POLANG</span>
+      <h1>照片不出设备<br><span class="mint">AI 听你指挥</span></h1>
+      <p class="tagline">零图片上传隐私安全，用自然语言搜索本地相册、编辑照片。</p>
       <div class="badges">
         <span class="badge">✓ 免费</span>
         <span class="badge">✓ 无广告</span>
         <span class="badge">✓ 本地隐私</span>
+        <span class="badge">✓ 开源</span>
         <span class="badge">📱 iOS 即将支持</span>
       </div>
       <div class="cta-row">
-        <a class="btn" href="https://play.google.com/store/apps/details?id=com.mamba.picme" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.018 13.298l-3.919 2.218-3.515-3.493 3.543-3.521 3.891 2.202a1.49 1.49 0 0 1 0 2.594zM1.337.924a1.486 1.486 0 0 0-.112.568v21.017c0 .217.045.419.124.6l11.155-11.087L1.337.924zm12.207 10.065l3.258-3.238L3.45.195a1.466 1.466 0 0 0-.946-.179l11.04 10.973zm0 2.067l-11 10.933c.298.036.612-.016.906-.183l13.324-7.54-3.23-3.21z"/></svg>Google Play 下载</a>
-        <a class="btn" href="https://api.polang.net/download" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#3DDC84" d="M18.4395 5.5586c-.675 1.1664-1.352 2.3318-2.0274 3.498-.0366-.0155-.0742-.0286-.1113-.043-1.8249-.6957-3.484-.8-4.42-.787-1.8551.0185-3.3544.4643-4.2597.8203-.084-.1494-1.7526-3.021-2.0215-3.4864a1.1451 1.1451 0 0 0-.1406-.1914c-.3312-.364-.9054-.4859-1.379-.203-.475.282-.7136.9361-.3886 1.5019 1.9466 3.3696-.0966-.2158 1.9473 3.3593.0172.031-.4946.2642-1.3926 1.0177C2.8987 12.176.452 14.772 0 18.9902h24c-.119-1.1108-.3686-2.099-.7461-3.0683-.7438-1.9118-1.8435-3.2928-2.7402-4.1836a12.1048 12.1048 0 0 0-2.1309-1.6875c.6594-1.122 1.312-2.2559 1.9649-3.3848.2077-.3615.1886-.7956-.0079-1.1191a1.1001 1.1001 0 0 0-.8515-.5332c-.5225-.0536-.9392.3128-1.0488.5449zm-.0391 8.461c.3944.5926.324 1.3306-.1563 1.6503-.4799.3197-1.188.0985-1.582-.4941-.3944-.5927-.324-1.3307.1563-1.6504.4727-.315 1.1812-.1086 1.582.4941zM7.207 13.5273c.4803.3197.5506 1.0577.1563 1.6504-.394.5926-1.1038.8138-1.584.4941-.48-.3197-.5503-1.0577-.1563-1.6504.4008-.6021 1.1087-.8106 1.584-.4941z"/></svg>APK 下载</a>
-        <a class="btn" href="https://github.com/littleseven/polang" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#181717" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>GitHub 仓库</a>
+        <a class="btn primary" href="https://play.google.com/store/apps/details?id=com.mamba.picme" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#003730" d="M22.018 13.298l-3.919 2.218-3.515-3.493 3.543-3.521 3.891 2.202a1.49 1.49 0 0 1 0 2.594zM1.337.924a1.486 1.486 0 0 0-.112.568v21.017c0 .217.045.419.124.6l11.155-11.087L1.337.924zm12.207 10.065l3.258-3.238L3.45.195a1.466 1.466 0 0 0-.946-.179l11.04 10.973zm0 2.067l-11 10.933c.298.036.612-.016.906-.183l13.324-7.54-3.23-3.21z"/></svg>Google Play 下载</a>
+        <a class="btn" href="https://api.polang.net/download" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#8fd6c6" d="M18.4395 5.5586c-.675 1.1664-1.352 2.3318-2.0274 3.498-.0366-.0155-.0742-.0286-.1113-.043-1.8249-.6957-3.484-.8-4.42-.787-1.8551.0185-3.3544.4643-4.2597.8203-.084-.1494-1.7526-3.021-2.0215-3.4864a1.1451 1.1451 0 0 0-.1406-.1914c-.3312-.364-.9054-.4859-1.379-.203-.475.282-.7136.9361-.3886 1.5019 1.9466 3.3696-.0966-.2158 1.9473 3.3593.0172.031-.4946.2642-1.3926 1.0177C2.8987 12.176.452 14.772 0 18.9902h24c-.119-1.1108-.3686-2.099-.7461-3.0683-.7438-1.9118-1.8435-3.2928-2.7402-4.1836a12.1048 12.1048 0 0 0-2.1309-1.6875c.6594-1.122 1.312-2.2559 1.9649-3.3848.2077-.3615.1886-.7956-.0079-1.1191a1.1001 1.1001 0 0 0-.8515-.5332c-.5225-.0536-.9392.3128-1.0488.5449zm-.0391 8.461c.3944.5926.324 1.3306-.1563 1.6503-.4799.3197-1.188.0985-1.582-.4941-.3944-.5927-.324-1.3307.1563-1.6504.4727-.315 1.1812-.1086 1.582.4941zM7.207 13.5273c.4803.3197.5506 1.0577.1563 1.6504-.394.5926-1.1038.8138-1.584.4941-.48-.3197-.5503-1.0577-.1563-1.6504.4008-.6021 1.1087-.8106 1.584-.4941z"/></svg>APK 下载</a>
+        <a class="btn" href="https://github.com/littleseven/polang" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#e8f5f1" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>GitHub 仓库</a>
       </div>
     </div>
   </header>
 
   <section id="features">
     <div class="container">
+      <span class="eyebrow-sm">Features</span>
       <h2 class="section-title">核心功能</h2>
       <p class="section-sub">一个会用自然语言沟通的智能相册</p>
       <div class="grid">
@@ -208,20 +63,23 @@
 
   <section class="alt">
     <div class="container">
+      <span class="eyebrow-sm">At a Glance</span>
       <h2 class="section-title">一眼所见</h2>
       <p class="section-sub">产品界面一览</p>
       <div class="shots">
-        <img src="assets/screenshot-9.jpg" alt="截图 1">
-        <img src="assets/screenshot-10.jpg" alt="截图 2">
-        <img src="assets/screenshot-2.jpg" alt="截图 3">
-        <img src="assets/screenshot-3.jpg" alt="截图 4">
-        <img src="assets/screenshot-4.jpg" alt="截图 5">
+        <img src="assets/shots/zh-CN/01-gallery.jpg" alt="智能相册">
+        <img src="assets/shots/zh-CN/02-search.jpg" alt="自然语言搜索">
+        <img src="assets/shots/zh-CN/03-chat.jpg" alt="AI 对话">
+        <img src="assets/shots/zh-CN/04-people.jpg" alt="人物分组">
+        <img src="assets/shots/zh-CN/05-privacy.jpg" alt="端侧隐私">
+        <img src="assets/shots/zh-CN/06-insight.jpg" alt="相册洞察">
       </div>
     </div>
   </section>
 
   <section id="guide">
     <div class="container">
+      <span class="eyebrow-sm">Guide</span>
       <h2 class="section-title">三步上手</h2>
       <p class="section-sub">让 AI 真正「懂事」</p>
       <div class="guide-carousel" id="guideCarousel">
@@ -246,6 +104,7 @@
 
   <section class="alt">
     <div class="container">
+      <span class="eyebrow-sm">Just Say the Word</span>
       <h2 class="section-title">说一句话,就能做到</h2>
       <p class="section-sub">用自然语言指挥你的相册</p>
       <div class="demo-grid">
@@ -259,6 +118,17 @@
 
   <section>
     <div class="container">
+      <div class="oss-card">
+        <h2>开源，隐私可审计</h2>
+        <p>全部代码在 GitHub 公开。「照片不上传」不是一句口号——你可以亲自验证每一次网络请求。</p>
+        <a class="btn primary" href="https://github.com/littleseven/polang" target="_blank" rel="noopener">查看源码 →</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="alt">
+    <div class="container">
+      <span class="eyebrow-sm">FAQ</span>
       <h2 class="section-title">常见问题</h2>
       <div class="faq">
         <div class="faq-item"><h3>照片会上传到云端吗?</h3><p>不会。人脸检测、美颜、打标等媒体处理在设备本地完成,照片从不离开你的手机。</p></div>
@@ -269,6 +139,17 @@
         <div class="faq-item"><h3>没有网络能用吗?</h3><p>打标、人脸识别、场景识别等端侧能力可离线使用;AI 对话走远程大模型,需联网。</p></div>
         <div class="faq-item"><h3>支持哪些机型?</h3><p>Android 7.0(API 24)及以上,美颜与本地推理推荐 arm64 机型;iOS 版本开发中,即将支持。</p></div>
         <div class="faq-item"><h3>数据会被收集吗?</h3><p>不会。不采集任何用户数据,详见<a href="privacy-policy/index.html">隐私政策</a>。</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="final-cta">
+    <div class="container">
+      <h2>让 AI 整理你的<br><span style="color:var(--primary)">每一段时光</span></h2>
+      <p>免费 · 无广告 · 照片不上传</p>
+      <div class="cta-row">
+        <a class="btn primary" href="https://play.google.com/store/apps/details?id=com.mamba.picme" target="_blank" rel="noopener">Google Play 下载</a>
+        <a class="btn" href="https://api.polang.net/download" target="_blank" rel="noopener">APK 下载</a>
       </div>
     </div>
   </section>
@@ -288,7 +169,7 @@
       </div>
     </div>
     <div class="container inner">
-      <span>© PoLang — 雕刻时光,瞬间永恒。</span>
+      <span>© 2026 PoLang</span>
       <div class="nav-links">
         <a href="getting-started.html">上手指南</a>
         <a href="privacy-policy/index.html">隐私政策</a>
