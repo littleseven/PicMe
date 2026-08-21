@@ -2,6 +2,7 @@
 
 package com.mamba.picme.features.gallery.components
 
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -258,7 +259,7 @@ fun TagGenerationControlScreen(
                                 ) {
                                     Icon(Icons.Rounded.Pause, null, Modifier.size(16.dp))
                                     Spacer(Modifier.width(4.dp))
-                                    Text("暂停")
+                                    Text(stringResource(R.string.pause))
                                 }
                             }
                             isPausing -> {
@@ -269,7 +270,7 @@ fun TagGenerationControlScreen(
                                 ) {
                                     Icon(Icons.Rounded.Pause, null, Modifier.size(16.dp))
                                     Spacer(Modifier.width(4.dp))
-                                    Text("暂停中...")
+                                    Text(stringResource(R.string.tag_scan_pausing))
                                 }
                             }
                             isPaused -> {
@@ -281,7 +282,7 @@ fun TagGenerationControlScreen(
                                 ) {
                                     Icon(Icons.Rounded.PlayArrow, null, Modifier.size(16.dp))
                                     Spacer(Modifier.width(4.dp))
-                                    Text("恢复")
+                                    Text(stringResource(R.string.resume))
                                 }
                             }
                         }
@@ -297,7 +298,7 @@ fun TagGenerationControlScreen(
                         ) {
                             Icon(Icons.Rounded.Cancel, null, Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("取消")
+                            Text(stringResource(R.string.cancel))
                         }
 
                         if ((sessionProgress?.failed ?: 0) > 0) {
@@ -309,7 +310,7 @@ fun TagGenerationControlScreen(
                             ) {
                                 Icon(Icons.Rounded.Refresh, null, Modifier.size(16.dp))
                                 Spacer(Modifier.width(4.dp))
-                                Text("重试")
+                                Text(stringResource(R.string.retry))
                             }
                         }
                     }
@@ -334,7 +335,7 @@ fun TagGenerationControlScreen(
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        "处理阶段概览",
+                        stringResource(R.string.tag_pipeline_overview),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -432,7 +433,7 @@ fun TagGenerationControlScreen(
                         ) {
                             Icon(Icons.Rounded.PlayArrow, null, Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("全量扫描")
+                            Text(stringResource(R.string.tag_scan_full))
                         }
                         OutlinedButton(
                             onClick = {
@@ -445,7 +446,7 @@ fun TagGenerationControlScreen(
                         ) {
                             Icon(Icons.Rounded.Update, null, Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("增量扫描")
+                            Text(stringResource(R.string.tag_scan_incremental))
                         }
                     }
                 }
@@ -455,13 +456,13 @@ fun TagGenerationControlScreen(
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        "分阶段独立控制",
+                        stringResource(R.string.tag_pass_control_title),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "每个阶段均可独立增量补充或全量重新生成",
+                        stringResource(R.string.tag_pass_control_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
@@ -566,14 +567,14 @@ fun TagGenerationControlScreen(
 
                     // ── 精细控制：按类别 / 时间范围重新生成 ──────────
                     Text(
-                        "精细控制",
+                        stringResource(R.string.tag_fine_control_title),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     Spacer(Modifier.height(8.dp))
 
                     Text(
-                        "选择 TAG 类别",
+                        stringResource(R.string.tag_select_categories),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                     )
@@ -583,42 +584,42 @@ fun TagGenerationControlScreen(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         CategoryChip(
-                            label = "人脸",
+                            label = stringResource(R.string.tag_category_face),
                             selected = TagCategory.FACE in selectedCategories,
                             onClick = {
                                 selectedCategories = selectedCategories.toggle(TagCategory.FACE)
                             }
                         )
                         CategoryChip(
-                            label = "场景",
+                            label = stringResource(R.string.tag_category_scene),
                             selected = TagCategory.SCENE in selectedCategories,
                             onClick = {
                                 selectedCategories = selectedCategories.toggle(TagCategory.SCENE)
                             }
                         )
                         CategoryChip(
-                            label = "活动",
+                            label = stringResource(R.string.tag_category_activity),
                             selected = TagCategory.ACTIVITY in selectedCategories,
                             onClick = {
                                 selectedCategories = selectedCategories.toggle(TagCategory.ACTIVITY)
                             }
                         )
                         CategoryChip(
-                            label = "物体",
+                            label = stringResource(R.string.tag_category_objects),
                             selected = TagCategory.OBJECTS in selectedCategories,
                             onClick = {
                                 selectedCategories = selectedCategories.toggle(TagCategory.OBJECTS)
                             }
                         )
                         CategoryChip(
-                            label = "标签",
+                            label = stringResource(R.string.tag_category_tags),
                             selected = TagCategory.TAGS in selectedCategories,
                             onClick = {
                                 selectedCategories = selectedCategories.toggle(TagCategory.TAGS)
                             }
                         )
                         CategoryChip(
-                            label = "摘要",
+                            label = stringResource(R.string.tag_category_summary),
                             selected = TagCategory.SUMMARY in selectedCategories,
                             onClick = {
                                 selectedCategories = selectedCategories.toggle(TagCategory.SUMMARY)
@@ -629,7 +630,7 @@ fun TagGenerationControlScreen(
                     Spacer(Modifier.height(8.dp))
 
                     Text(
-                        "时间范围",
+                        stringResource(R.string.tag_time_range),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                     )
@@ -640,7 +641,7 @@ fun TagGenerationControlScreen(
                     ) {
                         TimeRangePreset.entries.forEach { preset ->
                             CategoryChip(
-                                label = preset.label,
+                                label = stringResource(preset.labelRes),
                                 selected = selectedTimeRange == preset,
                                 onClick = { selectedTimeRange = preset }
                             )
@@ -654,7 +655,13 @@ fun TagGenerationControlScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            "模式: ${if (fullRegenerateMode) "全量重标" else "仅补充缺失"}",
+                            stringResource(
+                                R.string.tag_regenerate_mode,
+                                stringResource(
+                                    if (fullRegenerateMode) R.string.tag_mode_full_regenerate
+                                    else R.string.tag_mode_fill_missing
+                                )
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                         )
@@ -685,7 +692,7 @@ fun TagGenerationControlScreen(
                     ) {
                         Icon(Icons.Rounded.Tune, null, Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("按选择重新生成")
+                        Text(stringResource(R.string.tag_regenerate_selected))
                     }
                 }
             }
@@ -709,13 +716,13 @@ private fun ScanProgressCard(progress: TagScanSessionProgress) {
         ScanSessionState.CANCELLING
     )
     val stateText = when (progress.state) {
-        ScanSessionState.RUNNING -> "扫描中"
-        ScanSessionState.PAUSING -> "暂停中"
-        ScanSessionState.PAUSED -> "已暂停"
-        ScanSessionState.CANCELLING -> "取消中"
-        ScanSessionState.CANCELLED -> "已取消"
-        ScanSessionState.COMPLETED -> "完成"
-        ScanSessionState.IDLE -> "空闲"
+        ScanSessionState.RUNNING -> stringResource(R.string.tag_scan_state_running)
+        ScanSessionState.PAUSING -> stringResource(R.string.tag_scan_state_pausing)
+        ScanSessionState.PAUSED -> stringResource(R.string.tag_scan_state_paused)
+        ScanSessionState.CANCELLING -> stringResource(R.string.tag_scan_state_cancelling)
+        ScanSessionState.CANCELLED -> stringResource(R.string.tag_scan_state_cancelled)
+        ScanSessionState.COMPLETED -> stringResource(R.string.tag_scan_state_completed)
+        ScanSessionState.IDLE -> stringResource(R.string.tag_scan_state_idle)
     }
 
     Card(
@@ -746,10 +753,10 @@ private fun ScanProgressCard(progress: TagScanSessionProgress) {
                 }
                 Spacer(Modifier.width(12.dp))
                 val subtitle = when {
-                    progress.state == ScanSessionState.CANCELLING -> "等待当前任务结束"
+                    progress.state == ScanSessionState.CANCELLING -> stringResource(R.string.tag_scan_waiting_task)
                     progress.state == ScanSessionState.CANCELLED -> ""
                     progress.state == ScanSessionState.COMPLETED -> ""
-                    progress.currentPass == null -> "准备中"
+                    progress.currentPass == null -> stringResource(R.string.tag_scan_preparing)
                     else -> passDisplayName(progress.currentPass)
                 }
                 Text(
@@ -769,13 +776,19 @@ private fun ScanProgressCard(progress: TagScanSessionProgress) {
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                "任务 ${progress.processed}/${progress.total} 完成 · 待处理 ${progress.pending} · 失败 ${progress.failed}",
+                stringResource(
+                    R.string.tag_scan_progress_line,
+                    progress.processed,
+                    progress.total,
+                    progress.pending,
+                    progress.failed
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
             if (progress.estimatedRemainingMs != null && isScanning) {
                 Text(
-                    "预计剩余: ${formatDuration(progress.estimatedRemainingMs)}",
+                    stringResource(R.string.tag_scan_eta, formatDuration(progress.estimatedRemainingMs)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                 )
@@ -833,12 +846,13 @@ private fun AestheticProgressCard(progress: AestheticScoreWorker.AestheticProgre
     }
 }
 
+@Composable
 private fun passDisplayName(pass: TagScanPass?): String = when (pass) {
-    TagScanPass.FACE_DETECTION -> "第一步：人脸检测与语义编码"
-    TagScanPass.DBSCAN -> "第二步：人物聚类"
-    TagScanPass.IMAGE_TAGGING -> "第三步：图片内容理解"
-    TagScanPass.MOBILE_CLIP_ENCODING -> "语义编码（单独）"
-    null -> "准备中"
+    TagScanPass.FACE_DETECTION -> stringResource(R.string.tag_pass_step_face)
+    TagScanPass.DBSCAN -> stringResource(R.string.tag_pass_step_cluster)
+    TagScanPass.IMAGE_TAGGING -> stringResource(R.string.tag_pass_step_content)
+    TagScanPass.MOBILE_CLIP_ENCODING -> stringResource(R.string.tag_pass_step_semantic)
+    null -> stringResource(R.string.tag_scan_preparing)
 }
 
 @Composable
@@ -937,7 +951,7 @@ private fun PassControlCard(
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        text = "增量",
+                        text = stringResource(R.string.tag_action_incremental),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                     )
@@ -956,7 +970,7 @@ private fun PassControlCard(
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        text = "全量",
+                        text = stringResource(R.string.tag_action_full),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                     )
@@ -979,11 +993,11 @@ internal fun formatDuration(ms: Long): String {
     }
 }
 
-private enum class TimeRangePreset(val label: String, private val startOffsetMs: Long) {
-    ALL("全部", 0),
-    DAYS_7("最近7天", 7 * 24 * 60 * 60 * 1000L),
-    DAYS_30("最近30天", 30 * 24 * 60 * 60 * 1000L),
-    DAYS_90("最近90天", 90 * 24 * 60 * 60 * 1000L);
+private enum class TimeRangePreset(@StringRes val labelRes: Int, private val startOffsetMs: Long) {
+    ALL(R.string.tag_time_range_all, 0),
+    DAYS_7(R.string.tag_time_range_days_7, 7 * 24 * 60 * 60 * 1000L),
+    DAYS_30(R.string.tag_time_range_days_30, 30 * 24 * 60 * 60 * 1000L),
+    DAYS_90(R.string.tag_time_range_days_90, 90 * 24 * 60 * 60 * 1000L);
 
     val startTimeMs: Long
         get() = if (startOffsetMs > 0) System.currentTimeMillis() - startOffsetMs else 0L
@@ -1036,7 +1050,7 @@ private fun StatsCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "数据库累计统计",
+                    stringResource(R.string.tag_stats_title),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -1092,7 +1106,7 @@ private fun StatsCard(
                 StatsMetricTile(
                     icon = Icons.Rounded.Face,
                     iconColor = Color(0xFFFF7EB0),
-                    label = "含人脸照片",
+                    label = stringResource(R.string.tag_stats_with_face),
                     value = withFace,
                     modifier = Modifier.weight(1f)
                 )
@@ -1100,7 +1114,7 @@ private fun StatsCard(
                 StatsMetricTile(
                     icon = Icons.Rounded.Fingerprint,
                     iconColor = Color(0xFF22D3EE),
-                    label = "人脸 Embedding",
+                    label = stringResource(R.string.tag_stats_embeddings),
                     value = embeddingCount,
                     modifier = Modifier.weight(1f)
                 )
@@ -1110,7 +1124,7 @@ private fun StatsCard(
                 StatsMetricTile(
                     icon = Icons.Rounded.Person,
                     iconColor = Color(0xFF9B8CFF),
-                    label = "识别出的人",
+                    label = stringResource(R.string.tag_stats_people),
                     value = personCount,
                     modifier = Modifier.weight(1f)
                 )
@@ -1118,7 +1132,7 @@ private fun StatsCard(
                 StatsMetricTile(
                     icon = Icons.Rounded.VerifiedUser,
                     iconColor = Color(0xFF4ADE80),
-                    label = "已命名人",
+                    label = stringResource(R.string.tag_stats_named),
                     value = namedPersonCount,
                     modifier = Modifier.weight(1f)
                 )
