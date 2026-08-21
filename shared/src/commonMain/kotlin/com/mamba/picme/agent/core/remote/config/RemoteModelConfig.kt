@@ -17,7 +17,12 @@ data class RemoteModelProvider(
     val baseUrl: String,
     val protocol: RemoteProtocol,
     val models: List<String>,
-    val isVisible: Boolean = true
+    val isVisible: Boolean = true,
+    /**
+     * 官方控制台/API Key 申请页 URL（供「前往控制台获取」入口在系统浏览器打开）；
+     * 为空表示无官方申请入口（如自定义供应商）。
+     */
+    val apiKeyUrl: String = ""
 )
 
 /**
@@ -71,28 +76,32 @@ data class RemoteModelConfig(
                 displayName = "腾讯云 TokenHub",
                 baseUrl = "https://tokenhub.tencentmaas.com/v1/",
                 protocol = RemoteProtocol.OPENAI,
-                models = listOf("deepseek-v4-flash", "kimi-k2.6","kimi-k2.7-code")
+                models = listOf("deepseek-v4-flash", "kimi-k2.6","kimi-k2.7-code"),
+                apiKeyUrl = "https://tokenhub.tencentmaas.com/"
             ),
             RemoteModelProvider(
                 providerId = "kimi-official",
                 displayName = "Kimi 官方",
                 baseUrl = "https://api.moonshot.cn/v1/",
                 protocol = RemoteProtocol.OPENAI,
-                models = listOf("kimi-k2.6", "kimi-k2.5", "kimi-k2.7")
+                models = listOf("kimi-k2.6", "kimi-k2.5", "kimi-k2.7"),
+                apiKeyUrl = "https://platform.moonshot.cn/console/api-keys"
             ),
             RemoteModelProvider(
                 providerId = "deepseek-official",
                 displayName = "DeepSeek 官方",
                 baseUrl = "https://api.deepseek.com/",
                 protocol = RemoteProtocol.OPENAI,
-                models = listOf("deepseek-v4-flash", "deepseek-v4-pro", "deepseek-chat")
+                models = listOf("deepseek-v4-flash", "deepseek-v4-pro", "deepseek-chat"),
+                apiKeyUrl = "https://platform.deepseek.com/api_keys"
             ),
             RemoteModelProvider(
                 providerId = "openai-official",
                 displayName = "OpenAI 官方",
                 baseUrl = "https://api.openai.com/v1/",
                 protocol = RemoteProtocol.OPENAI,
-                models = listOf("gpt-5", "gpt-5-mini", "gpt-4.1", "gpt-4o")
+                models = listOf("gpt-5", "gpt-5-mini", "gpt-4.1", "gpt-4o"),
+                apiKeyUrl = "https://platform.openai.com/api-keys"
             ),
             RemoteModelProvider(
                 providerId = "anthropic-official",
@@ -101,7 +110,8 @@ data class RemoteModelConfig(
                 // 默认 messagesPath 拼接），baseUrl 不带 /v1 后缀（与 OpenAI 协议不同）。
                 baseUrl = "https://api.anthropic.com",
                 protocol = RemoteProtocol.CLAUDE,
-                models = listOf("claude-sonnet-4-5", "claude-haiku-4-5", "claude-opus-4-1")
+                models = listOf("claude-sonnet-4-5", "claude-haiku-4-5", "claude-opus-4-1"),
+                apiKeyUrl = "https://console.anthropic.com/settings/keys"
             )
         )
 

@@ -112,7 +112,10 @@ ai_agent:
         - remote_models_section:
             type: custom                # RemoteModelsListSection（iOS 对等 ModelCenterView）；
                                         # 供应商清单 SSOT 在 shared RemoteModelConfig.PROVIDERS
-                                        # （tokenhub/kimi/deepseek/openai/anthropic），添加弹窗支持自定义模型 ID
+                                        # （tokenhub/kimi/deepseek/openai/anthropic）
+                                        # 2026-08-21：组尾「添加模型」行改为导航 add_remote_provider 页
+                                        # （原 AddProviderModelDialog 弹窗流程下线）
+            add_entry_target: add_remote_provider
 
     - title: "Voice Control"            # 语音控制（2026-08-19：语音全面默认关闭，本组为唯一开启入口）
       items:
@@ -137,6 +140,92 @@ ai_agent:
             type: chips
             show_when: "voice_mode == wake_word"
             options: "downloaded KWS models or fallback text"
+
+# ============================================================================
+# 3c. 添加远程模型页（add_remote_provider，2026-08-21 新增：弹窗改页面）
+#     路由 settings/add_remote_provider（精确路由，优先于 settings/{category}）
+# ============================================================================
+add_remote_provider:
+  top_bar:
+    title: "Add Remote Model"          # 添加远程模型（add_remote_model_title）
+    back: true
+  sections:
+    - connected_providers:             # 「已接入」（provider_section_connected）
+        label_font: { size: 13, color: "onSurfaceVariant" }
+        source: "shared RemoteModelConfig.PROVIDERS（SSOT，双端共享，filter isVisible）"
+        card_style:
+          background: "surfaceContainerHighest"
+          shape: { corner_radius: 12 }
+        divider: { inset_start: 56 }
+        row:
+          height: 64
+          badge:                       # 品牌色圆角字母徽章
+            size: 28
+            corner_radius: 8
+            letter: "白色 SemiBold；Kimi=M(Moonshot)、TokenHub=T，其余取名称首字母"
+            colors: { openai: "#000000", anthropic: "#D97757", deepseek: "#4D6BFE", kimi: "#4F378B", tencent: "#0052D9" }
+          title: { font: { size: 15, weight: semibold } }        # displayName
+          subtitle: { font: { size: 12 }, color: "onSurfaceVariant" }  # 「GPT-5 · GPT-4.1 等 4 个预置模型」动态生成
+          trailing:
+            configured_tag:            # 该 providerId 已有 isConfigured 模型时显示
+              text: "Configured"       # remote_model_configured
+              font: { size: 11 }
+              color: "#0B9E4A"
+              background: "#0B9E4A @ 12%"
+            chevron: true
+          click: "→ provider_config/{providerId}"
+    - more_providers:                  # 「更多供应商」（provider_section_more）
+        label_font: { size: 13, color: "onSurfaceVariant" }
+        note: "静态列表，不可点击、无 chevron，右侧灰色「即将支持」胶囊"
+        rows:
+          - { name: "Google Gemini", subtitle: "Gemini 2.5 Pro · Flash", badge: "G 渐变蓝紫" }
+          - { name: "通义千问", subtitle: "Qwen3 Max · Qwen Plus", badge: "Q #7147E8" }
+          - { name: "智谱 AI", subtitle: "GLM-5 · GLM-4.6 系列", badge: "Z #3B5BFD" }
+          - { name: "xAI", subtitle: "Grok 4 · Grok Code", badge: "X #202124" }
+          - { name: "Mistral AI", subtitle: "Mistral Large · Codestral", badge: "M #FF7000" }
+          - { name: "OpenRouter", subtitle: "200+ 模型聚合 · OpenAI 兼容", badge: "OR 9sp #6566F1" }
+    - custom_provider:                 # 底部独立卡片（custom_provider_name）
+        badge: "+ #00E676（vibrantGreen）"
+        subtitle: "OpenAI 兼容协议 · 自定义 Base URL"
+        chevron: true
+        click: "→ provider_config/custom"
+
+# ============================================================================
+# 3d. 供应商配置页（provider_config/{providerId}，2026-08-21 新增）
+#     providerId=custom 时为自定义供应商形态（额外 Base URL、无预置模型列表）
+# ============================================================================
+provider_config:
+  top_bar:
+    title: "$provider.displayName"     # 自定义形态显示「自定义供应商」
+    back: true
+  summary_card:                        # 供应商摘要卡
+    badge: "同 add_remote_provider 徽章规则"
+    title: { font: { size: 15, weight: semibold } }
+    subtitle: "官方服务 · OpenAI 协议 / Anthropic 协议（按 protocol 字段）；自定义形态为「自定义供应商 · OpenAI 兼容协议」"
+  api_key_section:
+    label: "API Key"
+    card_fields:
+      - base_url:                      # 仅自定义供应商形态
+          placeholder: "https://api.example.com/v1/"
+      - api_key:
+          style: "内凹浅色底（surfaceVariant 60%）、圆角 10、无指示线、密码掩码"
+          privacy_hint: "API Key 仅保存在本机，不会上传到我们的服务器"
+      - console_link:                  # 仅 provider.apiKeyUrl 非空时显示（RemoteModelProvider.apiKeyUrl）
+          text: "前往 XX 控制台获取 →"
+          color: "vibrantBlue"
+          action: "系统浏览器打开 apiKeyUrl"
+  model_section:
+    label: "选择模型"
+    preset_models:                     # 单选列表（仅预置供应商）
+      row: { title: "$modelId", desc: "官方预置模型", trailing: "选中项右侧 vibrantBlue ✓" }
+    custom_model_id_row:               # 末尾「自定义模型 ID」行，chevron 展开内联输入框
+      subtitle: "填写任意模型名称，如 gpt-5-pro"
+      note: "展开时覆盖预置单选（语义同原对话框）；自定义供应商形态只有此输入框"
+  primary_button:
+    text: "添加模型"                   # add_model
+    style: "全宽 48 高，圆角 12，vibrantBlue 底白字"
+    enabled_when: "API Key 非空且已选模型（或已填自定义模型 ID）；自定义形态另需 Base URL 非空"
+    on_save: "RemoteModelConfigs.addConfig upsert → toJson 回写 UserPreferences（与 AddProviderModelDialog 同路径）→ 弹回远程模型列表页"
 
 # ============================================================================
 # 4. 账号分类页（account）

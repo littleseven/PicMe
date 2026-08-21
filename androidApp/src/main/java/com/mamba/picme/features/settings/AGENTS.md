@@ -184,6 +184,7 @@
 **导航实现**
 - 主菜单路由：`Screen.Settings.route = "settings"`
 - 二级页路由：`Screen.SettingsCategory.route = "settings/{category}"`
+- 添加远程模型页：`Screen.AddRemoteProvider.route = "settings/add_remote_provider"`（精确路由，优先于 `settings/{category}` 占位匹配）；供应商配置页：`Screen.ProviderConfig.route = "settings/provider_config/{providerId}"`（`providerId` 为 shared `RemoteModelConfig.PROVIDERS` 的 providerId，`custom` 为自定义供应商形态，含 Base URL 输入；2026-08-21 新增，替代原 `AddProviderModelDialog` 弹窗流程，保存仍走 `RemoteModelConfigs.addConfig` → toJson → `setAiAgentRemoteModelConfigs` 同一路径）
 - `MainActivity.kt` 解析 `category` 参数并映射到 `SettingsCategory`
 - 主菜单点击卡片后 `onNavigateToCategory` 调用 `navController.navigate(Screen.SettingsCategory.createRoute(category.name.lowercase()))`
 - 所有二级页共用同一个 `SettingsScreen` Composable，通过 `category` 条件渲染对应区块

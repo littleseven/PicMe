@@ -179,7 +179,8 @@ fun SettingsScreen(
     onNavigateToDataPrivacy: () -> Unit = {},
     onNavigateToMemoryFacts: () -> Unit = {},
     onNavigateToCommunicationChannel: () -> Unit = {},
-    onNavigateToPeople: () -> Unit = {}
+    onNavigateToPeople: () -> Unit = {},
+    onNavigateToAddProvider: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -353,6 +354,7 @@ fun SettingsScreen(
             onNavigateToMemoryFacts = onNavigateToMemoryFacts,
             onNavigateToCommunicationChannel = onNavigateToCommunicationChannel,
             onNavigateToPeople = onNavigateToPeople,
+            onNavigateToAddProvider = onNavigateToAddProvider,
             onResetCameraMemoryState = { viewModel.resetCameraMemoryState() }
         )
     }
@@ -438,6 +440,7 @@ private fun SettingsContent(
     onNavigateToMemoryFacts: () -> Unit = {},
     onNavigateToCommunicationChannel: () -> Unit = {},
     onNavigateToPeople: () -> Unit = {},
+    onNavigateToAddProvider: () -> Unit = {},
     onResetCameraMemoryState: () -> Unit = {}
 ) {
     val titleRes = when (category) {
@@ -507,7 +510,8 @@ private fun SettingsContent(
                     configsJson = aiAgentRemoteModelConfigs,
                     onConfigsChange = onAiAgentRemoteModelConfigsChange,
                     selectedModelId = aiAgentSelectedRemoteModel,
-                    onSelectedModelChange = onAiAgentSelectedRemoteModelChange
+                    onSelectedModelChange = onAiAgentSelectedRemoteModelChange,
+                    onAddProvider = onNavigateToAddProvider
                 )
                 // 自动执行多步骤计划已迁入「沙盒与权限」一级入口
             }
@@ -1870,13 +1874,16 @@ fun SettingsScreenPreview() {
  * 远程模型页（2026-08-17 v2 重设计，spec=specs/screens/refs/ardot settings/remote_models）：
  * 单组模型列表——供应商字母徽章（品牌色）+ 双行模型行（模型名+使用中胶囊 / 供应商·已配置）；
  * 选中行 primaryTint 高亮；点行=设为当前，行尾「⋯」弹动作（设为当前/删除）；组尾添加行。
+ * 2026-08-21：添加行改为导航至「添加远程模型」供应商列表页（Screen.AddRemoteProvider），
+ * 原 AddProviderModelDialog 弹窗流程下线（对话框本身仍被 SettingsAiAgent 遗留区块引用，暂保留）。
  */
 @Composable
 private fun RemoteModelsListSection(
     configsJson: String,
     onConfigsChange: (String) -> Unit,
     selectedModelId: String,
-    onSelectedModelChange: (String) -> Unit
+    onSelectedModelChange: (String) -> Unit,
+    onAddProvider: () -> Unit
 ) {
     val configs = remember(configsJson) {
         if (configsJson.isNotBlank()) {
@@ -1886,7 +1893,6 @@ private fun RemoteModelsListSection(
         }
     }
     val configuredConfigs = configs.configs.filter { it.isConfigured }
-    var showAddDialog by remember { mutableStateOf(false) }
     var actionModel by remember { mutableStateOf<RemoteModelConfig?>(null) }
 
     SettingsListSection {
@@ -1908,7 +1914,7 @@ private fun RemoteModelsListSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(SettingsTokens.listRowHeight)
-                .clickable(onClick = { showAddDialog = true })
+                .clickable(onClick = onAddProvider)
                 .padding(horizontal = SettingsTokens.listRowPaddingH),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(SettingsTokens.rowElementGap)
@@ -1968,17 +1974,6 @@ private fun RemoteModelsListSection(
             }
         }
     }
-
-    if (showAddDialog) {
-        AddProviderModelDialog(
-            onDismiss = { showAddDialog = false },
-            onConfirm = { config ->
-                val updated = configs.updateConfig(config.uniqueKey, config)
-                onConfigsChange(RemoteModelConfigs.toJson(updated))
-                showAddDialog = false
-            }
-        )
-    }
 }
 
 /** 供应商字母徽章品牌色（与设计稿映射一致：DeepSeek 蓝 / Moonshot 紫 / OpenAI 绿 / Anthropic 橙 / 其他灰）。 */
@@ -2001,7 +1996,8 @@ private fun RemoteModelRow(
     onSelect: () -> Unit,
     onMore: () -> Unit
 ) {
-    val providerName = RemoteModelConfig.getProvider(config.providerId)?.displayName ?: config.providerId
+    val providerName = RemoteModelConfig.getProvider(config.providerId)?.displayName
+        ?: stringResource(R.string.provider_custom)
     Row(
         modifier = Modifier
             .fillMaxWidth()
