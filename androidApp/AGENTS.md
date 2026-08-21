@@ -52,6 +52,8 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | `IDPhoto` | `id_photo/{sourceUri}` | 证件照制作 |
 | `Settings` | `settings` | 设置 — 主菜单，展示 6 个分类入口 |
 | `SettingsCategory` | `settings/{category}` | 设置二级分类页 — `personalization`、`ai_agent`、`gallery`、`camera`、`system`、`developer`（2026-08-16 `camera_beauty` 更名 `camera`，承载相机状态记忆与重置） |
+| `AddRemoteProvider` | `settings/add_remote_provider` | 添加远程模型 — 供应商列表页（精确路由，优先于 `settings/{category}` 占位匹配；2026-08-21 替代原 AddProviderModelDialog 弹窗） |
+| `ProviderConfig` | `settings/provider_config/{providerId}` | 供应商配置页 — API Key + 模型单选 + 自定义模型 ID；`providerId=custom` 为自定义供应商形态（含 Base URL）；保存后确定性弹回远程模型列表 |
 | `ModelCenter` | `model_center/{categoryTag}` | 模型中心 — 按服务功能分类管理本地模型 |
 | `DuplicateManager` | `duplicate_manager` | 相册功能子页 — 重复/相似照片扫描与删除，从 Settings「相册功能」卡片进入 |
 | `TagControl` | `tag_control` | TAG 生成控制 — 3-Pass 进度、按类别/时间范围重新生成 |

@@ -55,6 +55,8 @@ import com.mamba.picme.features.translation.SentencePieceTestScreen
 import com.mamba.picme.features.tagviewer.TagViewerTestScreen
 import com.mamba.picme.features.settings.DataPrivacyScreen
 import com.mamba.picme.features.settings.GallerySettingsHeader
+import com.mamba.picme.features.settings.AddRemoteProviderScreen
+import com.mamba.picme.features.settings.ProviderConfigScreen
 import com.mamba.picme.features.settings.MemoryFactsScreen
 import com.mamba.picme.features.main.MAIN_PAGE_CAMERA
 import com.mamba.picme.features.main.MAIN_PAGE_COUNT
@@ -402,6 +404,9 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onNavigateToDuplicateManager = {
                                         navController.navigate(Screen.DuplicateManager.route, navOptions { launchSingleTop = true })
+                                    },
+                                    onNavigateToAddProvider = {
+                                        navController.navigate(Screen.AddRemoteProvider.route, navOptions { launchSingleTop = true })
                                     }
                                 )
                             }
@@ -470,7 +475,47 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onNavigateToDuplicateManager = {
                                         navController.navigate(Screen.DuplicateManager.route, navOptions { launchSingleTop = true })
+                                    },
+                                    onNavigateToAddProvider = {
+                                        navController.navigate(Screen.AddRemoteProvider.route, navOptions { launchSingleTop = true })
                                     }
+                                )
+                            }
+                            // 添加远程模型：供应商列表页（精确路由，优先于 settings/{category} 占位）
+                            composable(Screen.AddRemoteProvider.route) {
+                                val remoteModelConfigs by settingsViewModel.aiAgentRemoteModelConfigs.collectAsState()
+                                AddRemoteProviderScreen(
+                                    configsJson = remoteModelConfigs,
+                                    onNavigateBack = { navController.popBackStack() },
+                                    onProviderSelected = { providerId ->
+                                        navController.navigate(
+                                            Screen.ProviderConfig.createRoute(providerId),
+                                            navOptions { launchSingleTop = true }
+                                        )
+                                    }
+                                )
+                            }
+                            // 供应商配置页：保存后确定性弹掉 config + add 两页，落回远程模型列表
+                            composable(
+                                route = Screen.ProviderConfig.route,
+                                arguments = listOf(
+                                    navArgument("providerId") {
+                                        type = NavType.StringType
+                                        defaultValue = Screen.ProviderConfig.CUSTOM_PROVIDER_ID
+                                    }
+                                )
+                            ) { backStackEntry ->
+                                val providerId = backStackEntry.arguments?.getString("providerId")
+                                    ?: Screen.ProviderConfig.CUSTOM_PROVIDER_ID
+                                val remoteModelConfigs by settingsViewModel.aiAgentRemoteModelConfigs.collectAsState()
+                                ProviderConfigScreen(
+                                    providerId = providerId,
+                                    configsJson = remoteModelConfigs,
+                                    onConfigsChange = { settingsViewModel.setAiAgentRemoteModelConfigs(it) },
+                                    onSaved = {
+                                        navController.popBackStack(Screen.AddRemoteProvider.route, inclusive = true)
+                                    },
+                                    onNavigateBack = { navController.popBackStack() }
                                 )
                             }
                             composable(

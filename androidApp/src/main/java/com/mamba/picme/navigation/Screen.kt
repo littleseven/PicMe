@@ -26,6 +26,13 @@ sealed class Screen(val route: String) {
     data object SettingsCategory : Screen("settings/{category}") {
         fun createRoute(category: String): String = "settings/$category"
     }
+    /** 添加远程模型 — 供应商列表页（精确路由，优先于 settings/{category} 占位匹配） */
+    data object AddRemoteProvider : Screen("settings/add_remote_provider")
+    /** 供应商配置页；providerId 为 [RemoteModelProvider.providerId]，自定义供应商为 "custom" */
+    data object ProviderConfig : Screen("settings/provider_config/{providerId}") {
+        const val CUSTOM_PROVIDER_ID = "custom"
+        fun createRoute(providerId: String): String = "settings/provider_config/$providerId"
+    }
     data object Debug : Screen("debug")
     data object JsBridge : Screen("jsbridge")
     data object SearchTest : Screen("search_test")
