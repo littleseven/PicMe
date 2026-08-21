@@ -70,23 +70,32 @@ class FaceClusterEngine(private val context: Context) {
      */
     private val centroidCache = mutableMapOf<Long, Pair<FloatArray, Int>>()
 
-    /** Glint360K R100 嵌入提取器（懒加载，模型缺失时为 null） */
+    /** Glint360K R100 嵌入提取器（懒加载，模型缺失/损坏时为 null） */
     private val embeddingExtractorLazy = lazy {
         val modelDir = ModelPathConfig.getModelDir(context, "face-embedding-glint360k-r100-mnn")
         val modelFile = File(modelDir, "glintr100.mnn")
         val extractor = MnnEmbeddingExtractor(modelFile)
         // Glint360K R100 MNN 输入/输出名：input.1 / 1333；优先尝试 OpenCL GPU，失败回退 CPU
-        if (extractor.isModelReady && extractor.initialize(
+        when {
+            !extractor.isModelReady -> {
+                Log.w(TAG, "Glint360K R100 model NOT found at ${modelFile.absolutePath}, face clustering will NOT work. Download glintr100.mnn to enable.")
+                null
+            }
+            extractor.initialize(
                 inputName = "input.1",
                 outputName = "1333",
                 useGpu = true,
                 swapRb = false
-            )) {
-            Log.i(TAG, "Glint360K R100 model loaded: ${modelFile.absolutePath}")
-            extractor
-        } else {
-            Log.w(TAG, "Glint360K R100 model NOT found at ${modelFile.absolutePath}, face clustering will NOT work. Download glintr100.mnn to enable.")
-            null
+            ) -> {
+                Log.i(TAG, "Glint360K R100 model loaded: ${modelFile.absolutePath}")
+                extractor
+            }
+            else -> {
+                // 文件存在但 MNN 解释器创建失败：典型原因是文件损坏（如下载截断，
+                // 大小可能与官方一致但 SHA256 不符），日志须明确指向重下而非「未下载」
+                Log.w(TAG, "Glint360K R100 model file exists but FAILED to load (likely corrupted): ${modelFile.absolutePath}. Re-download the model in Model Center to recover.")
+                null
+            }
         }
     }
     private val embeddingExtractor: MnnEmbeddingExtractor? by embeddingExtractorLazy

@@ -1093,6 +1093,7 @@ fun isModelDownloaded(modelId: String): Boolean {
                         },
                         isCancelled = { cancelFlags[modelId] == true }
                     )
+                    verifyDownloadedFile(destFile, fileName, expectedSize, expectedSha256)
                     continue
                 }
 
@@ -1132,6 +1133,10 @@ fun isModelDownloaded(modelId: String): Boolean {
                             }
                         }
                     }
+
+                    // 单流路径同样需要在下载完成后校验（流提前结束不会抛异常）；
+                    // 放在 use 块内，避免可选文件 404 return@use 跳过下载后被误校验
+                    verifyDownloadedFile(destFile, fileName, expectedSize, expectedSha256)
                 }
             }
 
@@ -1166,6 +1171,30 @@ fun isModelDownloaded(modelId: String): Boolean {
 
     private fun buildModelScopeUrl(repoPath: String, fileName: String): String {
         return "https://modelscope.cn/models/$repoPath/resolve/master/$fileName"
+    }
+
+    /**
+     * 下载完成后的完整性校验：大小（如已知）+ SHA256（如仓库元数据提供）。
+     *
+     * 校验失败即删除损坏文件并抛 [IOException]，让本次下载标记为 FAILED，
+     * 避免「大小正确、内容损坏」的模型文件被静默当作完成（如 CDN 断流导致某段截断）。
+     */
+    private fun verifyDownloadedFile(
+        destFile: File,
+        fileName: String,
+        expectedSize: Long,
+        expectedSha256: String?
+    ) {
+        val actualSize = destFile.length()
+        if (expectedSize > 0 && actualSize != expectedSize) {
+            destFile.delete()
+            throw IOException("Size mismatch after download for $fileName: expected=$expectedSize, actual=$actualSize")
+        }
+        if (!expectedSha256.isNullOrEmpty() && !verifyFileSha256(destFile, expectedSha256)) {
+            destFile.delete()
+            throw IOException("SHA256 mismatch after download for $fileName (corrupted file deleted)")
+        }
+        Logger.d(TAG, "Post-download verification passed: $fileName ($actualSize bytes)")
     }
 
     /**
