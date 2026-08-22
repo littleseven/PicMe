@@ -47,8 +47,6 @@ extension View {
 
 // MARK: - 公共 helper
 
-private func l(_ key: String) -> String { NSLocalizedString(key, comment: "") }
-
 /// 对齐 Android formatDuration：d>0→Xd Yh；h>0→Xh Ym；m>0→Xm Ys；else→Xs。
 private func formatDuration(_ ms: Int) -> String {
     let t = max(0, ms / 1000)
@@ -70,7 +68,7 @@ struct GradientPillButton: View {
 
     var body: some View {
         Button(action: action) {
-            Text(l(titleKey))
+            Text(L(titleKey))
                 .font(.system(size: fontSize, weight: .medium))
                 .foregroundStyle(Color.white)
                 .frame(maxWidth: .infinity)
@@ -94,7 +92,7 @@ struct OutlinedPillButton: View {
     var body: some View {
         let s = appScheme(cs)
         Button(action: action) {
-            Text(l(titleKey))
+            Text(L(titleKey))
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(s.onSurface)
                 .frame(maxWidth: .infinity)
@@ -136,7 +134,7 @@ struct TagStatsCard: View {
             }
             .frame(width: 96, height: 96)
             .frame(maxWidth: .infinity)
-            Text(String(format: l("%1$d%% semantically indexed"), coveragePercent))
+            Text(String(format: L("%1$d%% semantically indexed"), coveragePercent))
                 .font(AppTypography.bodySmall.font)
                 .foregroundStyle(s.onSurfaceVariant)
 
@@ -163,7 +161,7 @@ struct TagStatsCard: View {
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(s.onSurface)
                 .lineLimit(1)
-            Text(l(labelKey))
+            Text(L(labelKey))
                 .font(.system(size: 11))
                 .foregroundStyle(s.onSurfaceVariant)
                 .lineLimit(1)
@@ -201,50 +199,68 @@ struct ScanStatusChip: View {
 struct ScanActionCard: View {
     @ObservedObject var vm: TagScanViewModel
     @Environment(\.colorScheme) private var cs
-    @State private var showFullConfirm = false
 
     /// 待处理媒体（Pass1 + Pass3 未覆盖数）：0 → Up to date。
     private var pendingCount: Int { vm.stats.remainingPass1 + vm.stats.remainingPass3 }
-    private var upToDate: Bool { pendingCount == 0 }
+    private var upToDate: Bool { vm.stats.totalMedia > 0 && pendingCount == 0 }
     /// 上次会话终态 → 换「已完成」说明文案。
     private var doneCaption: Bool { (vm.progress?.state ?? .idle).isTerminal }
 
     var body: some View {
         let s = appScheme(cs)
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            ScanStatusChip(
-                text: upToDate
-                    ? l("Up to date")
-                    : String(format: l("%1$d pending"), pendingCount),
-                color: upToDate ? Color(hex: "FF00E676") : Color(hex: "FFFFB020")
-            )
-            Text(l("Scan"))
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(s.onSurface)
-            Text(doneCaption ? l("Last scan finished") : l("Scan to index new photos"))
+            // 标题左 + 状态 chip 右（Android ScanActionCard 同行式）
+            HStack {
+                Text(L("Scan status"))
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(s.onSurface)
+                Spacer(minLength: 8)
+                ScanStatusChip(
+                    text: upToDate
+                        ? L("Up to date")
+                        : String(format: L("%1$d pending"), pendingCount),
+                    color: upToDate ? Color(hex: "FF00E676") : Color(hex: "FFFFB020")
+                )
+            }
+            Text(captionText)
                 .font(AppTypography.bodySmall.font)
                 .foregroundStyle(s.onSurfaceVariant)
-            // 渐变进度轨道（h6 r3）
-            Capsule()
-                .fill(tagControlBrandGradient)
-                .frame(height: 6)
+            // 进度轨道（h6 r3）：surfaceVariant 底 + 渐变按已覆盖比例填充（对齐 Android :944-958）
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(s.surfaceVariant)
+                    Capsule()
+                        .fill(tagControlBrandGradient)
+                        .frame(width: max(0, geo.size.width * progressFraction))
+                }
+            }
+            .frame(height: 6)
             HStack(spacing: Spacing.sm) {
                 GradientPillButton(titleKey: "Scan new", height: 40) { vm.startIncremental() }
                     .accessibilityIdentifier("scan_new_btn")
-                OutlinedPillButton(titleKey: "Rescan all", height: 40) { showFullConfirm = true }
+                // Android onRescanAll 仅 guard 无二次确认（审查 Y6）——直发全量
+                OutlinedPillButton(titleKey: "Rescan all", height: 40) { vm.startFull() }
                     .accessibilityIdentifier("rescan_all_btn")
             }
             .padding(.top, Spacing.xs)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .tagCard()
-        // 全量动作二次确认（yaml：全量前必须确认）
-        .alert(l("Reprocess everything?"), isPresented: $showFullConfirm) {
-            Button(l("Start")) { vm.startFull() }
-            Button(l("Cancel"), role: .cancel) {}
-        } message: {
-            Text(l("Existing results will be cleared and rebuilt. This can take a while."))
+    }
+
+    /// 已覆盖比例 =(total−pending)/total；空库 0（审查 R1 修复：原恒满格）
+    private var progressFraction: CGFloat {
+        let total = vm.stats.totalMedia
+        guard total > 0 else { return 0 }
+        return CGFloat(max(0, total - pendingCount)) / CGFloat(total)
+    }
+
+    /// 说明行：空闲=图库/待处理统计（参数化，审查 Y2）；终态=上次会话结果
+    private var captionText: String {
+        if doneCaption, let p = vm.progress {
+            return String(format: L("%1$d items scanned · %2$d failed"), p.processed, p.failed)
         }
+        return String(format: L("%1$d items in library · %2$d pending"), vm.stats.totalMedia, pendingCount)
     }
 }
 
@@ -266,19 +282,19 @@ struct ScanProgressCard: View {
                 } else {
                     MatIcon(name: "info.circle", size: IconSize.sm).foregroundStyle(onCont)
                 }
-                Text(l(progress.state.localizationKey))
+                Text(L(progress.state.localizationKey))
                     .font(AppTypography.titleSmall.font)
                     .foregroundStyle(onCont)
                 Spacer(minLength: 0)
             }
             ProgressView(value: Double(progress.processed), total: max(1, Double(progress.total)))
                 .tint(onCont)
-            Text(String(format: l("scan_progress_summary"),
+            Text(String(format: L("scan_progress_summary"),
                         progress.processed, progress.total, progress.pending, progress.failed))
                 .font(AppTypography.bodySmall.font)
                 .foregroundStyle(onCont)
             if active && progress.estimatedRemainingMs > 0 {
-                Text("\(l("scan_eta_prefix")): \(formatDuration(progress.estimatedRemainingMs))")
+                Text("\(L("scan_eta_prefix")): \(formatDuration(progress.estimatedRemainingMs))")
                     .font(AppTypography.bodySmall.font)
                     .foregroundStyle(onCont.opacity(AppAlpha.emphasis))
             }
@@ -362,12 +378,12 @@ struct TagSectionHeader: View {
     var body: some View {
         let s = appScheme(cs)
         HStack(spacing: Spacing.sm) {
-            Text(l(titleKey))
+            Text(L(titleKey))
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(s.onSurfaceVariant)
             Spacer(minLength: 0)
             if let hintKey {
-                Text(l(hintKey))
+                Text(L(hintKey))
                     .font(.system(size: 11))
                     .foregroundStyle(s.onSurfaceVariant.opacity(AppAlpha.hint))
                     .lineLimit(1)
@@ -451,7 +467,7 @@ struct TagStageSection: View {
             HStack(spacing: Spacing.md) {
                 MatIcon(name: stage.iconName, size: IconSize.sm)
                     .foregroundStyle(stage.accent)
-                Text(l(stage.titleKey))
+                Text(L(stage.titleKey))
                     .font(AppTypography.bodyMedium.font)
                     .foregroundStyle(s.onSurface)
                 Spacer(minLength: 0)
@@ -520,13 +536,13 @@ struct StageActionSheet: View {
     var body: some View {
         let s = appScheme(cs)
         VStack(alignment: .leading, spacing: Spacing.lg) {
-            Text(l(stage.titleKey))
+            Text(L(stage.titleKey))
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(s.onSurface)
-            Text(l("Choose what to reprocess in this stage."))
+            Text(L("Choose what to reprocess in this stage."))
                 .font(AppTypography.bodySmall.font)
                 .foregroundStyle(s.onSurfaceVariant)
-            optionCard(.new, badge: l("Recommended"), s)
+            optionCard(.new, badge: L("Recommended"), s)
             optionCard(.full, badge: nil, s)
         }
         .padding(Spacing.lg)
@@ -535,11 +551,11 @@ struct StageActionSheet: View {
         .presentationDetents([.medium])
         .presentationDragIndicator(.visible)
         // 「Reprocess everything」先确认再执行（yaml confirm_first）
-        .alert(l("Reprocess everything?"), isPresented: $showFullConfirm) {
-            Button(l("Start")) { onRunFull() }
-            Button(l("Cancel"), role: .cancel) {}
+        .alert(L("Reprocess everything?"), isPresented: $showFullConfirm) {
+            Button(L("Start")) { onRunFull() }
+            Button(L("Cancel"), role: .cancel) {}
         } message: {
-            Text(l("Existing results will be cleared and rebuilt. This can take a while."))
+            Text(L("This stage will redo all photos and may take a while."))
         }
     }
 
@@ -557,7 +573,7 @@ struct StageActionSheet: View {
                 RadioCircle(selected: selected)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: Spacing.sm) {
-                        Text(l(action == .new ? "Process new only" : "Reprocess everything"))
+                        Text(L(action == .new ? "Process new only" : "Reprocess everything"))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(s.onSurface)
                         if let badge {
@@ -570,7 +586,7 @@ struct StageActionSheet: View {
                                 .clipShape(Capsule())
                         }
                     }
-                    Text(l(action == .new
+                    Text(L(action == .new
                            ? "Skips already-processed photos · fastest"
                            : "Redoes all photos · takes much longer"))
                         .font(AppTypography.bodySmall.font)
@@ -626,12 +642,12 @@ struct TagRegenerateCard: View {
             TagSectionHeader(titleKey: "Regenerate")
             VStack(alignment: .leading, spacing: Spacing.md) {
                 let s = appScheme(cs)
-                Text(l("Categories"))
+                Text(L("Categories"))
                     .font(AppTypography.bodySmall.font)
                     .foregroundStyle(s.onSurfaceVariant)
                 FlowLayout(spacing: Spacing.sm) {
                     ForEach(categoryKeys, id: \.self) { key in
-                        TagChip(title: l(key), selected: categories.contains(key)) {
+                        TagChip(title: L(key), selected: categories.contains(key)) {
                             if categories.contains(key) {
                                 categories.remove(key)
                             } else {
@@ -640,12 +656,12 @@ struct TagRegenerateCard: View {
                         }
                     }
                 }
-                Text(l("Time range"))
+                Text(L("Time range"))
                     .font(AppTypography.bodySmall.font)
                     .foregroundStyle(s.onSurfaceVariant)
                 FlowLayout(spacing: Spacing.sm) {
                     ForEach(timeRangeKeys, id: \.self) { key in
-                        TagChip(title: l(key), selected: timeRange == key) { timeRange = key }
+                        TagChip(title: L(key), selected: timeRange == key) { timeRange = key }
                     }
                 }
                 overwriteRow(s)
@@ -662,11 +678,11 @@ struct TagRegenerateCard: View {
             }
             .tagCard()
         }
-        .alert(l("Reprocess everything?"), isPresented: $showConfirm) {
-            Button(l("Start")) { submit() }
-            Button(l("Cancel"), role: .cancel) {}
+        .alert(L("Reprocess everything?"), isPresented: $showConfirm) {
+            Button(L("Start")) { submit() }
+            Button(L("Cancel"), role: .cancel) {}
         } message: {
-            Text(l("Existing results will be cleared and rebuilt. This can take a while."))
+            Text(L("This stage will redo all photos and may take a while."))
         }
     }
 
@@ -674,10 +690,10 @@ struct TagRegenerateCard: View {
     private func overwriteRow(_ s: SchemeColors) -> some View {
         HStack(spacing: Spacing.md) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(l("Overwrite existing"))
+                Text(L("Overwrite existing"))
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(s.onSurface)
-                Text(l("On: replace existing results. Off: fill in missing only."))
+                Text(L("On: replace existing results. Off: fill in missing only."))
                     .font(.system(size: 11))
                     .foregroundStyle(s.onSurfaceVariant)
             }
@@ -745,6 +761,6 @@ struct TagSwitch: View {
             .frame(width: 44, height: 26)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(l("Overwrite existing"))
+        .accessibilityLabel(L("Overwrite existing"))
     }
 }

@@ -45,7 +45,8 @@ struct ChatView: View {
                                 },
                                 onGuestLinkTap: { viewModel.openRegistrationSheet() }
                             )
-                            .frame(width: geo.size.width, height: geo.size.height)
+                            .frame(width: geo.size.width)
+                            .frame(minHeight: geo.size.height)
                         }
                         .scrollDismissesKeyboard(.interactively)
                     }

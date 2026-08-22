@@ -23,6 +23,50 @@
         }
       }
     },
+    "%1$d items in library · %2$d pending" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d items in library · %2$d pending"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图库共 %1$d 项 · 待处理 %2$d 项"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "圖庫共 %1$d 項 · 待處理 %2$d 項"
+          }
+        }
+      }
+    },
+    "%1$d items scanned · %2$d failed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d items scanned · %2$d failed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已扫描 %1$d 项 · 失败 %2$d 项"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已掃描 %1$d 項 · 失敗 %2$d 項"
+          }
+        }
+      }
+    },
     "%1$d pending" : {
       "localizations" : {
         "en" : {
@@ -702,13 +746,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "点击命名"
+            "value" : "添加名字"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "點擊命名"
+            "value" : "加入名字"
           }
         }
       }
@@ -4164,28 +4208,6 @@
         }
       }
     },
-    "Existing results will be cleared and rebuilt. This can take a while." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Existing results will be cleared and rebuilt. This can take a while."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "现有结果将被清空并重建，可能需要一些时间。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "現有結果將被清空並重建，可能需要一些時間。"
-          }
-        }
-      }
-    },
     "Exposure" : {
       "localizations" : {
         "en" : {
@@ -4491,7 +4513,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "亲属"
+            "value" : "家庭"
           }
         },
         "zh-Hant" : {
@@ -5913,28 +5935,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "語言"
-          }
-        }
-      }
-    },
-    "Last scan finished" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Last scan finished"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "上次扫描已完成"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "上次掃描已完成"
           }
         }
       }
@@ -8853,28 +8853,6 @@
         }
       }
     },
-    "Scan to index new photos" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scan to index new photos"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "扫描以索引新照片"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "掃描以索引新照片"
-          }
-        }
-      }
-    },
     "Scenes" : {
       "localizations" : {
         "en" : {
@@ -10217,6 +10195,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "TA 是我的…"
+          }
+        }
+      }
+    },
+    "This stage will redo all photos and may take a while." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This stage will redo all photos and may take a while."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该阶段将重做全部照片，可能需要较长时间。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "該階段將重做全部照片，可能需要較長時間。"
           }
         }
       }

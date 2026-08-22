@@ -49,8 +49,8 @@ tag_control_v2:
           up_to_date: { text: "tag_scan_up_to_date = Up to date", fg_bg: "#00E676 系" }
           pending: { text: "tag_scan_chip_pending = %1$d pending", fg_bg: "#FFB020 系" }
       title: { size: 14 }                          # tag_scan_status / 标题短文案
-      caption: "tag_scan_idle_caption / tag_scan_caption_done（按终态）"
-      progress_track: { height: 6, corner_radius: 3, background: "brandGradient（轨道）" }
+      caption: "空闲=『图库共 %1$d 项 · 待处理 %2$d 项』；终态=『已扫描 %1$d 项 · 失败 %2$d 项』（参数化）"
+      progress_track: { height: 6, corner_radius: 3, track: surfaceVariant, fill: "brandGradient 按 (total−pending)/total 比例填充" }
       buttons:
         primary:                                   # GradientPillButton
           text: "tag_scan_incremental = Scan new"
@@ -144,6 +144,9 @@ tag_control_v2:
 
   platform_differences:
     capabilities: "扫描执行链 iOS=TagScanOrchestrator（既有）；UI 状态消费同源 sessionProgress 语义"
-    i18n_keys: "iOS 现用 scan_* 键位 → 本规格要求收敛至 tag_*（一次性迁移，死键清理）"
+    i18n_keys: "iOS 取词已切全局 L()（应用内语言切换生效）；scan_* 死键清理待后续批次"
     allowed_differences:
       - "进度卡/会话控制的具体容器色可用两端等价 colorScheme 角色实现"
+      - "Y1（2026-08-23 审查登记）：Stages·Faces 动作 iOS 映射全链 startFull/startIncremental（Pass1→2→3），Android 为 intentScanPass1 仅 Pass1——iOS 执行链无 Pass1-only 入口，属存量缺口；补 startPass1(mode:) 入口后收敛"
+      - "Y3：Regenerate 的 categories × timeRange 在 iOS 执行链无对应 intent 参数（intentRegenerateCategories 缺失），当前仅 overwrite 决定 Pass3 增量/全量；类别选择暂为 UI 态（按钮禁用逻辑与其对齐），待执行链扩展"
+      - "Rescan all iOS 直发全量无二次确认（对齐 Android 仅 guard）；Stages·full 与 Regenerate·overwrite 保留确认（Android stage-full 同款确认文案）"

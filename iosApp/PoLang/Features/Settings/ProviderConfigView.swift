@@ -23,10 +23,17 @@ struct ProviderConfigView: View {
     @State private var apiKey: String = ""
     @State private var baseUrl: String = ""
     @State private var selectedModelId: String = ""
-    @State private var customModelExpanded: Bool = false
+    /// 自定义形态初始展开（唯一输入框，少一次点击；契约=Android customModelExpanded 初始 true）
+    @State private var customModelExpanded: Bool
     @State private var customModelId: String = ""
 
     private var isCustom: Bool { provider == nil }
+
+    init(provider: RemoteModelProvider?, onSaved: @escaping () -> Void = {}) {
+        self.provider = provider
+        self.onSaved = onSaved
+        _customModelExpanded = State(initialValue: provider == nil)
+    }
 
     /// 生效模型 ID：自定义输入展开时覆盖预置单选（语义同原 AddProviderModelDialog）
     private var effectiveModelId: String {
