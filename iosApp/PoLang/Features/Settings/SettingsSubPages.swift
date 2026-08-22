@@ -6,6 +6,7 @@ import SharedKit
 struct AiAgentSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("auto_execute_plans") private var autoExecutePlans = true
+    @AppStorage("assistant_persona") private var assistantPersona: String = "DEFAULT"
 
     var body: some View {
         ScrollView {
@@ -34,6 +35,23 @@ struct AiAgentSettingsView: View {
                             Text(L("Inference Mode")).font(.system(size: 14))
                             Spacer()
                             chip(L("Remote Model"), isSelected: true)
+                        }
+                        .padding(.vertical, 8)
+
+                        SettingsM3Divider()
+
+                        // 助手性格
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(L("Assistant Personality")).font(.system(size: 14))
+                            Text(personaDescription)
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary)
+                            HStack(spacing: 8) {
+                                personaChip("DEFAULT", L("Default"))
+                                personaChip("WARM", L("Warm & Caring"))
+                                personaChip("LIVELY", L("Lively & Playful"))
+                                personaChip("CONCISE", L("Crisp & Direct"))
+                            }
                         }
                         .padding(.vertical, 8)
                     }
@@ -75,6 +93,26 @@ struct AiAgentSettingsView: View {
             .padding(.vertical, 6)
             .background(isSelected ? Color.accentColor : Color(.tertiarySystemBackground))
             .clipShape(Capsule())
+    }
+
+    private var personaDescription: String {
+        switch assistantPersona {
+        case "WARM": return L("Empathizes first, encouraging and supportive")
+        case "LIVELY": return L("Relaxed and fun, with light emoji use")
+        case "CONCISE": return L("Straight to conclusions, minimal pleasantries")
+        default: return L("Balanced, neutral standard replies")
+        }
+    }
+
+    private func personaChip(_ value: String, _ label: String) -> some View {
+        Text(label)
+            .font(.system(size: 13, weight: assistantPersona == value ? .semibold : .regular))
+            .foregroundColor(assistantPersona == value ? .white : .primary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
+            .background(assistantPersona == value ? Color.accentColor : Color(.tertiarySystemBackground))
+            .clipShape(Capsule())
+            .onTapGesture { assistantPersona = value }
     }
 }
 

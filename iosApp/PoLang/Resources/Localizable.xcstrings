@@ -853,6 +853,28 @@
         }
       }
     },
+    "Assistant Personality": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assistant Personality"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "助手性格"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "助手性格"
+          }
+        }
+      }
+    },
     "Auto": {
       "extractionState": "manual",
       "localizations": {
@@ -985,6 +1007,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "備份與還原"
+          }
+        }
+      }
+    },
+    "Balanced, neutral standard replies": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Balanced, neutral standard replies"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "中性简洁的标准回复"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "中性簡潔的標準回覆"
           }
         }
       }
@@ -2133,6 +2177,28 @@
         }
       }
     },
+    "Crisp & Direct": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crisp & Direct"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "简洁干练"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "簡潔幹練"
+          }
+        }
+      }
+    },
     "Crop": {
       "localizations": {
         "en": {
@@ -2443,6 +2509,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "偵錯浮層與進階診斷。"
+          }
+        }
+      }
+    },
+    "Default": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Default"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "默认"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "預設"
           }
         }
       }
@@ -3276,6 +3364,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Embedding"
+          }
+        }
+      }
+    },
+    "Empathizes first, encouraging and supportive": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empathizes first, encouraging and supportive"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先共情再回答，多肯定鼓励"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先共情再回答，多肯定鼓勵"
           }
         }
       }
@@ -4968,6 +5078,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "即時瘦臉/大眼強度。也可在相機美顏面板（魔棒圖示）調整。"
+          }
+        }
+      }
+    },
+    "Lively & Playful": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lively & Playful"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "活泼幽默"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "活潑幽默"
           }
         }
       }
@@ -6753,6 +6885,28 @@
         }
       }
     },
+    "Relaxed and fun, with light emoji use": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Relaxed and fun, with light emoji use"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "轻松俏皮，适度使用 emoji"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輕鬆俏皮，適度使用 emoji"
+          }
+        }
+      }
+    },
     "Release build records metrics only.": {
       "extractionState": "manual",
       "localizations": {
@@ -7816,6 +7970,28 @@
         }
       }
     },
+    "Straight to conclusions, minimal pleasantries": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Straight to conclusions, minimal pleasantries"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "直给结论，少寒暄"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "直給結論，少寒暄"
+          }
+        }
+      }
+    },
     "Stroke width": {
       "localizations": {
         "en": {
@@ -8776,6 +8952,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "喚醒詞"
+          }
+        }
+      }
+    },
+    "Warm & Caring": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warm & Caring"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "温暖贴心"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "溫暖貼心"
           }
         }
       }
