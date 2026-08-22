@@ -851,8 +851,8 @@ Expected: BUILD SUCCESSFUL
         case "chinese_traditional": return "TRADITIONAL_CHINESE"
         default:
             let tag = (Locale.preferredLanguages.first ?? "en").lowercased()
-            guard tag.hasPrefix("zh") else { return "ENGLISH" }
-            return (tag.contains("hant") || tag.contains("-tw") ||
+            guard tag == "zh" || tag.hasPrefix("zh-") else { return "ENGLISH" }
+            return (tag.contains("-hant") || tag.contains("-tw") ||
                     tag.contains("-hk") || tag.contains("-mo"))
                 ? "TRADITIONAL_CHINESE" : "SIMPLIFIED_CHINESE"
         }
