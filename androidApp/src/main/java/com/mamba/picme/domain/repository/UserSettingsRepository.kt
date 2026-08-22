@@ -2,6 +2,7 @@ package com.mamba.picme.domain.repository
 
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
+import com.mamba.picme.agent.core.model.config.AssistantPersona
 import com.mamba.picme.domain.model.AppLanguage
 import com.mamba.picme.domain.model.BeautyStrategy
 import com.mamba.picme.domain.model.CameraMemoryState
@@ -85,6 +86,9 @@ interface UserSettingsRepository {
     // ── AI Agent ────────────────────────────────────────────
     val aiAgentModeFlow: Flow<AiAgentMode>
     suspend fun updateAiAgentMode(mode: AiAgentMode)
+
+    val assistantPersonaFlow: Flow<AssistantPersona>
+    suspend fun updateAssistantPersona(persona: AssistantPersona)
 
     val aiAgentPrivacyLevelFlow: Flow<AiAgentPrivacyLevel>
     suspend fun updateAiAgentPrivacyLevel(level: AiAgentPrivacyLevel)

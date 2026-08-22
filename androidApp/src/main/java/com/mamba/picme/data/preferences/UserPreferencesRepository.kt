@@ -18,6 +18,7 @@ import com.mamba.picme.beauty.api.StyleFilter
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
+import com.mamba.picme.agent.core.model.config.AssistantPersona
 import com.mamba.picme.domain.model.AppLanguage
 import com.mamba.picme.domain.model.BeautyStrategy
 import com.mamba.picme.domain.model.CameraAspectRatioMode
@@ -79,6 +80,7 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
         // AI Agent
         val AI_AGENT_MODE = stringPreferencesKey("ai_agent_mode")
         val AI_AGENT_PRIVACY_LEVEL = stringPreferencesKey("ai_agent_privacy_level")
+        val ASSISTANT_PERSONA = stringPreferencesKey("assistant_persona")
 
         // TAG 生成
         val TAG_GENERATION_USE_OPENCL = booleanPreferencesKey("tag_generation_use_opencl")
@@ -598,6 +600,26 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
     override suspend fun updateAiAgentMode(mode: AiAgentMode) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.AI_AGENT_MODE] = mode.name
+        }
+    }
+
+    override val assistantPersonaFlow: Flow<AssistantPersona> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            val personaName = preferences[PreferencesKeys.ASSISTANT_PERSONA] ?: AssistantPersona.DEFAULT.name
+            runCatching { AssistantPersona.valueOf(personaName) }
+                .getOrDefault(AssistantPersona.DEFAULT)
+        }
+
+    override suspend fun updateAssistantPersona(persona: AssistantPersona) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSISTANT_PERSONA] = persona.name
         }
     }
 
