@@ -46,7 +46,7 @@ struct AiAgentSettingsView: View {
                             Text(personaDescription)
                                 .font(.system(size: 12))
                                 .foregroundColor(.secondary)
-                            HStack(spacing: 8) {
+                            FlowLayout(spacing: 8) {
                                 personaChip("DEFAULT", L("Default"))
                                 personaChip("WARM", L("Warm & Caring"))
                                 personaChip("LIVELY", L("Lively & Playful"))
@@ -105,14 +105,17 @@ struct AiAgentSettingsView: View {
     }
 
     private func personaChip(_ value: String, _ label: String) -> some View {
-        Text(label)
-            .font(.system(size: 13, weight: assistantPersona == value ? .semibold : .regular))
-            .foregroundColor(assistantPersona == value ? .white : .primary)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 6)
-            .background(assistantPersona == value ? Color.accentColor : Color(.tertiarySystemBackground))
-            .clipShape(Capsule())
-            .onTapGesture { assistantPersona = value }
+        Button(action: { assistantPersona = value }) {
+            Text(label)
+                .font(.system(size: 13, weight: assistantPersona == value ? .semibold : .regular))
+                .foregroundColor(assistantPersona == value ? .white : .primary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
+                .background(assistantPersona == value ? Color.accentColor : Color(.tertiarySystemBackground))
+                .clipShape(Capsule())
+                .lineLimit(1)
+        }
+        .buttonStyle(.plain)
     }
 }
 
