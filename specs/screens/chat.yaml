@@ -109,15 +109,17 @@ message_list:
 # ============================================================================
 empty_state:
   layout: column
-  scrollable: true                  # 2026-08-22：8 条分组 chips 后内容超高，verticalScroll 防小屏裁切；弹性 weight 占位改为固定 24dp 间距
+  scrollable: true                  # 2026-08-22：8 条分组 chips 后内容超高，verticalScroll 防小屏裁切；弹性 weight 占位改为固定间距
   fill: true                        # fillMaxHeight
   horizontal_padding: 20
   alignment: center
+  # 2026-08-22 密度优化 v2（真机反馈：问相册组首屏仅露一行）：头部压缩 + 行距收紧，
+  # top 60→24 / logo 72→48 / title 26→22 / 各间距下调，两组 8 条 chips 一屏装下（滚动兜底保留）。
   content:
-    top_spacer: 60
+    top_spacer: 24
     logo:
-      box_size: 72                  # 72dp
-      corner_radius: 22
+      box_size: 48                  # 48dp（72→56→48 两次密度优化）
+      corner_radius: 16             # 随盒尺寸两档下调（22→18→16）
       background: "brandGradient"   # 品牌渐变 #0F766E→#5EA88F（chatBubble/brandGradient*），45° 对角，衬在图标残余透明角下
       border: none
       # 2026-08-18 二修（用户定稿）：内嵌图 = App launcher 前景（ic_launcher_foreground，108dp adaptive 画布，
@@ -125,34 +127,35 @@ empty_state:
       # ⚠️ 禁止原尺寸/96dp 直接塞入（满幅插画顶满圆角、底部溢出）；曾评估 ardot 波浪标矢量方案，弃用。
       inner_image: app_launcher_foreground
       inner_image_zoom: 1.75        # 不透明区宽 190/324 → 需 ≥1.71 铺满盒宽；1.75 留密度桶余量，左右不得露渐变底
-    title_spacer: 24
+    title_spacer: 10
     title:
       text: "Hi, I'm Xiaolang, your smart assistant"  # 你好，我是智能助手小浪
-      font: { size: 26, weight: semibold }
+      font: { size: 22, weight: semibold }
       color: "brandGradient"        # 渐变着色文字（Brush.linearGradient）
-    subtitle_spacer: 8
+    subtitle_spacer: 4
     subtitle:
       text: "I can search, edit, adjust beauty, find people/scenes—ask anything!"
       font: { size: 14 }            # bodyMedium
       color: "onSurfaceVariant"
     # 访客轻量入口（2026-08-22 改版，设计稿 chat/empty-v2-guest guestLink）：
     # 前置注册卡片已移除——不再抢占空状态核心区域；访客模式仅在副标题下显示一行小字链接。
+    # 密度优化：纯文本点击态（无 TextButton 40dp 最小高度），padding 12/4。
     guest_link:
       show_when: "isGuestMode"
       text: "Not registered? Sign up for free quota, or use your own Token →"  # 未注册？注册领免费额度，或配置自己的 Token →
       font: { size: 13 }
       color: "brandGradientStart"  # 青玉 #0F766E
       action: open_registration_sheet
-    flex_spacer: weight_1           # 把示例分组推到底部
+    groups_spacer: 12               # 链接/副标题与示例分组之间的固定间距（可滚动容器不可用 weight；16→12 密度优化 v2）
     example_groups:
       # 2026-08-22 定稿 v3（设计稿 chat/empty-v2-guest）：示例词从 6 条扩到 8 条，分「找照片/问相册」两组各 4 条。
-      # 每组 = 居中小标题（13sp onSurfaceVariant）+ FlowRow 流式 chips（行距 12/列距 14，整体居中）。
+      # 每组 = 居中小标题（13sp onSurfaceVariant）+ FlowRow 流式 chips（行距 8/列距 14，整体居中）。
       # chip 图标按组内语义固定（不再 index%6 轮转）：
       #   找照片 = 日历#6BA6FF/相册#22D3EE/人物#FF7EB0/夜色#9B8CFF；
       #   问相册 = 统计#4ADE80/搜索#FFB020/相册#22D3EE/人物#FF7EB0。
-      # 组间距 16，末组距输入栏 12；文本强制单行，极端窄屏/大字体省略号截断。
+      # 组间距 10，组内（小标题→chips）6，末组距输入栏 8；文本强制单行，极端窄屏/大字体省略号截断。
       layout: two_groups_flow_wrap_centered
-      group_gap: 16
+      group_gap: 10
       label_font: { size: 13 }
       label_color: "onSurfaceVariant"
       chip_style:
@@ -162,7 +165,7 @@ empty_state:
         text_font: { size: 14 }
         text_color: "onSurface"
         text_max_lines: 1           # 单行，溢出 ellipsis
-        padding: { start: 12, end: 14, vertical: 10 }
+        padding: { start: 12, end: 14, vertical: 8 }   # 2026-08-22 密度优化：10→8
       groups:
         - label: "Find photos"      # 找照片
           prompts:

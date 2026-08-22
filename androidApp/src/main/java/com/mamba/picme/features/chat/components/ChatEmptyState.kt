@@ -4,6 +4,7 @@ import androidx.annotation.ArrayRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,7 +24,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,14 +78,13 @@ fun ChatEmptyState(
             .padding(horizontal = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Spacer(Modifier.height(60.dp))
+        Spacer(Modifier.height(24.dp))
 
-        // Logo 块（72dp r22）：App launcher 前景 1.75 倍放大居中，adaptive 透明边全部裁出框外
-        // （不透明区宽 190/324，需 ≥1.71 才能铺满盒宽；spec §4 logo）
+        // Logo 块（48dp r16，2026-08-22 密度优化 v2：72→56→48 给内容让位）：App launcher 前景 1.75 倍放大居中
         Box(
             modifier = Modifier
-                .size(72.dp)
-                .clip(RoundedCornerShape(22.dp))
+                .size(48.dp)
+                .clip(RoundedCornerShape(16.dp))
                 .background(brandBrush),
             contentAlignment = Alignment.Center,
         ) {
@@ -99,20 +98,20 @@ fun ChatEmptyState(
             )
         }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(10.dp))
 
-        // 渐变标题（26sp SemiBold，品牌渐变着色）
+        // 渐变标题（22sp SemiBold，品牌渐变着色；2026-08-22 密度优化：26→22）
         Text(
             text = stringResource(R.string.chat_empty_welcome),
             style = TextStyle(
-                fontSize = 26.sp,
+                fontSize = 22.sp,
                 fontWeight = FontWeight.SemiBold,
                 brush = brandBrush,
             ),
             textAlign = TextAlign.Center,
         )
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(4.dp))
 
         Text(
             text = stringResource(R.string.chat_empty_capabilities),
@@ -121,20 +120,22 @@ fun ChatEmptyState(
             textAlign = TextAlign.Center,
         )
 
-        // 访客轻量入口：一行小字链接，不抢占核心区域（设计稿 guestLink）
+        // 访客轻量入口：一行小字链接（纯文本点击态，避免 TextButton 40dp 最小高度占位）
         if (isGuestMode) {
-            TextButton(onClick = onRegisterClick) {
-                Text(
-                    text = stringResource(R.string.chat_guest_link),
-                    fontSize = 13.sp,
-                    color = ChatBubbleTokens.brandGradientStart,
-                    textAlign = TextAlign.Center,
-                )
-            }
+            Text(
+                text = stringResource(R.string.chat_guest_link),
+                fontSize = 13.sp,
+                color = ChatBubbleTokens.brandGradientStart,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onRegisterClick)
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
+            )
         }
 
         // 可滚动容器内不能用 weight 弹性占位（无限高度），改用固定间距衔接示例分组
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(12.dp))
 
         ExampleGroup(
             labelRes = R.string.chat_example_group_search,
@@ -142,14 +143,14 @@ fun ChatEmptyState(
             accents = SEARCH_GROUP_ACCENTS,
             onExampleClick = onExampleClick,
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(10.dp))
         ExampleGroup(
             labelRes = R.string.chat_example_group_ask,
             promptsRes = R.array.chat_example_prompts_ask,
             accents = ASK_GROUP_ACCENTS,
             onExampleClick = onExampleClick,
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(8.dp))
     }
 }
 
@@ -170,7 +171,7 @@ private val ASK_GROUP_ACCENTS = listOf(
 )
 
 /**
- * 单组示例：居中组小标题（13sp onSurfaceVariant）+ FlowRow 流式 chips（行距 12 / 列距 14）。
+ * 单组示例：居中组小标题（13sp onSurfaceVariant）+ FlowRow 流式 chips（行距 8 / 列距 14）。
  * chip 随行宽不足自动落到下一行；文本强制单行，极端窄屏/大字体下省略号截断而不是折行撑高 chip。
  */
 @Composable
@@ -183,7 +184,7 @@ private fun ExampleGroup(
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
             text = stringResource(labelRes),
@@ -193,7 +194,7 @@ private fun ExampleGroup(
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterHorizontally),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             val prompts = stringArrayResource(promptsRes)
             prompts.forEachIndexed { index, prompt ->
@@ -223,7 +224,7 @@ private fun ExampleChip(
         onClick = onClick,
     ) {
         Row(
-            modifier = Modifier.padding(start = 12.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
+            modifier = Modifier.padding(start = 12.dp, end = 14.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
