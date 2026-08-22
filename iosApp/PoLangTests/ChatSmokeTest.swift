@@ -17,6 +17,7 @@ final class ChatSmokeTest: XCTestCase {
 
         bridge.sendMessage(
             input: "Reply with exactly: pong",
+            persona: "DEFAULT", replyLanguage: "SIMPLIFIED_CHINESE",
             onText: { snapshot in
                 receivedText = snapshot
                 print("📡 onText snapshot: \(snapshot.prefix(100))")
@@ -52,6 +53,7 @@ final class ChatSmokeTest: XCTestCase {
 
         bridge.sendMessage(
             input: "我的相册里有多少张照片？",
+            persona: "DEFAULT", replyLanguage: "SIMPLIFIED_CHINESE",
             onText: { _ in },
             onToolCall: { print("🔧 tool call in gallery test") },
             onComplete: { result, err in
