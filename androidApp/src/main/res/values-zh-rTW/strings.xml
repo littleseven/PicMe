@@ -877,24 +877,32 @@
     <!-- 聊天引導與訪客模式 -->
     <string name="chat_empty_welcome">你好，我是智能助手小浪</string>
     <string name="chat_empty_capabilities">我能搜相簿·修圖·調美顏·找人找場景，隨便問！</string>
-    <string name="chat_empty_try_these">試試這些：</string>
-    <string name="chat_guest_card_title">免登入試用中</string>
-    <string name="chat_guest_card_subtitle">註冊取得 1000 次免費額度</string>
-    <string name="chat_guest_card_button">信箱註冊</string>
-    <string name="chat_register_title">登入後繼續對話</string>
-    <string name="chat_register_subtitle">註冊信箱即可獲得 1000 次免費額度。</string>
-    <string name="chat_register_use_own_key">我已有 API Key</string>
-    <string name="chat_register_use_local">先用本地模型</string>
+    <string name="chat_guest_link">未註冊？註冊領免費額度，或配置自己的 Token →</string>
+    <string name="chat_guest_nudge_title">喜歡小浪？解鎖完整體驗</string>
+    <string name="chat_guest_nudge_subtitle">註冊領取免費額度，或配置自己的 LLM Token，二選一即可繼續暢聊</string>
+    <string name="chat_guest_nudge_register">信箱註冊 · 領免費額度</string>
+    <string name="chat_guest_nudge_own_key">配置自己的 Token</string>
+    <string name="chat_guest_nudge_note">已免費體驗 %1$d 輪對話 · 也可隨時在「設置 → AI 助手」中管理</string>
+    <string name="chat_guest_threshold_message">你已經和我聊了 %1$d 輪啦 🎉 註冊可領取免費額度，或配置自己的 LLM Token，二選一即可繼續暢聊～</string>
+    <string name="chat_guest_banner_text">訪客試用已超 %1$d 輪</string>
+    <string name="chat_guest_banner_register">領免費額度</string>
+    <string name="chat_guest_banner_own_key">自己的 Token</string>
     <string name="chat_guest_quota_used_up">試用額度已用完，註冊即可獲得 1000 次免費額度。</string>
     <string name="chat_inference_error">推論錯誤：%1$s</string>
     <string name="chat_calling_tool">正在呼叫工具…</string>
-    <string-array name="chat_example_prompts">
+    <string name="chat_example_group_search">找照片</string>
+    <string name="chat_example_group_ask">問相簿</string>
+    <string-array name="chat_example_prompts_search">
         <item>找去年夏天的照片</item>
         <item>搜尋海邊的照片</item>
         <item>找有人物的照片</item>
         <item>搜尋夜景照片</item>
-        <item>給我一份相簿健康度報告</item>
+    </string-array>
+    <string-array name="chat_example_prompts_ask">
+        <item>給我一份相簿健康報告</item>
         <item>按標籤和時間交叉分析我的照片</item>
+        <item>幫我清理重複照片</item>
+        <item>我拍了多少張自拍？</item>
     </string-array>
 
     <!-- 共享信箱驗證碼表單 -->

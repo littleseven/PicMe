@@ -192,6 +192,13 @@ interface UserSettingsRepository {
     val serverAuthEmailFlow: Flow<String>
     suspend fun updateServerAuth(token: String, email: String)
     suspend fun clearServerAuth()
+
+    // ── 访客（未注册）聊天引导 ──────────────────────────────────
+    /** 访客模式下用户消息累计发送数（跨会话），注册成功后清零。 */
+    val guestChatMessageCountFlow: Flow<Int>
+    /** 自增并返回自增后的累计值。 */
+    suspend fun incrementGuestChatMessageCount(): Int
+    suspend fun resetGuestChatMessageCount()
 }
 
 

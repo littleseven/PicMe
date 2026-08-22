@@ -109,6 +109,7 @@ message_list:
 # ============================================================================
 empty_state:
   layout: column
+  scrollable: true                  # 2026-08-22：8 条分组 chips 后内容超高，verticalScroll 防小屏裁切；弹性 weight 占位改为固定 24dp 间距
   fill: true                        # fillMaxHeight
   horizontal_padding: 20
   alignment: center
@@ -134,48 +135,90 @@ empty_state:
       text: "I can search, edit, adjust beauty, find people/scenes—ask anything!"
       font: { size: 14 }            # bodyMedium
       color: "onSurfaceVariant"
-    # 访客模式卡片（可选）
-    guest_card:
+    # 访客轻量入口（2026-08-22 改版，设计稿 chat/empty-v2-guest guestLink）：
+    # 前置注册卡片已移除——不再抢占空状态核心区域；访客模式仅在副标题下显示一行小字链接。
+    guest_link:
       show_when: "isGuestMode"
-      spacer_before: 20
-      shape: { corner_radius: 20 }
-      background: "primaryContainer"
-      tonal_elevation: 2
-      padding: 20
-      title: { font: titleSmall_bold, color: "onPrimaryContainer" }
-      subtitle: { font: bodySmall, color: "onPrimaryContainer" }
-      button: standard_button
-    flex_spacer: weight_1           # 把示例推到底部
-    examples_label:
-      text: "Try these:"
-      font: { size: 14 }            # labelLarge
-      color: "onSurfaceVariant"
-      padding_bottom: 10
-    example_chips:
-      # 2026-08-18 定稿 v2：FlowRow 流式自适应（行距 12/列距 14，每行整体居中），surfaceContainerHigh 底 r22，
-      # 每 chip 带 16dp 彩色功能图标：日历#6BA6FF/相册#22D3EE/人物#FF7EB0/夜色#9B8CFF/统计#4ADE80/搜索#FFB020。
-      # 设计稿 393px 宽行分组 2,2,1,1（长句独占一行）由流式换行自然形成，禁止 chunked(2) 硬切两行——
-      # 369dp 以下屏宽两长句同行会溢出；文本强制单行，极端窄屏/大字体省略号截断。
-      layout: flow_wrap_centered
+      text: "Not registered? Sign up for free quota, or use your own Token →"  # 未注册？注册领免费额度，或配置自己的 Token →
+      font: { size: 13 }
+      color: "brandGradientStart"  # 青玉 #0F766E
+      action: open_registration_sheet
+    flex_spacer: weight_1           # 把示例分组推到底部
+    example_groups:
+      # 2026-08-22 定稿 v3（设计稿 chat/empty-v2-guest）：示例词从 6 条扩到 8 条，分「找照片/问相册」两组各 4 条。
+      # 每组 = 居中小标题（13sp onSurfaceVariant）+ FlowRow 流式 chips（行距 12/列距 14，整体居中）。
+      # chip 图标按组内语义固定（不再 index%6 轮转）：
+      #   找照片 = 日历#6BA6FF/相册#22D3EE/人物#FF7EB0/夜色#9B8CFF；
+      #   问相册 = 统计#4ADE80/搜索#FFB020/相册#22D3EE/人物#FF7EB0。
+      # 组间距 16，末组距输入栏 12；文本强制单行，极端窄屏/大字体省略号截断。
+      layout: two_groups_flow_wrap_centered
+      group_gap: 16
+      label_font: { size: 13 }
+      label_color: "onSurfaceVariant"
       chip_style:
         shape: { corner_radius: 22 }
         background: "surfaceContainerHigh"
-        leading_icon: 16            # 彩色 Material 图标（六彩轮转，按 index%6）
+        leading_icon: 16            # 彩色 Material 图标（按组内语义固定）
         text_font: { size: 14 }
         text_color: "onSurface"
         text_max_lines: 1           # 单行，溢出 ellipsis
         padding: { start: 12, end: 14, vertical: 10 }
-      prompts:
-        - "Find photos from last summer"
-        - "Search beach photos"
-        - "Find photos with people"
-        - "Search night scenes"
-        - "Give me an album health report"
-        - "Analyze my photos by tag and time"
-    # ⚠️ iOS 缺口（2026-08-18 登记，走 /ios-follow 追齐）：iOS ChatEmptyState 仍为上一代设计——
+      groups:
+        - label: "Find photos"      # 找照片
+          prompts:
+            - "Find photos from last summer"
+            - "Search for beach photos"
+            - "Find photos with people"
+            - "Search for night scene photos"
+        - label: "Ask about your gallery"  # 问相册
+          prompts:
+            - "Give me a gallery health report"
+            - "Cross-analyze my photos by tag and time"
+            - "Find duplicate photos"
+            - "How many selfies did I take?"
+    # ⚠️ iOS 缺口（2026-08-22 更新，走 /ios-follow 追齐）：iOS ChatEmptyState 仍为上一代设计——
     # Logo=64pt surfaceVariant 描边块+104pt chat_logo 位图（应为 72pt 渐变底块+App 图标 1.5x 裁剪 r22）、
-    # 标题非渐变着色（应 brandGradient 26pt semibold）、chips 为无图标 Capsule（应 r22+16pt 六彩图标+flow 2,2,1,1）。
-    ios_gap: "ChatView.swift ChatEmptyState 整体落后 2026-08-18 定稿一代，见 §4 logo/example_chips"
+    # 标题非渐变着色（应 brandGradient 26pt semibold）、chips 为无图标 Capsule（应 r22+16pt 彩色图标+分组 flow）；
+    # 且 iOS Chat 无任何访客注册引导（guest_link / guest_nudge 均缺，iOS 登录入口仅在设置页）。
+    ios_gap: "ChatView.swift ChatEmptyState 落后 2026-08-22 定稿：见 §4 logo/example_groups/guest_link/guest_nudge"
+
+# ============================================================================
+# 4.1 访客渐进注册引导（guest_nudge，2026-08-22 新增；设计稿 chat/guest-nudge-sheet）
+# ============================================================================
+guest_nudge:
+  principle: "后置渐进：先体验后引导。空状态无注册卡片；累计满阈值才主动弹层"
+  counter:
+    storage: datastore             # key=guest_chat_message_count（UserPreferencesRepository）
+    scope: "guest 模式（远程模型且无 server token）下用户消息累计发送数，跨会话累计"
+    reset_on: register_success     # updateServerAuth 时清零
+  threshold: 20
+  triggers:
+    - when: "count == 20（恰好跨阈值当次，>20 不再弹）"
+      actions: [insert_agent_notice_message, open_registration_sheet]
+    - when: "服务端 quota_exceeded(403)"
+      actions: [insert_quota_notice_message, open_registration_sheet]   # 硬兜底，原有路径
+    - when: "空状态 guest_link 点击 / banner 按钮点击"
+      actions: [open_registration_sheet]
+  banner:
+    show_when: "isGuestMode && count >= 20 && !dismissedThisSession"   # 关闭仅会话内有效，重启复现
+    position: above_input_bar
+    shape: { corner_radius: 16 }
+    background: "surfaceContainerHigh"
+    text: "Guest trial: 20+ rounds used"   # 访客试用已超 20 轮
+    actions: [register_get_quota, use_own_token, dismiss]
+  sheet:                            # ChatRegistrationSheet v2（双选项卡片）
+    type: modal_bottom_sheet
+    title: "Enjoying Xiaolang? Unlock the full experience"   # 喜欢小浪？解锁完整体验
+    subtitle: "Register for free quota, or configure your own LLM Token. Either way, keep chatting."
+    primary_cta:
+      text: "Sign up with email · Get free quota"   # 邮箱注册 · 领免费额度
+      style: "brand_gradient_fill r22 h48 white_semibold_15"
+      action: expand_email_otp_form                 # 展开 EmailCodeAuthForm
+    secondary_cta:
+      text: "Use my own Token"                      # 配置自己的 Token
+      style: "brand_outline_1.5 r22 h48 brand_semibold_15"
+      action: navigate_settings_provider_config
+    note: "{count} free conversations used · Manage anytime in Settings → AI Assistant"
 
 # ============================================================================
 # 5. 消息气泡（ChatMessageItem）
@@ -314,12 +357,9 @@ input_bar:
       alignment: space_between
       left_group:
         spacing: 8
+        # 2026-08-22（用户定稿）：model_capsule 已删除——输入区不再显示模型切换胶囊，
+        # 模型切换改由设置页承载；left_group 仅余 gallery / ai_engineer 两枚功能胶囊。
         items:
-          - model_capsule:
-              show_when: "hasUserKey"
-              style: *capsule_style
-              dot_color: { official: 0x2196F3, user_key: 0xFF9800 }
-              text: "selectedModel.displayName"
           - gallery_capsule:
               icon: photo_library
               text: "Gallery"
@@ -445,7 +485,7 @@ interaction_model:
     send_button_visibility: "show only when hasContent && !isProcessing"
     processing_state: "send button hidden (NOT replaced with stop). Input field stays editable."
     stop_button: none  # ⚠️ Android 无 stop/abort 按钮（设计决策）
-    model_capsule_visible_when: "hasUserKey (only if user configured own API key)"
+    model_capsule: removed_2026_08_22  # 已删除：输入区不再有模型切换胶囊
     gallery_capsule: "opens photo picker (disabled during processing)"
     voice_button: "switches to push-to-talk voice mode（2026-08-19：默认隐藏，voice_mode != disabled 且 ASR 模型已下载就绪时显示；语音模型未下载且无内容时右侧显示禁用态发送按钮替代；语音输入态整体受同一开关门控，开关关闭时已记忆的 voice 输入态回落 text）"
 

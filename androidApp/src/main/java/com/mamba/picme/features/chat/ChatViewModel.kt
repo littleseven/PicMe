@@ -94,6 +94,7 @@ import java.util.UUID
 
 private const val TAG = "ChatViewModel"
 private const val MAX_MESSAGES = 500
+private const val GUEST_REGISTER_NUDGE_THRESHOLD = 20
 private const val MAX_PREVIEW_LENGTH = 60
 private const val MAX_CARDS = 20
 private const val CHAT_IMAGE_MAX_PX = 1024
@@ -695,6 +696,13 @@ class ChatViewModel(
     // ── 访客模式与注册引导 ──────────────────────────────────
     private val _serverAuthToken = MutableStateFlow("")
 
+    /** 访客消息累计数（DataStore 持久，跨会话），驱动渐进式注册引导。 */
+    private val _guestMessageCount = MutableStateFlow(0)
+    val guestMessageCount: StateFlow<Int> = _guestMessageCount.asStateFlow()
+
+    /** 常驻引导 banner 的会话内关闭标记（不持久化，重启 App 复现以保留提醒）。 */
+    private val _guestBannerDismissed = MutableStateFlow(false)
+
     init {
         viewModelScope.launch {
             userSettingsRepository.serverAuthTokenFlow.collect { token ->
@@ -704,6 +712,11 @@ class ChatViewModel(
                 } else if (_claudeMode.value) {
                     refreshClaudeAvailability(token)
                 }
+            }
+        }
+        viewModelScope.launch {
+            userSettingsRepository.guestChatMessageCountFlow.collect { count ->
+                _guestMessageCount.value = count
             }
         }
     }
@@ -750,6 +763,16 @@ class ChatViewModel(
     val isGuestMode: StateFlow<Boolean> = combine(_currentModel, _serverAuthToken) { model, token ->
         model is ChatModelOption.Remote && token.isBlank()
     }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    /** 累计达阈值后常驻的可关闭引导 banner（仅 guest 模式）。 */
+    val showGuestBanner: StateFlow<Boolean> =
+        combine(isGuestMode, _guestMessageCount, _guestBannerDismissed) { guest, count, dismissed ->
+            guest && count >= GUEST_REGISTER_NUDGE_THRESHOLD && !dismissed
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    fun dismissGuestBanner() {
+        _guestBannerDismissed.value = true
+    }
 
     private val _showRegistrationSheet = MutableStateFlow(false)
     val showRegistrationSheet: StateFlow<Boolean> = _showRegistrationSheet.asStateFlow()
@@ -1134,6 +1157,23 @@ class ChatViewModel(
                 )
                 chatMessageDao.insertMessage(userMessage)
                 chatSessionDao.touchSession(sessionId)
+
+                // 1.2 访客渐进引导：仅未注册时计数；恰好跨阈值当次插入提示消息并弹出双选项引导（>阈值不再弹）
+                if (isGuestMode.value) {
+                    val guestCount = userSettingsRepository.incrementGuestChatMessageCount()
+                    _guestMessageCount.value = guestCount
+                    if (guestCount == GUEST_REGISTER_NUDGE_THRESHOLD) {
+                        insertAgentMessage(
+                            sessionId = sessionId,
+                            content = context.getString(
+                                R.string.chat_guest_threshold_message,
+                                GUEST_REGISTER_NUDGE_THRESHOLD
+                            ),
+                            modelUsed = currentModelLabel(),
+                        )
+                        _showRegistrationSheet.value = true
+                    }
+                }
 
                 // 1.5 自动命名：根据用户的第一条消息生成会话标题
                 val messageCount = chatMessageDao.getMessageCount(sessionId)

@@ -905,24 +905,32 @@
     <!-- Chat onboarding & guest mode -->
     <string name="chat_empty_welcome">Hi, I\'m Xiaolang, your smart assistant</string>
     <string name="chat_empty_capabilities">I can search your gallery, edit photos, tweak beauty, and find people or scenes. Ask me anything!</string>
-    <string name="chat_empty_try_these">Try these:</string>
-    <string name="chat_guest_card_title">Trying without an account</string>
-    <string name="chat_guest_card_subtitle">Register for 1000 free AI calls</string>
-    <string name="chat_guest_card_button">Register with email</string>
-    <string name="chat_register_title">Sign in to keep chatting</string>
-    <string name="chat_register_subtitle">Register with email for 1000 free AI calls.</string>
-    <string name="chat_register_use_own_key">I have my own API key</string>
-    <string name="chat_register_use_local">Use on-device model</string>
+    <string name="chat_guest_link">Not registered? Sign up for free quota, or use your own Token →</string>
+    <string name="chat_guest_nudge_title">Enjoying Xiaolang? Unlock the full experience</string>
+    <string name="chat_guest_nudge_subtitle">Register for free quota, or configure your own LLM Token. Either way, keep chatting.</string>
+    <string name="chat_guest_nudge_register">Sign up with email · Get free quota</string>
+    <string name="chat_guest_nudge_own_key">Use my own Token</string>
+    <string name="chat_guest_nudge_note">%1$d free conversations used · Manage anytime in Settings → AI Assistant</string>
+    <string name="chat_guest_threshold_message">You\'ve chatted %1$d rounds with me 🎉 Register to claim free quota, or configure your own LLM Token — either works to keep chatting!</string>
+    <string name="chat_guest_banner_text">Guest trial: %1$d+ rounds used</string>
+    <string name="chat_guest_banner_register">Get free quota</string>
+    <string name="chat_guest_banner_own_key">My own Token</string>
     <string name="chat_guest_quota_used_up">Trial quota used up. Register to get 1000 free calls.</string>
     <string name="chat_inference_error">Inference error: %1$s</string>
     <string name="chat_calling_tool">Calling tool…</string>
-    <string-array name="chat_example_prompts">
+    <string name="chat_example_group_search">Find photos</string>
+    <string name="chat_example_group_ask">Ask about your gallery</string>
+    <string-array name="chat_example_prompts_search">
         <item>Find photos from last summer</item>
         <item>Search for beach photos</item>
         <item>Find photos with people</item>
         <item>Search for night scene photos</item>
+    </string-array>
+    <string-array name="chat_example_prompts_ask">
         <item>Give me a gallery health report</item>
         <item>Cross-analyze my photos by tag and time</item>
+        <item>Find duplicate photos</item>
+        <item>How many selfies did I take?</item>
     </string-array>
 
     <!-- Shared email-OTP auth form -->

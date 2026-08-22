@@ -165,6 +165,9 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
         // 服务端邮箱认证
         val SERVER_AUTH_TOKEN = stringPreferencesKey("server_auth_token")
         val SERVER_AUTH_EMAIL = stringPreferencesKey("server_auth_email")
+
+        // 访客（未注册）聊天消息累计计数，用于渐进式注册引导
+        val GUEST_CHAT_MESSAGE_COUNT = intPreferencesKey("guest_chat_message_count")
     }
 
     private fun parseMediaType(value: String?): MediaType {
@@ -1235,6 +1238,8 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.SERVER_AUTH_TOKEN] = token
             preferences[PreferencesKeys.SERVER_AUTH_EMAIL] = email
+            // 注册成功即脱离访客模式，清空引导计数
+            preferences.remove(PreferencesKeys.GUEST_CHAT_MESSAGE_COUNT)
         }
     }
 
@@ -1242,6 +1247,34 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
         context.dataStore.edit { preferences ->
             preferences.remove(PreferencesKeys.SERVER_AUTH_TOKEN)
             preferences.remove(PreferencesKeys.SERVER_AUTH_EMAIL)
+        }
+    }
+
+    // ── 访客（未注册）聊天引导 ──────────────────────────────────
+    override val guestChatMessageCountFlow: Flow<Int> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.GUEST_CHAT_MESSAGE_COUNT] ?: 0
+        }
+
+    override suspend fun incrementGuestChatMessageCount(): Int {
+        var newCount = 0
+        context.dataStore.edit { preferences ->
+            newCount = (preferences[PreferencesKeys.GUEST_CHAT_MESSAGE_COUNT] ?: 0) + 1
+            preferences[PreferencesKeys.GUEST_CHAT_MESSAGE_COUNT] = newCount
+        }
+        return newCount
+    }
+
+    override suspend fun resetGuestChatMessageCount() {
+        context.dataStore.edit { preferences ->
+            preferences.remove(PreferencesKeys.GUEST_CHAT_MESSAGE_COUNT)
         }
     }
 }

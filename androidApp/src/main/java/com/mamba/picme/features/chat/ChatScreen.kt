@@ -101,9 +101,7 @@ import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -183,6 +181,7 @@ import com.mamba.picme.features.chat.capability.ChatStartTagScanCapability
 import com.mamba.picme.features.chat.components.ChatEmptyState
 import com.mamba.picme.features.chat.components.ChatPhotoPickerSheet
 import com.mamba.picme.features.chat.components.ChatRegistrationSheet
+import com.mamba.picme.features.chat.components.GuestNudgeBanner
 import com.mamba.picme.features.chat.components.GachaCandidateStrip
 import com.mamba.picme.features.chat.components.MediaResultsCarousel
 import androidx.core.net.toUri
@@ -235,6 +234,8 @@ fun ChatScreen(
     val currentSessionId by viewModel.currentSessionId.collectAsState()
     val isGuestMode by viewModel.isGuestMode.collectAsState()
     val showRegistration by viewModel.showRegistrationSheet.collectAsState()
+    val showGuestBanner by viewModel.showGuestBanner.collectAsState()
+    val guestMessageCount by viewModel.guestMessageCount.collectAsState()
     val issueReportState by viewModel.issueReportState.collectAsState()
     val canDeliverClaude by viewModel.canDeliverClaude.collectAsState()
     val gachaSelections by viewModel.gachaSelections.collectAsState()
@@ -610,6 +611,16 @@ fun ChatScreen(
                     }
                 }
 
+                // 访客渐进引导 banner（累计 ≥20 条后常驻，可关闭）
+                if (showGuestBanner) {
+                    GuestNudgeBanner(
+                        guestMessageCount = guestMessageCount,
+                        onRegister = { viewModel.openRegistrationSheet() },
+                        onUseOwnKey = { onNavigateToSettings() },
+                        onDismiss = { viewModel.dismissGuestBanner() },
+                    )
+                }
+
                 // 输入区
                 ChatInputArea(
                     isProcessing = isProcessing,
@@ -681,9 +692,10 @@ fun ChatScreen(
                 onDismiss = { expandedTable = null }
             )
 
-            // 注册引导弹层（访客试用用尽 / 用户主动注册）
+            // 注册引导弹层（访客累计达阈值 / 试用额度用尽 / 空状态小字链接）
             if (showRegistration) {
                 ChatRegistrationSheet(
+                    guestMessageCount = guestMessageCount,
                     onDismiss = { viewModel.dismissRegistrationSheet() },
                     onUseOwnKey = {
                         onNavigateToSettings()
@@ -1691,7 +1703,6 @@ private fun ChatInputArea(
     onNavigateToPhotoEditor: (String, Boolean) -> Unit,
 ) {
     var text by remember { mutableStateOf("") }
-    var showModelMenu by remember { mutableStateOf(false) }
     var showPhotoPicker by remember { mutableStateOf(false) }
     var pendingImage by remember { mutableStateOf<Uri?>(null) }
     var selectedIntent by remember { mutableStateOf<ImageIntent?>(null) }
@@ -1700,10 +1711,6 @@ private fun ChatInputArea(
     val keyboardController = LocalSoftwareKeyboardController.current
     val scope = rememberCoroutineScope()
     val settingsRepository = remember { UserPreferencesRepository(context) }
-    val hasUserKey by viewModel.hasUserKey.collectAsState()
-    val availableModels by viewModel.availableModels.collectAsState()
-    val selectedModelId by viewModel.selectedModelId.collectAsState()
-    val selectedModel = availableModels.find { m -> m.id == selectedModelId } ?: availableModels.firstOrNull()
     // 独立 chat 页默认文本输入模式（不继承/回写公共 AI chat 的语音偏好）
     var inputMode by remember { mutableStateOf(ChatInputMode.TEXT) }
     // AI 工程师模式（claude-tunnel）：状态在 ViewModel（进入时新建独立会话）
@@ -1846,14 +1853,6 @@ private fun ChatInputArea(
                             }
                         }
                     },
-                    onModelMenuToggle = { showModelMenu = !showModelMenu },
-                    onShowModelMenu = { showModelMenu = true },
-                    onDismissModelMenu = { showModelMenu = false },
-                    showModelMenu = showModelMenu,
-                    hasUserKey = hasUserKey,
-                    availableModels = availableModels,
-                    selectedModel = selectedModel,
-                    onSwitchModel = viewModel::switchModel,
                     voiceEnabled = voiceEnabled,
                     voiceModelReady = voiceModelReady,
                     onSwitchToVoice = {
@@ -1926,14 +1925,6 @@ private fun ChatTextInputMode(
     onTextChange: (String) -> Unit,
     isProcessing: Boolean,
     onSend: () -> Unit,
-    onModelMenuToggle: () -> Unit,
-    onShowModelMenu: () -> Unit,
-    onDismissModelMenu: () -> Unit,
-    showModelMenu: Boolean,
-    hasUserKey: Boolean,
-    availableModels: List<ChatViewModel.ChatRemoteModel>,
-    selectedModel: ChatViewModel.ChatRemoteModel?,
-    onSwitchModel: (String) -> Unit,
     /** 语音入口是否可用（2026-08-19：语音模式 ≠ DISABLED 才为 true，默认关闭） */
     voiceEnabled: Boolean,
     /** 语音依赖的 ASR 模型是否已下载就绪；未就绪时不显示语音入口 */
@@ -2029,44 +2020,7 @@ private fun ChatTextInputMode(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // 模型切换胶囊按钮：仅当用户配了自配 Key 时显示（可在「默认服务器/自配 Key」切换）；
-                // 未配 Key 时 chat 只用默认远程，不显示模型标签（避免无意义的固定「远程」文字）。
-                if (hasUserKey) {
-                    Box {
-                        ModelCapsuleButton(
-                            selectedModel = selectedModel,
-                            onClick = onShowModelMenu
-                        )
-                        DropdownMenu(
-                            expanded = showModelMenu,
-                            onDismissRequest = onDismissModelMenu,
-                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
-                        ) {
-                            availableModels.forEach { model ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(8.dp)
-                                                    .clip(CircleShape)
-                                                    .background(modelDotColor(model))
-                                            )
-                                            Text(model.displayName)
-                                        }
-                                    },
-                                    onClick = {
-                                        onSwitchModel(model.id)
-                                        onDismissModelMenu()
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
+                // 模型切换胶囊已于 2026-08-22 移除（用户定稿：输入区只保留功能胶囊 + 语音/发送）
 
                 // 图片选择胶囊按钮（claude 模式禁用：媒体不上传远程，ADR-008/§11）
                 if (!claudeMode) {
@@ -2168,47 +2122,6 @@ private fun CapsuleButton(
         )
     }
 }
-
-/**
- * 模型切换胶囊按钮
- */
-@Composable
-private fun ModelCapsuleButton(
-    selectedModel: ChatViewModel.ChatRemoteModel?,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            .clickable { onClick() }
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(modelDotColor(selectedModel))
-        )
-        Text(
-            text = selectedModel?.displayName ?: "官方LLM",
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.widthIn(max = 120.dp)
-        )
-    }
-}
-
-/** 模型圆点颜色（官方=蓝、自配=橙）。 */
-private val OFFICIAL_MODEL_COLOR = Color(0xFF2196F3)
-private val FALLBACK_MODEL_COLOR = Color(0xFFFF9800)
-
-private fun modelDotColor(model: ChatViewModel.ChatRemoteModel?): Color =
-    if (model?.id == "official") OFFICIAL_MODEL_COLOR else FALLBACK_MODEL_COLOR
 
 /**
  * 圆形图标按钮：默认透明底；可指定 [container]（如 surfaceContainerHigh 语音钮）

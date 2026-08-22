@@ -83,6 +83,7 @@ abstract class ChatViewModelTestBase {
         every { context.applicationContext } returns context
 
         every { userSettingsRepository.serverAuthTokenFlow } returns tokenFlow
+        every { userSettingsRepository.guestChatMessageCountFlow } returns flowOf(0)
 
         every { chatMessageDao.getMessagesBySession(any()) } returns flowOf(emptyList())
         coEvery { chatMessageDao.getLastMessageForSession(any()) } returns null
