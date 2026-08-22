@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
+import com.mamba.picme.agent.core.model.config.AssistantPersona
 import com.mamba.picme.beauty.internal.facedetect.mnn.MnnFaceDetector
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.core.common.NetworkUtils
@@ -219,6 +220,13 @@ class SettingsViewModel(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = AiAgentMode.REMOTE
+        )
+
+    val assistantPersona: StateFlow<AssistantPersona> = repository.assistantPersonaFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = AssistantPersona.DEFAULT
         )
 
     val aiAgentPrivacyLevel: StateFlow<AiAgentPrivacyLevel> = repository.aiAgentPrivacyLevelFlow
@@ -950,6 +958,12 @@ class SettingsViewModel(
     fun setAiAgentMode(mode: AiAgentMode) {
         viewModelScope.launch {
             repository.updateAiAgentMode(mode)
+        }
+    }
+
+    fun setAssistantPersona(persona: AssistantPersona) {
+        viewModelScope.launch {
+            repository.updateAssistantPersona(persona)
         }
     }
 
