@@ -27,8 +27,11 @@ class PromptSuffixTest {
         val suffix = RemoteChatEngine.buildPromptSuffix(
             AssistantPersona.WARM, ReplyLanguage.SIMPLIFIED_CHINESE, today
         )
-        assertTrue(suffix.startsWith("\n\n当前日期：2026-08-22"))
-        assertTrue(suffix.contains("温暖贴心"))
+        assertEquals(
+            "\n\n当前日期：2026-08-22。用户说「去年」「上个月」等相对时间时，据此计算具体日期范围。" +
+                "\n\n你的语气温暖贴心：先回应用户的情绪，共情之后再给出回答或建议；多使用肯定与鼓励的措辞，让用户感到被理解和支持。",
+            suffix
+        )
     }
 
     @Test

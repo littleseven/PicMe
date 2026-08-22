@@ -152,10 +152,15 @@ class RemoteChatEngine internal constructor(
 
     // ── chat ReAct Agent（懒创建）────────────────────────────────────
 
-    private var cachedChatAgent: KoogChatAgent? = null
-    private var cachedChatAgentConfig: RemoteModelConfig? = null
-    private var cachedChatAgentPersona: AssistantPersona? = null
-    private var cachedChatAgentReplyLanguage: ReplyLanguage? = null
+    /** chat agent 缓存条目（四元组原子替换，避免 agent 与重建条件错配）。 */
+    private class ChatAgentCache(
+        val agent: KoogChatAgent,
+        val config: RemoteModelConfig,
+        val persona: AssistantPersona,
+        val replyLanguage: ReplyLanguage
+    )
+
+    private var cachedChatAgent: ChatAgentCache? = null
 
     /** chat system prompt（由组合根注入的工具描述元数据经注入的 prompt 组装器确定性组装，agent 构建期拼接当前日期）。 */
     private val chatSystemPrompt = chatPromptBuilder(chatToolDescriptors)
@@ -275,33 +280,29 @@ class RemoteChatEngine internal constructor(
 
     /**
      * 获取或创建 chat Koog Agent（ChatToolService，chat 场域能力工具，不含 UI/相机）。
-     * 配置变更时自动重建。共享配置经 [configurator] 只读访问。
+     * 配置或 persona/回复语言变更时自动重建。共享配置经 [configurator] 只读访问。
      *
      * KoogChatAgent 无 langchain4j 期的 initialize/shutdown 生命周期（AIAgent 在 [KoogChatAgent.agent]
-     * 内按记忆快照新鲜度懒建/重建），故重建仅置空缓存；executor/memoryStore/historyProvider 复用，
+     * 内按记忆快照新鲜度懒建/重建），故重建仅替换缓存条目；executor/memoryStore/historyProvider 复用，
      * 历史经 DataStore（chat_memory）跨重建留存。
      */
     private fun getChatAgent(persona: AssistantPersona, replyLanguage: ReplyLanguage): KoogChatAgent? {
-        val existing = cachedChatAgent
+        val cache = cachedChatAgent
         val currentConfig = configurator.getUserRemoteConfig() ?: RemoteModelConfig.PICME_SERVER_DEFAULT
-        if (existing != null && cachedChatAgentConfig != null) {
-            val configChanged = cachedChatAgentConfig?.modelId != currentConfig.modelId
-                || cachedChatAgentConfig?.baseUrl != currentConfig.baseUrl
-                || cachedChatAgentConfig?.apiKey != currentConfig.apiKey
-                || cachedChatAgentConfig?.gatewayToken != currentConfig.gatewayToken
-                || cachedChatAgentConfig?.protocol != currentConfig.protocol
-                || cachedChatAgentConfig?.providerId != currentConfig.providerId
-                || cachedChatAgentPersona != persona
-                || cachedChatAgentReplyLanguage != replyLanguage
+        if (cache != null) {
+            val configChanged = cache.config.modelId != currentConfig.modelId
+                || cache.config.baseUrl != currentConfig.baseUrl
+                || cache.config.apiKey != currentConfig.apiKey
+                || cache.config.gatewayToken != currentConfig.gatewayToken
+                || cache.config.protocol != currentConfig.protocol
+                || cache.config.providerId != currentConfig.providerId
+                || cache.persona != persona
+                || cache.replyLanguage != replyLanguage
             if (configChanged) {
-                Logger.i(tag, "Remote config or persona changed (model=${currentConfig.modelId}, persona=$persona), rebuilding Chat Agent")
-                cachedChatAgent = null
-                cachedChatAgentConfig = null
+                Logger.i(tag, "Remote config or persona/language changed (model=${currentConfig.modelId}, persona=$persona, language=$replyLanguage), rebuilding Chat Agent")
             } else {
-                return existing
+                return cache.agent
             }
-        } else if (existing != null) {
-            return existing
         }
         val memProvider = configurator.getMemoryContextProvider()
         val cfg = try {
@@ -330,10 +331,12 @@ class RemoteChatEngine internal constructor(
         )
         // traceId 注入（原 KoogChatAgent init 内类型判断随迁出）：tool 执行带当轮 traceId。
         chatToolService.traceIdHolder = agent.traceIdHolder
-        cachedChatAgent = agent
-        cachedChatAgentConfig = currentConfig
-        cachedChatAgentPersona = persona
-        cachedChatAgentReplyLanguage = replyLanguage
+        cachedChatAgent = ChatAgentCache(
+            agent = agent,
+            config = currentConfig,
+            persona = persona,
+            replyLanguage = replyLanguage
+        )
         Logger.i(tag, "Chat Koog Agent created: model=${cfg.modelName}, baseUrl=${currentConfig.baseUrl.take(40)}")
         return agent
     }
