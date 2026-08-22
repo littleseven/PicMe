@@ -40,7 +40,8 @@ class ChatEditProcessorTest {
         val bitmap = mockk<Bitmap>(relaxed = true)
 
         every { Uri.parse(any<String>()) } returns mockk(relaxed = true)
-        every { BitmapFactory.decodeStream(any()) } returns bitmap
+        // 生产代码经 BitmapSampling.decodeStream 两遍解码（量界 + 真解），走 3 参重载
+        every { BitmapFactory.decodeStream(any(), any(), any()) } returns bitmap
         every { context.contentResolver.openInputStream(any()) } returns ByteArrayInputStream(byteArrayOf())
         every { applier.applyCrop(any(), any()) } returns bitmap
         coEvery { applier.applyGpuEffects(any(), any(), any()) } returns bitmap
