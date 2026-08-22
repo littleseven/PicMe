@@ -8,6 +8,7 @@ import com.mamba.picme.domain.chat.OptimizeCandidateGroup
 
 import android.content.Context
 import android.net.Uri
+import androidx.annotation.StringRes
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -117,19 +118,19 @@ enum class ImageIntent { UNDERSTAND, FIND_SIMILAR, EDIT }
 /**
  * chat 远程模型来源（chat 已移除本地 LLM、仅远程；用户配了自配 Key 时可「默认服务器/自配 Key」切换）。
  */
-enum class RemoteModelSource(val label: String) {
-    DEFAULT("官方LLM"),
-    USER_KEY("自配 Key")
+enum class RemoteModelSource(@StringRes val labelRes: Int) {
+    DEFAULT(R.string.chat_model_official),
+    USER_KEY(R.string.chat_model_user_key)
 }
 
 /**
- * 流式生成期间的占位文案。
+ * 流式生成期间的占位文案资源。
  *
  * L2 协议下本地/远程输出恒为 JSON 指令（如 search_media / text_reply），不可直接展示原始 token；
  * 且远程推理为同步一次性返回（onToken 只回调一次），流式期间无可增量展示的文本。
  * 因此生成阶段统一展示该友好提示，待解析完成后再替换为最终文本/卡片消息。
  */
-private const val STREAMING_THINKING_HINT = "正在思考..."
+private const val STREAMING_THINKING_HINT_RES = R.string.chat_thinking
 
 /**
  * Chat 首页 ViewModel — 管理聊天状态与数据流
@@ -398,7 +399,7 @@ class ChatViewModel(
                     onFailure = { e ->
                         insertAgentMessage(
                             sessionId,
-                            context.getString(R.string.chat_inference_error, e.message ?: "unknown"),
+                            context.getString(R.string.chat_inference_error, e.message ?: context.getString(R.string.chat_unknown_error)),
                             "error",
                         )
                     },
@@ -432,10 +433,11 @@ class ChatViewModel(
                     claudeChatClient.postToolResult(token, requestId, payload)
                 }
                 if (payload.optBoolean("empty")) {
-                    "无数据（${payload.optString("reason")}）"
+                    context.getString(R.string.chat_claude_tool_no_data, payload.optString("reason"))
+                } else if (payload.optBoolean("truncated")) {
+                    context.getString(R.string.chat_claude_tool_uploaded_truncated, payload.toString().length)
                 } else {
-                    val truncated = if (payload.optBoolean("truncated")) "，已截断" else ""
-                    "已回传（${payload.toString().length}B$truncated）"
+                    context.getString(R.string.chat_claude_tool_uploaded, payload.toString().length)
                 }
             } catch (e: Exception) {
                 ok = false
@@ -447,7 +449,7 @@ class ChatViewModel(
                         )
                     }
                 }
-                "采集失败：${e.message}"
+                context.getString(R.string.chat_claude_tool_collect_failed, e.message ?: context.getString(R.string.chat_unknown_error))
             }
             // 与 SSE 回调线程串行（见 applyToRenderer）：合成 ToolResult 持锁短暂
             rendererMutex.withLock {
@@ -500,7 +502,7 @@ class ChatViewModel(
      * 注：继续的是本会话最新 sid，与具体气泡无关（一会话一 sid）。
      */
     fun continueClaude() {
-        sendClaudeMessage("继续")
+        sendClaudeMessage(context.getString(R.string.chat_claude_continue))
     }
 
     /**
@@ -664,7 +666,11 @@ class ChatViewModel(
     /** chat 可选远程模型项（官方 / 用户自配）。 */
     data class ChatRemoteModel(val id: String, val displayName: String, val remoteConfig: RemoteModelConfig)
 
-    private val officialModel = ChatRemoteModel("official", "官方LLM", RemoteModelConfig.PICME_SERVER_DEFAULT)
+    private val officialModel = ChatRemoteModel(
+        "official",
+        context.getString(R.string.chat_model_official),
+        RemoteModelConfig.PICME_SERVER_DEFAULT
+    )
 
     /** 可选模型列表：官方 + 用户自配（已配置 apiKey 的）。 */
     private val _availableModels = MutableStateFlow<List<ChatRemoteModel>>(listOf(officialModel))
@@ -738,11 +744,11 @@ class ChatViewModel(
     fun submitIssueReport(category: String, title: String, description: String) {
         val token = _serverAuthToken.value
         if (token.isBlank()) {
-            _issueReportState.value = IssueReportState.Error("请先登录账号后再上报问题")
+            _issueReportState.value = IssueReportState.Error(context.getString(R.string.report_issue_guest_not_allowed))
             return
         }
         if (title.isBlank()) {
-            _issueReportState.value = IssueReportState.Error("请输入问题标题")
+            _issueReportState.value = IssueReportState.Error(context.getString(R.string.chat_report_title_required))
             return
         }
         _issueReportState.value = IssueReportState.Submitting
@@ -750,7 +756,7 @@ class ChatViewModel(
             val result = issueReportClient.submit(token, category, title, description)
             _issueReportState.value = result.fold(
                 onSuccess = { IssueReportState.Success(it) },
-                onFailure = { IssueReportState.Error(it.message ?: "上报失败，请稍后重试") }
+                onFailure = { IssueReportState.Error(it.message ?: context.getString(R.string.chat_report_failed)) }
             )
         }
     }
@@ -868,7 +874,7 @@ class ChatViewModel(
         ChatToolService.getInstance().adjustImageHandler = { uri, brightness, contrast, saturation, temperature ->
             val renderer = chatImageRenderer
             if (renderer == null) {
-                "Error: 图片渲染器暂不可用"
+                context.getString(R.string.chat_optimize_unavailable)
             } else {
                 val sid = _currentSessionId.value
                 val outcome = renderer.adjustImage(uri, brightness, contrast, saturation, temperature, sid)
@@ -1000,9 +1006,9 @@ class ChatViewModel(
 
     private fun resolveThreadTitle(session: ChatSessionEntity): String {
         return when {
-            session.sessionId == "default" && session.title == "default" -> "New Chat"
-            session.sessionId == "feishu" -> "飞书远程控制"
-            session.title.isBlank() -> "Chat"
+            session.sessionId == "default" && session.title == "default" -> context.getString(R.string.new_chat)
+            session.sessionId == "feishu" -> context.getString(R.string.chat_thread_feishu)
+            session.title.isBlank() -> context.getString(R.string.new_chat)
             else -> session.title
         }
     }
@@ -1189,7 +1195,7 @@ class ChatViewModel(
                 _streamingMessage.value = ChatMessageUi(
                     id = streamingId,
                     type = ChatMessageType.AGENT_TEXT,
-                    content = STREAMING_THINKING_HINT,
+                    content = context.getString(STREAMING_THINKING_HINT_RES),
                     modelUsed = currentModelLabel(),
                     isStreaming = true,
                     isThinking = true
@@ -1293,7 +1299,11 @@ class ChatViewModel(
                                     MediaResultsUi(outcome.query, assets, outcome.totalCount, isRefinement = false)
                                 )
                             } else {
-                                insertAgentMessage(sessionId, "没有找到相关照片", currentModelLabel())
+                                insertAgentMessage(
+                                    sessionId,
+                                    context.getString(R.string.gallery_search_no_results),
+                                    currentModelLabel()
+                                )
                             }
                         } else if (streamResult.commands.isNotEmpty()) {
                             // 有命令需要执行：通过 CapabilityRegistry 分发
@@ -1346,7 +1356,7 @@ class ChatViewModel(
                                 sessionId = sessionId,
                                 content = context.getString(
                                     R.string.chat_inference_error,
-                                    error.message ?: "unknown",
+                                    error.message ?: context.getString(R.string.chat_unknown_error),
                                 ),
                                 modelUsed = "error",
                             )
@@ -1364,7 +1374,10 @@ class ChatViewModel(
                     id = UUID.randomUUID().toString(),
                     sessionId = sessionId,
                     type = "agent_text",
-                    content = "推理出错：${e.message ?: "未知错误"}",
+                    content = context.getString(
+                        R.string.chat_inference_error,
+                        e.message ?: context.getString(R.string.chat_unknown_error),
+                    ),
                     modelUsed = "error"
                 )
                 chatMessageDao.insertMessage(errorMessage)
@@ -1434,7 +1447,12 @@ class ChatViewModel(
                         val targetUri = cmd.imageUri.takeIf { it.isNotBlank() }
                             ?: _lastUserImageUri.value
                         if (targetUri.isNullOrBlank()) {
-                            insertAgentMessage(sessionId, "请先发送一张图片，再说“帮我优化这张照片”", currentModelLabel(), performance)
+                            insertAgentMessage(
+                                sessionId,
+                                context.getString(R.string.chat_ai_optimize_need_image),
+                                currentModelLabel(),
+                                performance
+                            )
                         } else {
                             handleAiOptimize(sessionId, targetUri, cmd.explanation, currentModelLabel(), performance)
                         }
@@ -1467,10 +1485,10 @@ class ChatViewModel(
                         else -> ""
                     }
                 }
-                insertAgentMessage(sessionId, summary.ifBlank { "批量操作已完成" }, "command", performance)
+                insertAgentMessage(sessionId, summary.ifBlank { context.getString(R.string.chat_batch_done) }, "command", performance)
             }
             null -> {
-                insertAgentMessage(sessionId, "未获取到执行结果", "error", performance)
+                insertAgentMessage(sessionId, context.getString(R.string.chat_no_execution_result), "error", performance)
             }
         }
     }
@@ -1528,7 +1546,7 @@ class ChatViewModel(
     ) {
         val renderer = chatImageRenderer
         if (renderer == null) {
-            insertAgentMessage(sessionId, "⚠️ 图像优化暂不可用", modelUsed, performance)
+            insertAgentMessage(sessionId, context.getString(R.string.chat_optimize_unavailable), modelUsed, performance)
             return
         }
         val outcome = renderer.aiOptimize(targetUri, sessionId)
@@ -1545,24 +1563,25 @@ class ChatViewModel(
      */
     private fun describeCommandResult(command: AgentCommand): String {
         return when (command) {
-            is AgentCommand.NavigateTo -> "✅ 已切换到 ${command.destination}"
-            is AgentCommand.GoBack -> "✅ 已返回上一页"
+            is AgentCommand.NavigateTo -> context.getString(R.string.chat_result_navigated_to, command.destination)
+            is AgentCommand.GoBack -> context.getString(R.string.chat_result_went_back)
             is AgentCommand.LaunchApp -> {
-                val target = command.appName ?: command.packageName ?: "应用"
-                "✅ 已打开 $target"
+                val target = command.appName ?: command.packageName
+                    ?: context.getString(R.string.chat_result_app_fallback)
+                context.getString(R.string.chat_result_opened_app, target)
             }
-            is AgentCommand.OpenSystemSettings -> "✅ 已打开 ${command.setting} 设置"
+            is AgentCommand.OpenSystemSettings -> context.getString(R.string.chat_result_opened_settings, command.setting)
             is AgentCommand.AiOptimize -> command.explanation?.let { "✅ $it" }
-                ?: "✅ 已执行 AI 一键优化"
-            is AgentCommand.StartTagScan -> "✅ 已执行 TAG 扫描控制"
-            is AgentCommand.BatchExecute -> "✅ 已执行批量操作"
+                ?: context.getString(R.string.chat_result_ai_optimize_done)
+            is AgentCommand.StartTagScan -> context.getString(R.string.chat_result_tag_scan_done)
+            is AgentCommand.BatchExecute -> context.getString(R.string.chat_result_batch_executed)
             is AgentCommand.RecordMediaFeedback -> when (command.action) {
                 FeedbackAction.LIKE -> "✅ ${context.getString(R.string.feedback_confirmed_like)}"
                 FeedbackAction.DISLIKE -> "✅ ${context.getString(R.string.feedback_confirmed_dislike)}"
-                else -> "✅ 已记录反馈"
+                else -> context.getString(R.string.chat_result_feedback_recorded)
             }
             is AgentCommand.ExcludeConstraint -> "✅ ${context.getString(R.string.feedback_excluded, command.constraint)}"
-            else -> "✅ 已执行 ${AgentCommand.getMethodName(command)}"
+            else -> context.getString(R.string.chat_result_executed, AgentCommand.getMethodName(command))
         }
     }
 
@@ -1645,9 +1664,9 @@ class ChatViewModel(
             ?: return
         val tags = asset.labels?.let { parseLabels(it) }?.take(3) ?: emptyList()
         val constraint = if (tags.isNotEmpty()) {
-            "和这张照片类似的：${tags.joinToString("、")}"
+            context.getString(R.string.chat_more_like_this_with_tags, tags.joinToString("、"))
         } else {
-            "更多类似这张照片的"
+            context.getString(R.string.chat_more_like_this)
         }
         val outcome = onRefineMediaSearch(constraint)
         if (outcome.mediaIds.isNotEmpty()) {
@@ -1841,9 +1860,9 @@ class ChatViewModel(
             ?: return SearchOutcome("", emptyList(), 0, isRefinement = false)
         val tags = asset.labels?.let { parseLabels(it) }?.take(3) ?: emptyList()
         val constraint = if (tags.isNotEmpty()) {
-            "和这张照片类似的：${tags.joinToString("、")}"
+            context.getString(R.string.chat_more_like_this_with_tags, tags.joinToString("、"))
         } else {
-            "更多类似这张照片的"
+            context.getString(R.string.chat_more_like_this)
         }
         return onRefineMediaSearch(constraint)
     }
@@ -1891,7 +1910,8 @@ class ChatViewModel(
                 val chart = obj?.entries?.get("chart") as? JsValue.Str
                 if (chart != null) {
                     emitChartMessage(chart.value)
-                    (obj.entries["summary"] as? JsValue.Str)?.value ?: "已生成图表"
+                    (obj.entries["summary"] as? JsValue.Str)?.value
+                        ?: context.getString(R.string.chat_chart_generated)
                 } else {
                     result.toJson()
                 }
@@ -1947,7 +1967,8 @@ class ChatViewModel(
             val obj = result as? JsValue.Obj
             val chart = obj?.entries?.get("chart") as? JsValue.Str
             if (chart != null) emitChartMessage(chart.value)
-            (obj?.entries?.get("summary") as? JsValue.Str)?.value ?: "已生成图表"
+            (obj?.entries?.get("summary") as? JsValue.Str)?.value
+                ?: context.getString(R.string.chat_chart_generated)
         }
     }
 
@@ -2008,33 +2029,41 @@ class ChatViewModel(
      */
     override suspend fun onDeleteMedia(mediaIds: List<String>): String {
         val ids = mediaIds.mapNotNull { it.toLongOrNull() }
-        if (ids.isEmpty()) return "没有有效的媒体 id"
+        if (ids.isEmpty()) return context.getString(R.string.chat_write_no_valid_ids)
         mediaRepository.deleteMediaByIds(ids)
 
         mediaRepository.getPendingRecoverableIntentSender()?.let { sender ->
             _deleteAuthRequest.value = MediaViewModel.DeleteAuthRequest.Api29(sender)
-            return "已发起删除 ${ids.size} 项，等待系统授权"
+            return context.getString(R.string.chat_delete_started_pending, ids.size)
         }
         val pendingUris = mediaRepository.getPendingDeleteUris().map { uriString -> Uri.parse(uriString) }
         if (pendingUris.isNotEmpty()) {
             _deleteAuthRequest.value = MediaViewModel.DeleteAuthRequest.Api30(pendingUris)
-            return "已发起删除 ${ids.size} 项，等待系统授权"
+            return context.getString(R.string.chat_delete_started_pending, ids.size)
         }
-        return "已删除 ${ids.size} 项"
+        return context.getString(R.string.chat_deleted_n, ids.size)
     }
 
     override suspend fun onFavoriteMedia(mediaId: String, favorite: Boolean): String {
         _favoriteMediaIds.value =
             if (favorite) _favoriteMediaIds.value + mediaId else _favoriteMediaIds.value - mediaId
         Logger.d(TAG, "Favorite media $mediaId = $favorite (session level)")
-        return if (favorite) "已收藏 1 项" else "已取消收藏 1 项"
+        return if (favorite) {
+            context.getString(R.string.chat_favorited_one)
+        } else {
+            context.getString(R.string.chat_unfavorited_one)
+        }
     }
 
     override suspend fun onSelectMedia(mediaId: String, selected: Boolean): String {
         _selectedMediaIds.value =
             if (selected) _selectedMediaIds.value + mediaId else _selectedMediaIds.value - mediaId
         Logger.d(TAG, "Select media $mediaId = $selected (session level)")
-        return if (selected) "已选中 1 项" else "已取消选中 1 项"
+        return if (selected) {
+            context.getString(R.string.chat_selected_one)
+        } else {
+            context.getString(R.string.chat_unselected_one)
+        }
     }
 
     private fun reapplyFiltersToCurrentResults(sessionId: String) {
@@ -2084,7 +2113,14 @@ class ChatViewModel(
                 cleanupIfNeeded(sessionId)
             } catch (e: Exception) {
                 Logger.e(TAG, "Direct gallery search failed", e)
-                insertAgentMessage(sessionId, "搜索失败：${e.message ?: "未知错误"}", "error")
+                insertAgentMessage(
+                    sessionId,
+                    context.getString(
+                        R.string.chat_search_failed,
+                        e.message ?: context.getString(R.string.chat_unknown_error),
+                    ),
+                    "error"
+                )
             } finally {
                 _isProcessing.value = false
             }
@@ -2438,7 +2474,7 @@ class ChatViewModel(
                 // 0. 将图片复制到内部存储（content:// URI 权限在进程重启后失效）
                 val persistedUri = persistImage(imageUri)
                 if (persistedUri == null) {
-                    insertAgentMessage(sessionId, "无法保存图片", "error")
+                    insertAgentMessage(sessionId, context.getString(R.string.chat_image_save_failed), "error")
                     return@launch
                 }
 
@@ -2471,7 +2507,7 @@ class ChatViewModel(
                 _streamingMessage.value = ChatMessageUi(
                     id = streamingId,
                     type = ChatMessageType.AGENT_TEXT,
-                    content = "正在分析图片...",
+                    content = context.getString(R.string.chat_analyzing_image),
                     modelUsed = modelKey,
                     isStreaming = true,
                     isThinking = true
@@ -2484,7 +2520,7 @@ class ChatViewModel(
                 )
                 if (bitmap == null) {
                     _streamingMessage.value = null
-                    insertAgentMessage(sessionId, "无法加载图片", "error")
+                    insertAgentMessage(sessionId, context.getString(R.string.chat_image_load_failed), "error")
                     return@launch
                 }
 
@@ -2496,7 +2532,7 @@ class ChatViewModel(
                     if (description.isNullOrBlank()) {
                         insertAgentMessage(
                             sessionId,
-                            "模型未加载：$modelKey 未下载或初始化失败，请前往设置 → AI 模型管理下载",
+                            context.getString(R.string.chat_model_not_loaded_guide, modelKey),
                             "error"
                         )
                         return@launch
@@ -2517,7 +2553,7 @@ class ChatViewModel(
                     _streamingMessage.value = ChatMessageUi(
                         id = streamingId,
                         type = ChatMessageType.AGENT_TEXT,
-                        content = "正在加载模型...",
+                        content = context.getString(R.string.chat_loading_model),
                         modelUsed = modelKey
                     )
                 }
@@ -2541,10 +2577,11 @@ class ChatViewModel(
                 if (inferenceResult.isFailure) {
                     _streamingMessage.value = null
                     val error = inferenceResult.exceptionOrNull()
+                    val unknown = context.getString(R.string.chat_unknown_error)
                     val message = if (error is LlmModelNotFoundException || error?.message?.contains("模型") == true) {
-                        "模型未加载：${error.message ?: "未知错误"}"
+                        context.getString(R.string.chat_model_not_loaded, error?.message ?: unknown)
                     } else {
-                        "图像处理出错：${error?.message ?: "未知错误"}"
+                        context.getString(R.string.chat_image_process_error, error?.message ?: unknown)
                     }
                     insertAgentMessage(sessionId, message, "error")
                     return@launch
@@ -2555,7 +2592,7 @@ class ChatViewModel(
                 _streamingMessage.value = null
 
                 if (response.isBlank()) {
-                    insertAgentMessage(sessionId, "(模型未返回结果)", "error")
+                    insertAgentMessage(sessionId, context.getString(R.string.chat_model_empty_response), "error")
                 } else {
                     insertAgentMessage(
                         sessionId = sessionId,
@@ -2577,7 +2614,14 @@ class ChatViewModel(
             } catch (e: Exception) {
                 Logger.e(TAG, "Failed to send image message", e)
                 _streamingMessage.value = null
-                insertAgentMessage(sessionId, "图像处理出错：${e.message ?: "未知错误"}", "error")
+                insertAgentMessage(
+                    sessionId,
+                    context.getString(
+                        R.string.chat_image_process_error,
+                        e.message ?: context.getString(R.string.chat_unknown_error),
+                    ),
+                    "error"
+                )
             } finally {
                 _isProcessing.value = false
             }
@@ -2597,7 +2641,7 @@ class ChatViewModel(
                     remoteConfig = existingRemoteConfig,
                     privacyLevel = AiAgentPrivacyLevel.STRICT
                 )
-                Logger.i(TAG, "Model switched to: ${model.label}")
+                Logger.i(TAG, "Model switched to: ${model.labelRes}")
             } catch (e: Exception) {
                 Logger.e(TAG, "Failed to sync model switch", e)
             }
@@ -2638,18 +2682,19 @@ class ChatViewModel(
                     ) {
                         val newAssets = mr.assets.filter { it.id != mediaId }
                         if (newAssets.isEmpty()) {
+                            val deletedText = context.getString(R.string.chat_results_photo_deleted)
                             chatMessageDao.getMessageById(message.id)?.let { entity ->
                                 chatMessageDao.insertMessage(
                                     entity.copy(
                                         type = "agent_text",
-                                        content = "结果中的照片已被删除",
+                                        content = deletedText,
                                         metadata = null
                                     )
                                 )
                             }
                             return@mapNotNull message.copy(
                                 type = ChatMessageType.AGENT_TEXT,
-                                content = "结果中的照片已被删除",
+                                content = deletedText,
                                 mediaResults = null
                             )
                         }
@@ -2876,7 +2921,7 @@ class ChatViewModel(
         return commands.map { cmd ->
             when (cmd) {
                 is AgentCommand.NavigateTo, is AgentCommand.GoBack -> AgentCommand.TextReply(
-                    message = "在聊天页我不会自动跳转页面，请直接说\"去相机/去相册/去设置/返回\"，或点击底部 tab 切换。"
+                    message = context.getString(R.string.chat_nav_blocked_in_chat)
                 )
                 else -> cmd
             }

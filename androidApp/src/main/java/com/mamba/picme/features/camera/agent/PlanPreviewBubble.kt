@@ -17,8 +17,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mamba.picme.R
 import com.mamba.picme.agent.core.model.plan.ExecutionPlan
 import com.mamba.picme.agent.core.model.plan.PlanStep
 
@@ -40,7 +42,7 @@ fun PlanPreviewBubble(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text = "📋 执行计划（${plan.steps.size}步）",
+            text = stringResource(R.string.camera_plan_preview_title, plan.steps.size),
             color = Color.White,
             fontSize = 14.sp
         )
@@ -70,13 +72,13 @@ fun PlanPreviewBubble(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
             ) {
-                Text("开始执行", fontSize = 12.sp)
+                Text(stringResource(R.string.camera_plan_start_execute), fontSize = 12.sp)
             }
             OutlinedButton(
                 onClick = onCancel,
                 modifier = Modifier.weight(1f)
             ) {
-                Text("取消", fontSize = 12.sp, color = Color.White)
+                Text(stringResource(R.string.cancel), fontSize = 12.sp, color = Color.White)
             }
         }
     }

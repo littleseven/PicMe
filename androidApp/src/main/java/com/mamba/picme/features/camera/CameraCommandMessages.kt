@@ -1,5 +1,6 @@
 package com.mamba.picme.features.camera
 
+import android.content.Context
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.FactCheck
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.rounded.Style
 import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material.icons.rounded.ZoomIn
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.mamba.picme.R
 import com.mamba.picme.domain.model.AiAgentCommand
 import com.mamba.picme.features.common.chat.AgentMessage
 
@@ -29,16 +31,16 @@ import com.mamba.picme.features.common.chat.AgentMessage
  * BatchExecute → 多条 CommandExecution（展开显示每个子命令）
  * TextReply → AgentText（纯文本回复）
  */
-internal fun commandToExecutionMessages(command: AiAgentCommand): List<AgentMessage> {
+internal fun commandToExecutionMessages(context: Context, command: AiAgentCommand): List<AgentMessage> {
     return when (command) {
         is AiAgentCommand.BatchExecute -> {
             val total = command.commands.size
             command.commands.mapIndexed { index, subCmd ->
                 AgentMessage.CommandExecution(
-                    commandName = getCommandDisplayName(subCmd),
+                    commandName = getCommandDisplayName(context, subCmd),
                     commandIcon = resolveCommandIcon(subCmd),
                     status = AgentMessage.CommandExecution.Status.SUCCESS,
-                    detail = getCommandDetail(subCmd),
+                    detail = getCommandDetail(context, subCmd),
                     index = index + 1,
                     total = total
                 )
@@ -49,10 +51,10 @@ internal fun commandToExecutionMessages(command: AiAgentCommand): List<AgentMess
         )
         else -> listOf(
             AgentMessage.CommandExecution(
-                commandName = getCommandDisplayName(command),
+                commandName = getCommandDisplayName(context, command),
                 commandIcon = resolveCommandIcon(command),
                 status = AgentMessage.CommandExecution.Status.SUCCESS,
-                detail = getCommandDetail(command),
+                detail = getCommandDetail(context, command),
                 index = 0,
                 total = 1
             )
@@ -60,25 +62,25 @@ internal fun commandToExecutionMessages(command: AiAgentCommand): List<AgentMess
     }
 }
 
-internal fun getCommandDisplayName(command: AiAgentCommand): String = when (command) {
-    is AiAgentCommand.AdjustBeauty -> "调整美颜"
-    is AiAgentCommand.SwitchFilter -> "切换滤镜"
-    is AiAgentCommand.SwitchStyle -> "切换风格"
-    is AiAgentCommand.SwitchScene -> "切换场景"
-    is AiAgentCommand.SwitchRatio -> "切换画幅"
-    is AiAgentCommand.AdjustExposure -> "调整曝光"
-    is AiAgentCommand.AdjustZoom -> "调整变焦"
-    is AiAgentCommand.FlipCamera -> "翻转摄像头"
-    is AiAgentCommand.CapturePhoto -> "拍照"
-    is AiAgentCommand.Delay -> "等待"
-    is AiAgentCommand.ToggleRecording -> "切换录像"
-    is AiAgentCommand.SwitchMode -> "切换模式"
-    is AiAgentCommand.NavigateTo -> "页面跳转"
-    is AiAgentCommand.GoBack -> "返回"
-    is AiAgentCommand.BatchExecute -> "批量执行"
-    is AiAgentCommand.TextReply -> "文本回复"
-    is AiAgentCommand.SearchMedia -> "搜索照片"
-    is AiAgentCommand.ApplyEditRecipe -> "AI 一键优化"
+internal fun getCommandDisplayName(context: Context, command: AiAgentCommand): String = when (command) {
+    is AiAgentCommand.AdjustBeauty -> context.getString(R.string.camera_cmd_adjust_beauty)
+    is AiAgentCommand.SwitchFilter -> context.getString(R.string.camera_cmd_switch_filter)
+    is AiAgentCommand.SwitchStyle -> context.getString(R.string.camera_cmd_switch_style)
+    is AiAgentCommand.SwitchScene -> context.getString(R.string.camera_cmd_switch_scene)
+    is AiAgentCommand.SwitchRatio -> context.getString(R.string.camera_cmd_switch_ratio)
+    is AiAgentCommand.AdjustExposure -> context.getString(R.string.camera_cmd_adjust_exposure)
+    is AiAgentCommand.AdjustZoom -> context.getString(R.string.camera_cmd_adjust_zoom)
+    is AiAgentCommand.FlipCamera -> context.getString(R.string.flip_camera)
+    is AiAgentCommand.CapturePhoto -> context.getString(R.string.camera_cmd_capture_photo)
+    is AiAgentCommand.Delay -> context.getString(R.string.camera_cmd_delay)
+    is AiAgentCommand.ToggleRecording -> context.getString(R.string.camera_cmd_toggle_recording)
+    is AiAgentCommand.SwitchMode -> context.getString(R.string.camera_cmd_switch_mode)
+    is AiAgentCommand.NavigateTo -> context.getString(R.string.camera_cmd_navigate)
+    is AiAgentCommand.GoBack -> context.getString(R.string.back)
+    is AiAgentCommand.BatchExecute -> context.getString(R.string.camera_cmd_batch_execute)
+    is AiAgentCommand.TextReply -> context.getString(R.string.camera_cmd_text_reply)
+    is AiAgentCommand.SearchMedia -> context.getString(R.string.search_photos)
+    is AiAgentCommand.ApplyEditRecipe -> context.getString(R.string.ai_optimize)
 }
 
 /**
@@ -105,23 +107,23 @@ internal fun resolveCommandIcon(command: AiAgentCommand): ImageVector = when (co
     is AiAgentCommand.ApplyEditRecipe -> Icons.Rounded.AutoFixHigh
 }
 
-internal fun getCommandDetail(command: AiAgentCommand): String = when (command) {
+internal fun getCommandDetail(context: Context, command: AiAgentCommand): String = when (command) {
     is AiAgentCommand.AdjustBeauty -> buildString {
         val s = command.settings
         val parts = mutableListOf<String>()
-        if (s.smoothing > 0) parts.add("磨皮 ${s.smoothing.toInt()}%")
-        if (s.whitening > 0) parts.add("美白 ${s.whitening.toInt()}%")
-        if (s.slimFace != 0f) parts.add("瘦脸 ${s.slimFace.toInt()}%")
-        if (s.bigEyes > 0) parts.add("大眼 ${s.bigEyes.toInt()}%")
-        if (parts.isEmpty()) append("默认参数") else append(parts.joinToString(", "))
+        if (s.smoothing > 0) parts.add(context.getString(R.string.camera_cmd_detail_smoothing, s.smoothing.toInt()))
+        if (s.whitening > 0) parts.add(context.getString(R.string.camera_cmd_detail_whitening, s.whitening.toInt()))
+        if (s.slimFace != 0f) parts.add(context.getString(R.string.camera_cmd_detail_slim_face, s.slimFace.toInt()))
+        if (s.bigEyes > 0) parts.add(context.getString(R.string.camera_cmd_detail_big_eyes, s.bigEyes.toInt()))
+        if (parts.isEmpty()) append(context.getString(R.string.camera_cmd_default_params)) else append(parts.joinToString(", "))
     }
-    is AiAgentCommand.SwitchFilter -> "滤镜: ${command.filterType.name}"
-    is AiAgentCommand.SwitchStyle -> "风格: ${command.styleFilter.name}"
-    is AiAgentCommand.SwitchScene -> "场景: ${command.sceneName}"
-    is AiAgentCommand.SwitchRatio -> "比例: ${command.ratio}"
-    is AiAgentCommand.AdjustExposure -> "曝光: ${command.exposure}"
-    is AiAgentCommand.AdjustZoom -> "变焦: ${command.zoomRatio}x"
-    is AiAgentCommand.NavigateTo -> "目标: ${command.destination}"
-    is AiAgentCommand.Delay -> "延迟: ${command.delayMs}ms"
+    is AiAgentCommand.SwitchFilter -> context.getString(R.string.camera_cmd_detail_filter, command.filterType.name)
+    is AiAgentCommand.SwitchStyle -> context.getString(R.string.camera_cmd_detail_style, command.styleFilter.name)
+    is AiAgentCommand.SwitchScene -> context.getString(R.string.camera_cmd_detail_scene, command.sceneName)
+    is AiAgentCommand.SwitchRatio -> context.getString(R.string.camera_cmd_detail_ratio, command.ratio)
+    is AiAgentCommand.AdjustExposure -> context.getString(R.string.camera_cmd_detail_exposure, command.exposure)
+    is AiAgentCommand.AdjustZoom -> context.getString(R.string.camera_cmd_detail_zoom, command.zoomRatio)
+    is AiAgentCommand.NavigateTo -> context.getString(R.string.camera_cmd_detail_destination, command.destination)
+    is AiAgentCommand.Delay -> context.getString(R.string.camera_cmd_detail_delay, command.delayMs)
     else -> ""
 }

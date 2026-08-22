@@ -31,12 +31,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mamba.picme.core.designsystem.CameraTokens
 import com.mamba.picme.core.designsystem.components.AppSlider
 import com.mamba.picme.core.designsystem.components.AppSliderStyle
+import com.mamba.picme.R
 
 @Composable
 private fun ExpandableSection(
@@ -82,7 +84,11 @@ private fun ExpandableSection(
                 )
             }
             Text(
-                text = if (isExpanded) "收起" else "展开",
+                text = if (isExpanded) {
+                    stringResource(R.string.camera_section_collapse)
+                } else {
+                    stringResource(R.string.camera_section_expand)
+                },
                 color = MaterialTheme.colorScheme.primary,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium

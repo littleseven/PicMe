@@ -533,7 +533,7 @@ private fun OcrResultOverlay(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "${ocrResult.text.length} 字",
+                                        text = stringResource(R.string.ocr_char_count, ocrResult.text.length),
                                         fontSize = 12.sp,
                                         color = Color.Gray,
                                         maxLines = 1
@@ -932,7 +932,7 @@ private fun mediaPagerTopControls(
                                         tint = Color.White,
                                         modifier = Modifier.size(20.dp)
                                     )
-                                    Text("图像理解", color = Color.White, fontSize = 14.sp)
+                                    Text(stringResource(R.string.image_understand), color = Color.White, fontSize = 14.sp)
                                 }
                             },
                             onClick = {
@@ -950,7 +950,7 @@ private fun mediaPagerTopControls(
                                         tint = Color.White,
                                         modifier = Modifier.size(20.dp)
                                     )
-                                    Text("OCR 文字识别", color = Color.White, fontSize = 14.sp)
+                                    Text(stringResource(R.string.ocr_text_recognition), color = Color.White, fontSize = 14.sp)
                                 }
                             },
                             onClick = {
@@ -969,7 +969,7 @@ private fun mediaPagerTopControls(
                                             tint = Color.White,
                                             modifier = Modifier.size(20.dp)
                                         )
-                                        Text("人脸关键点", color = Color.White, fontSize = 14.sp)
+                                        Text(stringResource(R.string.landmark_overlay), color = Color.White, fontSize = 14.sp)
                                     }
                                 },
                                 onClick = {
@@ -1022,7 +1022,7 @@ private fun mediaPagerBottomBar(
                         modifier = Modifier.size(22.dp)
                     )
                     Text(
-                        "发送",
+                        stringResource(R.string.send),
                         color = Color.White.copy(alpha = 0.7f),
                         fontSize = 10.sp
                     )
@@ -1044,7 +1044,7 @@ private fun mediaPagerBottomBar(
                         modifier = Modifier.size(22.dp)
                     )
                     Text(
-                        "编辑",
+                        stringResource(R.string.edit),
                         color = Color.White.copy(alpha = 0.7f),
                         fontSize = 10.sp
                     )
@@ -1088,7 +1088,7 @@ private fun mediaPagerBottomBar(
                         modifier = Modifier.size(22.dp)
                     )
                     Text(
-                        "删除",
+                        stringResource(R.string.delete),
                         color = Color.White.copy(alpha = 0.7f),
                         fontSize = 10.sp
                     )
@@ -1148,11 +1148,12 @@ private fun PhotoInfoDialog(
     }
 
     // 格式化拍摄日期
-    val dateStr = remember(asset.captureDate) {
+    val unknownDate = stringResource(R.string.unknown)
+    val dateStr = remember(asset.captureDate, unknownDate) {
         try {
             val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
             sdf.format(Date(asset.captureDate))
-        } catch (e: Exception) { "未知" }
+        } catch (e: Exception) { unknownDate }
     }
 
     // 人物分组名（media_assets.faceId 存 personId 字符串；已命名分组显示「名（ID: x）」，未命名仅 ID）
@@ -1212,7 +1213,7 @@ private fun PhotoInfoDialog(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "照片信息",
+                            text = stringResource(R.string.image_info),
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
@@ -1279,14 +1280,14 @@ private fun PhotoInfoDialog(
                 }
 
                 // 基本信息
-                InfoRow("文件名", asset.fileName)
-                InfoRow("类型", if (asset.type == MediaType.PHOTO) "照片" else "视频")
-                InfoRow("拍摄日期", dateStr)
+                InfoRow(stringResource(R.string.media_info_file_name), asset.fileName)
+                InfoRow(stringResource(R.string.media_info_type), stringResource(if (asset.type == MediaType.PHOTO) R.string.media_type_photo else R.string.media_type_video))
+                InfoRow(stringResource(R.string.media_info_capture_date), dateStr)
                 if (asset.duration != null && asset.duration!! > 0) {
-                    InfoRow("时长", "${asset.duration!! / 1000} 秒")
+                    InfoRow(stringResource(R.string.media_info_duration), stringResource(R.string.media_info_duration_seconds, asset.duration!! / 1000))
                 }
                 if (asset.source != null) {
-                    InfoRow("来源", asset.source!!.replaceFirstChar { it.uppercase() })
+                    InfoRow(stringResource(R.string.media_info_source), asset.source!!.replaceFirstChar { it.uppercase() })
                 }
                 val locName = asset.locationName
                 if (!locName.isNullOrBlank()) {
@@ -1308,18 +1309,18 @@ private fun PhotoInfoDialog(
                         color = Color.White.copy(alpha = 0.1f)
                     )
                     Text(
-                        text = "人脸信息",
+                        text = stringResource(R.string.media_info_face_section),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White.copy(alpha = 0.8f),
                         modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                     )
-                    InfoRow("包含人脸", "是")
+                    InfoRow(stringResource(R.string.media_info_contains_face), stringResource(R.string.yes))
                     if (asset.faceId != null) {
                         val groupLabel = personGroupName?.takeIf { it.isNotBlank() }
                             ?.let { "$it（ID: ${asset.faceId}）" }
                             ?: "ID: ${asset.faceId}"
-                        InfoRow("人物分组", groupLabel)
+                        InfoRow(stringResource(R.string.media_info_person_group), groupLabel)
                     }
                     asset.faceQualityScore?.let { score ->
                         InfoRow(stringResource(R.string.media_info_face_quality), "%.0f%%".format(score * 100))
@@ -1405,7 +1406,7 @@ private fun PhotoInfoDialog(
                         color = Color.White.copy(alpha = 0.1f)
                     )
                     Text(
-                        text = "识别文字",
+                        text = stringResource(R.string.media_info_ocr_text),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White.copy(alpha = 0.8f),

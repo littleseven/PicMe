@@ -19,8 +19,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.caverock.androidsvg.SVG
+import com.mamba.picme.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -57,7 +59,7 @@ fun ChartSvgImage(
     } else {
         Box(modifier = modifier, contentAlignment = Alignment.Center) {
             Text(
-                "图表渲染中…",
+                stringResource(R.string.chat_chart_rendering),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

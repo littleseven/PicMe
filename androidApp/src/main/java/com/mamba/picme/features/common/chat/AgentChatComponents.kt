@@ -55,6 +55,7 @@ import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.platform.voice.AsrEngine
 import com.mamba.picme.agent.core.platform.voice.SherpaOnnxAsrEngine
 import com.mamba.picme.core.common.Logger
+import com.mamba.picme.R
 import com.mamba.picme.data.preferences.UserPreferencesRepository
 import com.mamba.picme.domain.model.AiAgentCommand
 import com.mamba.picme.domain.usecase.AiAgentUseCase
@@ -217,17 +218,17 @@ private fun mapAgentActionToAiAgentCommand(action: AgentAction.Success): AiAgent
  *
  * 支持 BatchExecute 展开为多条消息，单命令转换为单条消息。
  */
-private fun agentActionToExecutionMessages(action: AgentAction.Success): List<AgentMessage> {
+private fun agentActionToExecutionMessages(context: Context, action: AgentAction.Success): List<AgentMessage> {
     val cmd = action.command
     return when (cmd) {
         is AgentCommand.BatchExecute -> {
             val total = cmd.commands.size
             cmd.commands.mapIndexed { index, subCmd ->
                 AgentMessage.CommandExecution(
-                    commandName = getAgentCommandDisplayName(subCmd),
+                    commandName = getAgentCommandDisplayName(context, subCmd),
                     commandIcon = resolveCommandIcon(subCmd),
                     status = AgentMessage.CommandExecution.Status.SUCCESS,
-                    detail = getAgentCommandDetail(subCmd),
+                    detail = getAgentCommandDetail(context, subCmd),
                     index = index + 1,
                     total = total
                 )
@@ -235,10 +236,10 @@ private fun agentActionToExecutionMessages(action: AgentAction.Success): List<Ag
         }
         else -> listOf(
             AgentMessage.CommandExecution(
-                commandName = getAgentCommandDisplayName(cmd),
+                commandName = getAgentCommandDisplayName(context, cmd),
                 commandIcon = resolveCommandIcon(cmd),
                 status = AgentMessage.CommandExecution.Status.SUCCESS,
-                detail = getAgentCommandDetail(cmd),
+                detail = getAgentCommandDetail(context, cmd),
                 index = 0,
                 total = 1
             )
@@ -246,57 +247,57 @@ private fun agentActionToExecutionMessages(action: AgentAction.Success): List<Ag
     }
 }
 
-private fun getAgentCommandDisplayName(command: AgentCommand): String =
+private fun getAgentCommandDisplayName(context: Context, command: AgentCommand): String =
     when (command) {
-        is AgentCommand.AdjustBeauty -> "调整美颜"
-        is AgentCommand.SwitchFilter -> "切换滤镜"
-        is AgentCommand.SwitchStyle -> "切换风格"
-        is AgentCommand.SwitchScene -> "切换场景"
-        is AgentCommand.SwitchRatio -> "切换画幅"
-        is AgentCommand.AdjustExposure -> "调整曝光"
-        is AgentCommand.AdjustZoom -> "调整变焦"
-        is AgentCommand.FlipCamera -> "翻转摄像头"
-        is AgentCommand.CapturePhoto -> "拍照"
-        is AgentCommand.Delay -> "等待"
-        is AgentCommand.ToggleRecording -> "切换录像"
-        is AgentCommand.SwitchMode -> "切换模式"
-        is AgentCommand.NavigateTo -> "页面跳转"
-        is AgentCommand.GoBack -> "返回"
-        is AgentCommand.BatchExecute -> "批量执行"
-        is AgentCommand.TextReply -> "文本回复"
-        is AgentCommand.ExecutePlan -> "执行计划"
-        is AgentCommand.ChangeTheme -> "切换主题"
-        is AgentCommand.ChangeLanguage -> "切换语言"
-        is AgentCommand.DownloadModel -> "下载模型"
-        is AgentCommand.SwitchFaceEngine -> "切换引擎"
-        is AgentCommand.ToggleSetting -> "切换设置"
-        is AgentCommand.ViewMedia -> "查看照片"
-        is AgentCommand.DeleteMedia -> "删除照片"
-        is AgentCommand.ShareMedia -> "分享照片"
-        is AgentCommand.SelectMedia -> "选择照片"
-        is AgentCommand.SearchMedia -> "搜索照片"
-        is AgentCommand.RefineMediaSearch -> "细化搜索"
-        is AgentCommand.SwitchViewMode -> "切换视图"
-        is AgentCommand.FavoriteMedia -> "收藏照片"
-        is AgentCommand.GetGallerySummary -> "相册摘要"
-        is AgentCommand.StartTagScan -> "TAG 扫描"
-        is AgentCommand.AiOptimize -> "AI 一键优化"
-        is AgentCommand.EditImage -> "图片编辑"
-        is AgentCommand.LaunchApp -> "打开应用"
-        is AgentCommand.OpenSystemSettings -> "打开设置"
-        is AgentCommand.Unknown -> "未知命令"
-        is AgentCommand.Error -> "执行错误"
-        is AgentCommand.RecordMediaFeedback -> "媒体反馈"
-        is AgentCommand.MoreLikeThis -> "更多相似"
-        is AgentCommand.ExcludeConstraint -> "排除约束"
-        is AgentCommand.ExecuteScript -> "执行脚本"
-        is AgentCommand.DrawChart -> "画图表"
-        is AgentCommand.RememberPersonRelation -> "记住人物关系"
-        is AgentCommand.ForgetPersonRelation -> "遗忘人物关系"
-        is AgentCommand.QueryPersonRelation -> "查询人物关系"
-        is AgentCommand.RememberFact -> "记住事实"
-        is AgentCommand.ForgetFact -> "遗忘事实"
-        is AgentCommand.RecallMemory -> "检索记忆"
+        is AgentCommand.AdjustBeauty -> context.getString(R.string.chat_cmd_adjust_beauty)
+        is AgentCommand.SwitchFilter -> context.getString(R.string.chat_cmd_switch_filter)
+        is AgentCommand.SwitchStyle -> context.getString(R.string.chat_cmd_switch_style)
+        is AgentCommand.SwitchScene -> context.getString(R.string.chat_cmd_switch_scene)
+        is AgentCommand.SwitchRatio -> context.getString(R.string.chat_cmd_switch_ratio)
+        is AgentCommand.AdjustExposure -> context.getString(R.string.chat_cmd_adjust_exposure)
+        is AgentCommand.AdjustZoom -> context.getString(R.string.chat_cmd_adjust_zoom)
+        is AgentCommand.FlipCamera -> context.getString(R.string.chat_cmd_flip_camera)
+        is AgentCommand.CapturePhoto -> context.getString(R.string.chat_cmd_capture_photo)
+        is AgentCommand.Delay -> context.getString(R.string.chat_cmd_delay)
+        is AgentCommand.ToggleRecording -> context.getString(R.string.chat_cmd_toggle_recording)
+        is AgentCommand.SwitchMode -> context.getString(R.string.chat_cmd_switch_mode)
+        is AgentCommand.NavigateTo -> context.getString(R.string.chat_cmd_navigate_to)
+        is AgentCommand.GoBack -> context.getString(R.string.chat_cmd_go_back)
+        is AgentCommand.BatchExecute -> context.getString(R.string.chat_cmd_batch_execute)
+        is AgentCommand.TextReply -> context.getString(R.string.chat_cmd_text_reply)
+        is AgentCommand.ExecutePlan -> context.getString(R.string.chat_cmd_execute_plan)
+        is AgentCommand.ChangeTheme -> context.getString(R.string.chat_cmd_change_theme)
+        is AgentCommand.ChangeLanguage -> context.getString(R.string.chat_cmd_change_language)
+        is AgentCommand.DownloadModel -> context.getString(R.string.chat_cmd_download_model)
+        is AgentCommand.SwitchFaceEngine -> context.getString(R.string.chat_cmd_switch_face_engine)
+        is AgentCommand.ToggleSetting -> context.getString(R.string.chat_cmd_toggle_setting)
+        is AgentCommand.ViewMedia -> context.getString(R.string.chat_cmd_view_media)
+        is AgentCommand.DeleteMedia -> context.getString(R.string.chat_cmd_delete_media)
+        is AgentCommand.ShareMedia -> context.getString(R.string.chat_cmd_share_media)
+        is AgentCommand.SelectMedia -> context.getString(R.string.chat_cmd_select_media)
+        is AgentCommand.SearchMedia -> context.getString(R.string.chat_cmd_search_media)
+        is AgentCommand.RefineMediaSearch -> context.getString(R.string.chat_cmd_refine_media_search)
+        is AgentCommand.SwitchViewMode -> context.getString(R.string.chat_cmd_switch_view_mode)
+        is AgentCommand.FavoriteMedia -> context.getString(R.string.chat_cmd_favorite_media)
+        is AgentCommand.GetGallerySummary -> context.getString(R.string.chat_cmd_gallery_summary)
+        is AgentCommand.StartTagScan -> context.getString(R.string.chat_cmd_start_tag_scan)
+        is AgentCommand.AiOptimize -> context.getString(R.string.chat_cmd_ai_optimize)
+        is AgentCommand.EditImage -> context.getString(R.string.chat_cmd_edit_image)
+        is AgentCommand.LaunchApp -> context.getString(R.string.chat_cmd_launch_app)
+        is AgentCommand.OpenSystemSettings -> context.getString(R.string.chat_cmd_open_system_settings)
+        is AgentCommand.Unknown -> context.getString(R.string.chat_cmd_unknown_command)
+        is AgentCommand.Error -> context.getString(R.string.chat_cmd_execution_error)
+        is AgentCommand.RecordMediaFeedback -> context.getString(R.string.chat_cmd_media_feedback)
+        is AgentCommand.MoreLikeThis -> context.getString(R.string.chat_cmd_more_like_this)
+        is AgentCommand.ExcludeConstraint -> context.getString(R.string.chat_cmd_exclude_constraint)
+        is AgentCommand.ExecuteScript -> context.getString(R.string.chat_cmd_execute_script)
+        is AgentCommand.DrawChart -> context.getString(R.string.chat_cmd_draw_chart)
+        is AgentCommand.RememberPersonRelation -> context.getString(R.string.chat_cmd_remember_person_relation)
+        is AgentCommand.ForgetPersonRelation -> context.getString(R.string.chat_cmd_forget_person_relation)
+        is AgentCommand.QueryPersonRelation -> context.getString(R.string.chat_cmd_query_person_relation)
+        is AgentCommand.RememberFact -> context.getString(R.string.chat_cmd_remember_fact)
+        is AgentCommand.ForgetFact -> context.getString(R.string.chat_cmd_forget_fact)
+        is AgentCommand.RecallMemory -> context.getString(R.string.chat_cmd_recall_memory)
     }
 
 /**
@@ -354,32 +355,36 @@ private fun resolveCommandIcon(command: AgentCommand): ImageVector = when (comma
     is AgentCommand.RecallMemory -> Icons.Rounded.Memory
 }
 
-private fun getAgentCommandDetail(command: AgentCommand): String =
+private fun getAgentCommandDetail(context: Context, command: AgentCommand): String =
     when (command) {
         is AgentCommand.AdjustBeauty -> buildString {
             val s = command.settings
             val parts = mutableListOf<String>()
-            if (s.smoothing > 0) parts.add("磨皮 ${s.smoothing.toInt()}%")
-            if (s.whitening > 0) parts.add("美白 ${s.whitening.toInt()}%")
-            if (s.slimFace != 0f) parts.add("瘦脸 ${s.slimFace.toInt()}%")
-            if (s.bigEyes > 0) parts.add("大眼 ${s.bigEyes.toInt()}%")
-            if (parts.isEmpty()) append("默认参数") else append(parts.joinToString(", "))
+            if (s.smoothing > 0) parts.add(context.getString(R.string.chat_cmd_detail_smoothing, s.smoothing.toInt()))
+            if (s.whitening > 0) parts.add(context.getString(R.string.chat_cmd_detail_whitening, s.whitening.toInt()))
+            if (s.slimFace != 0f) parts.add(context.getString(R.string.chat_cmd_detail_slim_face, s.slimFace.toInt()))
+            if (s.bigEyes > 0) parts.add(context.getString(R.string.chat_cmd_detail_big_eyes, s.bigEyes.toInt()))
+            if (parts.isEmpty()) append(context.getString(R.string.chat_cmd_detail_default_params)) else append(parts.joinToString(", "))
         }
-        is AgentCommand.SwitchFilter -> "滤镜: ${command.filterType.name}"
-        is AgentCommand.SwitchStyle -> "风格: ${command.styleFilter.name}"
-        is AgentCommand.SwitchScene -> "场景: ${command.sceneName}"
-        is AgentCommand.SwitchRatio -> "比例: ${command.ratio}"
-        is AgentCommand.AdjustExposure -> "曝光: ${command.exposure}"
-        is AgentCommand.AdjustZoom -> "变焦: ${command.zoomRatio}x"
-        is AgentCommand.NavigateTo -> "目标: ${command.destination}"
-        is AgentCommand.ChangeTheme -> "主题: ${command.theme}"
-        is AgentCommand.ChangeLanguage -> "语言: ${command.language}"
-        is AgentCommand.DownloadModel -> "模型: ${command.modelId}"
-        is AgentCommand.SwitchFaceEngine -> "引擎: ${command.engine}"
-        is AgentCommand.ToggleSetting -> "${command.settingKey}: ${if (command.enabled) "开启" else "关闭"}"
-        is AgentCommand.SearchMedia -> "关键词: ${command.query}"
-        is AgentCommand.ExecutePlan -> "计划: ${command.plan.description}"
-        is AgentCommand.Delay -> "延迟: ${command.delayMs}ms"
+        is AgentCommand.SwitchFilter -> context.getString(R.string.chat_cmd_detail_filter, command.filterType.name)
+        is AgentCommand.SwitchStyle -> context.getString(R.string.chat_cmd_detail_style, command.styleFilter.name)
+        is AgentCommand.SwitchScene -> context.getString(R.string.chat_cmd_detail_scene, command.sceneName)
+        is AgentCommand.SwitchRatio -> context.getString(R.string.chat_cmd_detail_ratio, command.ratio)
+        is AgentCommand.AdjustExposure -> context.getString(R.string.chat_cmd_detail_exposure, command.exposure)
+        is AgentCommand.AdjustZoom -> context.getString(R.string.chat_cmd_detail_zoom, command.zoomRatio)
+        is AgentCommand.NavigateTo -> context.getString(R.string.chat_cmd_detail_target, command.destination)
+        is AgentCommand.ChangeTheme -> context.getString(R.string.chat_cmd_detail_theme, command.theme)
+        is AgentCommand.ChangeLanguage -> context.getString(R.string.chat_cmd_detail_language, command.language)
+        is AgentCommand.DownloadModel -> context.getString(R.string.chat_cmd_detail_model, command.modelId)
+        is AgentCommand.SwitchFaceEngine -> context.getString(R.string.chat_cmd_detail_engine, command.engine)
+        is AgentCommand.ToggleSetting -> context.getString(
+            R.string.chat_cmd_detail_setting,
+            command.settingKey,
+            context.getString(if (command.enabled) R.string.chat_cmd_detail_switch_on else R.string.chat_cmd_detail_switch_off)
+        )
+        is AgentCommand.SearchMedia -> context.getString(R.string.chat_cmd_detail_keyword, command.query)
+        is AgentCommand.ExecutePlan -> context.getString(R.string.chat_cmd_detail_plan, command.plan.description)
+        is AgentCommand.Delay -> context.getString(R.string.chat_cmd_detail_delay, command.delayMs)
         is AgentCommand.LaunchApp -> command.appName ?: command.packageName ?: ""
         is AgentCommand.OpenSystemSettings -> command.setting
         else -> ""

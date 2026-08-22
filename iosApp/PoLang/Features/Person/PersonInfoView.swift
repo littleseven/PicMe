@@ -183,7 +183,7 @@ struct PersonInfoView: View {
                     .onSubmit { isEditingName = false }
                     .padding(.vertical, 8)
             } else {
-                Text(nameText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? L("Tap to name") : nameText)
+                Text(nameText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? L("Add name") : nameText)
                     .font(.system(size: CGFloat(AppTypography.headlineSmall.size), weight: .bold))
                     .foregroundColor(nameText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? s.onSurfaceVariant : s.onSurface)
                     .lineLimit(1)

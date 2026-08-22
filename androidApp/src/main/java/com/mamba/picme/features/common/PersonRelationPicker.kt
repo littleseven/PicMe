@@ -54,7 +54,7 @@ fun PersonRelationPicker(
         }
         RelationChipGroup(
             titleRes = R.string.person_relation_group_family,
-            predicates = FAMILY_RELATIONS,
+            predicates = FAMILY_RELATION_PREDICATES,
             selectedPredicate = selectedPredicate,
             customActive = customActive,
             onPredicateChange = onPredicateChange,
@@ -62,7 +62,7 @@ fun PersonRelationPicker(
         )
         RelationChipGroup(
             titleRes = R.string.person_relation_group_social,
-            predicates = SOCIAL_RELATIONS,
+            predicates = SOCIAL_RELATION_PREDICATES,
             selectedPredicate = selectedPredicate,
             customActive = customActive,
             onPredicateChange = onPredicateChange,
@@ -134,27 +134,3 @@ private fun RelationChipGroup(
         }
     }
 }
-
-/** 家庭区 chips（具体谓词，选择即写具体值） */
-private val FAMILY_RELATIONS = listOf(
-    RelationPredicate.FATHER,
-    RelationPredicate.MOTHER,
-    RelationPredicate.SON,
-    RelationPredicate.DAUGHTER,
-    RelationPredicate.ELDER_BROTHER,
-    RelationPredicate.ELDER_SISTER,
-    RelationPredicate.YOUNGER_BROTHER,
-    RelationPredicate.YOUNGER_SISTER,
-    RelationPredicate.GRANDFATHER,
-    RelationPredicate.GRANDMOTHER,
-    RelationPredicate.SPOUSE,
-    RelationPredicate.PARTNER
-)
-
-/** 社会区 chips */
-private val SOCIAL_RELATIONS = listOf(
-    RelationPredicate.FRIEND,
-    RelationPredicate.CLASSMATE,
-    RelationPredicate.COLLEAGUE,
-    RelationPredicate.IDOL
-)

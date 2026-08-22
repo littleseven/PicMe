@@ -25,9 +25,13 @@ person_list:
 # ── 顶栏（AppTopBar）──
   top_bar:
     height: "topBar.height=48"
-    title:
-      text: "people_title_with_count"           # "People (%1$d/%2$d)" = 可见数/总数
-      style: "topBar.titleFontSize=17 / Medium"
+    title:                                       # 两行标题组（2026-08-22 Ardot 设计稿定稿）
+      line1: { text: "people_title(People/人物)", size: 20, weight: SemiBold }
+      line2:
+        text: "people_stats_format(%1$s · %2$s) = people_people_count(36 people/人) + people_photos_count_full(141 photos/张照片)"
+        size: 12
+        color: "colorScheme.onSurfaceVariant"
+      stats_semantics: "可见人物数 · 可见人物照片总数（sumOf photoCounts/faceCount）"
     nav_back:
       icon: { material: arrow_back, sf: "chevron.left" }
       enabled_when: "isActivePage"              # pager 非当前页时禁用，防跨页 back 捕获
@@ -100,6 +104,15 @@ list_item:
           fallback_alignment: center             # faceFocusY==nil
         no_cover:
           background: "colorScheme.surfaceVariant"
+          center_icon: { material: face(48dp), sf: "face.smiling", tint: "colorScheme.onSurfaceVariant" }   # 2026-08-22：人脸图标占位（原纯灰底）
+      count_badge:                                # 2026-08-22 定稿：张数角标（原在名字旁，后独立为封面浮层）
+        align: bottom_end
+        margin: 8
+        shape: pill(100)
+        bg: "black@60%"
+        padding: { h: 8, v: 4 }
+        text: "people_photos_count（en 紧凑式 '%1$dP'（plurals one/other 同值）；zh='%1$d 张/張'；iOS 双键 %1$d photo(s) 同值）"
+        style: { size: 11, weight: SemiBold, color: white }
       content_description: "person.name 或 people_default_name(人物 #%d)"
       click: "onCoverClick → 相册按人物筛选（Stage2）；Stage1 → 进详情"
 
@@ -108,47 +121,57 @@ list_item:
       padding: "spacing.md=12"
       children:
 
-        # 行1：名称块 + 照片数 + info 按钮
+        # 行1：名称块（2026-08-22：张数移至封面右下角角标，本行只剩名字）
         - id: row1
           layout: row_center_vertical
           children:
             - id: name_block                     # weight 1
               display:
-                named: { text: "person.name", size: 16, weight: SemiBold, color: "colorScheme.onSurface" }
-                unnamed: { text: "person_edit_name_hint(点击命名)", color: "colorScheme.onSurfaceVariant" }
+                named: { text: "person.name", size: 15, weight: SemiBold, color: "colorScheme.onSurface" }
+                unnamed: { text: "person_edit_name_hint(Add name/添加名字/加入名字)", size: 15, weight: SemiBold, color: "colorScheme.primary" }   # 主题色引导点击命名
               click: "startEditing(personId)"    # 进入行内改名
               editing_mode:                      # NameEditor
                 text_field: { size: 16, weight: SemiBold, single_line: true, ime: Done, autofocus: true }
                 save_button: { icon: check(small 28dp/18dp), tint: primary, desc: save }
                 cancel_button: { icon: close(small 28dp/18dp), tint: onSurfaceVariant, desc: cancel }
-            - id: photo_count                    # 非编辑态显示
-              text: "people_photos_count(%d photos / %d 张)"
-              size: "typography.bodySmall=13"
-              color: "colorScheme.onSurfaceVariant"
-              padding: { start: 8, end: 4 }
+
+        # 行2（常驻，2026-08-22 定稿）：关系 chip 居左（无关系时显示描边引导胶囊）+ info 按钮固定右端
+        - id: row2
+          layout: row_center_vertical
+          padding_top: 6
+          children:
+            - id: relation_chip
+              visible_when: "isSelf || relation != null"
+              shape: "pill=100（2026-08-22 由 radius.small=8 改全圆角胶囊）"
+              padding: { h: 10, v: 4 }
+              label:
+                is_self: "person_is_self(这是我)"
+                custom: "relation.customLabel"
+                predicate: "personRelationLabelRes(relation.predicate)"
+                else: "person_relation_none"
+              size: "typography.bodySmall=12"
+              max_lines: 1
+              color:                                # 2026-08-22 按关系分组着色
+                is_self: { bg: "colorScheme.primaryContainer", text: "colorScheme.onPrimaryContainer" }
+                custom: { bg: "colorScheme.surfaceContainerHighest", text: "colorScheme.onSurfaceVariant" }
+                family: { bg: "colorScheme.secondaryContainer", text: "colorScheme.onSecondaryContainer" }   # predicate.isFamilyRelation()
+                social: { bg: "colorScheme.tertiaryContainer", text: "colorScheme.onTertiaryContainer" }
+                none:   { bg: "colorScheme.surfaceContainerHighest", text: "colorScheme.onSurfaceVariant" }
+              click: "onInfoClick → 进详情"
+            - id: add_relation_chip                # 2026-08-22：无关系时的空态填充（原不占位，卡片第二排过空）
+              visible_when: "!isSelf && relation == null"
+              shape: pill(100)
+              style: { border: "1dp colorScheme.outlineVariant", bg: transparent }
+              padding: { h: 10, v: 4 }
+              content: "add 图标(12dp) + person_relation_add(Add relation/添加关系/新增關係)，12sp colorScheme.onSurfaceVariant"
+              click: "onInfoClick → 进详情（引导设置关系）"
+            - id: spacer_flex                     # weight 1 / Spacer，撑开右端
             - id: info_button
               type: icon_button(32dp)
               icon: { material: more_vert(20dp), sf: "info.circle" }
-              desc: "person_info_title(人物信息)"
+              tint: "colorScheme.onSurfaceVariant"
+              desc: "person_info_title(编辑人物)"
               click: "onInfoClick → 进详情"
-
-        # 行2：关系 chip（仅 isSelf 或已设关系时）
-        - id: relation_chip
-          visible_when: "isSelf || relation != null"
-          padding_top: 6
-          shape: "radius.small=8"
-          padding: { h: 10, v: 4 }
-          label:
-            is_self: "person_is_self(这是我)"
-            custom: "relation.customLabel"
-            predicate: "personRelationLabelRes(relation.predicate)"
-            else: "person_relation_none"
-          size: "typography.bodySmall=12"
-          max_lines: 1
-          color:
-            is_self: { bg: "colorScheme.primaryContainer", text: "colorScheme.onPrimaryContainer" }
-            other:  { bg: "colorScheme.surfaceContainerHighest", text: "colorScheme.onSurfaceVariant" }
-          click: "onInfoClick → 进详情"
 
 # ============================================================================
 # 4. 详情页（PersonInfoScreen）总体结构
@@ -157,55 +180,97 @@ person_detail:
   type: full_screen_overlay                      # 列表层 infoTarget!=null 时覆盖
   background: "colorScheme.background"
   layout: vstack                                 # 顶栏 + 滚动主体
-  local_state: [ currentRelation, customLabel, currentIsSelf, showCoverPicker, isEditingName, nameText ]
+  local_state: [ currentRelation, customLabel, currentIsSelf, showCoverPicker, nameText ]   # 2026-08-22：移除 isEditingName（姓名常开编辑态）
 
   top_bar:
-    title: "person_cluster_id(Cluster #%d)"      # 标题=簇 ID，非名字
+    title: "person_info_title(Edit person/编辑人物/編輯人物)"   # 2026-08-22：由簇 ID 改为功能标题
     nav_back: { click: "onNavigateBack(关闭)" }
     actions:
+      - id: rescore
+        icon: { material: auto_awesome, sf: "sparkles" }
+        desc: "people_rescore"
+      - id: reset
+        icon: { material: restart_alt, sf: "arrow.counterclockwise" }
+        desc: "person_relation_none"
       - id: save
         icon: { material: check, sf: "checkmark" }
         desc: save
         click: "doSave()"
-      # reset(清空关系) 与 rescore —— Stage1 实现 reset，rescore Stage2
+      # rescore Stage2；Stage1 iOS 只渲染 reset + save
 
   body:
     scroll: vertical
     padding: { h: 16 }
+    spacing: 20
     sections:
 
-      # ── A. 头部：封面 + 名称 ──
+      # ── A. 头部：圆形头像 + 相机角标（2026-08-22 Ardot 设计稿定稿）──
       - id: header
         align: center_horizontal
-        padding: { h: 16, v: 12 }
+        padding_top: 16
         children:
-          - id: cover_header
-            width: "fillMaxWidth(0.55)=55% 屏宽"
-            height: "person.coverHeight=180"
-            shape: "person.cardRadius=16"
+          - id: avatar_header
+            size: "120 圆形"
+            shape: circle
             content:
-              has_cover: { component: AsyncImage, scale: crop, alignment: faceAware(faceFocusY), clickable: open_cover_picker }
-              no_cover: { background: surfaceVariant, center_text: "person_set_cover_hint(点击设置封面)", clickable: open_cover_picker }
+              has_cover: { component: AsyncImage, scale: crop, alignment: faceAware(faceFocusY) }
+              no_cover: { background: surfaceVariant, center_icon: { material: face(48dp), sf: "face.smiling", tint: onSurfaceVariant } }
             click: "showCoverPicker=true"
-          - id: name_display
-            padding_top: 12
-            display:
-              named: "person.name"
-              unnamed: "person_edit_name_hint(点击命名)"
-            style: "typography.headlineSmall=24 / Bold"
-            max_lines: 1
-            click: "进入名称行内编辑（headline 字号，居中，Done 收键盘，autofocus）"
+            badge:
+              size: 32                             # 右下相机角标
+              align: bottom_end
+              shape: circle
+              ring: "2dp colorScheme.background 描边"
+              bg: "colorScheme.primary"
+              icon: { material: photo_camera(16dp), sf: "camera.fill", tint: "colorScheme.onPrimary" }
+              click: "showCoverPicker=true"
 
-      # ── B. 关系编辑 ──
-      - id: relation_editor
-        padding: { h: 16, v: 12 }
+      # ── B. 姓名（常开编辑态，保存时提交）──
+      - id: name_field
         children:
-          - id: is_self_toggle
-            type: filter_chip                    # 单 chip FlowRow
-            selected: "currentIsSelf"
-            label: "person_is_self(这是我)"
-            click: "currentIsSelf = !currentIsSelf"
+          - id: name_label
+            text: "person_name_label(姓名).uppercase()"
+            style: "11 / SemiBold / letterSpacing 1"
+            color: "colorScheme.onSurfaceVariant"
+          - id: name_input
+            margin_top: 6
+            container: { bg: "colorScheme.surfaceContainerLow", shape: "radius.md=12", padding: { start: 14, end: 6, v: 4 } }
+            text_field: { size: 16, single_line: true, ime: Done, placeholder: "person_edit_name_hint(Add name)" }
+            clear_button: { visible_when: "nameText 非空", icon: close(18dp), tint: onSurfaceVariant, click: "清空 nameText" }
+
+      # ── C. 「这是我」胶囊（居中）──
+      - id: is_self_toggle
+        align: center_horizontal
+        type: filter_chip
+        selected: "currentIsSelf"
+        label: "person_is_self(这是我)"
+        leading_icon: "check(18dp) 仅选中态"
+        click: "currentIsSelf = !currentIsSelf"
+
+      # ── D. Relationship 分组卡片 ──
+      - id: relation_card
+        container: { bg: "colorScheme.surfaceContainer", shape: "person.cardRadius=16", padding: 16, spacing: 10 }
+        children:
+          - id: relation_title
+            text: "person_relation_label(This person is my…)"
+            style: "14 / SemiBold"
+            color: "colorScheme.onSurface"
           - id: relation_picker                  # 见 §5
+
+      # ── E. Photos 预览条（有照片时）──
+      - id: photos_section
+        visible_when: "photos 非空"
+        spacing: 10
+        padding_bottom: 24
+        children:
+          - id: photos_header
+            layout: row_space_between
+            title: { text: "person_photos_section(照片)", style: "14 / SemiBold" }
+            count: { text: "people_photos_count_full(48 photos/张照片)", size: 12, color: "colorScheme.onSurfaceVariant" }
+          - id: thumb_strip
+            layout: "row spacing 8"
+            items: "photos.take(4)"
+            item: { size: 80, shape: "radius.small+=10", scale: crop, click: "showCoverPicker=true" }
 
 # ============================================================================
 # 5. 关系选择器（PersonRelationPicker，stateless）

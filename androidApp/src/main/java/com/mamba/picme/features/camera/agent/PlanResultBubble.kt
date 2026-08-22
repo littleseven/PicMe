@@ -12,8 +12,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mamba.picme.R
 import com.mamba.picme.agent.core.model.plan.StepResult
 
 @Composable
@@ -38,9 +40,9 @@ fun PlanResultBubble(
     ) {
         val headerIcon = if (isSuccess) "✅" else "⚠️"
         val headerText = if (isSuccess) {
-            "计划执行完成（$successCount/$totalCount 成功）"
+            stringResource(R.string.camera_plan_result_success, successCount, totalCount)
         } else {
-            "计划执行完成（$successCount/$totalCount 成功，$failedCount 失败）"
+            stringResource(R.string.camera_plan_result_partial, successCount, totalCount, failedCount)
         }
 
         Text(
@@ -51,7 +53,7 @@ fun PlanResultBubble(
 
         if (skippedCount > 0) {
             Text(
-                text = "⏭ 跳过: $skippedCount 步",
+                text = stringResource(R.string.camera_plan_skipped_steps, skippedCount),
                 color = Color.White.copy(alpha = 0.7f),
                 fontSize = 12.sp
             )
@@ -64,7 +66,9 @@ fun PlanResultBubble(
                         Row {
                             Text("❌ ", fontSize = 12.sp)
                             Text(
-                                text = stepResult.step.description.ifBlank { "步骤 ${stepResult.step.step}" },
+                                text = stepResult.step.description.ifBlank {
+                                    stringResource(R.string.camera_plan_step_fallback, stepResult.step.step)
+                                },
                                 color = Color(0xFFFFA000),
                                 fontSize = 12.sp
                             )

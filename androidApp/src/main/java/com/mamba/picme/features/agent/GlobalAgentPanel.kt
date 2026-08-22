@@ -1,5 +1,6 @@
 package com.mamba.picme.features.agent
 
+import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -165,6 +166,7 @@ fun GlobalAgentPanel(
 ) {
     val scope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
+    val context = LocalContext.current
 
     // 浮动按钮（面板关闭时显示）
     if (!state.isVisible) {
@@ -235,6 +237,7 @@ fun GlobalAgentPanel(
                         onSendMessage = { text ->
                             scope.launch {
                                 sendMessage(
+                                    context = context,
                                     text = text,
                                     state = state,
                                     orchestrator = orchestrator,
@@ -339,7 +342,7 @@ private fun AgentInputArea(
             value = inputText,
             onValueChange = { inputText = it },
             modifier = Modifier.weight(1f),
-            placeholder = { Text("试试说：去相册/删除这张/切换主题...", color = Color.Gray) },
+            placeholder = { Text(stringResource(R.string.agent_input_hint), color = Color.Gray) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(
@@ -387,6 +390,7 @@ private fun AgentInputArea(
  * 发送消息并处理响应
  */
 private suspend fun sendMessage(
+    context: Context,
     text: String,
     state: GlobalAgentPanelState,
     orchestrator: AgentOrchestrator,
@@ -409,16 +413,29 @@ private suspend fun sendMessage(
 
         val responseText = when (inferenceResult) {
             is InferenceResult.Chat -> inferenceResult.message
-            is InferenceResult.Local -> "已执行: ${inferenceResult.command::class.simpleName ?: "操作"}"
-            is InferenceResult.Batch -> "已执行批量操作 (${inferenceResult.commands.size} 个)"
-            is InferenceResult.Plan -> "已生成执行计划 (${inferenceResult.plan.steps.size} 步)"
+            is InferenceResult.Local -> context.getString(
+                R.string.agent_executed_action,
+                inferenceResult.command::class.simpleName
+                    ?: context.getString(R.string.agent_unknown_action)
+            )
+            is InferenceResult.Batch -> context.getString(
+                R.string.agent_executed_batch,
+                inferenceResult.commands.size
+            )
+            is InferenceResult.Plan -> context.getString(
+                R.string.agent_plan_generated,
+                inferenceResult.plan.steps.size
+            )
         }
         state.addMessage(AgentMessage(content = responseText, isFromUser = false))
     } catch (e: Exception) {
         Logger.e(tag, "Exception processing message", e)
         state.addMessage(
             AgentMessage(
-                content = "出错了：${e.message ?: "未知错误"}",
+                content = context.getString(
+                    R.string.agent_error_with_reason,
+                    e.message ?: context.getString(R.string.unknown_error)
+                ),
                 isFromUser = false
             )
         )

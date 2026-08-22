@@ -140,29 +140,6 @@ class LlmModelDownloadManager(context: Context) {
         )
 
         /**
-         * 默认标签翻译（按 PoLang 服务功能划分的分类标签）
-         */
-        val DEFAULT_TAG_TRANSLATIONS = mapOf(
-            "must-have" to "必须",
-            "recommended" to "推荐",
-            "chat" to "语音",
-            "photo-tagging" to "相册打标",
-            "beauty-camera" to "美颜相机",
-            // 保留底层技术标签的翻译，用于模型卡片徽章展示
-            "face" to "人脸检测",
-            "Vision" to "图像理解",
-            "Audio" to "音频理解",
-            "ASR" to "语音识别",
-            "KWS" to "唤醒词",
-            "TTS" to "语音合成",
-            "detection" to "人脸检测",
-            "landmark" to "人脸关键点",
-            "speech" to "语音模型",
-            "wake-word" to "唤醒词",
-            "keyword" to "关键词"
-        )
-
-        /**
          * 根据模型 ID 解析其文件清单（纯函数，供 [getModelFiles] 复用，便于单测）。
          *
          * 新增模型时在此与 [getModelFilesByTags] 同步加分支。
@@ -189,6 +166,31 @@ class LlmModelDownloadManager(context: Context) {
     }
 
     private val appContext = context.applicationContext
+
+    /**
+     * 默认标签翻译（按 PoLang 服务功能划分的分类标签），随 UI 语言本地化。
+     * 覆盖模型中心顶部 Tab 与模型卡片徽章的展示文案。
+     */
+    private fun defaultTagTranslations(): TagTranslations = mapOf(
+        "must-have" to appContext.getString(R.string.model_tag_must_have),
+        "recommended" to appContext.getString(R.string.model_tag_recommended),
+        "chat" to appContext.getString(R.string.model_tag_voice),
+        "photo-tagging" to appContext.getString(R.string.model_tag_photo_tagging),
+        "beauty-camera" to appContext.getString(R.string.model_tag_beauty_camera),
+        // 保留底层技术标签的翻译，用于模型卡片徽章展示
+        "face" to appContext.getString(R.string.model_tag_face),
+        "Vision" to appContext.getString(R.string.model_tag_vision),
+        "Audio" to appContext.getString(R.string.model_tag_audio),
+        "ASR" to appContext.getString(R.string.model_tag_asr),
+        "KWS" to appContext.getString(R.string.model_tag_kws),
+        "TTS" to appContext.getString(R.string.model_tag_tts),
+        "detection" to appContext.getString(R.string.model_tag_face),
+        "landmark" to appContext.getString(R.string.model_tag_landmark),
+        "speech" to appContext.getString(R.string.model_tag_speech),
+        "wake-word" to appContext.getString(R.string.model_tag_kws),
+        "keyword" to appContext.getString(R.string.model_tag_keyword)
+    )
+
     private val managerScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val client = OkHttpClient.Builder()
@@ -252,7 +254,7 @@ class LlmModelDownloadManager(context: Context) {
      */
     suspend fun loadMarketData(): ModelMarketData = withContext(Dispatchers.IO) {
         val localModels = loadLocalModels()
-        return@withContext ModelMarketData(localModels, DEFAULT_TAG_TRANSLATIONS)
+        return@withContext ModelMarketData(localModels, defaultTagTranslations())
     }
 
     /**
@@ -262,7 +264,7 @@ class LlmModelDownloadManager(context: Context) {
      */
     suspend fun refreshMarketData(): ModelMarketData = withContext(Dispatchers.IO) {
         val localModels = loadLocalModels()
-        ModelMarketData(localModels, DEFAULT_TAG_TRANSLATIONS)
+        ModelMarketData(localModels, defaultTagTranslations())
     }
 
     /**
@@ -278,15 +280,15 @@ class LlmModelDownloadManager(context: Context) {
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
                     Logger.w(TAG, "Model market fetch failed: HTTP ${response.code}")
-                    return ModelMarketData(emptyList(), DEFAULT_TAG_TRANSLATIONS)
+                    return ModelMarketData(emptyList(), defaultTagTranslations())
                 }
 
-                val body = response.body?.string() ?: return ModelMarketData(emptyList(), DEFAULT_TAG_TRANSLATIONS)
+                val body = response.body?.string() ?: return ModelMarketData(emptyList(), defaultTagTranslations())
                 parseMarketJson(body)
             }
         } catch (e: Exception) {
             Logger.w(TAG, "Failed to fetch model market, fallback to local", e)
-            ModelMarketData(emptyList(), DEFAULT_TAG_TRANSLATIONS)
+            ModelMarketData(emptyList(), defaultTagTranslations())
         }
     }
 
@@ -489,7 +491,7 @@ class LlmModelDownloadManager(context: Context) {
                 append(" ")
                 append(tagList.joinToString(", "))
             }
-            append(" 本地推理模型")
+            append(appContext.getString(R.string.model_local_inference_suffix))
         }
     }
 

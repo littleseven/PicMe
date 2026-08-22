@@ -185,10 +185,10 @@ private fun showReleaseMemoryToast(
     activity.runOnUiThread {
         activeReleaseDialog?.dismiss()
         activeReleaseDialog = AlertDialog.Builder(activity)
-            .setTitle("内存释放结果")
+            .setTitle(context.getString(R.string.camera_release_result_title))
             .setMessage(message)
             .setCancelable(true)
-            .setPositiveButton("知道了") { dialog, _ ->
+            .setPositiveButton(context.getString(R.string.got_it)) { dialog, _ ->
                 dialog.dismiss()
             }
             .create()
@@ -798,11 +798,14 @@ fun CameraContent(
             },
             onAgentResponse = { result ->
                 result.onSuccess { command ->
-                    val newMessages = aiAgentMessages + commandToExecutionMessages(command)
+                    val newMessages = aiAgentMessages + commandToExecutionMessages(context, command)
                     aiAgentMessages = newMessages
                 }.onFailure { error ->
                     aiAgentMessages = aiAgentMessages + AgentMessage.AgentText(
-                        content = "处理出错了：${error.message ?: "未知错误"}"
+                        content = context.getString(
+                            R.string.camera_error_processing,
+                            error.message ?: context.getString(R.string.camera_error_unknown)
+                        )
                     )
                 }
             },

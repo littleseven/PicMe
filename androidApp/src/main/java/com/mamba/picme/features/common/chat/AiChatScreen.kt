@@ -435,7 +435,10 @@ private fun PlanPreviewBubble(
     onCancel: () -> Unit = {}
 ) {
     // Check if this is a plan with actions
-    val hasActions = message.content.contains("📋") || message.content.contains("执行计划")
+    // ⚠️ 耦合隐患：content 里的「执行计划」文案由 chat_cmd_execute_plan（命令名映射）产出，
+    // 这里必须读同一资源做 contains，保证同 locale 下生产/判断一致（见 P1-C i18n 报告）。
+    val planKeyword = stringResource(R.string.chat_cmd_execute_plan)
+    val hasActions = message.content.contains("📋") || message.content.contains(planKeyword)
     
     if (hasActions && (onConfirm != null || onCancel != null)) {
         Box(

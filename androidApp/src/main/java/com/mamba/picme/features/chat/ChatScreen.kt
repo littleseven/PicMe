@@ -2386,8 +2386,8 @@ fun indexOfPage(pages: List<ImagePreviewPage>, messageId: String): Int {
 /**
  * 模型选项（chat 页仅远程：端侧文本 LLM 已移除，仅保留 Remote）
  */
-sealed class ChatModelOption(val label: String, val indicatorColor: Color) {
-    data object Remote : ChatModelOption("远程", Color(0xFF2196F3))
+sealed class ChatModelOption(@StringRes val labelRes: Int, val indicatorColor: Color) {
+    data object Remote : ChatModelOption(R.string.chat_model_remote, Color(0xFF2196F3))
 }
 
 /**

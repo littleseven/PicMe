@@ -4,6 +4,7 @@ package com.mamba.picme.features.tagviewer
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.mamba.picme.R
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.dao.MediaFeedbackDao
@@ -48,7 +49,9 @@ class TagViewerViewModel(application: Application) : AndroidViewModel(applicatio
                 .combine(query) { media, queryText -> media to queryText }
                 .catch { error ->
                     Logger.e(tag, "Load media failed", error)
-                    _state.value = TagViewerUiState.Error(error.message ?: "加载失败")
+                    _state.value = TagViewerUiState.Error(
+                        error.message ?: getApplication<Application>().getString(R.string.load_failed)
+                    )
                 }
                 .collect { (media, queryText) ->
                     val feedback = feedbackDao.getFeedbackForMediaIds(

@@ -21,7 +21,8 @@ fun resolveGroupTitle(
         GroupTitleType.WITH_FACES -> context.getString(R.string.with_faces)
         GroupTitleType.NO_FACES -> context.getString(R.string.no_faces)
         GroupTitleType.PERSON -> {
-            val resolvedName = personNameMap?.get(group.titleValue) ?: "人物 ${group.titleValue}"
+            val resolvedName = personNameMap?.get(group.titleValue)
+                ?: context.getString(R.string.person_unnamed, group.titleValue)
             context.getString(R.string.person_group, resolvedName)
         }
         GroupTitleType.LANDSCAPE -> context.getString(R.string.landscape)
@@ -29,7 +30,7 @@ fun resolveGroupTitle(
         GroupTitleType.SEXY -> context.getString(R.string.sexy)
         GroupTitleType.LOCATION -> group.titleValue
         GroupTitleType.NO_LOCATION -> context.getString(R.string.group_no_location)
-        GroupTitleType.SEARCH -> "搜索 ${group.titleValue}（${group.items.size} 张）"
+        GroupTitleType.SEARCH -> context.getString(R.string.search_result_group_title, group.titleValue, group.items.size)
     }
 }
 

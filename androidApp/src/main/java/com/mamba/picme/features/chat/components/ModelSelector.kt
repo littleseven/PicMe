@@ -66,7 +66,7 @@ fun ModelSelector(
 
             // 标签文字
             Text(
-                text = currentModel.label,
+                text = stringResource(currentModel.labelRes),
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -98,7 +98,7 @@ fun ModelSelector(
                                 .clip(CircleShape)
                                 .background(ChatModelOption.Remote.indicatorColor)
                         )
-                        Text("远程模型 (DeepSeek)")
+                        Text(stringResource(R.string.chat_model_remote_deepseek))
                     }
                 },
                 onClick = {
