@@ -34,3 +34,42 @@ fun personRelationLabelRes(predicate: RelationPredicate?): Int = when (predicate
     RelationPredicate.IDOL -> R.string.person_relation_idol
     RelationPredicate.OTHER -> R.string.person_relation_other
 }
+
+/** 家庭关系谓词（chips 分组与人物卡 chip 配色共用的单一事实来源） */
+val FAMILY_RELATION_PREDICATES: List<RelationPredicate> = listOf(
+    RelationPredicate.FATHER,
+    RelationPredicate.MOTHER,
+    RelationPredicate.SON,
+    RelationPredicate.DAUGHTER,
+    RelationPredicate.ELDER_BROTHER,
+    RelationPredicate.ELDER_SISTER,
+    RelationPredicate.YOUNGER_BROTHER,
+    RelationPredicate.YOUNGER_SISTER,
+    RelationPredicate.GRANDFATHER,
+    RelationPredicate.GRANDMOTHER,
+    RelationPredicate.SPOUSE,
+    RelationPredicate.PARTNER
+)
+
+/** 社会关系谓词 */
+val SOCIAL_RELATION_PREDICATES: List<RelationPredicate> = listOf(
+    RelationPredicate.FRIEND,
+    RelationPredicate.CLASSMATE,
+    RelationPredicate.COLLEAGUE,
+    RelationPredicate.IDOL
+)
+
+/** 是否家庭关系（含 PARENT/SIBLING 等不在快捷 chips 里的宽泛谓词） */
+fun RelationPredicate.isFamilyRelation(): Boolean = when (this) {
+    RelationPredicate.SPOUSE, RelationPredicate.PARTNER,
+    RelationPredicate.CHILD, RelationPredicate.SON, RelationPredicate.DAUGHTER,
+    RelationPredicate.PARENT, RelationPredicate.FATHER, RelationPredicate.MOTHER,
+    RelationPredicate.SIBLING,
+    RelationPredicate.ELDER_BROTHER, RelationPredicate.ELDER_SISTER,
+    RelationPredicate.YOUNGER_BROTHER, RelationPredicate.YOUNGER_SISTER,
+    RelationPredicate.GRANDPARENT, RelationPredicate.GRANDFATHER, RelationPredicate.GRANDMOTHER,
+    RelationPredicate.GRANDCHILD, RelationPredicate.OTHER_FAMILY -> true
+    RelationPredicate.FRIEND, RelationPredicate.CLASSMATE,
+    RelationPredicate.COLLEAGUE, RelationPredicate.IDOL,
+    RelationPredicate.OTHER -> false
+}

@@ -2,6 +2,7 @@ package com.mamba.picme.features.person
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +17,7 @@ import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.FilterListOff
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -31,8 +33,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
 import com.mamba.picme.data.local.entity.PersonEntity
@@ -75,6 +80,9 @@ fun PersonScreen(
     var infoTarget by remember { mutableStateOf<PersonEntity?>(null) }
     var infoPhotos by remember { mutableStateOf<List<MediaEntity>>(emptyList()) }
 
+    // 顶栏副标题统计：已显示人物数 · 这些人物的照片总数（对齐 Ardot People 页设计稿）
+    val totalShownPhotos = persons.sumOf { photoCounts[it.personId] ?: it.faceCount }
+
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(errorMessage) {
@@ -107,13 +115,30 @@ fun PersonScreen(
         topBar = {
             AppTopBar(
                 title = {
-                    Text(
-                        text = stringResource(
-                            R.string.people_title_with_count,
-                            persons.size,
-                            totalPersonCount
+                    Column {
+                        Text(
+                            text = stringResource(R.string.people_title),
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
-                    )
+                        Text(
+                            text = stringResource(
+                                R.string.people_stats_format,
+                                pluralStringResource(
+                                    R.plurals.people_people_count,
+                                    persons.size,
+                                    persons.size
+                                ),
+                                pluralStringResource(
+                                    R.plurals.people_photos_count_full,
+                                    totalShownPhotos,
+                                    totalShownPhotos
+                                )
+                            ),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 },
                 navigationIcon = {
                     AppTopBarNavBack(onClick = onNavigateBack, enabled = isActivePage)
