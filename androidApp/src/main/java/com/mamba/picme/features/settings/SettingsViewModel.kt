@@ -963,6 +963,7 @@ class SettingsViewModel(
 
     fun setAssistantPersona(persona: AssistantPersona) {
         viewModelScope.launch {
+            Logger.d("UX", "Assistant persona changed: ${persona.name}")
             repository.updateAssistantPersona(persona)
         }
     }

@@ -100,6 +100,7 @@ import com.mamba.picme.BuildConfig
 import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
 import com.mamba.picme.agent.core.model.config.AiAgentMode
+import com.mamba.picme.agent.core.model.config.AssistantPersona
 import com.mamba.picme.agent.core.tool.accessibility.AccessibilityServiceHolder
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfigs
@@ -213,6 +214,7 @@ fun SettingsScreen(
     val logModuleConfig by viewModel.logModuleConfig.collectAsState()
     val downloadStates by viewModel.downloadStates.collectAsState()
     val allModels by viewModel.allModels.collectAsState()
+    val assistantPersona by viewModel.assistantPersona.collectAsState()
 
     val agentChatConfig = rememberAgentChatConfig(
         context = context,
@@ -311,6 +313,8 @@ fun SettingsScreen(
             onAiAgentRemoteModelConfigsChange = { viewModel.setAiAgentRemoteModelConfigs(it) },
             aiAgentSelectedRemoteModel = aiAgentSelectedRemoteModel,
             onAiAgentSelectedRemoteModelChange = { viewModel.setAiAgentSelectedRemoteModel(it) },
+            assistantPersona = assistantPersona,
+            onAssistantPersonaSelected = { persona -> viewModel.setAssistantPersona(persona) },
             autoExecutePlans = autoExecutePlans,
             onAutoExecutePlansChange = { viewModel.setAutoExecutePlansEnabled(it) },
             jsEngineEnabled = jsEngineEnabled,
@@ -383,6 +387,8 @@ private fun SettingsContent(
     onAiAgentRemoteModelConfigsChange: (String) -> Unit,
     aiAgentSelectedRemoteModel: String,
     onAiAgentSelectedRemoteModelChange: (String) -> Unit,
+    assistantPersona: AssistantPersona,
+    onAssistantPersonaSelected: (AssistantPersona) -> Unit,
     autoExecutePlans: Boolean,
     onAutoExecutePlansChange: (Boolean) -> Unit,
     jsEngineEnabled: Boolean,
@@ -513,6 +519,12 @@ private fun SettingsContent(
                     onSelectedModelChange = onAiAgentSelectedRemoteModelChange,
                     onAddProvider = onNavigateToAddProvider
                 )
+                SettingsSection(title = stringResource(R.string.assistant_persona)) {
+                    AssistantPersonaSelection(
+                        currentPersona = assistantPersona,
+                        onPersonaSelected = onAssistantPersonaSelected
+                    )
+                }
                 // 自动执行多步骤计划已迁入「沙盒与权限」一级入口
             }
 
@@ -1831,6 +1843,8 @@ fun SettingsScreenPreview() {
             onAiAgentRemoteModelConfigsChange = {},
             aiAgentSelectedRemoteModel = "deepseek-v4-flash",
             onAiAgentSelectedRemoteModelChange = {},
+            assistantPersona = AssistantPersona.DEFAULT,
+            onAssistantPersonaSelected = {},
             autoExecutePlans = true,
             onAutoExecutePlansChange = {},
             jsEngineEnabled = false,

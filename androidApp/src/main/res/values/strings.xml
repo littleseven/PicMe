@@ -395,6 +395,15 @@
     <string name="ai_agent_mode">Inference Mode</string>
     <string name="ai_agent_mode_off">Disabled</string>
     <string name="ai_agent_mode_remote">Remote Model</string>
+    <string name="assistant_persona">Assistant Personality</string>
+    <string name="assistant_persona_default">Default</string>
+    <string name="assistant_persona_default_desc">Balanced, neutral standard replies</string>
+    <string name="assistant_persona_warm">Warm &amp; Caring</string>
+    <string name="assistant_persona_warm_desc">Empathizes first, encouraging and supportive</string>
+    <string name="assistant_persona_lively">Lively &amp; Playful</string>
+    <string name="assistant_persona_lively_desc">Relaxed and fun, with light emoji use</string>
+    <string name="assistant_persona_concise">Crisp &amp; Direct</string>
+    <string name="assistant_persona_concise_desc">Straight to conclusions, minimal pleasantries</string>
 
     <!-- Communication Channel -->
     <string name="communication_channel">Communication Channel</string>

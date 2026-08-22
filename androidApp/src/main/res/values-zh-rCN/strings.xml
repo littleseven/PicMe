@@ -383,6 +383,15 @@
     <string name="ai_agent_mode">推理模式</string>
     <string name="ai_agent_mode_off">关闭</string>
     <string name="ai_agent_mode_remote">远程模型</string>
+    <string name="assistant_persona">助手性格</string>
+    <string name="assistant_persona_default">默认</string>
+    <string name="assistant_persona_default_desc">中性简洁的标准回复</string>
+    <string name="assistant_persona_warm">温暖贴心</string>
+    <string name="assistant_persona_warm_desc">先共情再回答，多肯定鼓励</string>
+    <string name="assistant_persona_lively">活泼幽默</string>
+    <string name="assistant_persona_lively_desc">轻松俏皮，适度使用 emoji</string>
+    <string name="assistant_persona_concise">简洁干练</string>
+    <string name="assistant_persona_concise_desc">直给结论，少寒暄</string>
 
     <!-- Communication Channel -->
     <string name="communication_channel">通信通道</string>

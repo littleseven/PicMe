@@ -39,6 +39,7 @@ import com.mamba.picme.R
 import com.mamba.picme.data.download.LlmModelDownloadManager
 import com.mamba.picme.data.download.ModelConfig
 import com.mamba.picme.agent.core.model.config.AiAgentMode
+import com.mamba.picme.agent.core.model.config.AssistantPersona
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfigs
 import com.mamba.picme.agent.core.remote.config.RemoteProtocol
@@ -68,6 +69,49 @@ internal fun AiAgentModeSelection(
             currentValue = currentMode,
             maxLines = 1,
             onSelected = onModeSelected
+        )
+    }
+}
+
+@Composable
+internal fun AssistantPersonaSelection(
+    currentPersona: AssistantPersona,
+    onPersonaSelected: (AssistantPersona) -> Unit
+) {
+    val options = listOf(
+        AssistantPersona.DEFAULT to stringResource(R.string.assistant_persona_default),
+        AssistantPersona.WARM to stringResource(R.string.assistant_persona_warm),
+        AssistantPersona.LIVELY to stringResource(R.string.assistant_persona_lively),
+        AssistantPersona.CONCISE to stringResource(R.string.assistant_persona_concise)
+    )
+    val descRes = when (currentPersona) {
+        AssistantPersona.DEFAULT -> R.string.assistant_persona_default_desc
+        AssistantPersona.WARM -> R.string.assistant_persona_warm_desc
+        AssistantPersona.LIVELY -> R.string.assistant_persona_lively_desc
+        AssistantPersona.CONCISE -> R.string.assistant_persona_concise_desc
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.assistant_persona),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = stringResource(descRes),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            modifier = Modifier.padding(start = 12.dp, top = 2.dp)
+        )
+        CompactOptionChips(
+            options = options,
+            currentValue = currentPersona,
+            maxLines = 2,
+            onSelected = onPersonaSelected
         )
     }
 }
