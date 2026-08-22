@@ -2026,7 +2026,7 @@ private fun ChatTextInputMode(
                 if (!claudeMode) {
                     CapsuleButton(
                         icon = Icons.Rounded.PhotoLibrary,
-                        label = "相册",
+                        label = stringResource(R.string.gallery),
                         onClick = onShowPhotoPicker,
                         enabled = !isProcessing
                     )

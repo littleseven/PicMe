@@ -894,13 +894,11 @@
     <string name="chat_example_group_ask">問相簿</string>
     <string-array name="chat_example_prompts_search">
         <item>找去年夏天的照片</item>
-        <item>搜尋海邊的照片</item>
         <item>找有人物的照片</item>
         <item>搜尋夜景照片</item>
     </string-array>
     <string-array name="chat_example_prompts_ask">
         <item>給我一份相簿健康報告</item>
-        <item>按標籤和時間交叉分析我的照片</item>
         <item>幫我清理重複照片</item>
         <item>我拍了多少張自拍？</item>
     </string-array>

@@ -48,7 +48,6 @@ import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.QueryStats
-import androidx.compose.material.icons.rounded.Search
 import com.mamba.picme.R
 import com.mamba.picme.core.designsystem.ChatBubbleTokens
 
@@ -78,9 +77,9 @@ fun ChatEmptyState(
             .padding(horizontal = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(28.dp))
 
-        // Logo 块（48dp r16，2026-08-22 密度优化 v2：72→56→48 给内容让位）：App launcher 前景 1.75 倍放大居中
+        // Logo 块（48dp r16，2026-08-22 密度优化 v2：72→56→48 给内容让位；v3 头部回松，尺寸保持）：App launcher 前景 1.75 倍放大居中
         Box(
             modifier = Modifier
                 .size(48.dp)
@@ -98,7 +97,7 @@ fun ChatEmptyState(
             )
         }
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(12.dp))
 
         // 渐变标题（22sp SemiBold，品牌渐变着色；2026-08-22 密度优化：26→22）
         Text(
@@ -111,7 +110,7 @@ fun ChatEmptyState(
             textAlign = TextAlign.Center,
         )
 
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(6.dp))
 
         Text(
             text = stringResource(R.string.chat_empty_capabilities),
@@ -130,12 +129,12 @@ fun ChatEmptyState(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .clickable(onClick = onRegisterClick)
-                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
             )
         }
 
         // 可滚动容器内不能用 weight 弹性占位（无限高度），改用固定间距衔接示例分组
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
 
         ExampleGroup(
             labelRes = R.string.chat_example_group_search,
@@ -143,29 +142,27 @@ fun ChatEmptyState(
             accents = SEARCH_GROUP_ACCENTS,
             onExampleClick = onExampleClick,
         )
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(12.dp))
         ExampleGroup(
             labelRes = R.string.chat_example_group_ask,
             promptsRes = R.array.chat_example_prompts_ask,
             accents = ASK_GROUP_ACCENTS,
             onExampleClick = onExampleClick,
         )
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(10.dp))
     }
 }
 
-/** 找照片组图标配色：日历蓝 / 相册青 / 人物粉 / 夜色紫。 */
+/** 找照片组图标配色：日历蓝 / 人物粉 / 夜色紫（各对应 3 条示例词）。 */
 private val SEARCH_GROUP_ACCENTS = listOf(
     Icons.Rounded.CalendarMonth to Color(0xFF6BA6FF),
-    Icons.Rounded.Image to Color(0xFF22D3EE),
     Icons.Rounded.Person to Color(0xFFFF7EB0),
     Icons.Rounded.DarkMode to Color(0xFF9B8CFF),
 )
 
-/** 问相册组图标配色：统计绿 / 搜索琥珀 / 相册青 / 人物粉。 */
+/** 问相册组图标配色：统计绿 / 相册青 / 人物粉（各对应 3 条示例词）。 */
 private val ASK_GROUP_ACCENTS = listOf(
     Icons.Rounded.QueryStats to Color(0xFF4ADE80),
-    Icons.Rounded.Search to Color(0xFFFFB020),
     Icons.Rounded.Image to Color(0xFF22D3EE),
     Icons.Rounded.Person to Color(0xFFFF7EB0),
 )
@@ -184,7 +181,7 @@ private fun ExampleGroup(
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
             text = stringResource(labelRes),

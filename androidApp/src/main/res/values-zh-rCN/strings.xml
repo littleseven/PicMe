@@ -916,13 +916,11 @@
     <string name="chat_example_group_ask">问相册</string>
     <string-array name="chat_example_prompts_search">
         <item>找去年夏天的照片</item>
-        <item>搜索海边的照片</item>
         <item>找有人物的照片</item>
         <item>搜索夜景照片</item>
     </string-array>
     <string-array name="chat_example_prompts_ask">
         <item>给我一份相册健康报告</item>
-        <item>按标签和时间交叉分析我的照片</item>
         <item>帮我清理重复照片</item>
         <item>我拍了多少张自拍？</item>
     </string-array>

@@ -113,10 +113,13 @@ empty_state:
   fill: true                        # fillMaxHeight
   horizontal_padding: 20
   alignment: center
-  # 2026-08-22 密度优化 v2（真机反馈：问相册组首屏仅露一行）：头部压缩 + 行距收紧，
-  # top 60→24 / logo 72→48 / title 26→22 / 各间距下调，两组 8 条 chips 一屏装下（滚动兜底保留）。
+  # 2026-08-22 密度优化 v2（真机反馈：问相册组首屏仅露一行）：头部压缩 + 行距收紧；
+  # 2026-08-22 v3（真机反馈：头部过密）：示例词 8→6 条（每组 3 条）后头部行距回松——
+  # top 24→28 / title 间距 10→12 / 副标题间距 4→6 / 链接 vpad 4→6 / groups 12→16 / 组间 10→12 / 组内 6→8 / 底部 8→10
+  #（EN 6 条 chips 各占一行，第 6 条恰在首屏折叠线边缘，可滚动；CN 行更短自动 2 条/行，整页宽松）。
+  # EN 头部文案缩短避免意外折行（title "Hi, I'm Xiaolang"、subtitle 单行化、guest link 缩至 44 字符防箭头孤行）。
   content:
-    top_spacer: 24
+    top_spacer: 28
     logo:
       box_size: 48                  # 48dp（72→56→48 两次密度优化）
       corner_radius: 16             # 随盒尺寸两档下调（22→18→16）
@@ -127,35 +130,35 @@ empty_state:
       # ⚠️ 禁止原尺寸/96dp 直接塞入（满幅插画顶满圆角、底部溢出）；曾评估 ardot 波浪标矢量方案，弃用。
       inner_image: app_launcher_foreground
       inner_image_zoom: 1.75        # 不透明区宽 190/324 → 需 ≥1.71 铺满盒宽；1.75 留密度桶余量，左右不得露渐变底
-    title_spacer: 10
+    title_spacer: 12
     title:
-      text: "Hi, I'm Xiaolang, your smart assistant"  # 你好，我是智能助手小浪
+      text: "Hi, I'm Xiaolang"      # 你好，我是智能助手小浪（2026-08-22 v3：EN 缩短防折行）
       font: { size: 22, weight: semibold }
       color: "brandGradient"        # 渐变着色文字（Brush.linearGradient）
-    subtitle_spacer: 4
+    subtitle_spacer: 6
     subtitle:
-      text: "I can search, edit, adjust beauty, find people/scenes—ask anything!"
+      text: "Search, edit, beautify — ask me anything!"  # 我能搜相册·修图·调美颜·找人找场景，随便问！（EN 单行化）
       font: { size: 14 }            # bodyMedium
       color: "onSurfaceVariant"
     # 访客轻量入口（2026-08-22 改版，设计稿 chat/empty-v2-guest guestLink）：
     # 前置注册卡片已移除——不再抢占空状态核心区域；访客模式仅在副标题下显示一行小字链接。
-    # 密度优化：纯文本点击态（无 TextButton 40dp 最小高度），padding 12/4。
+    # 纯文本点击态（无 TextButton 40dp 最小高度），padding 12/6（v3 回松）。
     guest_link:
       show_when: "isGuestMode"
-      text: "Not registered? Sign up for free quota, or use your own Token →"  # 未注册？注册领免费额度，或配置自己的 Token →
+      text: "Not registered? Sign up or use your Token →"  # 未注册？注册领免费额度，或配置自己的 Token →（EN 两次缩短：真机 48 字符仍折行，44 字符防箭头孤行）
       font: { size: 13 }
       color: "brandGradientStart"  # 青玉 #0F766E
       action: open_registration_sheet
-    groups_spacer: 12               # 链接/副标题与示例分组之间的固定间距（可滚动容器不可用 weight；16→12 密度优化 v2）
+    groups_spacer: 16               # 链接/副标题与示例分组之间的固定间距（可滚动容器不可用 weight；v3 12→16）
     example_groups:
-      # 2026-08-22 定稿 v3（设计稿 chat/empty-v2-guest）：示例词从 6 条扩到 8 条，分「找照片/问相册」两组各 4 条。
+      # 2026-08-22 v3（设计稿 chat/empty-v2-guest）：示例词每组 3 条（8→6，真机反馈信息量适中即可）。
       # 每组 = 居中小标题（13sp onSurfaceVariant）+ FlowRow 流式 chips（行距 8/列距 14，整体居中）。
-      # chip 图标按组内语义固定（不再 index%6 轮转）：
-      #   找照片 = 日历#6BA6FF/相册#22D3EE/人物#FF7EB0/夜色#9B8CFF；
-      #   问相册 = 统计#4ADE80/搜索#FFB020/相册#22D3EE/人物#FF7EB0。
-      # 组间距 10，组内（小标题→chips）6，末组距输入栏 8；文本强制单行，极端窄屏/大字体省略号截断。
+      # chip 图标按组内语义固定：
+      #   找照片 = 日历#6BA6FF/人物#FF7EB0/夜色#9B8CFF；
+      #   问相册 = 统计#4ADE80/相册#22D3EE/人物#FF7EB0。
+      # 组间距 12，组内（小标题→chips）8，末组距输入栏 10；文本强制单行，极端窄屏/大字体省略号截断。
       layout: two_groups_flow_wrap_centered
-      group_gap: 10
+      group_gap: 12
       label_font: { size: 13 }
       label_color: "onSurfaceVariant"
       chip_style:
@@ -170,18 +173,16 @@ empty_state:
         - label: "Find photos"      # 找照片
           prompts:
             - "Find photos from last summer"
-            - "Search for beach photos"
             - "Find photos with people"
             - "Search for night scene photos"
         - label: "Ask about your gallery"  # 问相册
           prompts:
             - "Give me a gallery health report"
-            - "Cross-analyze my photos by tag and time"
             - "Find duplicate photos"
             - "How many selfies did I take?"
-    # ⚠️ iOS 缺口（2026-08-22 更新，走 /ios-follow 追齐）：iOS ChatEmptyState 仍为上一代设计——
-    # Logo=64pt surfaceVariant 描边块+104pt chat_logo 位图（应为 72pt 渐变底块+App 图标 1.5x 裁剪 r22）、
-    # 标题非渐变着色（应 brandGradient 26pt semibold）、chips 为无图标 Capsule（应 r22+16pt 彩色图标+分组 flow）；
+    # ⚠️ iOS 缺口（2026-08-22 v3 更新，走 /ios-follow 追齐）：iOS ChatEmptyState 仍为上一代设计——
+    # Logo=64pt surfaceVariant 描边块+104pt chat_logo 位图（应为 48pt 渐变底块+App 图标 1.75x 裁剪 r16）、
+    # 标题非渐变着色（应 brandGradient 22pt semibold）、chips 为无图标 Capsule（应 r22+16pt 彩色图标+两组各 3 条 flow）；
     # 且 iOS Chat 无任何访客注册引导（guest_link / guest_nudge 均缺，iOS 登录入口仅在设置页）。
     ios_gap: "ChatView.swift ChatEmptyState 落后 2026-08-22 定稿：见 §4 logo/example_groups/guest_link/guest_nudge"
 
