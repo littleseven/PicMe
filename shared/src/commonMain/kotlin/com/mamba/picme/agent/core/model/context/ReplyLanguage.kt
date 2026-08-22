@@ -28,8 +28,8 @@ fun AppLanguage.toReplyLanguage(systemLocaleTag: String): ReplyLanguage = when (
 
 private fun resolveSystemReplyLanguage(localeTag: String): ReplyLanguage {
     val tag = localeTag.lowercase()
-    if (!tag.startsWith("zh")) return ReplyLanguage.ENGLISH
-    return if (tag.contains("hant") || tag.contains("-tw") ||
+    if (tag != "zh" && !tag.startsWith("zh-")) return ReplyLanguage.ENGLISH
+    return if (tag.contains("-hant") || tag.contains("-tw") ||
         tag.contains("-hk") || tag.contains("-mo")
     ) {
         ReplyLanguage.TRADITIONAL_CHINESE

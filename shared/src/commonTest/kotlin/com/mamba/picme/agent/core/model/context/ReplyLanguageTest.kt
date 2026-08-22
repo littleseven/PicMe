@@ -33,4 +33,16 @@ class ReplyLanguageTest {
         assertEquals(ReplyLanguage.ENGLISH, AppLanguage.SYSTEM.toReplyLanguage("ja-JP"))
         assertEquals(ReplyLanguage.ENGLISH, AppLanguage.SYSTEM.toReplyLanguage("fr-FR"))
     }
+
+    @Test
+    fun `system locale tag edge cases`() {
+        // 裸 "zh"（无子标签）→ 简体
+        assertEquals(ReplyLanguage.SIMPLIFIED_CHINESE, AppLanguage.SYSTEM.toReplyLanguage("zh"))
+        // 显式 Hans 脚本 + 地区
+        assertEquals(ReplyLanguage.SIMPLIFIED_CHINESE, AppLanguage.SYSTEM.toReplyLanguage("zh-Hans-CN"))
+        // 大写 tag 经 lowercase 归一化
+        assertEquals(ReplyLanguage.TRADITIONAL_CHINESE, AppLanguage.SYSTEM.toReplyLanguage("ZH-HANT-TW"))
+        // 空串 → 英文兜底
+        assertEquals(ReplyLanguage.ENGLISH, AppLanguage.SYSTEM.toReplyLanguage(""))
+    }
 }
