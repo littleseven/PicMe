@@ -6,11 +6,17 @@
   <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
 </p>
 
+<p align="center">
+  <a href="https://play.google.com/store/apps/details?id=com.mamba.picme"><b>Google Play</b></a> ·
+  <a href="https://polang.net/">官网 polang.net</a> ·
+  <a href="https://github.com/littleseven/polang">GitHub</a>
+</p>
+
 <h1 align="center">PoLang（破浪相册）</h1>
 
 <p align="center">
-  <b>AI Agent 驱动的智能相册应用</b><br>
-  <i>自然语言对话调度搜索 / 编辑 / 抠图 / 证件照 / 打标 · 端侧 VLM + 远程 OpenAI 兼容推理 · 自研 OpenGL ES 美颜引擎</i>
+  <b>AI Agent 驱动的智能相册应用 · 端侧语义搜索的开源超集</b><br>
+  <i>自然语言对话调度搜索 / 编辑 / 抠图 / 证件照 / 打标 · MobileCLIP 语义搜索 + 以图搜图 + 人脸图谱全端侧 · 自研 OpenGL ES 美颜引擎</i>
 </p>
 
 <p align="center">
@@ -28,6 +34,8 @@
 
 PoLang 的 Agent 编排层（`AgentOrchestrator`、`CapabilityRegistry`、`PrivacyGuard` 等）位于 `:shared` KMP 模块（commonMain 引擎无关层 + androidMain 平台实现），远程推理经 **Koog**（JetBrains KMP Agent 框架）编排——2026-08 由自维护的 langchain4j fork 迁移而来，`:agent-core` 模块已随之移除；原 `:runtime-core` 已于 Phase 4 整体迁入 `:shared` 后删除。先看 [PoLang 产品特性](#polang-产品特性)。
 
+> **EN**: PoLang is an open-source, privacy-first AI photo gallery for Android — on-device **semantic photo search** (MobileCLIP), **search by image**, face grouping with people relations, a **chat assistant** that organizes and edits your gallery in plain language, and a full beauty / cutout / ID-photo editor. An open, agentic superset of CLIP-based photo search apps like Queryable and PicQuery — free, no ads, and your photos never leave the device. [Get it on Google Play](https://play.google.com/store/apps/details?id=com.mamba.picme) · [polang.net](https://polang.net/)
+
 ---
 
 ## PoLang 产品特性
@@ -40,8 +48,11 @@ PoLang 以「对话即操作」为核心：用户用自然语言与相册交互�
 - **多轮对话记忆**：Room 持久化，重启自动恢复
 - **隐私分级**：`PrivacyGuard` 把媒体处理（人脸/OCR/打标/图片）100% 钉在端侧，仅文本/元数据走远程推理
 
-### 智能相册搜索
-🔍 「找出去年夏天的照片」「我和小明的合照」「最近一个月的视频」——规则解析 + MobileCLIP 语义召回 + 多维度 SQL 召回，**端侧执行**，结果可交互媒体网格。
+### 智能相册搜索（语义 + 以图搜图，全端侧）
+🔍 **三层混合召回，端侧零云端**：显式约束（时间/地点/人物）优先过滤 → 标签 SQL 召回 → **MobileCLIP 语义向量召回**（余弦相似度），失败逐层回退。
+- **语义搜索**：「海边的日落」「雪地里的小狗」这类模糊描述直接命中，中文查询经 `ChineseQueryTranslator` 扩展为英文 embedding
+- **以图搜图**：Chat 发图选「找相似」→ `SemanticSearchEngine.searchByImage()` 按图像 embedding 找视觉相似照片
+- **人物查询**：「我女儿的照片」「老婆的合照」——人脸聚类 + 命名 + 关系图谱直接解析
 
 ### 对话式图片编辑
 🎨 聊天里发图 + 指令（「磨皮再强一点」「换成冷色调」）→ 远程 ReAct（`edit_image`）解析为编辑 recipe 并执行 → 结果回渲染至对话，支持媒体结果轮播查看。
@@ -56,14 +67,14 @@ PoLang 以「对话即操作」为核心：用户用自然语言与相册交互�
 ### JS 沙盒脚本
 📜 QuickJS 沙箱 + JSBridge，对话内运行相册分析 / 健康报告脚本（`run_gallery_script`），结果以图表 SVG / 结构化文本回显。
 
-### 人物记忆与关系图谱 🔄
-👥 事实记忆（「帮我记住…」）+ 人物命名 /「我」标记 + 关系图谱（配偶/子女/父母/…），支撑「我女儿的照片」「老婆的合照」式自然语言人物检索。（开发中，未合并 main）
+### 人物记忆与关系图谱
+👥 事实记忆（「帮我记住…」）+ 人物命名 /「我」标记 + 关系图谱（配偶/子女/父母/…），支撑「我女儿的照片」「老婆的合照」式自然语言人物检索。能力已合并 main，体验持续完善中。
 
 ### 自研美颜引擎
 📷 全自研 **OpenGL ES + EGL** 渲染管线（磨皮/美白/瘦脸/大眼/唇色/腮红 + 风格滤镜），无第三方美颜 SDK；帧同步美妆解决快速移动妆容甩飞；GPU 离屏渲染保证预览/拍照一致。
 
-### 语音交互
-🎙️ 唤醒词（可选）+ 流式 ASR（Sherpa-ONNX 端侧）+ 远程 LLM 指令解析；语音入口位于相机页。
+### 语音交互（默认关闭的实验能力）
+🎙️ 唤醒词 + 流式 ASR（Sherpa-ONNX 端侧）+ 远程 LLM 指令解析；2026-08-19 起默认关闭、入口隐藏，在「设置 → 沙盒与权限 → 语音控制」显式开启后可用。
 
 ### 自建 Ktor 后端
 🌐 独立 `server/` 工程（部署 `api.polang.net`）：AI 网关（按模型路由 Cloudflare AI Gateway / 腾讯 TokenHub）+ 邮箱注册账号 + 免费额度 + 管理后台 + 遥测。**不做 Agent 编排**（ReAct 循环在客户端）。
@@ -72,6 +83,25 @@ PoLang 以「对话即操作」为核心：用户用自然语言与相册交互�
 📝 Chat 顶部「上报问题」入口 → `POST /v1/report-issue`，服务端脱敏后自动在 GitHub 仓库创建 issue，用户无需离开 App 即可反馈问题。
 
 > **核心特点**：媒体处理端侧 · 隐私安全 ｜ Agent First 架构（Capability 可插拔）｜ 文本推理全远程 ｜ monorepo（androidApp / iosApp / shared(KMP) / engines(beauty-engine · beauty-api · mnn-core · agent-native · sentencepiece) + server）
+
+---
+
+## 与同类应用对比
+
+PoLang 覆盖了端侧语义搜图应用（iOS 的 Queryable 寻隐、Android 的 PicQuery 图搜）的全部核心能力，并在此之上提供它们明确不做的编辑、人物图谱与对话能力：
+
+| 能力 | PoLang | Queryable 寻隐（iOS，$4.99 买断） | PicQuery 图搜（Android） | Google Photos |
+|------|--------|----------------------------------|--------------------------|---------------|
+| 端侧语义搜索（CLIP/MobileCLIP） | ✅ MobileCLIP + 显式约束混合召回 | ✅ MobileCLIP | ✅ CLIP / MobileCLIP | ☁️ 云端 |
+| 结构化查询（时间/地点/人物关系） | ✅ | 部分（仅时间筛选） | ❌ | ✅ |
+| 以图搜图 | ✅ | ✅ | ✅ | ✅ |
+| 人脸聚类 + 命名 + 关系图谱 | ✅ | ❌（作者明确不做） | ❌ | ☁️ 云端 |
+| 对话式 AI 助手（Agent + tool_calls） | ✅ | ❌ | ❌ | ❌ |
+| 对话式编辑 / 抠图 / 证件照 / 美颜 | ✅ | ❌ | ❌ | 部分 |
+| 搜索全链路离线可用 | ✅ | ✅ | ✅ | ❌ |
+| 开源 / 价格 | MIT · 免费无广告 | MIT · $4.99 买断 | MIT · 免费 | 免费 · 云端 |
+
+> 如果你在找「Queryable 的 Android 替代」或「PicQuery 的能力超集」：PoLang 在同样端侧、离线、开源的前提下，多给你一整个编辑器和 AI 助手。
 
 ---
 

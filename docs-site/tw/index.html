@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PoLang 破浪相簿 · 隱私優先的智慧相簿</title>
-  <meta name="description" content="零圖片上傳隱私安全,用自然語言搜尋本機相簿、編輯照片。AI 對話相簿、智慧搜尋、專業美顏、創意濾鏡,全部本機處理。">
+  <meta name="description" content="零圖片上傳隱私安全,語意搜尋本機相簿、以圖搜圖、編輯照片。AI 對話相簿、專業美顏、創意濾鏡,全部本機處理。">
   <link rel="alternate" hreflang="zh-CN" href="https://polang.net/">
   <link rel="alternate" hreflang="zh-TW" href="https://polang.net/tw/">
   <link rel="alternate" hreflang="en" href="https://polang.net/en/">
@@ -52,7 +52,7 @@
       <p class="section-sub">一個會用自然語言溝通的智慧相簿</p>
       <div class="grid">
         <div class="card"><div class="icon">🤖</div><h3>對話式 AI 助手</h3><p>像聊天一樣管理相簿:「找去年夏天的照片」「把這張調暖一點」,AI 聽懂就做。</p></div>
-        <div class="card"><div class="icon">🖼️</div><h3>智慧相簿</h3><p>自動為照片打標籤(場景/人物/物體/活動),自然語言搜尋,智慧分類與 AI 相簿。</p></div>
+        <div class="card"><div class="icon">🖼️</div><h3>智慧相簿</h3><p>自動為照片打標籤(場景/人物/物體/活動),端側語意搜尋 + 以圖搜圖,模糊描述也能命中。</p></div>
         <div class="card"><div class="icon">✨</div><h3>AI 美顏編輯</h3><p>GPU 加速專業美顏:磨皮、美白、瘦臉、大眼、唇色、腮紅,一鍵 AI 智慧優化。</p></div>
         <div class="card"><div class="icon">🎨</div><h3>創意濾鏡</h3><p>徠卡(經典/鮮豔/黑白)、底片(金/富士/復古)、即時 GPU 特效,支援批次。</p></div>
         <div class="card"><div class="icon">🔒</div><h3>隱私優先</h3><p>人臉偵測、美顏、打標等媒體處理在本機完成,照片不上傳、不蒐集任何資料。</p></div>
@@ -139,6 +139,25 @@
         <div class="faq-item"><h3>沒有網路能用嗎?</h3><p>打標、人臉辨識、場景辨識等端側能力可離線使用;AI 對話走遠端大模型,需連網。</p></div>
         <div class="faq-item"><h3>支援哪些機型?</h3><p>Android 7.0(API 24)及以上,美顏與本機推論推薦 arm64 機型;iOS 版本開發中,即將支援。</p></div>
         <div class="faq-item"><h3>資料會被蒐集嗎?</h3><p>不會。不蒐集任何使用者資料,詳見<a href="../privacy-policy/index.html">隱私政策</a>。</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <span class="eyebrow-sm">Compare</span>
+      <h2 class="section-title">與同類應用有什麼不同</h2>
+      <p class="section-sub">同樣的端側、離線、開源——多一整個編輯器和 AI 助理</p>
+      <div class="cmp-wrap">
+        <table class="cmp">
+          <tr><th>能力</th><th>PoLang 破浪相簿</th><th>Queryable / PicQuery</th><th>Google Photos</th></tr>
+          <tr><td>端側語意搜尋（CLIP / MobileCLIP）</td><td class="yes">✅ 混合召回</td><td class="yes">✅</td><td>☁️ 雲端</td></tr>
+          <tr><td>以圖搜圖</td><td class="yes">✅</td><td class="yes">✅</td><td>✅</td></tr>
+          <tr><td>人物命名與關係（「女兒的照片」）</td><td class="yes">✅</td><td>❌</td><td>☁️ 雲端</td></tr>
+          <tr><td>對話式相簿管理與編輯</td><td class="yes">✅</td><td>❌</td><td>❌</td></tr>
+          <tr><td>去背 / 證件照 / 美顏編輯</td><td class="yes">✅</td><td>❌</td><td>部分</td></tr>
+          <tr><td>開源 / 價格</td><td class="yes">MIT · 免費</td><td>MIT · Queryable $4.99 買斷</td><td>❌ · 雲端免費</td></tr>
+        </table>
       </div>
     </div>
   </section>

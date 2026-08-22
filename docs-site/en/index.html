@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PoLang · Privacy-first Smart Gallery</title>
-  <meta name="description" content="Zero photo uploads. Your privacy stays on-device. Search your local gallery and edit photos with natural language — AI chat, smart search, pro beauty, creative filters, all processed locally.">
+  <meta name="description" content="Zero photo uploads. Your privacy stays on-device. Semantic search, search by image, AI chat, pro beauty and creative filters for your local gallery — all processed on-device.">
   <link rel="alternate" hreflang="zh-CN" href="https://polang.net/">
   <link rel="alternate" hreflang="zh-TW" href="https://polang.net/tw/">
   <link rel="alternate" hreflang="en" href="https://polang.net/en/">
@@ -52,7 +52,7 @@
       <p class="section-sub">A smart gallery that speaks your language</p>
       <div class="grid">
         <div class="card"><div class="icon">🤖</div><h3>Conversational AI Assistant</h3><p>Manage your gallery by chatting: "Find last summer's photos" or "Make this one warmer." PoLang understands and does it.</p></div>
-        <div class="card"><div class="icon">🖼️</div><h3>Smart Gallery</h3><p>Auto-tags every photo (scene / people / objects / activity), with natural-language search, smart albums, and AI collections.</p></div>
+        <div class="card"><div class="icon">🖼️</div><h3>Smart Gallery</h3><p>On-device semantic search &amp; search-by-image: auto-tags every photo (scene / people / objects / activity), so even vague descriptions hit the right shots.</p></div>
         <div class="card"><div class="icon">✨</div><h3>AI Beauty Editor</h3><p>GPU-accelerated pro tools: smooth skin, brighten, slim face, enlarge eyes, lip color, blush. One-tap AI enhancement.</p></div>
         <div class="card"><div class="icon">🎨</div><h3>Creative Filters</h3><p>Leica (classic / vivid / mono), film (gold / Fuji / vintage), real-time GPU effects, with batch support.</p></div>
         <div class="card"><div class="icon">🔒</div><h3>Privacy First</h3><p>Face detection, beauty, and tagging run on-device. Your photos are never uploaded, and we collect no data.</p></div>
@@ -139,6 +139,25 @@
         <div class="faq-item"><h3>Does it work offline?</h3><p>On-device capabilities like tagging, face recognition, and scene detection work fully offline. Cloud AI chat requires a network connection.</p></div>
         <div class="faq-item"><h3>Which devices are supported?</h3><p>Android 7.0 (API 24) and above; beauty and on-device inference run best on arm64 devices. An iOS version is in development — coming soon.</p></div>
         <div class="faq-item"><h3>Is any data collected?</h3><p>No. We collect no user data. See the <a href="privacy-policy/index.html">Privacy Policy</a>.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <span class="eyebrow-sm">Compare</span>
+      <h2 class="section-title">How PoLang compares</h2>
+      <p class="section-sub">Same on-device, offline, open-source promise — plus a full editor and an AI assistant</p>
+      <div class="cmp-wrap">
+        <table class="cmp">
+          <tr><th>Capability</th><th>PoLang</th><th>Queryable / PicQuery</th><th>Google Photos</th></tr>
+          <tr><td>On-device semantic search (CLIP / MobileCLIP)</td><td class="yes">✅ hybrid recall</td><td class="yes">✅</td><td>☁️ cloud</td></tr>
+          <tr><td>Search by image</td><td class="yes">✅</td><td class="yes">✅</td><td>✅</td></tr>
+          <tr><td>People naming &amp; relations ("my daughter's photos")</td><td class="yes">✅</td><td>❌</td><td>☁️ cloud</td></tr>
+          <tr><td>Conversational gallery management &amp; editing</td><td class="yes">✅</td><td>❌</td><td>❌</td></tr>
+          <tr><td>Cutout / ID photo / beauty editor</td><td class="yes">✅</td><td>❌</td><td>partial</td></tr>
+          <tr><td>Open source / price</td><td class="yes">MIT · free</td><td>MIT · Queryable $4.99 one-time</td><td>❌ · free (cloud)</td></tr>
+        </table>
       </div>
     </div>
   </section>

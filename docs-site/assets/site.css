@@ -183,3 +183,12 @@ footer .x-logo svg { width: 56px; height: 56px; }
   .oss-card h2 { font-size: 24px; }
   .final-cta h2 { font-size: 28px; }
 }
+
+/* 竞品对比表 */
+.cmp-wrap { overflow-x: auto; }
+.cmp { width: 100%; border-collapse: collapse; font-size: 15px; }
+.cmp th, .cmp td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border-soft); white-space: nowrap; }
+.cmp th { color: var(--text); font-weight: 600; }
+.cmp td { color: var(--text-soft); }
+.cmp td:first-child, .cmp th:first-child { color: var(--text); font-weight: 500; }
+.cmp .yes { color: var(--primary); }

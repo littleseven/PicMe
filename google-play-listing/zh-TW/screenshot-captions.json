@@ -11,7 +11,7 @@
       "id": "02-search",
       "image": "screenshot-10.jpg",
       "headline": "說句話，\n就能找到照片",
-      "subline": "自然語言搜尋 · 照片絕不上傳"
+      "subline": "語意搜尋 · 以圖搜圖 · 照片絕不上傳"
     },
     {
       "id": "03-chat",
@@ -41,6 +41,6 @@
   "featureGraphic": {
     "image": "screenshot-2.jpg",
     "headline": "AI 智慧相簿",
-    "subline": "隱私優先 · 自然語言搜尋 · 對話式修圖"
+    "subline": "隱私優先 · 語意搜尋 · 對話式修圖"
   }
 }

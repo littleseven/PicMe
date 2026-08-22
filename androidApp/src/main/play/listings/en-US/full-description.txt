@@ -1,25 +1,23 @@
-PoLang is a photo gallery app that helps you organize, find, and edit the photos and videos on your phone. It works like a regular gallery — browse, view, and manage your media — and adds an on-device AI assistant that tags your photos automatically, so you can search and manage them in plain language.
+PoLang is a private AI photo gallery that finds, organizes, and edits the photos and videos on your phone. Browse like a regular gallery — then go further: semantic photo search, on-device AI tagging, people grouping, a chat assistant that manages your gallery in plain language, and a full photo editor. Free, no ads, no subscriptions.
 
-What you can do with PoLang:
+SEARCH PHOTOS IN PLAIN LANGUAGE
+Type or say what you remember — "sunset at the beach", "dog playing in the snow", "photos of my daughter last summer". PoLang combines on-device semantic search (CLIP-class image understanding) with auto tags, face grouping, and time & place filters, so vague descriptions and precise queries both work. You can also search by image: send a reference photo to find visually similar shots.
 
-• Browse your gallery
-View all photos and videos in a fast, clean gallery. Photos are automatically tagged on your device by scene, people, objects, and activities, and you can browse them by tag or by person.
+ORGANIZE AUTOMATICALLY, ON YOUR DEVICE
+Photos are tagged on-device by scene, people, objects, and activities. Browse this photo gallery by tag or by person — name a face once, then just ask for "mom's photos" or "pictures of my kids". Duplicate and similar photos are found for you, ready to clean up.
 
-• Search photos in plain language
-Instead of scrolling, type or say what you are looking for — "sunset photos", "screenshots", "pictures of my dog". PoLang matches your words against the on-device tags and shows the right photos instantly.
+CHAT WITH YOUR GALLERY
+The built-in AI assistant answers questions about your collection and acts on it: find photos, summarize your gallery, organize media — always with your confirmation before anything is changed or deleted.
 
-• Chat with the AI assistant
-A built-in chat assistant answers questions about your gallery and helps you act on it: find photos, summarize your collection, or organize media — with your confirmation before anything is changed or deleted.
+EDIT LIKE A PRO
+A full photo editor with beauty retouch (skin smoothing, face shaping), filters, one-tap cutout & background eraser, and standard ID photos with a clean background — or simply tell the assistant "make it warmer" and watch the edit happen.
 
-• Take photos with the beauty camera
-A built-in camera with real-time beauty preview (skin smoothing, face shaping) and live filters, powered by on-device face tracking.
+PRIVACY FIRST, OPEN SOURCE
+All photo tagging, face detection, and semantic search run 100% on your device. Your photos are never uploaded. The full source code is open on GitHub — verifiable, not just promised.
 
-• Edit photos
-Adjust and enhance photos with the built-in editor: beauty retouch, filters, and one-tap cutout that can also create standard ID photos with a clean background.
+GOOD TO KNOW
+• First run: download the on-device AI models (~1.5 GB, Wi-Fi recommended), then run one gallery scan (~1.5 h per 10,000 photos; an optional deeper content pass can run overnight while charging). Already-scanned photos are skipped, so later scans are fast.
+• AI chat uses a remote large language model and needs internet. Only text is sent — never your photos. Free quota included; register with email for a higher quota.
+• Android 7.0+; arm64 devices recommended for on-device AI.
 
-• Keep your photos private
-All photo tagging, face detection, and search run entirely on your device. Your photos are never uploaded to a server for processing.
-
-PoLang is free, with no ads, no subscriptions, and no in-app purchases.
-
-In short: PoLang is a private, AI-assisted photo gallery for finding, organizing, and editing your photos on your phone.
+PoLang is free, with no ads, no subscriptions, and no in-app purchases — a private, AI-powered photo gallery for searching, organizing, and editing your photos.

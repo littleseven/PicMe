@@ -11,7 +11,7 @@
       "id": "02-search",
       "image": "screenshot-10.jpg",
       "headline": "说句话，\n就能找到照片",
-      "subline": "自然语言搜索 · 照片绝不上传"
+      "subline": "语义搜索 · 以图搜图 · 照片绝不上传"
     },
     {
       "id": "03-chat",
@@ -41,6 +41,6 @@
   "featureGraphic": {
     "image": "screenshot-2.jpg",
     "headline": "AI 智能相册",
-    "subline": "隐私优先 · 自然语言搜索 · 对话式修图"
+    "subline": "隐私优先 · 语义搜索 · 对话式修图"
   }
 }

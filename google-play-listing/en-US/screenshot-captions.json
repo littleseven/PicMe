@@ -11,7 +11,7 @@
       "id": "02-search",
       "image": "screenshot-10.jpg",
       "headline": "Just say it.\nFind any photo.",
-      "subline": "Natural language search · Photos never uploaded"
+      "subline": "Semantic search · Search by image · On-device"
     },
     {
       "id": "03-chat",
@@ -41,6 +41,6 @@
   "featureGraphic": {
     "image": "screenshot-2.jpg",
     "headline": "AI Photo Gallery",
-    "subline": "Private & on-device · Search by words · Edit by chat"
+    "subline": "Private & on-device · Semantic search · Edit by chat"
   }
 }

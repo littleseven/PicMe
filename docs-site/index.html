@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PoLang 破浪相册 · 隐私优先的智能相册</title>
-  <meta name="description" content="零图片上传隐私安全,用自然语言搜索本地相册、编辑照片。AI 对话相册、智能搜索、专业美颜、创意滤镜,全部本地处理。">
+  <meta name="description" content="零图片上传隐私安全,用自然语言搜索本地相册、编辑照片。AI 对话相册、语义搜索、以图搜图、专业美颜、创意滤镜,全部本地处理。">
   <link rel="alternate" hreflang="zh-CN" href="https://polang.net/">
   <link rel="alternate" hreflang="zh-TW" href="https://polang.net/tw/">
   <link rel="alternate" hreflang="en" href="https://polang.net/en/">
@@ -52,7 +52,7 @@
       <p class="section-sub">一个会用自然语言沟通的智能相册</p>
       <div class="grid">
         <div class="card"><div class="icon">🤖</div><h3>对话式 AI 助手</h3><p>像聊天一样管理相册:"找去年夏天的照片""把这张调暖一点",AI 听懂就做。</p></div>
-        <div class="card"><div class="icon">🖼️</div><h3>智能相册</h3><p>自动给照片打标签(场景/人物/物体/活动),自然语言搜索,智能分类与 AI 相册。</p></div>
+        <div class="card"><div class="icon">🖼️</div><h3>智能相册</h3><p>自动给照片打标签(场景/人物/物体/活动),端侧语义搜索 + 以图搜图,模糊描述也能命中。</p></div>
         <div class="card"><div class="icon">✨</div><h3>AI 美颜编辑</h3><p>GPU 加速专业美颜:磨皮、美白、瘦脸、大眼、唇色、腮红,一键 AI 智能优化。</p></div>
         <div class="card"><div class="icon">🎨</div><h3>创意滤镜</h3><p>徕卡(经典/鲜艳/黑白)、胶片(金/富士/复古)、实时 GPU 特效,支持批量。</p></div>
         <div class="card"><div class="icon">🔒</div><h3>隐私优先</h3><p>人脸检测、美颜、打标等媒体处理在本地完成,照片不上传、不采集任何数据。</p></div>
@@ -139,6 +139,25 @@
         <div class="faq-item"><h3>没有网络能用吗?</h3><p>打标、人脸识别、场景识别等端侧能力可离线使用;AI 对话走远程大模型,需联网。</p></div>
         <div class="faq-item"><h3>支持哪些机型?</h3><p>Android 7.0(API 24)及以上,美颜与本地推理推荐 arm64 机型;iOS 版本开发中,即将支持。</p></div>
         <div class="faq-item"><h3>数据会被收集吗?</h3><p>不会。不采集任何用户数据,详见<a href="privacy-policy/index.html">隐私政策</a>。</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <span class="eyebrow-sm">Compare</span>
+      <h2 class="section-title">和同类应用有什么不同</h2>
+      <p class="section-sub">同样的端侧、离线、开源——多一整个编辑器和 AI 助手</p>
+      <div class="cmp-wrap">
+        <table class="cmp">
+          <tr><th>能力</th><th>PoLang 破浪相册</th><th>Queryable / PicQuery</th><th>Google Photos</th></tr>
+          <tr><td>端侧语义搜索（CLIP / MobileCLIP）</td><td class="yes">✅ 混合召回</td><td class="yes">✅</td><td>☁️ 云端</td></tr>
+          <tr><td>以图搜图</td><td class="yes">✅</td><td class="yes">✅</td><td>✅</td></tr>
+          <tr><td>人物命名与关系（「女儿的照片」）</td><td class="yes">✅</td><td>❌</td><td>☁️ 云端</td></tr>
+          <tr><td>对话式相册管理与编辑</td><td class="yes">✅</td><td>❌</td><td>❌</td></tr>
+          <tr><td>抠图 / 证件照 / 美颜编辑</td><td class="yes">✅</td><td>❌</td><td>部分</td></tr>
+          <tr><td>开源 / 价格</td><td class="yes">MIT · 免费</td><td>MIT · Queryable $4.99 买断</td><td>❌ · 云端免费</td></tr>
+        </table>
       </div>
     </div>
   </section>
