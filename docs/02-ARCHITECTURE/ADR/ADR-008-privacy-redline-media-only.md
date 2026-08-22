@@ -25,7 +25,7 @@
 ## 3. 实现要点
 
 - **红线文案**：`CLAUDE.md`（Privacy-first 头 + Global Red Line `[PRIVACY]`）、`AGENTS.md`、`app/AGENTS.md` 已同步更新。
-- **防回归守卫**：新增 `RemoteInferenceNoMediaUploadGuardTest`（runtime-core/src/test），静态扫描 `inference/remote/**` 源码，断言不出现 `ImageContent`/`generateWithImage`/`imageInference`/`MultipartBody`/`multipart/` 等媒体上传符号。任一出现即测试变红。
+- **防回归守卫**：`RemoteInferenceNoMediaUploadGuardTest` **双副本**（2026-08-23 核实）——`shared/src/jvmTest/.../inference/remote/`（守 `:shared` commonMain 远程链路）与 `androidApp/src/test/.../inference/remote/`（守自 `:shared` 迁入 androidApp 的 `RemoteControlToolService` 等，包路径仍属红线契约管辖）。静态扫描 `inference/remote/**` 源码，断言不出现 `ImageContent`/`generateWithImage`/`imageInference`/`MultipartBody`/`multipart/` 等媒体上传符号，任一出现即测试变红。
 - **现状合规**：已核实远程 ReAct 链路（`RemoteReActAgent.executeTask`）入参仅为 text prompt；`ai_optimize`/`edit_image`/`adjust_image`/打标/人脸 全走端侧 renderer/本地模型，仅回文本 observation 给 LLM。
 - **`PrivacyGuard` 重定位**：用途从「拦截远程推理」转为「拦截媒体文件进入远程 LLM」；已死的 `assertLocalOnly`/`isRemoteAllowed` 待清理。
 
@@ -42,9 +42,10 @@
 |---|---|
 | 红线文案同步 | ✅ 2026-07-28 |
 | 防回归守卫 | ✅ 2026-07-28 |
-| `PrivacyGuard` 重定位 | ✅ 部分完成（2026-08-03 核实）：`assertLocalOnly` 已随 2026-08-02 本地链路删除一并清理；类已重定位为输入隐私分级（`classify`），位于 `runtime-core/.../runtime/policy/PrivacyGuard.kt`，媒体上传防线由 `RemoteInferenceNoMediaUploadGuardTest` 承担；⚠️ 遗留 `isRemoteAllowed()` 已无调用方、尚未删除 |
+| `PrivacyGuard` 重定位 | ✅ 部分完成（2026-08-23 核实）：`assertLocalOnly` 已随 2026-08-02 本地链路删除一并清理；类已重定位为输入隐私分级（`classify`），位于 `:shared` commonMain（`shared/src/commonMain/kotlin/com/mamba/picme/agent/core/runtime/policy/PrivacyGuard.kt`，随 Phase 4 自 runtime-core 迁入），媒体上传防线由 `RemoteInferenceNoMediaUploadGuardTest` 承担；⚠️ 遗留 `isRemoteAllowed()` 已无调用方、尚未删除 |
 
 ## 6. 相关
 
-- ADR-005（协议分离）、ADR-009（本地模型收缩）、ADR-010（链路隔离）
+- ADR-005（远程推理协议标准化）
+- 原 ADR-009/010（本地模型收缩/链路隔离）已于 2026-08-23 随 ADR 整理删除，历史见 git
 - `docs/reviews/2026-07-27-chat-llm-architecture-review.md` §0.3-D1

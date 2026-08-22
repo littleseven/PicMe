@@ -264,8 +264,8 @@ class PhotoProcessorImpl {
 
 **验收标准**:
 - [x] PhotoProcessorImpl 可独立单元测试
-- [ ] 1080p 图片处理 < 500ms
-- [ ] 内存无泄漏（连续处理 100 张）
+- [x] 1080p 图片处理 < 500ms（设备实测 200ms 以内，见 §9 落地记录）
+- [x] 内存无泄漏（连续 100 张压力测试通过，见 §9 落地记录）
 
 ### Phase 2: Shader 迁移 (3-4 周)
 
@@ -302,10 +302,10 @@ class PhotoProcessorImpl {
 
 ### Phase 4: 库化准备 (4-6 周)
 
-- 抽离 `beauty-core` 模块（纯 Kotlin 接口）
-- 完善 `beauty-engine` 模块（OpenGL 实现）
-- 定义稳定 API 与版本策略
-- 发布内部 SDK v0.1.0
+> ❌ **不再计划（2026-08-23 标注）**：项目定位为技术研究、不追求商业化（见 CLAUDE.md / PRODUCT.md），`beauty-core` 拆分与 SDK 发布取消；引擎能力以 `:engines:beauty-api` + `:engines:beauty-engine` 模块源码形态沉淀，分层边界已由 ADR-001 落实。
+
+- ~~抽离 `beauty-core` 模块（纯 Kotlin 接口）~~
+- ~~发布内部 SDK v0.1.0~~
 
 ---
 

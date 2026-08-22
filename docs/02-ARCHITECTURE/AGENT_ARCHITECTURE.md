@@ -57,7 +57,7 @@
     └── 相机指令  → processCameraInput → RemoteReActAgent + CameraToolService → tool_calls → Capability 执行
 ```
 
-> 历史：ADR-005 的「本地/远程双链路」（Qwen3.5-2B 端侧推理 + 自定义 JSON 数组协议）已于 2026-08-02 随端侧文本 LLM 一并移除，见本节「已移除组件」与 ADR-005/009/010 的「状态更新（2026-08-02）」块。
+> 历史：ADR-005 的「本地/远程双链路」（Qwen3.5-2B 端侧推理 + 自定义 JSON 数组协议）已于 2026-08-02 随端侧文本 LLM 一并移除，见本节「已移除组件」与 ADR-005 的「状态更新（2026-08-02）」块（历史 ADR-009/010 已于 2026-08-23 删除，见 [ADR 索引](./ADR/README.md)）。
 
 **核心组件状态**: 
 
@@ -86,7 +86,7 @@
 - 相机 AI 指令改为远程 tool_calls：`AgentOrchestrator.processCameraInput` + `CameraToolService`
 - **保留**：`LocalLlmEngine`（仅存 `imageInference` VLM 打标）、`MnnLlmClient`、`llm_jni_bridge.cpp`/`libagent_native.so`、`LocalModelService`、`OpenClGuardian`、`TaggerModelSelector`
 
-**已移除组件（ADR-005/006，2026-06）**：
+**已移除组件（2026-06 协议分离清理，ADR-005；原 ADR-006 已删）**：
 - `InferenceRouter` — 拆分为 `LocalInferencePipeline` + `RemoteReActAgent` 两条独立链路（前者已于 2026-08-02 随端侧文本 LLM 移除）
 - `ToolCallingChatLanguageModel` — 远程直接使用 langchain4j 原生 `OpenAiChatModel`
 - `ToolCallingOutputParser` — 远程使用标准 OpenAI `tool_calls` 响应格式
@@ -721,7 +721,7 @@ class NavigationCapability(
 
 **端侧保留**：仅 Qwen3-VL-2B VLM 打标（`LocalLlmEngine` 仅存 `imageInference`，TAG Pass3）、Florence-2 打标、人脸检测（`:engines:mnn-core`）、OPUS-MT 翻译（`:engines:sentencepiece`）——均为媒体/视觉处理，不承担文本对话与指令解析。
 
-**演进脉络**：ADR-005（本地/远程协议分离）→ ADR-009（本地收缩至相机）→ ADR-010（链路隔离）→ 2026-08-02（本地链路整体删除，见各 ADR「状态更新」块）。
+**演进脉络**：ADR-005（本地/远程协议分离，2026-06）→ 本地收缩与链路隔离（2026-07~08，相关 ADR-009/010 已删除，历史见 git）→ 2026-08-02 端侧文本 LLM 移除、本地链路整体删除（commit 2fb1f299e）→ 2026-08 langchain4j fork 迁移 Koog、`:agent-core` 删除（commit 1cbe9353）。
 
 **历史对比（ADR-005 时期，本地列已删除）**：
 

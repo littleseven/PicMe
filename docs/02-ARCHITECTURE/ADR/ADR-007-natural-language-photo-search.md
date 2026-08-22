@@ -192,10 +192,10 @@ MediaSearchEngine.search(filter) // 直接按时间范围查 DB
 - `QueryParser` 继续扩展，新增“近半年/近一年/近 N 个月”规则作为兜底，防止 LLM 未输出 `intent` 或端侧小模型无法稳定生成 `intent` 时搜索范围失控。
 - LLM 标准化与规则解析并行，不冲突；`SearchIntent` 非空时优先使用结构化入口，`SearchIntent` 为空时回退到 `QuerySegmenter → QueryParser`。
 
-**影响范围**：
+**影响范围**（2026-08-23 修正模块名）：
 
-- `runtime-core`：新增 `SearchIntent` / `TimeRange` 模型；扩展 `AgentCommand.SearchMedia` / 新增 `RefineMediaSearch`；更新 `LocalPromptBuilder` / `RemotePromptBuilder` 与对应解析器。
-- `app`：新增 `ChatSearchCapability`；`ChatViewModel` 实现 `SearchIntent → StructuredFilter` 转换并调用 `MediaSearchEngine.search(filter)`。
+- `:shared`（commonMain，原 `runtime-core` 已于 Phase 4 整体并入）：`SearchIntent` / `TimeRange` 模型；扩展 `AgentCommand.SearchMedia` / 新增 `RefineMediaSearch`。
+- `androidApp`：`ChatSearchCapability`；`ChatViewModel` 实现 `SearchIntent → StructuredFilter` 转换并调用 `MediaSearchEngine.search(filter)`。
 
 **验收标准**：
 

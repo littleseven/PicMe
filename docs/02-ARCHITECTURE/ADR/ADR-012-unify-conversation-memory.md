@@ -4,7 +4,7 @@
 **日期**: 2026-07-28
 **更新日期**: 2026-08-03（核实三项实施任务现状）
 **决策**: 用户
-**依赖**: ADR-010；review §0.3-D5、P1-3
+**依赖**: review §0.3-D5、P1-3（原前置 ADR-010「链路隔离」已于 2026-08-23 随 ADR 整理删除，历史见 git）
 
 ---
 
@@ -12,7 +12,7 @@
 >
 > 经代码核实，本 ADR 波次1 的两个数据正确性 bug 均已修复：`MemoryManager.appendConversation` 已改为 DataStore `edit{}` 内原子 read-modify-write（`MemoryManager.kt:144`）；`DataStoreChatMemory.clear()` 已同步清内存 `cache`（`RemoteReActAgent.kt:467`，注释明确记录旧 bug）。
 > 原 `streamChat` 对 `MemoryManager` 的死写回已随链路重构消除（`AgentOrchestrator` 已无 `streamChat`）；现存两处写回为有意保留：相机会话回写 `saveCameraConversation`（`processCameraInput` 后，`AgentOrchestrator.kt:415`）与 chat 图片分析结果回写（`ChatViewModel.kt:2302`）。
-> §3 中「`MemoryManager` 限定相机（与 ADR-009 一致）」的前提已不成立：ADR-009 已被超越（2026-08-02 本地链路整体删除，相机链路同样改走远程 tool_calls），`MemoryManager` 现状服务相机会话与 chat 图片上下文两类写回。⚠️ 遗留观察：`buildContextMessages` 当前无调用方，`MemoryManager` 写回的消费者链路待后续梳理。
+> §3 中「`MemoryManager` 限定相机」的前提已不成立：2026-08-02 本地链路整体删除，相机链路同样改走远程 tool_calls，`MemoryManager` 现状服务相机会话与 chat 图片上下文两类写回。⚠️ 遗留观察（2026-08-23 复核仍未变）：`buildContextMessages` 无调用方，`MemoryManager` 写回的消费者链路待后续梳理。
 
 ## 1. 背景
 
@@ -34,7 +34,7 @@
 ## 3. 实现要点（波次1）
 
 - **chat 记忆单一来源**：统一用 `DataStoreChatMemory`（langchain4j ChatMemory）作为 chat 唯一对话记忆；**删除 `streamChat` 对 `MemoryManager.appendConversation` 的死写回**（`AgentOrchestrator.kt:463-468`）。
-- **`MemoryManager` 限定相机**：成为相机本地路径专用（与 ADR-009 一致）；或抽象统一 `ConversationMemory` 接口、两实现各服务一条隔离链路。⚠️ **已过时（2026-08-03）**：ADR-009 已被超越，相机链路同样改走远程 tool_calls；`MemoryManager` 现状服务相机会话与 chat 图片上下文两类写回，「限定相机」前提不再成立。
+- **`MemoryManager` 限定相机**：成为相机本地路径专用；或抽象统一 `ConversationMemory` 接口、两实现各服务一条隔离链路。⚠️ **已过时（2026-08-03）**：本地链路整体删除后相机同样改走远程 tool_calls；`MemoryManager` 现状服务相机会话与 chat 图片上下文两类写回，「限定相机」前提不再成立。
 - **修数据正确性 bug**：
   - `MemoryManager.appendConversation` 改为 DataStore `edit{}` 内原子 read-modify-write（解决并发丢更新）。
   - `RemoteReActAgent.resetSession` 同步清内存 `cache`（`RemoteReActAgent.kt:313-317,413`）。
@@ -44,7 +44,7 @@
 
 - ✅ 消除死写与"两套记忆不一致"的认知负担；多轮对话上下文来源唯一、可预测。
 - ✅ 修复两个数据正确性 bug（并发丢更新、重置残留）。
-- ✅ 随 ADR-010 隔离自然落地（远程/本地各持自己的记忆实现）。
+- ✅ 随链路隔离重构自然落地（各链路各持自己的记忆实现）。
 - ⚠️ 若选择统一 `ConversationMemory` 接口，需小幅重构两实现的共性。
 
 ## 5. 状态
@@ -58,5 +58,5 @@
 
 ## 6. 相关
 
-- ADR-010（链路隔离，本 ADR 的落地载体）、ADR-009
+- `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md`（链路隔离后的现役架构 SSOT；原 ADR-009/010 已删除）
 - review §0.3-D5、P1-3

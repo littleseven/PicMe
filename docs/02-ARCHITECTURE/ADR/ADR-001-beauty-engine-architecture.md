@@ -2,7 +2,7 @@
 
 **状态**: 已接受 (Accepted)  
 **日期**: 2026-04-17
-**最后同步**: 2026-08-03（与 `engines/beauty-engine/src/main/java/com/mamba/picme/beauty/` 代码结构对齐）  
+**最后同步**: 2026-08-23（修正 §4.2/§4.3：`render/` 等为单模块内包目录而非 Gradle 子模块；ArchUnit 检查从未落地）  
 **决策**: RD  
 **PM Review**: 已完成
 
@@ -78,6 +78,7 @@ App Layer → 大美丽模块 (混合业务逻辑+GPU实现)
 engines/beauty-engine/src/main/java/com/mamba/picme/beauty/
 ├── api/                    # Domain Layer - 实现层 API（依赖 :engines:beauty-api 共享类型）
 │   ├── BeautyPreviewProvider.kt   # 预览 Provider 接口
+│   ├── BeautyPreviewProviderFactory.kt # Provider 工厂
 │   ├── BeautyPreviewEngine.kt     # 组合接口（Provider + Capability）
 │   ├── BeautyPreviewCapability.kt # GL 能力扩展（FaceWarp/LipMask）
 │   ├── PhotoProcessor.kt          # 拍照后处理接口
@@ -112,28 +113,22 @@ engines/beauty-engine/src/main/java/com/mamba/picme/beauty/
 ```
 
 ### 4.2 依赖规则 (Gradle)
+
+`:engines:beauty-engine` 为**单 Gradle 模块**——`api/`、`internal/`、`render/`、`recorder/`、`log/` 是模块内**包目录**，不是子模块（`settings.gradle.kts` 仅声明 `:engines:beauty-api` 与 `:engines:beauty-engine` 两个引擎模块）：
+
 ```groovy
-// App 层（只允许依赖 api 层类型）
+// App 层依赖（androidApp/build.gradle.kts 实况）
 dependencies {
     implementation project(':engines:beauty-api')      // 共享类型契约（BeautySettings, FilterType, StyleFilter, Face 等）
-    implementation project(':engines:beauty-engine')     // 实现层
-    // 禁止: implementation project(':engines:beauty-engine:render')
-}
-
-// render 模块（内部实现）
-dependencies {
-    api project(':engines:beauty-engine:api')
+    implementation project(':engines:beauty-engine')   // 实现层（含 api/internal/render 包）
 }
 ```
 
-### 4.3 ArchUnit 依赖检查
-```kotlin
-// 规则: App 层严禁直接依赖 render 内部实现包
-noClasses()
-    .that().resideInAPackage("..app..")
-    .should().dependOnClassesThat()
-    .resideInAPackage("..beautyengine.render..")
-```
+**包边界（约定，非构建期强制）**：App 源码只允许 import `com.mamba.picme.beauty.api.*` 与 `:engines:beauty-api` 类型；直接引用 `com.mamba.picme.beauty.render.*` / `...beauty.internal.*` 视为违规。
+
+### 4.3 依赖边界检查
+
+> **现状（2026-08-23 核实）**：早期设计中提出的 ArchUnit 依赖检查**未落地**，仓库中不存在 ArchUnit 依赖；App → `render/`/`internal/` 的包边界目前依赖 code review 与 CLAUDE.md 依赖规则约束，无自动化守卫。若后续需要机器判定，可引入 ArchUnit 或自定义 lint 规则。
 
 ---
 

@@ -2,7 +2,7 @@
 
 **文档编号**: ADR-003  
 **创建日期**: 2026-05-03  
-**最后同步**: 2026-06-04（修正：坐标转换函数与 `EyePosition` 枚举为规范示例，未在代码中实际落地；实际坐标处理由 `BeautyRenderer` / `FaceMakeupPass` 内部管理）  
+**最后同步**: 2026-08-23（§2.3 表对齐实际检测器类名：`MediaPipeFaceDetector`/`MnnLandmarkDetector`；移除已整删的 NCNN 与未使用的 OpenCV 引用）  
 **状态**: 已采纳  
 **影响范围**: 全项目（人脸检测、渲染引擎、UI 展示）
 
@@ -154,7 +154,7 @@ fun calculateEyeDistance() {
 | **UI 展示层** | 人脸坐标系 | 用户更容易理解"左眼"、"右眼" | 调试浮层标签、设置界面文案 |
 | **业务逻辑层** | 图像坐标系（推荐）或人脸坐标系 | 根据团队习惯统一选择 | 美颜参数计算、关键点分析 |
 | **渲染引擎层** | **必须**使用图像坐标系 | GPU Shader、OpenGL 原生支持 | BeautyRenderer、Shader 处理 |
-| **算法处理层** | **必须**使用图像坐标系 | OpenCV、MediaPipe、MnnLandmarkAdapter、NcnnLandmarkAdapter、坐标转换 |
+| **算法处理层** | **必须**使用图像坐标系 | MediaPipe（`MediaPipeFaceDetector` 等）、MNN（`MnnLandmarkDetector` 等）、坐标转换 |
 
 ---
 
@@ -688,6 +688,7 @@ scripts/check-doc-coordinate-annotation.sh # ✅ 通过
 | 2026-05-03 | v1.0 | 初始版本，确立"允许两种坐标系但严禁混用"原则 | Lingma |
 | 2026-06-04 | v1.1 | 修正：明确 `EyePosition` 枚举和坐标转换函数为规范示例，未在代码中实际落地；补充实际代码中的坐标处理现状说明 | RD |
 | 2026-08-03 | v1.2 | NCNN 已整删，Q4 第三方 SDK 坐标系说明改为 MediaPipe / MNN | AI Agent |
+| 2026-08-23 | v1.3 | §2.3 表对齐实际类名（`MediaPipeFaceDetector`/`MnnLandmarkDetector`），移除 NCNN/OpenCV 残留 | AI Agent |
 
 ### 8.3 参考资料
 

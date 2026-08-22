@@ -9,19 +9,16 @@
 - **架构**
   - [Agent 架构](02-ARCHITECTURE/AGENT_ARCHITECTURE.md)
   - [模块架构](02-ARCHITECTURE/MODULE_ARCHITECTURE.md)
-  - **架构决策 (ADR)**
+  - **架构决策 (ADR)**（[索引](02-ARCHITECTURE/ADR/README.md)）
     - [ADR-001 美颜引擎架构](02-ARCHITECTURE/ADR/ADR-001-beauty-engine-architecture.md)
     - [ADR-002 OpenGL 离屏统一管线](02-ARCHITECTURE/ADR/ADR-002-opengl-offscreen-unified-pipeline.md)
     - [ADR-003 坐标系管理](02-ARCHITECTURE/ADR/ADR-003-coordinate-system-management.md)
-    - [ADR-004 GPU 争用解决](02-ARCHITECTURE/ADR/ADR-004-gpu-contention-resolution.md)
-    - [ADR-005 本地/远程推理分离](02-ARCHITECTURE/ADR/ADR-005-local-remote-inference-split.md)
-    - [ADR-006 命令系统分离](02-ARCHITECTURE/ADR/ADR-006-command-system-separation.md)
+    - [ADR-005 远程推理协议标准化](02-ARCHITECTURE/ADR/ADR-005-local-remote-inference-split.md)
     - [ADR-007 自然语言照片搜索](02-ARCHITECTURE/ADR/ADR-007-natural-language-photo-search.md)
     - [ADR-008 隐私红线（禁媒体上传）](02-ARCHITECTURE/ADR/ADR-008-privacy-redline-media-only.md)
-    - [ADR-009 本地 LLM 收缩至相机](02-ARCHITECTURE/ADR/ADR-009-local-llm-camera-only.md)
-    - [ADR-010 远程/本地链路隔离](02-ARCHITECTURE/ADR/ADR-010-remote-local-chain-isolation.md)
     - [ADR-011 退役非 ui-driver 测试](02-ARCHITECTURE/ADR/ADR-011-retire-non-ui-driver-tests.md)
     - [ADR-012 统一会话记忆](02-ARCHITECTURE/ADR/ADR-012-unify-conversation-memory.md)
+    - [ADR-013 KMP 架构契约](02-ARCHITECTURE/ADR/ADR-013-kmp-architecture-contract.md)
 
 - **技术规格**
   - [大美丽引擎](03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md)

@@ -159,7 +159,7 @@ CameraX → SurfaceTexture → OpenGL ES Shader → SurfaceView
 ## Code Style & Constraints
 
 ### Hard Rules (Enforced)
-- **No fully-qualified names** for `com.mamba.picme.*` in source (custom Gradle task `checkNoFullyQualifiedName`); use imports.
+- **No fully-qualified names** for `com.mamba.picme.*` in source; use imports. (Convention enforced by review — the historically referenced `checkNoFullyQualifiedName` Gradle task was never implemented; see ADR-013 §3.)
 - **commonMain purity**: `:shared/commonMain` must contain no `@Composable`, no platform imports (`android.*` / `java.*` / `androidx.compose.*`), and no `actual` declarations — business logic only; platform impls belong in `androidMain` / `iosMain` (custom Gradle task `checkCommonMainPurity`, bound to `compileKotlinMetadata`; ADR-013). `expect` declarations are allowed.
 - **No wildcard imports** (`*`).
 - **Lambda parameters must be explicitly named**; implicit `it` is prohibited.

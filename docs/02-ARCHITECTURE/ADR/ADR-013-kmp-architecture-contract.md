@@ -3,7 +3,7 @@
 **状态**: 决策与契约文案已定；commonMain 纯度守卫 `checkCommonMainPurity` 已落地并验证；`checkIosSeamFlat` 暂缓
 **日期**: 2026-08-12
 **决策**: 用户
-**依赖**: ADR-005（本地/远程协议分离）、ADR-008（隐私红线）、ADR-010（链路隔离）
+**依赖**: ADR-005（远程推理协议标准化）、ADR-008（隐私红线）
 **评估依据**: `docs/reviews/2026-08-12-kmp-architecture-contract-evaluation.md`
 
 ---
@@ -91,7 +91,7 @@
 - **commonMain 纯度（de-facto 已成立）**：`@Composable`=0、`actual` 声明=0、`import android.|java.`=0；16 处 `actual` 文本全在 KDoc 注释。
 - **构建期守卫 `checkCommonMainPurity`（✅ 已落地，`shared/build.gradle.kts`）**：扫描 `src/commonMain/kotlin`，命中 `@Composable` / `import (android|java|androidx.compose)` / `actual` 声明任一即 build fail；绑 `compileKotlinMetadata`，androidApp 每次构建都校验。已验证：clean tree PASS、植入 4 类违规 FAIL（精确行号）。
 - **`checkIosSeamFlat`（📭 暂缓）**：原拟 grep iosMain 裸 `Flow<` / `value class`，但实读 iosMain 发现 seam 已自律扁平——`FlowWatchers` 消费 Flow 只对外暴露 `FlowWatcher`/回调、`ChatUiActionDto` 把 sealed 扁平成 DTO+`kind`。裸 `Flow<` grep 会误伤合法的 `fun Flow<T>.watch(...)` 桥接 helper，需语义级判定（仅 public Swift-facing 面）才能无误伤，投入不划算，待 seam 规模扩大再议。
-- ⚠️ **发现 doc 漂移**：`CLAUDE.md` 称 FQN 规则由 `checkNoFullyQualifiedName` 强制，但该 task 实际仅在 `androidApp/build.gradle.kts:81` 注释引用、全仓无定义，**未生效**。本 ADR 不修该规则，留作单独议题。
+- ⚠️ **发现 doc 漂移**：`CLAUDE.md` 称 FQN 规则由 `checkNoFullyQualifiedName` 强制，但该 task 实际仅在 `androidApp/build.gradle.kts:81` 注释引用、全仓无定义，**未生效**。→ **已处理（2026-08-23）**：`CLAUDE.md` 表述已改为「约定规则，enforcement task 未实现」；若要机器判定（实测代码中仍有 ~10 处真实 FQN 引用需先清理），留作单独议题。
 - **小修**：`UserPreferences.kt:207` `value class ModelCategory` 若跨 Swift 改显式 data class。
 - **doc-sync**：CLAUDE.md 的 ADR 引用陈旧（称 ADR-008 为最新，实到 012）需修；本 ADR 入册。
 
@@ -113,11 +113,11 @@
 | `checkCommonMainPurity` 守卫 | ✅ 2026-08-12（`shared/build.gradle.kts`，绑 `compileKotlinMetadata`，已验证 pass/fail） |
 | `checkIosSeamFlat` 守卫 | 📭 暂缓（seam 已自律扁平；grep 级检查误伤合法 Flow 桥接 helper，需语义级判定） |
 | `value class ModelCategory` 跨界修正 | ⏳ 待确认是否跨 Swift |
-| CLAUDE.md ADR 引用修复 | ⏳ doc-sync |
+| CLAUDE.md ADR 引用修复 | ✅ 已完成（CLAUDE.md 现引用至 ADR-013） |
 | UI 设计规范 SSOT 整合 | ⏳ Stage 3（缓做） |
 
 ## 6. 相关
 
-- ADR-005（协议分离）、ADR-008（隐私红线）、ADR-009（本地模型收缩）、ADR-010（链路隔离）
+- ADR-005（远程推理协议标准化）、ADR-008（隐私红线）
 - 评估文档：`docs/reviews/2026-08-12-kmp-architecture-contract-evaluation.md`
 - 先例 / 工具：`coordinate-system-standard` skill、`/ios-follow` skill、`screenshot-diff.py`、`swiftui-expert`、`ios-i18n-validator`
