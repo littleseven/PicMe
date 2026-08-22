@@ -672,7 +672,7 @@ private fun ModelIndicatorChip(currentModel: ChatModelOption) {
         contentColor = ChatBubbleTokens.brandGradientStart
     ) {
         Text(
-            text = currentModel.label,
+            text = stringResource(currentModel.labelRes),
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
             style = MaterialTheme.typography.labelMedium
         )
@@ -710,7 +710,11 @@ private fun FloatingChatMessageItem(message: ChatMessageUi) {
                     detectTapGestures(
                         onLongPress = {
                             clipboardManager.setText(AnnotatedString(message.content))
-                            Toast.makeText(context, "已复制", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.copy_success),
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     )
                 }

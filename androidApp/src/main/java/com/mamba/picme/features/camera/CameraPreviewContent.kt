@@ -217,6 +217,7 @@ internal fun CameraPreviewContent(
         // 会被放到屏外（组合但不渲染），表现为「点击 chat 入口无反应」
         if (aiAgentUseCase != null && onAiAgentCommand != null) {
             val scope = androidx.compose.runtime.rememberCoroutineScope()
+            val context = androidx.compose.ui.platform.LocalContext.current
             AiChatScreen(
                 visible = aiAgentChatVisible,
                 messages = aiAgentMessages,
@@ -239,7 +240,7 @@ internal fun CameraPreviewContent(
                         val result = aiAgentUseCase.processInput(input, currentState)
                         onAiAgentIsProcessingChange(false)
                         result.onSuccess { command ->
-                            val executionMessages = commandToExecutionMessages(command)
+                            val executionMessages = commandToExecutionMessages(context, command)
                             onAiAgentMessagesChange(
                                 aiAgentMessages +
                                     AgentMessage.UserText(content = input) +
@@ -249,7 +250,10 @@ internal fun CameraPreviewContent(
                         }.onFailure { error ->
                             onAiAgentMessagesChange(
                                 aiAgentMessages + AgentMessage.UserText(content = input) + AgentMessage.AgentText(
-                                    content = "处理出错了：${error.message ?: "未知错误"}"
+                                    content = context.getString(
+                                        R.string.camera_error_processing,
+                                        error.message ?: context.getString(R.string.camera_error_unknown)
+                                    )
                                 )
                             )
                         }
@@ -423,17 +427,18 @@ private fun BoxScope.CameraPreviewDebugStatus(uiState: CameraPreviewUiState) {
     }
 }
 
+@Composable
 private fun mapProviderFailReason(reason: String): String {
     val normalizedReason = reason.lowercase()
     return when {
-        normalizedReason.contains("provider view is null") -> "Provider视图缺失"
-        normalizedReason.contains("surface not ready") || normalizedReason.contains("surface unavailable") -> "相机Surface未就绪"
-        normalizedReason.contains("egl") -> "EGL初始化/绑定失败"
-        normalizedReason.contains("timeout") -> "Provider启动超时"
-        normalizedReason.contains("resolution") || normalizedReason.contains("buffer") -> "相机缓冲区配置失败"
-        normalizedReason.contains("provider unavailable") -> "Provider不可用"
-        normalizedReason.contains("stability mode") -> "稳定模式：使用PreviewView"
-        else -> "未知Provider失败"
+        normalizedReason.contains("provider view is null") -> stringResource(R.string.camera_provider_reason_view_missing)
+        normalizedReason.contains("surface not ready") || normalizedReason.contains("surface unavailable") -> stringResource(R.string.camera_provider_reason_surface_not_ready)
+        normalizedReason.contains("egl") -> stringResource(R.string.camera_provider_reason_egl)
+        normalizedReason.contains("timeout") -> stringResource(R.string.camera_provider_reason_timeout)
+        normalizedReason.contains("resolution") || normalizedReason.contains("buffer") -> stringResource(R.string.camera_provider_reason_buffer)
+        normalizedReason.contains("provider unavailable") -> stringResource(R.string.camera_provider_reason_unavailable)
+        normalizedReason.contains("stability mode") -> stringResource(R.string.camera_provider_reason_stability_mode)
+        else -> stringResource(R.string.camera_provider_reason_unknown)
     }
 }
 

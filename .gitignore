@@ -102,6 +102,7 @@ scripts/app-data-snapshots/
 
 # 研发截屏产物（scripts/shot.sh 用 exec-out 直传到 tmp/shots/，不入库）
 tmp/
+.tmp/
 
 # docsify 文档站产物（由 scripts/sync-docs.sh 从 docs/ 同步生成，不入库）
 docs-site/docs/

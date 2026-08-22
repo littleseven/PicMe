@@ -69,14 +69,14 @@ fun MediaResultsCarousel(
     val mr = mediaResults
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
         Text(
-            text = if (mr.isRefinement) "细化：${mr.query}（${mr.totalCount} 张）"
-                   else "找到 ${mr.totalCount} 张「${mr.query}」的照片",
+            text = if (mr.isRefinement) stringResource(R.string.chat_results_refined, mr.query, mr.totalCount)
+                   else stringResource(R.string.chat_results_found, mr.query, mr.totalCount),
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.primary
         )
         if (mr.assets.isEmpty()) {
             Text(
-                text = "未找到「${mr.query}」的照片，换个词试试",
+                text = stringResource(R.string.chat_results_empty_hint, mr.query),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 6.dp)
@@ -238,7 +238,7 @@ private fun ViewAllCard(onClick: () -> Unit) {
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                text = "查看全部",
+                text = stringResource(R.string.chat_results_view_all),
                 style = MaterialTheme.typography.labelMedium,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant

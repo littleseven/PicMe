@@ -280,9 +280,10 @@ class PhotoEditorViewModel(
      */
     fun aiOptimize() {
         val useCase = aiOptimizeUseCase ?: run {
-            _state.value = (_state.value as? State.Ready)?.copy(
-                error = appContext?.getString(R.string.ai_optimize_not_available) ?: "AI 优化不可用"
-            ) ?: State.Error("AI 优化不可用")
+            // load() 先于一切 aiOptimize 路径执行并已设置 appContext；兜底英文常量保持旧行为（必置错误态）
+            val message = appContext?.getString(R.string.ai_optimize_not_available) ?: "AI optimization unavailable"
+            _state.value = (_state.value as? State.Ready)?.copy(error = message)
+                ?: State.Error(message)
             return
         }
         val current = _state.value as? State.Ready ?: return
@@ -347,7 +348,8 @@ class PhotoEditorViewModel(
                 Logger.e(TAG, "AI optimize failed", e)
                 _state.value = processingState.copy(
                     isProcessing = false,
-                    error = appContext?.getString(R.string.ai_optimize_failed, e.message ?: "") ?: "AI 优化失败"
+                    error = appContext?.getString(R.string.ai_optimize_failed, e.message ?: "")
+                        ?: "AI optimization failed"
                 )
             }
         }

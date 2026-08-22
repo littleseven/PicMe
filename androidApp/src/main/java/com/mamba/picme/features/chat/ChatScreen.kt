@@ -2072,7 +2072,7 @@ private fun ChatTextInputMode(
                 if (!claudeMode) {
                     CapsuleButton(
                         icon = Icons.Rounded.PhotoLibrary,
-                        label = "相册",
+                        label = stringResource(R.string.gallery),
                         onClick = onShowPhotoPicker,
                         enabled = !isProcessing
                     )
@@ -2193,7 +2193,7 @@ private fun ModelCapsuleButton(
                 .background(modelDotColor(selectedModel))
         )
         Text(
-            text = selectedModel?.displayName ?: "官方LLM",
+            text = selectedModel?.displayName ?: stringResource(R.string.chat_model_official),
             fontSize = 12.sp,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
             maxLines = 1,
@@ -2473,8 +2473,8 @@ fun indexOfPage(pages: List<ImagePreviewPage>, messageId: String): Int {
 /**
  * 模型选项（chat 页仅远程：端侧文本 LLM 已移除，仅保留 Remote）
  */
-sealed class ChatModelOption(val label: String, val indicatorColor: Color) {
-    data object Remote : ChatModelOption("远程", Color(0xFF2196F3))
+sealed class ChatModelOption(@StringRes val labelRes: Int, val indicatorColor: Color) {
+    data object Remote : ChatModelOption(R.string.chat_model_remote, Color(0xFF2196F3))
 }
 
 /**

@@ -143,7 +143,7 @@ internal fun SettingsExpandableSection(
                 }
                 Icon(
                     imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                    contentDescription = if (expanded) "收起" else "展开",
+                    contentDescription = if (expanded) stringResource(R.string.cd_collapse) else stringResource(R.string.cd_expand),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -361,7 +361,7 @@ internal fun SettingsTextInputRow(
 
     if (isPassword) {
         DebugOptionRow(
-            title = "显示 $title",
+            title = stringResource(R.string.settings_show_field, title),
             checked = showSecret,
             onCheckedChange = { showSecret = it }
         )

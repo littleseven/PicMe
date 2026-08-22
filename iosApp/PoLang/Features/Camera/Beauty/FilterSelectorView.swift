@@ -44,6 +44,18 @@ enum StyleFilterPlaceholder: String, CaseIterable, Identifiable {
     case crosshatch = "交叉线"
 
     var id: String { rawValue }
+
+    /// 显示名走 catalog（与编辑器侧 StyleFilter.displayName 同键；rawValue 仅作标识不再直接展示）
+    var displayName: String {
+        switch self {
+        case .toon: return String(localized: "style_toon")
+        case .sketch: return String(localized: "style_sketch")
+        case .posterize: return String(localized: "style_posterize")
+        case .emboss: return String(localized: "style_emboss")
+        case .crosshatch: return String(localized: "style_crosshatch")
+        }
+    }
+
     var thumbnailName: String {
         switch self {
         case .toon: return "style_toon"
@@ -106,7 +118,7 @@ private struct FilterThumbnailView: View {
 
     private var displayName: String {
         if let filter { return filter.displayName }
-        return stylePlaceholder?.rawValue ?? ""
+        return stylePlaceholder?.displayName ?? ""
     }
 
     private var accessibilitySuffix: String {

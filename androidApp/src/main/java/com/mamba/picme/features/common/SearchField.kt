@@ -53,10 +53,11 @@ fun SearchField(
     ) {
         Icon(
             imageVector = Icons.Outlined.Search,
-            contentDescription = "搜索图标",
+            contentDescription = stringResource(R.string.cd_search_icon),
             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
             modifier = Modifier.padding(end = 8.dp)
         )
+        val searchFieldDescription = stringResource(R.string.cd_search_field)
         BasicTextField(
             value = query,
             onValueChange = onQueryChange,
@@ -78,7 +79,7 @@ fun SearchField(
             },
             modifier = Modifier
                 .weight(1f)
-                .semantics { contentDescription = "搜索框" }
+                .semantics { contentDescription = searchFieldDescription }
         )
         if (query.isNotEmpty()) {
             IconButton(

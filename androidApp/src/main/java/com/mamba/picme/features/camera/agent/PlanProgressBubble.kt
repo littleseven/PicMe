@@ -15,8 +15,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mamba.picme.R
 import com.mamba.picme.agent.core.runtime.execution.ExecutionState
 import com.mamba.picme.agent.core.model.plan.PlanStep
 
@@ -47,7 +49,7 @@ fun PlanProgressBubble(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text = "🔄 执行中...（$completedSteps/$totalSteps）",
+            text = stringResource(R.string.camera_plan_progress_title, completedSteps, totalSteps),
             color = Color.White,
             fontSize = 14.sp
         )
@@ -73,18 +75,18 @@ fun PlanProgressBubble(
             when (state) {
                 is ExecutionState.Running -> {
                     OutlinedButton(onClick = onPause, modifier = Modifier.weight(1f)) {
-                        Text("暂停", fontSize = 12.sp, color = Color.White)
+                        Text(stringResource(R.string.pause), fontSize = 12.sp, color = Color.White)
                     }
                 }
                 is ExecutionState.Paused -> {
                     OutlinedButton(onClick = onResume, modifier = Modifier.weight(1f)) {
-                        Text("继续", fontSize = 12.sp, color = Color.White)
+                        Text(stringResource(R.string.resume), fontSize = 12.sp, color = Color.White)
                     }
                 }
                 else -> {}
             }
             OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) {
-                Text("取消", fontSize = 12.sp, color = Color.White)
+                Text(stringResource(R.string.cancel), fontSize = 12.sp, color = Color.White)
             }
         }
     }

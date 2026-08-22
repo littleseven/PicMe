@@ -646,13 +646,13 @@ private fun OcrTextPreviewOverlay(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "检测到文字",
+                    text = stringResource(R.string.camera_ocr_text_detected),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color.White
                 )
                 Text(
-                    text = "${text.length} 字",
+                    text = stringResource(R.string.camera_ocr_char_count, text.length),
                     fontSize = 11.sp,
                     color = Color.White.copy(alpha = 0.7f)
                 )

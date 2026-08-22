@@ -897,7 +897,7 @@
     <ID>UnusedParameter:TagGenerationScheduler.kt$TagGenerationScheduler$maxPhotos: Int = INCREMENTAL_MAX_PHOTOS</ID>
     <ID>UnusedParameter:TagGenerationScheduler.kt$TagGenerationScheduler$progressCallback: suspend (processed: Int, total: Int) -&gt; Unit = { _, _ -&gt; }</ID>
     <ID>UnusedParameter:TagScanOrchestrator.kt$TagScanOrchestrator$policy: ScanQueuePolicy</ID>
-    <ID>UnusedPrivateMember:AgentChatComponents.kt$private fun agentActionToExecutionMessages(action: AgentAction.Success): List&lt;AgentMessage&gt;</ID>
+    <ID>UnusedPrivateMember:AgentChatComponents.kt$private fun agentActionToExecutionMessages(context: Context, action: AgentAction.Success): List&lt;AgentMessage&gt;</ID>
     <ID>UnusedPrivateMember:AgentChatComponents.kt$private fun mapAgentActionToAiAgentCommand(action: AgentAction.Success): AiAgentCommand?</ID>
     <ID>UnusedPrivateMember:CameraBaseComponents.kt$@Composable private fun ExpandableSection( title: String, isExpanded: Boolean, onToggle: () -&gt; Unit, content: @Composable ColumnScope.() -&gt; Unit )</ID>
     <ID>UnusedPrivateMember:CameraDebugOverlay.kt$@Composable private fun FaceDebugOverlaySingle( faceWarpParams: FaceWarpParams, slimFaceValue: Float, aspectRatio: Int = AspectRatio.RATIO_FULL )</ID>

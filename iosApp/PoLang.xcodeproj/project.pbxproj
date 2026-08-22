@@ -121,6 +121,7 @@
 		6FEE791AA0E845AE236F4674 /* warp_gpupixel_thinface.glsl in Resources */ = {isa = PBXBuildFile; fileRef = 8FFD6A37722BE84ED4472950 /* warp_gpupixel_thinface.glsl */; };
 		70557FDEE5D939AFF15F6227 /* tag_translations.json in Resources */ = {isa = PBXBuildFile; fileRef = 9EEA03575D1E338582BC96A1 /* tag_translations.json */; };
 		70FAAABF8E40FB24CE27E90E /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = DBA8B1BBE8B0386DE9C658D2 /* Localizable.xcstrings */; };
+		E215D6672C164B8B870B89EF /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B808A8EF5F614356BE1C2BBE /* InfoPlist.xcstrings */; };
 		717A13F5A9DB780C8DADA67F /* SemanticSearchEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF10F79D40249DD8EF748F43 /* SemanticSearchEngine.swift */; };
 		718C43A722CE98D83E17F1F2 /* FaceEngineRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F13B205A591B755BAE0DCF4 /* FaceEngineRouter.swift */; };
 		7266F63BEDDBAB4469F06DF5 /* DebugScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C86528A850ED415A0B78D547 /* DebugScreenView.swift */; };
@@ -555,6 +556,7 @@
 		D742B40318293EE110C04AB5 /* GachaModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GachaModels.swift; sourceTree = "<group>"; };
 		D8E499C6756329887C1D2B75 /* smoothing.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = smoothing.metal; sourceTree = "<group>"; };
 		DBA8B1BBE8B0386DE9C658D2 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		B808A8EF5F614356BE1C2BBE /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		DE66107B83CDF29F64EC8631 /* MediaPipe468Adapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPipe468Adapter.swift; sourceTree = "<group>"; };
 		DF3DC4EA04B1D8141572FE27 /* ParallelChunkRangesTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParallelChunkRangesTest.swift; sourceTree = "<group>"; };
 		DFDB1E322FB94173303A4A3C /* blush.glsl */ = {isa = PBXFileReference; path = blush.glsl; sourceTree = "<group>"; };
@@ -952,6 +954,7 @@
 			children = (
 				FC60A6D6AC7F627A2B4DEAF1 /* controlled_vocab.json */,
 				56295D0DFFFBDE2CE58B4E41 /* llm_models.json */,
+				B808A8EF5F614356BE1C2BBE /* InfoPlist.xcstrings */,
 				DBA8B1BBE8B0386DE9C658D2 /* Localizable.xcstrings */,
 				5A0FD044282849227BE2C659 /* selfie_segmenter.tflite */,
 				9EEA03575D1E338582BC96A1 /* tag_translations.json */,
@@ -1386,6 +1389,7 @@
 				6B6E80ECE3E6AFB7BD747F8A /* 2d106det.mnn in Resources */,
 				5F6B1D101E44E8C228FED428 /* Assets.xcassets in Resources */,
 				70FAAABF8E40FB24CE27E90E /* Localizable.xcstrings in Resources */,
+				E215D6672C164B8B870B89EF /* InfoPlist.xcstrings in Resources */,
 				9BC5DEF8C6EE340B53DE89AB /* PrivacyInfo.xcprivacy in Resources */,
 				61F771F6F9CBADACFA90A79F /* blush.glsl in Resources */,
 				B93A34A7AFBD99A1567217D5 /* chart_bootstrap.js in Resources */,

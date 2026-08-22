@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.net.Uri
 import androidx.exifinterface.media.ExifInterface
+import com.mamba.picme.R
 import com.mamba.picme.core.common.Logger
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -252,11 +253,11 @@ class MediaViewModel(
                     OcrResult.Success(result)
                 } else {
                     Logger.w(TAG, "OCR Failed or no text found")
-                    OcrResult.Error("未找到文字")
+                    OcrResult.Error(context.getString(R.string.ocr_no_text))
                 }
             } catch (e: Exception) {
                 Logger.e(TAG, "OCR Exception: ${e.message}", e)
-                _ocrState.value = OcrResult.Error("识别失败：${e.message}")
+                _ocrState.value = OcrResult.Error(context.getString(R.string.ocr_failed_reason, e.message ?: ""))
             }
         }
     }

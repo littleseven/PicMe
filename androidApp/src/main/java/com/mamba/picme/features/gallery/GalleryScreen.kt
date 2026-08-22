@@ -319,7 +319,7 @@ fun GalleryScreen(
             val persons = db.personDao().getAllPersons()
             personNameMap.clear()
             for (p in persons) {
-                val displayName = p.name ?: "人物 ${p.personId}"
+                val displayName = p.name ?: context.getString(R.string.person_unnamed, p.personId)
                 personNameMap[p.personId.toString()] = displayName
             }
         } catch (_: Exception) {}
@@ -677,7 +677,7 @@ fun GalleryScreen(
                             CircularProgressIndicator()
                         }
                     } else if (searchResultMedia.isEmpty()) {
-                        EmptyGalleryMessage(message = "未找到匹配 \"$searchQuery\" 的照片")
+                        EmptyGalleryMessage(message = stringResource(R.string.search_no_matching_photos, searchQuery))
                     } else {
                         val searchGroup = GroupedMedia(
                             titleType = GroupTitleType.SEARCH,

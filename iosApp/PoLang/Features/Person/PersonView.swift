@@ -193,21 +193,23 @@ private struct PersonCardView: View {
                     Text(photoCountText)
                         .font(.system(size: CGFloat(PersonTokens.photoCountFontSize)))
                         .foregroundColor(s.onSurfaceVariant)
-                        .padding(.trailing, 4)
-                    Button(action: onInfoTap) {
-                        MatIcon(name: "mat_o_auto_awesome", size: 20)
-                            .foregroundColor(s.onSurfaceVariant)
-                            .frame(width: 32, height: 32)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Text(L("Person info")))
                 }
             }
-            if showRelationChip {
-                relationChip
-            } else {
-                // 无关系标签时保留等高占位(透明),避免卡片高度不一致
-                relationChip.opacity(0)
+            // 第二行（常驻）：关系 chip 居左（无关系时透明占位保持卡片等高），详情按钮固定右下角
+            HStack {
+                if showRelationChip {
+                    relationChip
+                } else {
+                    relationChip.opacity(0)
+                }
+                Spacer(minLength: 0)
+                Button(action: onInfoTap) {
+                    MatIcon(name: "mat_o_auto_awesome", size: 20)
+                        .foregroundColor(s.onSurfaceVariant)
+                        .frame(width: 32, height: 32)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text(L("Person info")))
             }
         }
         .padding(12)
@@ -221,7 +223,7 @@ private struct PersonCardView: View {
                 onSave: { onSaveName($0) },
                 onCancel: onCancelEdit)
         } else {
-            Text(person.name?.isEmpty == false ? person.name! : L("Tap to name"))
+            Text(person.name?.isEmpty == false ? person.name! : L("Add name"))
                 .font(.system(size: CGFloat(PersonTokens.nameFontSize), weight: .semibold))
                 .foregroundColor((person.name?.isEmpty == false) ? s.onSurface : s.onSurfaceVariant)
                 .lineLimit(1)
@@ -230,7 +232,9 @@ private struct PersonCardView: View {
     }
 
     private var photoCountText: String {
-        String(format: L("%1$d photos"), person.photoCount)
+        // 英文单复数分流；中文两键同值（无复数形态）
+        let key = person.photoCount == 1 ? "%1$d photo" : "%1$d photos"
+        return String(format: L(key), person.photoCount)
     }
 
     private var showRelationChip: Bool {

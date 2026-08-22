@@ -1660,13 +1660,13 @@ private fun StageConfigDialog(
                 downloadModel(modelId, modelConfig)
                 Toast.makeText(
                     context,
-                    "开始下载 ${modelConfig.name}，下载完成后自动生效",
+                    context.getString(R.string.settings_model_download_started, modelConfig.name),
                     Toast.LENGTH_SHORT
                 ).show()
             } else {
                 Toast.makeText(
                     context,
-                    "模型配置未找到，请先进入模型管理页面下载",
+                    context.getString(R.string.settings_model_config_not_found),
                     Toast.LENGTH_SHORT
                 ).show()
             }

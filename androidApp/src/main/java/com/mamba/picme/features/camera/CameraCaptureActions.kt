@@ -27,6 +27,7 @@ import com.mamba.picme.features.camera.state.CameraStateMachine
 import com.mamba.picme.features.camera.state.CameraStateManager
 import com.mamba.picme.features.gallery.MediaViewModel
 import com.mamba.picme.PoLangApplication
+import com.mamba.picme.R
 import kotlinx.coroutines.CoroutineScope
 import java.io.File
 import android.content.ContentValues
@@ -95,7 +96,7 @@ internal fun handleCaptureClick(
                     try {
                         val app = context.applicationContext as? PoLangApplication
                         app?.remoteChannelManager?.sendMessage(
-                            "抱歉，相机还没准备好，请稍等片刻再试",
+                            context.getString(R.string.camera_capture_not_ready),
                             pendingReplyToken
                         )
                     } catch (e: Exception) {
@@ -139,7 +140,7 @@ internal fun handleCaptureClick(
                                 try {
                                     val app = context.applicationContext as? PoLangApplication
                                     app?.remoteChannelManager?.sendMessage(
-                                        "抱歉，拍照失败了，请再试一次",
+                                        context.getString(R.string.camera_capture_failed),
                                         pendingReplyToken
                                     )
                                 } catch (e: Exception) {

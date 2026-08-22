@@ -11,6 +11,7 @@ import com.mamba.picme.beauty.api.PhotoProcessor
 import com.mamba.picme.beauty.api.facedetect.DetectionPipelineConfig
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.core.common.Logger
+import com.mamba.picme.R
 import com.mamba.picme.domain.matting.MattingEngine
 import com.mamba.picme.domain.repository.ChatImageStore
 import com.mamba.picme.domain.repository.UserSettingsRepository
@@ -102,19 +103,28 @@ class ChatImageRenderer(
             )
             val rendered = renderRecipe(imageUri, recipe, sessionId)
             val desc = buildString {
-                brightness?.takeIf { it != 0f }?.let { append("亮度${if (it > 0) "+" else ""}${it.toInt()} ") }
-                contrast?.takeIf { it != CONTRAST_DEFAULT }?.let { append("对比度${it.toInt()} ") }
-                saturation?.takeIf { it != 100f }?.let { append("饱和度${it.toInt()} ") }
-                temperature?.takeIf { it != TEMPERATURE_NEUTRAL }?.let {
-                    append(if (it > TEMPERATURE_NEUTRAL) "暖色" else "冷色")
+                brightness?.takeIf { it != 0f }?.let {
+                    append(context.getString(R.string.chat_adjust_brightness, if (it > 0) "+" else "", it.toInt()))
                     append(" ")
                 }
-            }.trim().ifBlank { "已调整" }
+                contrast?.takeIf { it != CONTRAST_DEFAULT }?.let {
+                    append(context.getString(R.string.chat_adjust_contrast, it.toInt()))
+                    append(" ")
+                }
+                saturation?.takeIf { it != 100f }?.let {
+                    append(context.getString(R.string.chat_adjust_saturation, it.toInt()))
+                    append(" ")
+                }
+                temperature?.takeIf { it != TEMPERATURE_NEUTRAL }?.let {
+                    append(context.getString(if (it > TEMPERATURE_NEUTRAL) R.string.chat_adjust_warm else R.string.chat_adjust_cool))
+                    append(" ")
+                }
+            }.trim().ifBlank { context.getString(R.string.chat_adjust_done) }
             Logger.i(TAG, "adjustImage: uri=$imageUri, rendered=$rendered, desc=$desc")
             Outcome(rendered, desc)
         } catch (e: Exception) {
             Logger.e(TAG, "adjustImage failed", e)
-            Outcome(null, "调整失败：${e.message ?: "未知错误"}")
+            Outcome(null, context.getString(R.string.chat_adjust_failed, e.message ?: context.getString(R.string.chat_unknown_error)))
         }
     }
 
@@ -127,7 +137,7 @@ class ChatImageRenderer(
             Outcome(rendered, result.explanation)
         } catch (e: Exception) {
             Logger.e(TAG, "aiOptimize failed", e)
-            Outcome(null, "优化失败：${e.message ?: "未知错误"}")
+            Outcome(null, context.getString(R.string.chat_optimize_failed, e.message ?: context.getString(R.string.chat_unknown_error)))
         }
     }
 
