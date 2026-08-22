@@ -3,10 +3,12 @@ package com.mamba.picme.features.chat
 import android.content.Context
 import android.util.Log
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
+import com.mamba.picme.agent.core.model.config.AssistantPersona
 import com.mamba.picme.data.local.ChatMessageDao
 import com.mamba.picme.data.local.ChatSessionDao
 import com.mamba.picme.data.remote.picme.PoLangAuthClient
 import com.mamba.picme.data.repository.MediaFeedbackRepository
+import com.mamba.picme.domain.model.AppLanguage
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.search.MediaSearchEngine
 import com.mamba.picme.domain.tag.ControlledVocab
@@ -84,6 +86,8 @@ abstract class ChatViewModelTestBase {
 
         every { userSettingsRepository.serverAuthTokenFlow } returns tokenFlow
         every { userSettingsRepository.guestChatMessageCountFlow } returns flowOf(0)
+        every { userSettingsRepository.assistantPersonaFlow } returns flowOf(AssistantPersona.DEFAULT)
+        every { userSettingsRepository.appLanguageFlow } returns flowOf(AppLanguage.SYSTEM)
 
         every { chatMessageDao.getMessagesBySession(any()) } returns flowOf(emptyList())
         coEvery { chatMessageDao.getLastMessageForSession(any()) } returns null
