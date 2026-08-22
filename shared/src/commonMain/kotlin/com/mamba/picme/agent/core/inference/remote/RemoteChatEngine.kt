@@ -9,7 +9,10 @@ import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentConfig
 import com.mamba.picme.agent.core.inference.remote.tool.ChatToolService
 import com.mamba.picme.agent.core.inference.remote.tool.ToolInventory
 import com.mamba.picme.agent.core.model.command.AgentCommand
+import com.mamba.picme.agent.core.model.config.AssistantPersona
+import com.mamba.picme.agent.core.model.config.personaPromptSegment
 import com.mamba.picme.agent.core.model.context.AgentContext
+import com.mamba.picme.agent.core.model.context.ReplyLanguage
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import kotlin.time.Clock
@@ -132,12 +135,27 @@ class RemoteChatEngine internal constructor(
         若要从零精确做"人物∩时间"，用 gallery.query({person:'大宝', fromMs, toMs})。
         【重要·收敛规则】拿到数据类工具（search_media / run_gallery_script / get_gallery_summary）的结果后，仅当用户明确要求看图时，才可再调一次 draw_chart 把数据画成图（draw_chart 属于渲染，不算数据查询），随后立即用自然语言总结回复、不再调用其它工具。除"画图那次 draw_chart"外，禁止拿到结果后再调任何数据工具。每次请求最多 2 次工具调用（取数 1 次；仅用户明确要求画图时再 + draw_chart 1 次）；绝不重复调用同一工具或换参数反复试探。
     """.trimIndent()
+
+        /**
+         * chat system prompt 的动态尾段：当前日期行 + 性格段（按 persona + 回复语言选段）。
+         * 在 agent 构建期拼接（非 buildChatSystemPrompt 内），DEFAULT 不注入性格段——
+         * 保证 `buildChatSystemPrompt` 输出与 golden 逐字节不变。
+         */
+        fun buildPromptSuffix(
+            persona: AssistantPersona,
+            replyLanguage: ReplyLanguage,
+            today: String
+        ): String =
+            "\n\n当前日期：$today。用户说「去年」「上个月」等相对时间时，据此计算具体日期范围。" +
+                (personaPromptSegment(persona, replyLanguage)?.let { "\n\n$it" } ?: "")
     }
 
     // ── chat ReAct Agent（懒创建）────────────────────────────────────
 
     private var cachedChatAgent: KoogChatAgent? = null
     private var cachedChatAgentConfig: RemoteModelConfig? = null
+    private var cachedChatAgentPersona: AssistantPersona? = null
+    private var cachedChatAgentReplyLanguage: ReplyLanguage? = null
 
     /** chat system prompt（由组合根注入的工具描述元数据经注入的 prompt 组装器确定性组装，agent 构建期拼接当前日期）。 */
     private val chatSystemPrompt = chatPromptBuilder(chatToolDescriptors)
@@ -170,6 +188,8 @@ class RemoteChatEngine internal constructor(
                 input,
                 agentContext.memorySessionId,
                 traceId = agentContext.traceId,
+                persona = agentContext.persona,
+                replyLanguage = agentContext.replyLanguage,
                 onEvent = onEvent
             ).fold(
                 onSuccess = { (summary, metrics) ->
@@ -212,11 +232,13 @@ class RemoteChatEngine internal constructor(
         sessionId: String,
         timeoutMs: Long = 120_000L,
         traceId: String? = null,
+        persona: AssistantPersona = AssistantPersona.DEFAULT,
+        replyLanguage: ReplyLanguage = ReplyLanguage.SIMPLIFIED_CHINESE,
         onEvent: ((ChatStreamEvent) -> Unit)? = null
     ): Result<Pair<String, AgentExecutionMetrics?>> = withContext(configurator.dispatcherProvider.orchestratorDispatcher) {
         Logger.d(tag, "processChatReAct: input='$input', sessionId='$sessionId', timeout=${timeoutMs}ms")
 
-        val agent = getChatAgent() ?: return@withContext Result.failure(
+        val agent = getChatAgent(persona, replyLanguage) ?: return@withContext Result.failure(
             IllegalStateException("Chat ReAct Agent 初始化失败")
         )
 
@@ -259,7 +281,7 @@ class RemoteChatEngine internal constructor(
      * 内按记忆快照新鲜度懒建/重建），故重建仅置空缓存；executor/memoryStore/historyProvider 复用，
      * 历史经 DataStore（chat_memory）跨重建留存。
      */
-    private fun getChatAgent(): KoogChatAgent? {
+    private fun getChatAgent(persona: AssistantPersona, replyLanguage: ReplyLanguage): KoogChatAgent? {
         val existing = cachedChatAgent
         val currentConfig = configurator.getUserRemoteConfig() ?: RemoteModelConfig.PICME_SERVER_DEFAULT
         if (existing != null && cachedChatAgentConfig != null) {
@@ -269,8 +291,10 @@ class RemoteChatEngine internal constructor(
                 || cachedChatAgentConfig?.gatewayToken != currentConfig.gatewayToken
                 || cachedChatAgentConfig?.protocol != currentConfig.protocol
                 || cachedChatAgentConfig?.providerId != currentConfig.providerId
+                || cachedChatAgentPersona != persona
+                || cachedChatAgentReplyLanguage != replyLanguage
             if (configChanged) {
-                Logger.i(tag, "Remote config changed (model=${currentConfig.modelId}), rebuilding Chat Agent")
+                Logger.i(tag, "Remote config or persona changed (model=${currentConfig.modelId}, persona=$persona), rebuilding Chat Agent")
                 cachedChatAgent = null
                 cachedChatAgentConfig = null
             } else {
@@ -289,7 +313,7 @@ class RemoteChatEngine internal constructor(
                 .deviceId(configurator.getDeviceId())
                 .protocol(currentConfig.protocol)
                 .providerId(currentConfig.providerId)
-                .systemPrompt(chatSystemPrompt + "\n\n当前日期：${today()}。用户说「去年」「上个月」等相对时间时，据此计算具体日期范围。")
+                .systemPrompt(chatSystemPrompt + buildPromptSuffix(persona, replyLanguage, today()))
                 .apply { if (memProvider != null) memoryContextProvider(memProvider) }
                 .build()
         } catch (e: Exception) {
@@ -308,6 +332,8 @@ class RemoteChatEngine internal constructor(
         chatToolService.traceIdHolder = agent.traceIdHolder
         cachedChatAgent = agent
         cachedChatAgentConfig = currentConfig
+        cachedChatAgentPersona = persona
+        cachedChatAgentReplyLanguage = replyLanguage
         Logger.i(tag, "Chat Koog Agent created: model=${cfg.modelName}, baseUrl=${currentConfig.baseUrl.take(40)}")
         return agent
     }
