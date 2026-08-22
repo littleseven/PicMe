@@ -119,6 +119,25 @@ final class ChatViewModel: ObservableObject {
         return "[用户选择了图片：\(uri)，请基于这张图片处理] \(text)"
     }
 
+    /// App 界面语言 → ReplyLanguage 枚举 name（与 Android commonMain `toReplyLanguage` 同规则）
+    private static func currentReplyLanguage() -> String {
+        switch AppSettings.shared.appLanguage {
+        case "english": return "ENGLISH"
+        case "chinese_simplified": return "SIMPLIFIED_CHINESE"
+        case "chinese_traditional": return "TRADITIONAL_CHINESE"
+        default:
+            // 加固：iOS Locale.preferredLanguages 可能产出下划线形式（如 "zh_Hant_TW"），
+            // 先统一替换成连字符再做 contains("-hant") 等判断，保证两种形态都正确分流
+            let tag = (Locale.preferredLanguages.first ?? "en")
+                .lowercased()
+                .replacingOccurrences(of: "_", with: "-")
+            guard tag == "zh" || tag.hasPrefix("zh-") else { return "ENGLISH" }
+            return (tag.contains("-hant") || tag.contains("-tw") ||
+                    tag.contains("-hk") || tag.contains("-mo"))
+                ? "TRADITIONAL_CHINESE" : "SIMPLIFIED_CHINESE"
+        }
+    }
+
     func send(_ input: String) {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -205,6 +224,8 @@ final class ChatViewModel: ObservableObject {
         // 3. 启动推理（bridge 已指向当前 sessionId，LLM 记忆按会话隔离）
         bridge.sendMessage(
             input: Self.llmInput(text: trimmed, stagedImageUri: stagedLocalId),
+            persona: UserDefaults.standard.string(forKey: "assistant_persona") ?? "DEFAULT",
+            replyLanguage: Self.currentReplyLanguage(),
             onText: { [weak self] snapshot in
                 Task { @MainActor in
                     // 首 token 到达：喂给节奏器（不直接写 UI，节奏器按字符时间轴推进）

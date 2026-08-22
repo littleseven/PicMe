@@ -3,9 +3,11 @@ package com.mamba.picme.agent.core.inference.remote
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.inference.remote.tool.ChatToolService
 import com.mamba.picme.agent.core.model.command.AgentCommand
+import com.mamba.picme.agent.core.model.config.AssistantPersona
 import com.mamba.picme.agent.core.model.context.AgentAction
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.AgentScene
+import com.mamba.picme.agent.core.model.context.ReplyLanguage
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
 import com.mamba.picme.shared.FlowWatcher
@@ -56,18 +58,30 @@ class ChatAgentBridge(
     /**
      * 发送消息（启动流式远程推理）。返回 void（K/N 多参数方法丢返回类型，
      * watcher 生命周期内部管理，Swift 经 [cancelCurrent] 取消）。
+     *
+     * @param persona 助手性格枚举 name（`AssistantPersona.name`），非法值回落 DEFAULT
+     * @param replyLanguage 回复语言枚举 name（`ReplyLanguage.name`），非法值回落 SIMPLIFIED_CHINESE
+     *   （String 参数而非枚举：规避 K/N 枚举导出的互操作摩擦，解析失败兜底不炸）
      */
     fun sendMessage(
         input: String,
+        persona: String,
+        replyLanguage: String,
         onText: (String) -> Unit,
         onToolCall: () -> Unit,
         onComplete: (summary: String, errorMessage: String?) -> Unit
     ) {
+        val personaEnum = runCatching { AssistantPersona.valueOf(persona) }
+            .getOrDefault(AssistantPersona.DEFAULT)
+        val languageEnum = runCatching { ReplyLanguage.valueOf(replyLanguage) }
+            .getOrDefault(ReplyLanguage.SIMPLIFIED_CHINESE)
         currentJob = bridgeScope.launch {
             try {
                 val context = AgentContext(
                     scene = AgentScene.CHAT,
-                    memorySessionId = sessionId
+                    memorySessionId = sessionId,
+                    persona = personaEnum,
+                    replyLanguage = languageEnum
                 )
                 val result = orchestrator.remoteChatEngine.streamChat(
                     input = input,
