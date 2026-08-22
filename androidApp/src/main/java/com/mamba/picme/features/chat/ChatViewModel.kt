@@ -22,6 +22,7 @@ import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.agent.core.model.context.SearchIntent
 import com.mamba.picme.agent.core.model.context.SearchResultSnapshot
 import com.mamba.picme.agent.core.model.context.TimeRange
+import com.mamba.picme.agent.core.model.context.toReplyLanguage
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.inference.remote.ChatStreamEvent
@@ -91,6 +92,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.util.Locale
 import java.util.UUID
 
 private const val TAG = "ChatViewModel"
@@ -1205,14 +1207,19 @@ class ChatViewModel(
                 // 3.5 获取相册摘要并注入上下文
                 val gallerySummary = getGallerySummaryUseCase(includeDetails = false)
 
-                // 4. 构建 Agent 上下文
+                // 4. 构建 Agent 上下文（性格/回复语言每次发消息时读取，设置变更下条消息即生效）
+                val assistantPersona = userSettingsRepository.assistantPersonaFlow.first()
+                val replyLanguage = userSettingsRepository.appLanguageFlow.first()
+                    .toReplyLanguage(Locale.getDefault().toLanguageTag())
                 val agentContext = AgentContext(
                     scene = AgentScene.CHAT,
                     memorySessionId = sessionId,
                     recentSearchResults = sessionSearchSnapshots[sessionId].orEmpty(),
                     lastUserImageUri = _lastUserImageUri.value,
                     gallerySummary = gallerySummary,
-                    traceId = java.util.UUID.randomUUID().toString()
+                    traceId = java.util.UUID.randomUUID().toString(),
+                    persona = assistantPersona,
+                    replyLanguage = replyLanguage
                 )
 
                 // 5. 调用流式推理
