@@ -32,6 +32,12 @@ docs/superpowers/
 
 > `decisions/`（ADR 风格跨工具决策记录）为可选扩展，目前未启用，需要时新建即可。
 
+### 生命周期（2026-08-22 起：交付即清理，git 历史即归档）
+
+- **本目录只保留两类文档**：① 在途工作的 spec/plan；② 仍被活跃引用的设计 SSOT。已交付 feature 的 spec/plan **随交付定期清理删除**（不建 archived/ 目录，git 历史永久可查：`git log --all -- <path>` / `git show <rev>:<path>`）。
+- **清理纪律**：删除前把仍有长期价值的事实沉淀进三层活文档（`PRODUCT.md` / `FEATURES.md` / 模块 `AGENTS.md` / `*_TECH_SPEC.md`）；活文档中的引用同步改为「已随交付清理，git 历史可查」，不留悬空链接（与 `docs/01-PRODUCT/IOS_DOC_INDEX.md` §2 同款约定）。
+- 设计稿内容与代码冲突时以代码为准；本目录文档不是长期事实源，长期事实源是三层文档体系。
+
 ---
 
 ## 3. 命名规范（强制）
@@ -79,9 +85,9 @@ docs/superpowers/
 
 ## 6. 索引
 
-- 现有 specs（53 篇）：见 `specs/` 目录
-- 现有 plans（2 篇）：见 `plans/` 目录
-- 阶段汇总：`claude-tunnel-summary.md`、`nightly-2026-07-19.md`
+- 现有 specs（9 篇，均为在途/活跃 SSOT）：见 `specs/` 目录
+- 现有 plans（6 篇，均为在途/路线图）：见 `plans/` 目录
+- 阶段汇总：`claude-tunnel-summary.md`
 
 ---
 
@@ -90,3 +96,4 @@ docs/superpowers/
 | 日期 | 变更 |
 |------|------|
 | 2026-08-01 | 建立 SSOT 约定，统一四工具 plan/spec 写入位置；新增 `.omo/plans` 软链 |
+| 2026-08-22 | 历史清理：删除 103 篇已交付 spec/plan（≤08-20 非白名单，specs 77 + plans 25 + nightly 1），仅留在途/活跃 SSOT；建立「交付即清理、git 历史即归档」生命周期约定（见 §2） |

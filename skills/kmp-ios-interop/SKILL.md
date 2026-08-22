@@ -22,7 +22,7 @@ tags:
 
 ## SKIE（2026-08-10 起，新链路首选形态）
 
-SKIE 0.10.14 已接入（`shared/build.gradle.kts` 插件，零侵入），spike GO 真机实证（报告 `docs/superpowers/specs/2026-08-10-skie-spike-design.md` §7）。**追齐期纪律：新链路一律用 SKIE 形态，不再新增 FlowWatcher / SharedBridge 式手写桥；存量桥迁移冻结至 iOS 1.0 功能冻结后。**
+SKIE 0.10.14 已接入（`shared/build.gradle.kts` 插件，零侵入），spike GO 真机实证（2026-08-10 spike 报告已随交付清理，结论即本节纪律，细节查 git 历史）。**追齐期纪律：新链路一律用 SKIE 形态，不再新增 FlowWatcher / SharedBridge 式手写桥；存量桥迁移冻结至 iOS 1.0 功能冻结后。**
 
 | Kotlin | SKIE 给 Swift 的形态 | 用法 |
 |--------|---------------------|------|
@@ -97,7 +97,7 @@ for try await chunk in SharedBridge.shared.chatStream() {
 
 - [ios-build-debug](/ios-build-debug) — XCFramework 编译 / 安装
 - [doc-sync-guardian](/doc-sync-guardian) — shared 接口漂移治理
-- spec：`docs/superpowers/specs/2026-08-08-ios-app-skeleton-design.md` §2.3 依赖方向
+- KMP 依赖方向契约：`docs/02-ARCHITECTURE/ADR/ADR-013-kmp-architecture-contract.md`
 
 ## 版本历史
 

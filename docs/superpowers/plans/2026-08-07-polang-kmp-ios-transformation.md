@@ -145,7 +145,7 @@ Phase 6（语言轴：K3 = Kotlin/shared/server ｜ GLM = Swift/iOS/合规）
 - [x] **1.2 运行时迁移**：✅ Chat（`KoogChatAgent`，Phase 4 `ee6065b2`）+ 相机/飞书（`KoogReActAgent` + 自定义 `poLangSingleRunStrategy`，Phase 5 `5a0fa092`）切 Koog；编排层保留自研 ReAct 循环语义，未迁 graph workflow（Koog 内建策略有丢工具调用缺陷，自定义策略更可控）
 - [x] **1.3 删除自研兼容层**：✅ DeepSeek 适配收敛为 Koog `additionalProperties` 注入 `thinking.type=disabled` + LLModel capabilities 显式声明；旧 `StreamingSyncChatModel`/`ToolCallCommandParser`/`CapturingChatModelListener` 已删
 - [x] **1.4 回归与删除**：✅ 相机 AI 指令、Chat、tool_calls、飞书远程控制（拍照/比例/回传）全链路真机回归；`llm_call_log`/`tool_call_log` 日志链路保持（`TraceIdHolder` + `LlmCallRecord` 迁 Koog listener）；`:agent-core` 模块已删除（Koog 迁移内部子 Phase 6，`1cbe9353` + `d09fbb77`，310 文件 ~3.4 万行）
-- [x] **1.5 平台耦合点审计**：✅ 清单已产出（`docs/superpowers/specs/2026-08-07-runtime-core-platform-coupling-inventory.md`，基于 worktree HEAD `1cbe9353`（Phase 6 删除后状态）逐文件审计：runtime-core 79 文件 + app 热点 56 文件，含 PURE/SEAM/ANDROID_ONLY 判定与 expect 设计）；Phase 4 开工时按 main 现状复核一次防漂移
+- [x] **1.5 平台耦合点审计**：✅ 清单已产出（2026-08-07 `runtime-core-platform-coupling-inventory`，基于 worktree HEAD `1cbe9353`（Phase 6 删除后状态）逐文件审计：runtime-core 79 文件 + app 热点 56 文件，含 PURE/SEAM/ANDROID_ONLY 判定与 expect 设计；清单稿已清理，git 历史可查）；Phase 4 开工时按 main 现状复核一次防漂移
 - [x] **1.6 文档**：✅ 根 AGENTS.md「架构说明」段已更新（Koog 编排、JS Engine、AI 工程师模式等）；`agent-core/LANGCHAIN4J_MIGRATION.md` 随模块删除（自然 superseded）；`docs/02-ARCHITECTURE/` 更新并入 Phase 3 文档批量更新。**2026-08-08 补**：README.md + CLAUDE.md 的 agent-core/langchain4j 漂移已同步为 Koog + 6 模块（push `8bb9ef30` / `870ee533`，删整章「作为库使用 langchain4android」），对外 + 指令文档最显眼漂移提前清零；Phase 3.4 批量更新按改名后结构复核即可
 
 > **迁移性质复盘（2026-08-08 调研）**：Phase 1 兑现的是**迁移红利**（协程化：删 CountDownLatch/suspendCoroutine/单线程 executor → CoroutineScope；工程瘦身：删 `:agent-core` fork 310 文件 ~3.4 万行），**非 Koog 能力红利**——Koog 差异化优势（KMP 跨平台共享 / 多 agent 并发编排 / 结构化输出 / 同帧工具并行 / RAG-evaluator）在 main 上**一项未挖**（Koog 完全封在 `runtime-core/inference/remote/koog/`，app 模块 0 处 import；自定义 `poLangSingleRunStrategy` 反而是为绕 Koog 1.1.1 丢「文本+tool_calls 同帧」工具调用 bug，属「适配 Koog」非「享红利」；代码注释反复「语义对齐旧实现/与旧链路一致」，目标是平移非升级）。**结论：Koog 战略价值（选它而非其他 JVM 框架的理由）须等 Phase 4 KMP 抽取才兑现**——这正是 Phase 4 作为核心价值点的依据。详见记忆 `koog-usage-not-mined-on-main`。
@@ -154,7 +154,7 @@ Phase 6（语言轴：K3 = Kotlin/shared/server ｜ GLM = Swift/iOS/合规）
 
 目的：验证 iOS 端技术地基。各 spike 相互独立，可并行。与 Phase 1（Koog 迁移）无依赖关系，带宽允许时可同时进行。
 
-> **2026-08-07 review 修订**：2.1/2.2 spike 报告已产出（`docs/superpowers/specs/2026-08-07-ios-mnn-spike-design.md`、`2026-08-07-ios-spm-quickjs-spike-design.md`），但结论均降级为「**有条件 GO**」——下列补验项通过前 Phase 2 不算全绿，不启动 Phase 5。~~2.3 无细化文档，为阻塞前置。~~
+> **2026-08-07 review 修订**：2.1/2.2 spike 报告已产出（2026-08-07 `ios-mnn-spike`、`ios-spm-quickjs-spike`，报告稿已清理、git 历史可查），但结论均降级为「**有条件 GO**」——下列补验项通过前 Phase 2 不算全绿，不启动 Phase 5。~~2.3 无细化文档，为阻塞前置。~~
 >
 > **2026-08-07 晚更新**：2.2 运行时补验 ✅、2.3 已执行且结论 GO（详见各自报告）；2.1 补验 A/C ✅ 完成、补验 B（Qwen3-VL-2B 真机）按用户决策暂缓（恢复触发点：Phase 5 启动前或 Phase 6.1 TAG 接入前）。Phase 2 排雷实质收口，仅余补验 B 一项在案。
 
@@ -169,14 +169,14 @@ Phase 6（语言轴：K3 = Kotlin/shared/server ｜ GLM = Swift/iOS/合规）
   - 内容：两个 C/C++ 库编译为 XCFramework；Swift 侧最小调用验证（tokenizer 编解码各一次、QuickJS 执行一段脚本）
   - **补验（运行时）**：✅ 已完成——sentencepiece `Encode`→`Decode` 往返一致（"hello world" → 4 token → 完全一致）；QuickJS `evaluate("1+2")` 真机返回 3；**桥接路径结论：ObjC++ 直接链接合并静态库（libtool 合并 sentencepiece + absl → `libspm_ios.a`），无需 cinterop def**（详见 2.3 spike 报告 §7.4）
   - 出口：真机调用成功，API 桥接方式（直接 C interop 还是 Objective-C++ 封装）有结论
-- [x] **2.3 KMP + Koog 端到端连通验证** ✅ **已执行（2026-08-07 晚），结论 GO**（报告：`docs/superpowers/specs/2026-08-07-kmp-koog-spike-design.md` §7/§8）
+- [x] **2.3 KMP + Koog 端到端连通验证** ✅ **已执行（2026-08-07 晚），结论 GO**（报告 `kmp-koog-spike` §7/§8 已清理，git 历史可查）
   - 内容：新建最小 KMP 模块（commonMain 一个函数 + 一个 Koog Agent 调用 DeepSeek 的 demo）→ Android app 消费 + 最小 SwiftUI app 消费（XCFramework 集成、xcode-kotlin 调试插件验证断点）
   - **必验项结果**：① **Koog 1.1.1 iOS 真机初始化并调用 DeepSeek 成功**——显式构造 `KtorKoogHttpClient.Factory()` 直通，无 ServiceLoader 坑，实回 "pong"；② **构建耗时**：debug 增量 ~5-6s（AI 迭代循环可行）、Release framework 全量 3m54s（一次性成本）；③ xcode-kotlin 插件已装并就位，断点命中待 Xcode GUI 手动确认（非阻塞）
   - 出口：双端调用成功 ✅；构建耗时记录 ✅；spike 报告已产出 ✅（断点为体验项不阻塞）
   - **注意**：spike 代码为一次性验证产物，不进入主分支；Phase 4 从零建立正式 shared 模块
 - [x] **2.4 美颜引擎 Metal 渲染验证（review 增补）** ✅ **GO（2026-08-08）**
   - 内容（已修正事实）：美颜引擎渲染宿主是 **Kotlin**（`beauty-engine/.../render/` 19 文件 6185 行）+ GLSL shader 是 `assets/shaders/` 文本模块；`cpp/` 仅 6 个 MNN 人脸推理文件，**非渲染管线**。最小验证：选美白 `whitenSkin` 用 Metal shader 在 AVCaptureSession 实时预览渲染、测帧率；评估 GLSL→MSL 逐滤镜 + 宿主迁移工作量
-  - 出口 ✅：美白单滤镜真机实时渲染达标（**FPS:30** 出图、滑杆美白即时可见）；全滤镜迁移评估完成（shader ~1 周 + Kotlin 宿主重写 ~2 周，详见 spike 报告 §4）。**报告：`docs/superpowers/specs/2026-08-08-ios-beauty-metal-spike-design.md`，产物 `tmp/beauty-metal-spike/`（不入库）**
+  - 出口 ✅：美白单滤镜真机实时渲染达标（**FPS:30** 出图、滑杆美白即时可见）；全滤镜迁移评估完成（shader ~1 周 + Kotlin 宿主重写 ~2 周，详见 spike 报告 §4）。**报告 `ios-beauty-metal-spike`（已清理，git 历史可查），产物 `tmp/beauty-metal-spike/`（不入库）**
   - 关键结论：GLSL→MSL 翻译可行，90% 机械（hard 仅 3 个 warp 反向形变）；**Phase 5.4 真正成本在宿主重写（EGL/GLES/SurfaceTexture→Metal/AVFoundation）非 shader**。计划原估 1–2 周偏紧（缺宿主重写），建议 ~3 周
   - 踩坑（纳入 Phase 5.4 检查清单）：MSL `const` 局部标量须译 `constexpr`（`constant` 是地址空间非 const）；`commandQueue` 勿漏初始化；相机须显式 `requestAccess`；`AVCaptureConnection.videoOrientation=Portrait` 修偏转；iOS 无日志可达时「状态画屏」调试法
 - [ ] **2.5 Spike 总结与 Go/No-Go**
@@ -184,7 +184,7 @@ Phase 6（语言轴：K3 = Kotlin/shared/server ｜ GLM = Swift/iOS/合规）
 
 ## Phase 3：项目改名与目录重组（纯机械，约 1 周）✅ 已完成（2026-08-08）
 
-> 细粒度计划：`docs/superpowers/plans/2026-08-07-repo-restructure.md`（8 个 Task 全执行并通过：Task 1-6 双审通过，Task 7 GitHub rename ✅，Task 8 本地目录改名 + worktree repair + 改名后构建/安装冒烟 ✅）
+> 细粒度计划 `repo-restructure`（已随交付清理，git 历史可查）：8 个 Task 全执行并通过——Task 1-6 双审通过，Task 7 GitHub rename ✅，Task 8 本地目录改名 + worktree repair + 改名后构建/安装冒烟 ✅
 
 原则：**git mv 保历史，零逻辑变更，构建常绿**。开工前按 `using-git-worktrees` 建隔离工作区与专用分支（如 `refactor/repo-restructure`）。
 
@@ -212,7 +212,7 @@ Phase 6（语言轴：K3 = Kotlin/shared/server ｜ GLM = Swift/iOS/合规）
 
 ## Phase 4：shared KMP 模块抽取（约 3–5 周）✅ 已完成（2026-08-08）
 
-> 独立细粒度计划：`docs/superpowers/plans/2026-08-07-shared-kmp-extraction.md` ✅ **15 Task 全部完成（2026-08-08，合并入 main）**——（骨架/平台原语/领域层/beauty 类型/编排核心/Koog 层/ToolService suspend 化/存储 seam/facade/JS/语音/VLM 归位/Android 专有归位/runtime-core 消亡/出口验证），含决策锁定 D1–D9 与降级预案；每 Task 双审结论与执行偏差逐条记录在该计划「变更记录」。
+> 独立细粒度计划 `shared-kmp-extraction`（已随交付清理，git 历史可查）✅ **15 Task 全部完成（2026-08-08，合并入 main）**——（骨架/平台原语/领域层/beauty 类型/编排核心/Koog 层/ToolService suspend 化/存储 seam/facade/JS/语音/VLM 归位/Android 专有归位/runtime-core 消亡/出口验证），含决策锁定 D1–D9 与降级预案。
 >
 > **输入**：Phase 1.5 产出的「runtime-core 平台耦合点清单」
 >
@@ -231,7 +231,7 @@ Phase 6（语言轴：K3 = Kotlin/shared/server ｜ GLM = Swift/iOS/合规）
 
 ## Phase 5：iOS App 骨架（设计 6–8 周；原估 6–10 周含手写 UI 学习缓冲，S4 后下调）
 
-> **设计文档**：`docs/superpowers/specs/2026-08-08-ios-app-skeleton-design.md`（2026-08-08 逐节确认，决策锁定 S1–S10；含美颜方案 A vs C++ GLES 双端的否决论证、Chat 前瞻边界、风险 R1–R7、校对点）。
+> **设计文档**：2026-08-08 `ios-app-skeleton` 设计（逐节确认，决策锁定 S1–S10；含美颜方案 A vs C++ GLES 双端的否决论证、Chat 前瞻边界、风险 R1–R7、校对点；稿已清理，git 历史可查，现行事实沉淀于 `docs/01-PRODUCT/IOS_DOC_INDEX.md` 前门体系）。
 >
 > 独立细粒度计划：`docs/superpowers/plans/YYYY-MM-DD-ios-app-skeleton.md`（writing-plans 产出，待 Phase 4 收口后开工，一次对准终态）。~~本 Phase 是你 iOS 学习的主战场：前几页 UI 自己写、AI 只答疑~~——**2026-08-08 起按设计文档 S4 修订为「UI 也 AI 生成 + 可调试性内建」（单一状态源 / SwiftUI Preview 全覆盖 / accessibilityIdentifier 全量标注 / DebugOverlay 状态画屏）**；相机管线压轴，Metal shader 调试预留弹性。
 

@@ -153,7 +153,7 @@ tags:
 - [kmp-ios-interop](skills/kmp-ios-interop/SKILL.md) — SKIE 互操作铁律（Stage 3 shared 消费必读）
 - [ui-parity-guard](skills/ui-parity-guard/SKILL.md) — 5 步硬规则
 - [dev-loop](skills/dev-loop/SKILL.md) / `scripts/ios-auto-dev-loop.sh` — 验收闭环载体
-- `docs/superpowers/specs/2026-08-10-skie-spike-design.md` §7 — SKIE 形态实证数据
+- SKIE 形态实证数据 — 见 [kmp-ios-interop](skills/kmp-ios-interop/SKILL.md) §SKIE（2026-08-10 spike 报告已清理）
 
 ## 版本历史
 

@@ -4,7 +4,7 @@
 >
 > **日期**：2026-08-09（2026-08-10 整合审计回写） · **基线**：app v1.0.34 · **iOS 对齐状态截至**：2026-08-10（Phase 6.x）
 >
-> **设计依据**：`docs/superpowers/specs/2026-08-09-ios-product-reference-design.md`
+> **设计依据**：原 2026-08-09 设计稿已随交付清理（git 历史可查），本文即现行唯一参考
 
 ---
 
@@ -1462,7 +1462,7 @@ SettingsScreen (MAIN)
 - `CAPABILITY_REGISTRY.md` — Command→Capability 路由 SSOT
 
 **iOS 改造（`docs/superpowers/`）**：
-- `specs/2026-08-09-ios-product-reference-design.md` — 本文档设计说明
+- 2026-08-09 本文档设计稿 — 已随交付清理（git 历史可查）
 - `plans/2026-08-07-polang-kmp-ios-transformation.md` — KMP/iOS 技术改造路线图（Phase 划分 SSOT）
 
 ### 5.3 变更记录

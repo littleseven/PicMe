@@ -20,7 +20,6 @@
 | [`../../specs/README.md`](../../specs/README.md) | **Vibe Coding 流程** |
 | [`../../specs/screens/*.yaml`](../../specs/screens/) | **逐屏契约**：camera / gallery-grid / chat / settings / model-download-center |
 | [`../superpowers/specs/2026-08-10-ios-follow-command-design.md`](../superpowers/specs/2026-08-10-ios-follow-command-design.md) | **`/ios-follow` 命令设计**（待审批） |
-| [`../superpowers/specs/2026-08-10-ios-tag-scan-core-design.md`](../superpowers/specs/2026-08-10-ios-tag-scan-core-design.md) + [`plans/2026-08-10-ios-tag-scan-core.md`](../superpowers/plans/2026-08-10-ios-tag-scan-core.md) | **TAG SP-B 设计+计划**（✅ 已合并 main `b78d7081`，可归档） |
 
 ---
 

@@ -6,8 +6,8 @@ import ai.koog.agents.core.tools.ToolDescriptor
  * 从 Koog 工具描述元数据生成确定性工具清单（system prompt 用）。
  *
  * 此前 chat system prompt 的「可用工具」段为手写，与 `@Tool` 实际表面无校验，
- * 能力增删需手工同步多处、漂移无告警（见 spec：docs/superpowers/specs/
- * 2026-07-29-capability-registry-prompt-observability-refactor.md §5）。
+ * 能力增删需手工同步多处、漂移无告警（2026-07-29 capability-registry 重构
+ * 落地，设计稿已随交付清理）。
  *
  * 生成规则保证确定性：按工具 name 字典序排序、描述取首句（首个句号截断），
  * 同一输入产出恒定文本——不破坏远程 prompt 前缀稳定（DeepSeek 上下文缓存）。

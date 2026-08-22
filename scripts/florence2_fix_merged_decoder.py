@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """修复 Florence-2 merged decoder 的 use_cache_branch=True 崩溃（optimum 导出 bug）。
 
-根因（2026-07-26 定位，见 docs/superpowers/specs/2026-07-26-florence2-use-cache-branch-bug.md）：
+根因（2026-07-26 定位，spec 已随交付清理、git 历史可查）：
   merged decoder 的 If(then_branch)（decode 缓存步）里，
   `present.{L}.encoder.{key,value}`（L=0..5，共 12 个输出）被导成 **shape=(0,12,1,64) 的空 Constant**。
   decode 第 1 步用的是 prefill（else 分支）产出的真 encoder KV，所以不崩；

@@ -687,7 +687,7 @@ AI 优化已从「一次给值」升级为「抽卡闭环」（best-of-N + NIMA 
 - **先预览后应用（2026-08-06 修订）**：抽卡后进入对比模式——最优卡在编辑器主预览区全尺寸预览（复用 2048px 预览管线，不入撤销历史），底部候选条独占（面板/底栏隐藏、undo/redo 禁用）；点卡仅切预览，「应用」才入历史 + 落库 `user`，「关闭」回退原图 + 落库 `dismiss`
 - **落库语义**：每组生成时自动落一条 `auto` 记录（NIMA 建议），「应用」/「关闭」再落 `user`/`dismiss` 记录——两组叠加是有意设计，Phase 2 可比对「NIMA 建议 vs 人选」差异
 - **降级链**：NIMA 模型未下载 → 退回固定预设直接应用（原行为）；批量优化不走抽卡
-- 设计与实现详见 `docs/superpowers/specs/2026-08-06-ai-optimize-gacha-design.md` 与 `docs/superpowers/plans/2026-08-06-ai-optimize-gacha.md`
+- 设计/计划稿已随交付清理（2026-08-06 抽卡，git 历史可查），本节为现行事实源
 
 ---
 
@@ -700,7 +700,7 @@ chat 内 AI 优化指令同样走抽卡闭环（复用 `optimizeWithGacha`，dom
 选中 recipe 写入 `ChatEditStateHolder` 支撑多轮 delta 续调。
 NIMA 不可用 / 缩略图落盘全失败时退回原固定预设单发路径。
 反馈经 `OptimizeFeedbackLogger` 落库（auto/user/dismiss），与编辑器抽卡共用 optimize_feedback 表。
-详见 `docs/superpowers/specs/2026-08-06-chat-optimize-gacha-design.md`。
+（设计稿已随交付清理，git 历史可查）。
 
 ---
 

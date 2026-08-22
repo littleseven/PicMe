@@ -1495,7 +1495,7 @@ class ChatViewModel(
 
     /**
      * AI 优化：抽卡闭环（候选卡组消息）；控制器未注入时退回旧单发路径。
-     * spec: docs/superpowers/specs/2026-08-06-chat-optimize-gacha-design.md
+     * spec: 2026-08-06 chat-optimize-gacha 设计稿（已随交付清理，git 历史可查）
      */
     private suspend fun handleAiOptimize(
         sessionId: String,

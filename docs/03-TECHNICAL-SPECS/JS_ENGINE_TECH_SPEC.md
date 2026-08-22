@@ -5,7 +5,7 @@
 > **最后更新**: 2026-07-25
 > **维护者**: RD Agent
 >
-> **来源说明**：本文档由设计稿 `docs/superpowers/specs/2026-07-22-js-engine-jsbridge-design.md` 提炼并按当前代码现状重写。原设计稿基于 Rhino + ClassShutter 语境，MVP 之后引擎已切换为 **QuickJS**（Rhino 依赖已彻底移除），本文以代码为准。
+> **来源说明**：本文档由 2026-07-22 设计稿提炼并按当前代码现状重写（设计稿已随交付清理，git 历史可查）。原设计稿基于 Rhino + ClassShutter 语境，MVP 之后引擎已切换为 **QuickJS**（Rhino 依赖已彻底移除），本文以代码为准。
 >
 > **相关文档**: `TAG_GENERATION.md`（tag.audit 数据来源）、`GALLERY_SEARCH.md`（gallery.query 过滤语义）、`docs/04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md`（Capability 生命周期）
 
@@ -269,7 +269,7 @@ JS: await bridge.callAsync('capability.dispatch', {method, params})
 
 JS 沙盒是 **Agent 终端运行感知层**的端侧执行层：与 `llm_call_log`（推理层）、`tool_call_log`（行动层）并列，
 每次沙盒执行产生一条结构化事件（Agent First §2.4：事件可被 AI 消费），落 `polang_llm_log.db` 的 **`js_run_log`** 表，
-三表按时间对齐即可还原一次请求的完整端侧链路。设计详见 `docs/superpowers/specs/2026-07-26-js-sandbox-observability-design.md`。
+三表按时间对齐即可还原一次请求的完整端侧链路（设计稿已随交付清理，本节即现行事实源）。
 
 - **事件模型**：`JsRunEvent`（`:shared` `agent/core/js/`，引擎无关）：`source`（chat/debug_page）、`kind`（eval/evalAsync/callFunction）、
   `script`（仅 DEBUG，cap 4000）、`scriptLength`、`success`、`errorCode`、`errorMessage`（含 JS 栈，cap 500）、`resultPreview`（仅 DEBUG，cap 1000）、`latencyMs`。

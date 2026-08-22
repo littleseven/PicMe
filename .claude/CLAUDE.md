@@ -68,7 +68,7 @@
 | `/kmp-ios-interop` | Kotlin/Native↔Swift 互操作（signal 6/Flow/XCFramework） |
 | `/ios-i18n-validator` | iOS 三语（xcstrings）同步 + 双端键对齐 |
 
-> Phase 5 iOS 应用骨架配套 skill（对标 Android 侧 av-gl-expert / compose-ui-expert / mnn-integration 等，106pt 坐标体系双端同源）；详见 `docs/superpowers/specs/2026-08-08-ios-skills-design.md`。
+> Phase 5 iOS 应用骨架配套 skill（对标 Android 侧 av-gl-expert / compose-ui-expert / mnn-integration 等，106pt 坐标体系双端同源）；skills 均已落地，设计稿已随交付清理。
 
 ---
 

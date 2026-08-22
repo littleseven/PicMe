@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """决定性测试：未量化 decoder_model_merged.onnx 的 use_cache_branch=True 是否也崩。
 
-spec（docs/superpowers/specs/2026-07-26-florence2-use-cache-branch-bug.md）只测过
+spec（已随交付清理，git 历史可查）只测过
 INT8 / q4 量化版 merged decoder（都崩）。本脚本用全 fp32 链路验证：
   - 若 fp32 merged cache 分支正常 → bug 在量化器的 If 子图处理 → 重导/图手术修复量化版
   - 若 fp32 也崩 → bug 在 optimum merged 导出本身 → 走 decoder_with_past 路线

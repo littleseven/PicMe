@@ -3,7 +3,7 @@
 # ============================================================================
 # v2 变更：纳入 chat 图标行（变体 D）；新增相机/编辑器附录；标题字重统一 Medium；
 #         禁手画状态栏；icon 一律 ic/* 组件实例（IconSet 页，22网格/描边1.6）。
-# 设计依据：docs/superpowers/specs/2026-08-18-ardot-topbar-icon-unification-design.md
+# 设计依据：2026-08-18 顶栏图标统一设计（spec 已随交付清理，见 git 历史；本文件即现行 SSOT）
 #
 # 双端 SSOT：
 #   Android 实现 = AppTopBar.kt（features/common/topbar/，自建 Row）

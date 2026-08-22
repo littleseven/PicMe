@@ -116,7 +116,7 @@ private suspend fun downloadWithRetry(
 - **下载链路**: 复用 `SampleDataGenerator.savePexelsPhoto()`，`TEST_PEXELS_` 前缀，兼容 `clearTestData()`
 - **限流**: 免费档 200 次/小时、20,000 次/月；per_page=30
 - **署名**: 页面底部常驻「Photos provided by Pexels」（API 使用条款要求）
-- **设计文档**: `docs/superpowers/specs/2026-08-06-pexels-test-image-download-design.md`
+- **设计文档**: 2026-08-06 pexels-test-image-download 设计稿（已随交付清理，git 历史可查）
 
 ### 2.3 内容审核与人脸检测
 

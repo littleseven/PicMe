@@ -42,7 +42,7 @@
 | Pass2 聚类（自适应 k-NN 连通分量） | ✅ 已合并 | `Pass2Pipeline.swift`/`FaceClusterer.swift` k-NN 连通分量（`7b674428`），UI 接 `TagScanOrchestrator` |
 | Pass3 VLM 打标（Florence-2 默认） | ✅ 已合并 | `Florence2Tagger.swift` ORT 4-session，真机验证 5 图打标成功（`ab95c3b7`）；Qwen3-VL 备选路径仍待补验 B |
 | TAG 控制页 + 扫描编排 | ✅ 已合并 | `TagScanScreen`/`TagScanViewModel`/`TagScanOrchestrator` 接 `MainTabView`（`8184b85a`/`9c7bfaba`/`2b06089f`） |
-| 人脸聚类质量 | 🔄 降级（平台决策已定，剩终验） | **✅ 2026-08-13 平台决策落地：ONNX embedder 回退已合入 main**（`ed248304`，`Pass1Pipeline.swift:65` 用 `ORTFaceEmbedder`，Glint360K-R100；原分支 `feat/ios-106-to-5-embedding` 已删）——MNN3.5 Apple bug 规避，MNN 2d106det 点序错乱也已弃用，检测统一 native 5pt。native 5pt 对齐 + iOS 专属阈值 0.45（`FaceClusterMaintenance.swift:16`）+ 聚类精修（重分配/拆过并簇）+ 全量扫描归零（`faf4e6df3`+`ac04eed19`）。**剩余：真机全量重扫后聚类质量终验观察**（`scripts/ios_face_sim_diag.py` 可量化）。详见 [spec](../superpowers/specs/2026-08-12-ios-106-to-5-embedding-design.md)/[plan](../superpowers/plans/2026-08-12-ios-106-to-5-embedding.md) |
+| 人脸聚类质量 | 🔄 降级（平台决策已定，剩终验） | **✅ 2026-08-13 平台决策落地：ONNX embedder 回退已合入 main**（`ed248304`，`Pass1Pipeline.swift:65` 用 `ORTFaceEmbedder`，Glint360K-R100；原分支 `feat/ios-106-to-5-embedding` 已删）——MNN3.5 Apple bug 规避，MNN 2d106det 点序错乱也已弃用，检测统一 native 5pt。native 5pt 对齐 + iOS 专属阈值 0.45（`FaceClusterMaintenance.swift:16`）+ 聚类精修（重分配/拆过并簇）+ 全量扫描归零（`faf4e6df3`+`ac04eed19`）。**剩余：真机全量重扫后聚类质量终验观察**（`scripts/ios_face_sim_diag.py` 可量化）。spec/plan 已随交付清理（git 历史可查） |
 | iOS MetalGuardian（替代 OpenClGuardian） | ❌ | 新设计：warmup 超时 + Metal→CPU 降级（含模型卸载重载）+ MTLDevice 丢失 + 黑名单持久化 |
 | 后台扫描（ForegroundService → BGTaskScheduler） | ❌ | iOS ~30s 限制 → 进后台即 `pauseForBackground()`；改「充电+锁屏增量」或「手动触发」（双端功能差异） |
 

@@ -14,7 +14,7 @@ import com.mamba.picme.features.editor.EditRecipe
 
 /**
  * chat 页 AI 优化抽卡编排器。
- * spec: docs/superpowers/specs/2026-08-06-chat-optimize-gacha-design.md
+ * spec: 2026-08-06 chat-optimize-gacha 设计稿（已随交付清理，git 历史可查）
  *
  * 职责：
  * - 调 [AiOptimizeUseCase.optimizeWithGacha] 抽卡，候选缩略图经 [ChatImageStore] 落盘，

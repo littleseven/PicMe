@@ -14,7 +14,7 @@
 - **spec 扩到 7 屏**（camera / gallery-grid / chat / settings / model-download-center / editor / person）。
 - **hook 硬编码拦截**上线：`.kimi-code/hooks/lib/parity-hardcode.sh`（观察级警告，编辑 `.kt` 时触发）。
 - **token 层升级 codegen**（2026-08-15，`c3651beab`）：`design-tokens.json` 唯一 SSOT，双端镜像由 `scripts/gen-design-tokens.py` 生成、`ai-gate.sh --check` 门禁拦截手改。
-- **「Figma/Ardot 画布作 SSOT」实验废止**（2026-08-15）：非设计师维护者不适合以设计画布作 SSOT，画布降级为**可视化预览层**（历史决策见 `docs/superpowers/specs/2026-08-14-figma-ui-spec-completeness-design.md` 顶部废止横幅）。
+- **「Figma/Ardot 画布作 SSOT」实验废止**（2026-08-15）：非设计师维护者不适合以设计画布作 SSOT，画布降级为**可视化预览层**（历史决策以 `AI_TOOLS.md` 变更记录 2026-08-15/16 条目为准；原 spec 已清理，细节查 git 历史）。
 
 原「零件齐全但缺总纲」的根因已消——当前体系即本文 §1 五层防线。
 
@@ -141,7 +141,7 @@ Android 截图（adb screencap）+ iOS 截图（XCUITest / App 内捕获）
 | **CI 门禁** | `scripts/ai-gate.sh`（含 token `--check`） | 质量门禁 |
 | **闸门** | `scripts/completeness-check.sh` + `scripts/completeness/` | 完整性逐元素核对（可选） |
 | **Gap 审计** | `docs/reviews/2026-08-10-ios-android-consistency-gap.md` | 现行差异清单 SSOT（08-08 两份为历史快照） |
-| **历史决策** | `docs/superpowers/specs/2026-08-14-figma-ui-spec-completeness-design.md` + `docs/superpowers/plans/2026-08-14-figma-ui-spec-camera-pilot.md` | Figma/Ardot SSOT 实验（已废止，顶部有横幅） |
+| **历史决策** | `AI_TOOLS.md` 变更记录 2026-08-15/16 条目 | Figma/Ardot SSOT 实验（已废止；spec/plan 已清理，细节查 git 历史） |
 
 ---
 
