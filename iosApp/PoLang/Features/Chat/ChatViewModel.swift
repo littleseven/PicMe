@@ -127,11 +127,13 @@ final class ChatViewModel: ObservableObject {
         case "chinese_traditional": return "TRADITIONAL_CHINESE"
         default:
             // 加固：iOS Locale.preferredLanguages 可能产出下划线形式（如 "zh_Hant_TW"），
-            // 先统一替换成连字符再做 contains("-hant") 等判断，保证两种形态都正确分流
+            // 先统一替换成连字符再做 contains("-hant") 等判断，保证两种形态都正确分流；
+            // yue（粤语）按与 zh 相同规则解析：iOS 粤语系统语言下 UI 回退繁中，chat 须一致
             let tag = (Locale.preferredLanguages.first ?? "en")
                 .lowercased()
                 .replacingOccurrences(of: "_", with: "-")
-            guard tag == "zh" || tag.hasPrefix("zh-") else { return "ENGLISH" }
+            guard tag == "zh" || tag.hasPrefix("zh-") ||
+                    tag == "yue" || tag.hasPrefix("yue-") else { return "ENGLISH" }
             return (tag.contains("-hant") || tag.contains("-tw") ||
                     tag.contains("-hk") || tag.contains("-mo"))
                 ? "TRADITIONAL_CHINESE" : "SIMPLIFIED_CHINESE"
