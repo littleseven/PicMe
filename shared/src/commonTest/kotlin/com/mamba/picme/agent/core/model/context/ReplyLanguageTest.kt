@@ -44,5 +44,9 @@ class ReplyLanguageTest {
         assertEquals(ReplyLanguage.TRADITIONAL_CHINESE, AppLanguage.SYSTEM.toReplyLanguage("ZH-HANT-TW"))
         // 空串 → 英文兜底
         assertEquals(ReplyLanguage.ENGLISH, AppLanguage.SYSTEM.toReplyLanguage(""))
+        // "zh*" 但非 "zh-" 的畸形 tag → 英文（锁定收紧后的子标签边界）
+        assertEquals(ReplyLanguage.ENGLISH, AppLanguage.SYSTEM.toReplyLanguage("zhcn"))
+        // 裸脚本 tag（iOS 真实形态）→ 繁体
+        assertEquals(ReplyLanguage.TRADITIONAL_CHINESE, AppLanguage.SYSTEM.toReplyLanguage("zh-Hant"))
     }
 }
