@@ -116,6 +116,16 @@ ai_agent:
                                         # 2026-08-21：组尾「添加模型」行改为导航 add_remote_provider 页
                                         # （原 AddProviderModelDialog 弹窗流程下线）
             add_entry_target: add_remote_provider
+        - assistant_persona:            # 2026-08-22 新增
+            type: option_chips          # 单选 chips（Android CompactOptionChips / iOS FlowLayout + capsule Button），maxLines=2
+            title: "Assistant Personality"  # 助手性格
+            options: [default, warm_caring, lively_playful, crisp_direct]
+            default: default
+            persistence:
+              android: "DataStore assistant_persona (enum name)"
+              ios: "@AppStorage(\"assistant_persona\")"
+            effect: "chat system prompt 尾段注入性格段（三语按界面语言选段），下一条消息生效；default 不注入"
+            desc_per_option: true       # 选中项下方显示一句话描述
 
     - title: "Voice Control"            # 语音控制（2026-08-19：语音全面默认关闭，本组为唯一开启入口）
       items:

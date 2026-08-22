@@ -133,6 +133,7 @@
 - **远程模式**：使用云端 LLM API（OpenAI 兼容协议）；端侧文本 LLM（qwen3_5_2b）已移除，相机/聊天指令统一走远程 tool_calls 链路
 - **关闭模式**：禁用 Agent
 - **隐私级别**：`STRICT` / `PERMISSIVE`；运行时输入分级为 `PUBLIC` / `SENSITIVE` / `RESTRICTED`
+- **助手性格（2026-08-22 新增）**：远程模型页「助手性格」单选（默认/温暖贴心/活泼幽默/简洁干练，`assistant_persona` DataStore 枚举），经 `AgentContext.persona` 注入 chat system prompt 尾段；DEFAULT 不注入
 
 ### 2.7 相册功能入口（2026-06 新增）
 **入口位置**：设置页「相册功能」卡片（`SettingsScreen` 中非 Debug 区域）
