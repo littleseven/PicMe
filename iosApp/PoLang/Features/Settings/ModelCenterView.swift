@@ -6,14 +6,13 @@ import SharedKit
 /// 对标 Android `AiAgentRemoteModelsSection` + `AddProviderModelDialog`：
 /// - 已配置模型列表（RadioButton 选中 + 删除）
 /// - 当前选中高亮卡片
-/// - + 添加模型 sheet（供应商 → 模型 → API Key）
+/// - + 添加模型：导航 AddRemoteProviderView 两页流（2026-08-21 弹窗下线；AddModelSheet 保留无入口）
 /// - 访客模式提示
 struct ModelCenterView: View {
     @EnvironmentObject private var store: ModelConfigStore
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var cs
     private var s: SchemeColors { appScheme(cs) }
-    @State private var showAddSheet = false
     @State private var editTarget: EditModelTarget?
 
     var body: some View {
@@ -61,17 +60,13 @@ struct ModelCenterView: View {
         .background(s.background.ignoresSafeArea())
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    showAddSheet = true
+                // 添加模型：导航两页流（原 AddModelSheet 弹窗入口下线，spec §3c/§3d）
+                NavigationLink {
+                    AddRemoteProviderView()
                 } label: {
                     Image(matIcon: "add")
                         .font(.system(size: 20))
                 }
-            }
-        }
-        .sheet(isPresented: $showAddSheet) {
-            AddModelSheet { provider, modelId, apiKey in
-                store.add(provider: provider, modelId: modelId, apiKey: apiKey)
             }
         }
         .sheet(item: $editTarget) { target in
@@ -230,9 +225,10 @@ struct AddModelSheet: View {
                     SecureField(L("Enter API Key"), text: $apiKey)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                    if let provider = selectedProvider {
-                        Link(L("Get API Key"),
-                             destination: URL(string: apiKeyUrl(for: provider.providerId))!)
+                    if let provider = selectedProvider,
+                       !provider.apiKeyUrl.isEmpty,
+                       let url = URL(string: provider.apiKeyUrl) {
+                        Link(L("Get API Key"), destination: url)
                             .font(.caption)
                     }
                 }
@@ -309,17 +305,6 @@ struct AddModelSheet: View {
         .onTapGesture {
             isCustomModel = true
             selectedModelId = ""
-        }
-    }
-
-    private func apiKeyUrl(for providerId: String) -> String {
-        switch providerId {
-        case "tencent-tokenhub": return "https://console.cloud.tencent.com/"
-        case "kimi-official": return "https://platform.moonshot.cn/"
-        case "deepseek-official": return "https://platform.deepseek.com/"
-        case "openai-official": return "https://platform.openai.com/"
-        case "anthropic-official": return "https://console.anthropic.com/"
-        default: return "https://api.polang.net/"
         }
     }
 }

@@ -24,6 +24,8 @@ struct ChatView: View {
     @State private var showPhotoPicker = false
     /// 诚实占位：功能未实现时的说明（spec §11 允许差异外的项后续补齐）
     @State private var comingSoonFeature: String? = nil
+    /// 「自己的 Token」入口：全屏打开设置·远程模型页（chat.yaml §4.1 secondary_cta）
+    @State private var showTokenConfig = false
 
     var body: some View {
         ZStack(alignment: .leading) {
@@ -32,13 +34,19 @@ struct ChatView: View {
 
                 if viewModel.messages.isEmpty {
                     // 包 ScrollView：系统键盘避让对 ScrollView 生效（greedy VStack 不生效→输入栏被遮）。
-                    // GeometryReader 给 ChatEmptyState 明确全高，保内部 Spacer 居中布局不被 ScrollView 破坏。
+                    // GeometryReader 给 ChatEmptyState 明确全高，保内部居中布局不被 ScrollView 破坏；
+                    // v3 内容超高可滚（chat.yaml §4 scrollable: true）。
                     GeometryReader { geo in
                         ScrollView {
-                            ChatEmptyState { prompt in
-                                viewModel.send(prompt)  // 直接发送，不填充输入框
-                            }
-                            .frame(width: geo.size.width, height: geo.size.height)
+                            ChatEmptyState(
+                                isGuestMode: viewModel.isGuestMode,
+                                onExampleTap: { prompt in
+                                    viewModel.send(prompt)  // 直接发送，不填充输入框
+                                },
+                                onGuestLinkTap: { viewModel.openRegistrationSheet() }
+                            )
+                            .frame(width: geo.size.width)
+                            .frame(minHeight: geo.size.height)
                         }
                         .scrollDismissesKeyboard(.interactively)
                     }
@@ -121,12 +129,41 @@ struct ChatView: View {
             Text(viewModel.unavailableNotice ?? "")
         }
         .sheet(isPresented: $showPhotoPicker) {
-            // 相册单选 picker（PHPicker，取 assetIdentifier = PHAsset.localIdentifier）
+            // 相册单选 picker（PHPicker，取 assetIdentifier = PHAsset localIdentifier）
             ChatPhotoPicker { localIdentifier in
                 viewModel.stageImage(localIdentifier)
                 showPhotoPicker = false
             }
             .ignoresSafeArea()
+        }
+        // 访客注册引导 sheet（chat.yaml §4.1 sheet：guest_link / banner 按钮 / 阈值与 403 触发）
+        .sheet(isPresented: $viewModel.showRegistrationSheet) {
+            ChatRegistrationSheet(
+                usedCount: viewModel.guestMessageCount,
+                onRegisterSuccess: { viewModel.registrationSuccess() },
+                onUseOwnToken: {
+                    viewModel.showRegistrationSheet = false
+                    showTokenConfig = true
+                }
+            )
+            .presentationDetents([.medium, .large])
+        }
+        // 「自己的 Token」：全屏打开设置·远程模型页（等价 Android 跳 Settings provider 配置页；
+        // 复用 ModelCenterView（只引用不改动），关闭按钮由本包装层提供）
+        .fullScreenCover(isPresented: $showTokenConfig) {
+            NavigationStack {
+                ModelCenterView()
+                    .environmentObject(ModelConfigStore.shared)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button { showTokenConfig = false } label: {
+                                MatIcon(name: "mat_o_close", size: 20)
+                                    .foregroundColor(Color(.label))
+                            }
+                            .accessibilityIdentifier("chat_token_config_close")
+                        }
+                    }
+            }
         }
     }
 
@@ -262,6 +299,10 @@ struct ChatView: View {
 
     private var inputBar: some View {
         VStack(spacing: 0) {
+            // 访客注册引导 banner（chat.yaml §4.1 banner：isGuestMode && count>=20 && !dismissedThisSession）
+            if viewModel.showsGuestBanner {
+                guestNudgeBanner
+            }
             VStack(spacing: TopBarTokens.spacing) {
                 // 暂存图（选图后）：72dp 缩略图 + ✕ 移除 + 3 意图 chip（理解/找相似/编辑）
                 if let staged = viewModel.stagedImage {
@@ -305,37 +346,8 @@ struct ChatView: View {
                     .disabled(viewModel.isProcessing)
                     .accessibilityIdentifier("chat_gallery_capsule")
 
-                    // 模型胶囊（对齐 Android ModelSelector）：有用户配置(BYOK)时显示，下拉切模型
-                    if !ModelConfigStore.shared.configs.isEmpty {
-                        Menu {
-                            ForEach(ModelConfigStore.shared.configs, id: \.uniqueKey) { config in
-                                Button {
-                                    ModelConfigStore.shared.select(modelId: config.modelId)
-                                } label: {
-                                    HStack {
-                                        Text(config.modelId)
-                                        if config.modelId == ModelConfigStore.shared.selectedModelId {
-                                            Image(systemName: "checkmark")
-                                        }
-                                    }
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 4) {
-                                Circle().fill(Color.accentColor).frame(width: 8, height: 8)
-                                Text(ModelConfigStore.shared.selectedDisplayName)
-                                    .font(.system(size: 12))
-                                    .lineLimit(1)
-                                Image(systemName: "chevron.down").font(.system(size: 10))
-                            }
-                            .foregroundColor(Color(.label).opacity(0.7))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(Color(.secondarySystemBackground).opacity(ChatBubbleTokens.capsuleInactiveAlpha))
-                            .clipShape(RoundedRectangle(cornerRadius: ChatBubbleTokens.capsuleCornerRadius))
-                        }
-                        .accessibilityIdentifier("chat_model_capsule")
-                    }
+                    // 模型胶囊已移除（2026-08-22 Android 同步决策，chat.yaml §9.1
+                    // model_capsule: removed_2026_08_22）——BYOK 切模型走设置远程模型页。
 
                     Spacer()
 
@@ -371,6 +383,46 @@ struct ChatView: View {
         }
         .padding(.horizontal, 12)
         .padding(.bottom, 8)
+    }
+
+    // MARK: - 访客注册引导 banner（spec §4.1 banner：r16 surfaceContainerHigh 卡 + 双文本按钮 + 关闭）
+
+    private var guestNudgeBanner: some View {
+        HStack(spacing: 8) {
+            Text(String(format: L("Guest trial: %lld+ rounds used"), viewModel.guestMessageCount))
+                .font(.system(size: 13))
+                .foregroundColor(Color(.label).opacity(0.8))
+                .lineLimit(1)
+            Spacer(minLength: 4)
+            Button { viewModel.openRegistrationSheet() } label: {
+                Text(L("Get free quota"))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(ChatBubbleTokens.brandGradientStart)
+            }
+            .accessibilityIdentifier("chat_guest_banner_register")
+            Button { showTokenConfig = true } label: {
+                Text(L("My own Token"))
+                    .font(.system(size: 13))
+                    .foregroundColor(Color(.secondaryLabel))
+            }
+            .accessibilityIdentifier("chat_guest_banner_token")
+            // 关闭（28dp 热区；仅本会话有效，重启复现）
+            Button { viewModel.dismissGuestBanner() } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 13))
+                    .foregroundColor(Color(.secondaryLabel))
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
+            }
+            .accessibilityIdentifier("chat_guest_banner_dismiss")
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(.horizontal, 12)
+        .padding(.bottom, 8)
+        .accessibilityIdentifier("chat_guest_banner")
     }
 
     /// 对齐 Android：发送按钮仅在 text 非空 && !isProcessing 时出现；
@@ -858,83 +910,178 @@ private struct MediaThumbnail: View {
     }
 }
 
-// MARK: - Empty State
+// MARK: - Empty State v3（chat.yaml §4，2026-08-22 定稿；设计稿 refs/ardot/chat-empty-v2-guest）
 
+/// 空状态 v3：48pt 品牌渐变 Logo 块 + 渐变标题 + 访客小链接 + 两组示例 chips（各 3 条，带彩色图标）。
+/// EN 示例词为 key（L() 查表），显示与点击发送均用本地化串（对齐 Android stringArray 行为）。
 struct ChatEmptyState: View {
+    /// 访客模式（无 server token）才显示注册小链接（show_when isGuestMode）
+    let isGuestMode: Bool
     let onExampleTap: (String) -> Void
+    var onGuestLinkTap: (() -> Void)? = nil
 
-    // 本地化热词（key 已在 Localizable.xcstrings 配齐 zh-Hans/zh-Hant），
-    // 显示与点击发送均用本地化串（对齐 Android stringArray 行为）
-    private let examples: [String] = [
-        String(localized: "Find photos from last summer"),
-        String(localized: "Search beach photos"),
-        String(localized: "Find photos with people"),
-        String(localized: "Search night scenes"),
-        String(localized: "Give me an album health report"),
-        String(localized: "Analyze my photos by tag and time"),
+    /// 示例 chip：EN 取词 key + 彩色图标（图标色为设计稿固定色，非主题色）
+    private struct ExampleChip {
+        let prompt: String
+        let iconSystemName: String
+        let iconColor: Color
+    }
+    private struct ExampleGroup {
+        let label: String
+        let chips: [ExampleChip]
+    }
+
+    /// 两组示例词（spec §4 example_groups；文案=chat_example_prompts_search/ask 三语数组，
+    /// 与 Android strings.xml 逐字一致；chips 图标按组内语义固定）
+    private let groups: [ExampleGroup] = [
+        ExampleGroup(label: "Find photos", chips: [
+            ExampleChip(prompt: "Find photos from last summer",
+                        iconSystemName: "calendar", iconColor: Color(red: 0x6B / 255.0, green: 0xA6 / 255.0, blue: 0xFF / 255.0)),
+            ExampleChip(prompt: "Find photos with people",
+                        iconSystemName: "person.fill", iconColor: Color(red: 0xFF / 255.0, green: 0x7E / 255.0, blue: 0xB0 / 255.0)),
+            ExampleChip(prompt: "Search for night scene photos",
+                        iconSystemName: "moon.stars.fill", iconColor: Color(red: 0x9B / 255.0, green: 0x8C / 255.0, blue: 0xFF / 255.0)),
+        ]),
+        ExampleGroup(label: "Ask about your gallery", chips: [
+            ExampleChip(prompt: "Give me a gallery health report",
+                        iconSystemName: "chart.bar.fill", iconColor: Color(red: 0x4A / 255.0, green: 0xDE / 255.0, blue: 0x80 / 255.0)),
+            ExampleChip(prompt: "Find duplicate photos",
+                        iconSystemName: "photo.on.rectangle.angled", iconColor: Color(red: 0x22 / 255.0, green: 0xD3 / 255.0, blue: 0xEE / 255.0)),
+            ExampleChip(prompt: "How many selfies did I take?",
+                        iconSystemName: "person.2.fill", iconColor: Color(red: 0xFF / 255.0, green: 0x7E / 255.0, blue: 0xB0 / 255.0)),
+        ]),
     ]
+
+    /// 品牌渐变（chat.yaml §10：#0F766E→#5EA88F 135°；token 见 ChatBubbleTokens.brandGradient*）
+    private var brandGradient: LinearGradient {
+        LinearGradient(
+            colors: [ChatBubbleTokens.brandGradientStart, ChatBubbleTokens.brandGradientEnd],
+            startPoint: .topLeading, endPoint: .bottomTrailing
+        )
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            Spacer().frame(height: 40)
+            Spacer().frame(height: 28)  // top_spacer（v3）
 
-            // Logo（品牌前景图 104pt 溢出盒内居中不裁切，对齐 spec empty_state.logo）
+            // Logo：48pt 品牌渐变底块 r16；内嵌图 1.75 倍（84pt）放大居中裁切——
+            // 透明边裁出框外、插画填满 LogoBox（spec inner_image_zoom；iOS 无
+            // app_launcher_foreground 资源，暂以 chat_logo 位图等比代用，见交付报告）
             ZStack {
-                RoundedRectangle(cornerRadius: 18)
-                    .fill(Color(.tertiarySystemBackground))
-                    .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color(.separator), lineWidth: 1))
-                    .frame(width: 64, height: 64)
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(brandGradient)
                 Image("chat_logo")
                     .resizable()
-                    .frame(width: 104, height: 104)
+                    .scaledToFill()
+                    .frame(width: 48 * 1.75, height: 48 * 1.75)
+            }
+            .frame(width: 48, height: 48)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+
+            Spacer().frame(height: 12)  // title_spacer
+
+            Text(L("Hi, I'm Xiaolang"))
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(brandGradient)  // 渐变着色文字
+
+            Spacer().frame(height: 6)  // subtitle_spacer
+
+            Text(L("Search, edit, beautify — ask me anything!"))
+                .font(.system(size: 14))
+                .foregroundColor(Color(.secondaryLabel))
+
+            // 访客轻量入口（show_when isGuestMode；纯文本点击态，padding 12/6）
+            if isGuestMode {
+                Button { onGuestLinkTap?() } label: {
+                    Text(L("Not registered? Sign up or use your Token →"))
+                        .font(.system(size: 13))
+                        .foregroundColor(ChatBubbleTokens.brandGradientStart)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                }
+                .accessibilityIdentifier("chat_guest_link")
             }
 
-            Spacer().frame(height: 16)
+            Spacer().frame(height: 16)  // groups_spacer
 
-            Text("Hi, I'm Xiaolang, your smart assistant")
-                .font(.system(size: 24, weight: .bold))
-                .foregroundColor(Color(.label))
+            // 两组示例：居中小标题 13 onSurfaceVariant + flow chips（组间 12，组内标题→chips 8）
+            ForEach(Array(groups.enumerated()), id: \.offset) { index, group in
+                if index > 0 { Spacer().frame(height: 12) }  // group_gap
+                groupView(group)
+            }
 
-            Spacer().frame(height: 6)
+            Spacer().frame(height: 10)  // 末组距输入栏
+        }
+        .padding(.horizontal, 20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityIdentifier("chat_empty_state")
+    }
 
-            Text("I can search, edit, adjust beauty, find people/scenes—ask anything!")
-                .font(.system(size: 14))
+    private func groupView(_ group: ExampleGroup) -> some View {
+        VStack(spacing: 8) {
+            Text(L(group.label))
+                .font(.system(size: 13))
                 .foregroundColor(Color(.secondaryLabel))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 20)
-
-            Spacer()
-
-            Text("Try these:")
-                .font(.system(size: 14))
-                .foregroundColor(Color(.secondaryLabel))
-                .padding(.bottom, 10)
-
-            FlowLayout(spacing: 8) {
-                ForEach(examples, id: \.self) { prompt in
-                    Button { onExampleTap(prompt) } label: {
-                        Text(prompt)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(Color(.secondaryLabel))
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
-                            .background(Color(.tertiarySystemBackground))
-                            .clipShape(Capsule())
-                    }
+            // chips flow（行距 8 / 列距 14，整体居中）
+            FlowLayout(horizontal: 14, vertical: 8, centered: true) {
+                ForEach(group.chips, id: \.prompt) { chip in
+                    exampleChip(chip)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 8)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// 单条示例 chip：r22 surfaceContainerHigh 底 + 16pt 彩色图标 + 14sp 单行文本
+    /// （padding start 12 / end 14 / vertical 8；文本强制单行溢出省略）
+    private func exampleChip(_ chip: ExampleChip) -> some View {
+        Button {
+            onExampleTap(L(chip.prompt))
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: chip.iconSystemName)
+                    .font(.system(size: 16))
+                    .foregroundColor(chip.iconColor)
+                Text(L(chip.prompt))
+                    .font(.system(size: 14))
+                    .foregroundColor(Color(.label))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+            .padding(.leading, 12)
+            .padding(.trailing, 14)
+            .padding(.vertical, 8)
+            .background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 22))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("chat_example_chip")
     }
 }
 
 // MARK: - FlowLayout
 
 struct FlowLayout: Layout {
-    let spacing: CGFloat
-    init(spacing: CGFloat = 8) { self.spacing = spacing }
+    let hSpacing: CGFloat
+    let vSpacing: CGFloat
+    /// 每行内容整体居中（chat 空状态 v3 two_groups_flow_wrap_centered；默认 false=左对齐，
+    /// Settings/TagScan 既有调用不受影响）
+    var centered: Bool = false
+    /// 等距便捷初始化（旧行为兼容：Settings/TagScan 既有调用）
+    init(spacing: CGFloat = 8) {
+        self.hSpacing = spacing
+        self.vSpacing = spacing
+    }
+    /// 横纵独立间距（chat 空状态 v3：列距 14 / 行距 8；默认左对齐）
+    init(horizontal: CGFloat, vertical: CGFloat) {
+        self.hSpacing = horizontal
+        self.vSpacing = vertical
+    }
+    /// 横纵独立间距 + 行居中
+    init(horizontal: CGFloat, vertical: CGFloat, centered: Bool) {
+        self.hSpacing = horizontal
+        self.vSpacing = vertical
+        self.centered = centered
+    }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let maxWidth = proposal.width ?? .infinity
@@ -942,24 +1089,41 @@ struct FlowLayout: Layout {
         for subview in subviews {
             let size = subview.sizeThatFits(.unspecified)
             if x + size.width > maxWidth && x > 0 {
-                totalHeight += rowHeight + spacing; x = 0; rowHeight = 0
+                totalHeight += rowHeight + vSpacing; x = 0; rowHeight = 0
             }
-            x += size.width + spacing; rowHeight = max(rowHeight, size.height)
+            x += size.width + hSpacing; rowHeight = max(rowHeight, size.height)
         }
         totalHeight += rowHeight
         return CGSize(width: maxWidth, height: totalHeight)
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var x = bounds.minX, y = bounds.minY, rowHeight: CGFloat = 0
-        let maxX = bounds.minX + bounds.width
+        // 先按宽度分行，再逐行摆放（centered=true 时行内容整体居中）
+        var rows: [[(size: CGSize, subview: LayoutSubview)]] = []
+        var row: [(size: CGSize, subview: LayoutSubview)] = []
+        var x: CGFloat = 0
         for subview in subviews {
             let size = subview.sizeThatFits(.unspecified)
-            if x + size.width > maxX && x > bounds.minX {
-                x = bounds.minX; y += rowHeight + spacing; rowHeight = 0
+            if x + size.width > bounds.width && !row.isEmpty {
+                rows.append(row); row = []; x = 0
             }
-            subview.place(at: CGPoint(x: x, y: y), proposal: .init(size))
-            x += size.width + spacing; rowHeight = max(rowHeight, size.height)
+            row.append((size, subview))
+            x += size.width + hSpacing
+        }
+        if !row.isEmpty { rows.append(row) }
+
+        var y = bounds.minY
+        for row in rows {
+            let rowHeight = row.map(\.size.height).max() ?? 0
+            let rowWidth = row.map(\.size.width).reduce(0, +) + hSpacing * CGFloat(row.count - 1)
+            var px = centered
+                ? bounds.minX + max(0, (bounds.width - rowWidth) / 2)
+                : bounds.minX
+            for item in row {
+                item.subview.place(at: CGPoint(x: px, y: y), proposal: .init(item.size))
+                px += item.size.width + hSpacing
+            }
+            y += rowHeight + vSpacing
         }
     }
 }

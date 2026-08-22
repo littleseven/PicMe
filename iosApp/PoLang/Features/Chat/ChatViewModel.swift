@@ -57,6 +57,77 @@ final class ChatViewModel: ObservableObject {
     /// ai_optimize 抽卡在途（ReAct 同轮重复动作去重）
     private var gachaDrawInFlight = false
 
+    // MARK: 访客渐进注册引导（chat.yaml §4.1 guest_nudge，2026-08-22）
+    //
+    /// 访客计数存储 key（平台差异台账 contracts.md §3：Android DataStore ↔ iOS UserDefaults）
+    static let guestChatMessageCountKey = "guest_chat_message_count"
+    /// 主动弹层阈值：恰好第 20 条当次插提示气泡 + 弹注册 sheet（>20 不再主动弹）
+    static let guestRegisterNudgeThreshold = 20
+
+    /// 访客判定数据源：UserDefaults `server_auth_token`（SettingsScreen/AccountSettingsView
+    /// 注册成功写入的 server 会话 token；空 = 未注册 = 访客——「远程模型且无 server token」的 iOS 等价判定）
+    var isGuestMode: Bool {
+        (UserDefaults.standard.string(forKey: "server_auth_token") ?? "").isEmpty
+    }
+
+    /// 访客消息累计发送数（跨会话累计；注册成功清零）
+    @Published private(set) var guestMessageCount: Int =
+        UserDefaults.standard.integer(forKey: ChatViewModel.guestChatMessageCountKey)
+    /// 注册引导 sheet（guest_link / banner 按钮 / 阈值与 403 兜底触发）
+    @Published var showRegistrationSheet = false
+    /// banner 会话内关闭标记（仅内存态，重启复现——spec banner.show_when dismissedThisSession）
+    @Published private(set) var guestBannerDismissed = false
+
+    /// banner 可见性（chat.yaml §4.1 banner.show_when）
+    var showsGuestBanner: Bool {
+        isGuestMode && guestMessageCount >= Self.guestRegisterNudgeThreshold && !guestBannerDismissed
+    }
+
+    /// 打开注册 sheet（空状态 guest_link / banner 按钮）
+    func openRegistrationSheet() { showRegistrationSheet = true }
+
+    /// banner 关闭（仅本会话有效）
+    func dismissGuestBanner() { guestBannerDismissed = true }
+
+    /// 注册成功（chat sheet verify OK）：计数清零（counter.reset_on=register_success）+ 关 sheet
+    func registrationSuccess() {
+        Self.resetGuestMessageCount()
+        guestMessageCount = 0
+        showRegistrationSheet = false
+    }
+
+    /// 计数清零（静态：Settings EmailAuth verify 成功同调——注册入口不止 chat）
+    nonisolated static func resetGuestMessageCount() {
+        UserDefaults.standard.set(0, forKey: "guest_chat_message_count")
+    }
+
+    /// 访客发送计数：==20 恰好跨阈值当次插 agent 提示气泡 + 弹注册 sheet（>20 不再弹）
+    private func recordGuestSend() {
+        // 重读存储：Settings 侧注册成功清零后，本 VM 立即感知（不依赖自身快照）
+        guestMessageCount = UserDefaults.standard.integer(forKey: Self.guestChatMessageCountKey)
+        guard isGuestMode else { return }
+        guestMessageCount += 1
+        UserDefaults.standard.set(guestMessageCount, forKey: Self.guestChatMessageCountKey)
+        guard guestMessageCount == Self.guestRegisterNudgeThreshold else { return }
+        let notice = String(
+            format: L("You've chatted %lld rounds with me 🎉 Register to claim free quota, or configure your own LLM Token — either works to keep chatting!"),
+            guestMessageCount
+        )
+        messages.append(ChatMessage(role: .assistant, text: notice))
+        touchThread(preview: notice)
+        persist()
+        showRegistrationSheet = true
+    }
+
+    /// 配额耗尽提示气泡（server 403 兜底）+ 弹 sheet
+    private func showGuestQuotaExhaustedNudge() {
+        let notice = L("Trial quota used up. Register to get 1000 free calls.")
+        messages.append(ChatMessage(role: .assistant, text: notice))
+        touchThread(preview: notice)
+        persist()
+        showRegistrationSheet = true
+    }
+
     func stageImage(_ localIdentifier: String) {
         stagedImage = StagedImage(localIdentifier: localIdentifier)
         let lid = localIdentifier
@@ -201,6 +272,8 @@ final class ChatViewModel: ObservableObject {
         autoTitleIfNeeded(firstUserText: trimmed)
         touchThread(preview: trimmed)
         persist()
+        // 访客发送计数 + 阈值弹层（chat.yaml §4.1；==20 当次插提示气泡 + 开注册 sheet）
+        recordGuestSend()
         // 带图发文本：远程只收文本（图片像素不上传，隐私红线）；暂存图消费掉
         stagedImage = nil
 
@@ -345,6 +418,11 @@ final class ChatViewModel: ObservableObject {
         if let errorMessage, !errorMessage.isEmpty {
             messages[idx].text = errorMessage
             messages[idx].error = errorMessage
+            // 访客配额耗尽硬兜底（chat.yaml §4.1 triggers.quota_exceeded）：server 403 body
+            // 全程透传到 errorMessage（contracts.md §2 已验证），含 "quota_exceeded" 即插提示 + 弹 sheet
+            if isGuestMode, errorMessage.localizedCaseInsensitiveContains("quota_exceeded") {
+                showGuestQuotaExhaustedNudge()
+            }
         } else {
             messages[idx].text = summary.isEmpty ? String(localized: "(No response)") : summary
         }

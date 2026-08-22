@@ -3,7 +3,7 @@ import XCTest
 /// 会话历史侧栏 + 空状态引导 真机验收（spec chat.yaml §2.5 / §4 / §9.1 session_model）。
 ///
 /// 覆盖：
-/// - 空状态本地化热词（zh 设备显示中文 chips，修复「热词恒英文」回归）
+/// - 空状态 v3（chat-empty-v3）：两组示例 chips + 访客链接 → 注册引导 sheet
 /// - 侧栏打开/新建会话/搜索过滤/重命名/删除（对标 Android ChatThreadSidebar）
 ///
 /// 约束：不触发真实推理（不发送消息），仅验证 UI 与本地持久化逻辑。
@@ -32,30 +32,33 @@ final class ChatHistorySidebarUITests: XCTestCase {
         return app.descendants(matching: .any)[labels[0]].firstMatch
     }
 
-    // MARK: - 空状态：本地化热词（无历史时）
+    // MARK: - 空状态 v3（2026-08-22 chat-empty-v3：两组示例 chips + 访客链接）
 
-    func testEmptyStateLocalizedExamples() throws {
+    func testEmptyStateExampleGroups() throws {
         // 有历史消息时无空状态 → 跳过（不清用户数据）
-        let sidebar = app.buttons["chat_menu"]
-        _ = sidebar
-        let tryThese = app.staticTexts["Try these:"].firstMatch
-        let tryTheseZh = app.staticTexts["试试这些："].firstMatch
-        let tryTheseTw = app.staticTexts["試試這些："].firstMatch
-        guard tryThese.waitForExistence(timeout: 2) || tryTheseZh.exists || tryTheseTw.exists else {
+        let emptyState = app.descendants(matching: .any)["chat_empty_state"].firstMatch
+        guard emptyState.waitForExistence(timeout: 2) else {
             throw XCTSkip("当前会话非空，无空状态引导页")
         }
-        // 热词必须本地化：任一非英文版本存在即证明走了查表（修复前恒为英文）
-        let zhChip = app.buttons["搜索海边的照片"].firstMatch
-        let twChip = app.buttons["搜尋海邊的照片"].firstMatch
-        let enChip = app.buttons["Search beach photos"].firstMatch
-        XCTAssertTrue(
-            zhChip.exists || twChip.exists || enChip.exists,
-            "空状态应显示热词 chips"
-        )
-        // 设备为中文时绝不应显示英文热词
-        if tryTheseZh.exists || tryTheseTw.exists {
-            XCTAssertFalse(enChip.exists, "中文设备热词不应为英文（i18n 回归）")
+        // v3：两组各 3 条示例 chips（chat_example_chip 标识符，文案取词不依赖设备语言）
+        let chips = app.buttons.matching(identifier: "chat_example_chip")
+        XCTAssertGreaterThanOrEqual(chips.count, 6, "v3 空状态应两组各 3 条示例 chips")
+    }
+
+    func testEmptyStateGuestLinkOpensSheet() throws {
+        let emptyState = app.descendants(matching: .any)["chat_empty_state"].firstMatch
+        guard emptyState.waitForExistence(timeout: 2) else {
+            throw XCTSkip("当前会话非空，无空状态引导页")
         }
+        // 访客小链接仅在未注册（无 server token）时显示；已注册设备跳过
+        let guestLink = app.buttons["chat_guest_link"].firstMatch
+        guard guestLink.exists else { throw XCTSkip("已注册，无访客链接") }
+        guestLink.tap()
+        let sheet = app.descendants(matching: .any)["chat_registration_sheet"].firstMatch
+        XCTAssertTrue(sheet.waitForExistence(timeout: 5), "点访客链接应弹注册引导 sheet")
+        // 下滑关闭（sheet 手势）
+        sheet.swipeDown()
+        _ = emptyState.waitForExistence(timeout: 3)
     }
 
     // MARK: - 侧栏：打开 → 新建 → 搜索 → 重命名 → 删除

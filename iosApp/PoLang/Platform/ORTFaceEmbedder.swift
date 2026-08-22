@@ -24,8 +24,10 @@ final class ORTFaceEmbedder {
 
     @discardableResult
     func load(modelPath: String) -> Bool {
+        // 三分支语义：未下载（引导去 Model Center 下载）/ 加载成功 /
+        // 文件存在但加载失败（疑似损坏，引导重新下载）——对齐 Pass1Pipeline 的提示风格
         guard FileManager.default.fileExists(atPath: modelPath) else {
-            NSLog("[PoLang:ORTFaceEmbedder] model not found: %@", modelPath)
+            NSLog("[PoLang:ORTFaceEmbedder] model not downloaded: %@. Download it from Model Center", modelPath)
             return false
         }
         do {
@@ -38,7 +40,7 @@ final class ORTFaceEmbedder {
             NSLog("[PoLang:ORTFaceEmbedder] model loaded: %@", modelPath)
             return true
         } catch {
-            NSLog("[PoLang:ORTFaceEmbedder] load failed: %@", "\(error)")
+            NSLog("[PoLang:ORTFaceEmbedder] load failed (file exists, possibly corrupted): %@. Re-download it from Model Center. Error: %@", modelPath, "\(error)")
             session = nil
             return false
         }
