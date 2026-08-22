@@ -94,18 +94,13 @@ internal fun AssistantPersonaSelection(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .padding(vertical = 8.dp)
     ) {
-        Text(
-            text = stringResource(R.string.assistant_persona),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
         Text(
             text = stringResource(descRes),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            modifier = Modifier.padding(start = 12.dp, top = 2.dp)
+            modifier = Modifier.padding(top = 8.dp)
         )
         CompactOptionChips(
             options = options,

@@ -512,6 +512,10 @@ private fun SettingsContent(
 
             // ── 2. 远程模型（用户侧一级入口，2026-08-17 行式重设计）────────────────
             if (category == SettingsCategory.REMOTE_MODEL) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(SettingsTokens.listSectionSpacing)
+                ) {
                 RemoteModelsListSection(
                     configsJson = aiAgentRemoteModelConfigs,
                     onConfigsChange = onAiAgentRemoteModelConfigsChange,
@@ -524,6 +528,7 @@ private fun SettingsContent(
                         currentPersona = assistantPersona,
                         onPersonaSelected = onAssistantPersonaSelected
                     )
+                }
                 }
                 // 自动执行多步骤计划已迁入「沙盒与权限」一级入口
             }
