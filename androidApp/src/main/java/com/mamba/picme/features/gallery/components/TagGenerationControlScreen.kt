@@ -5,38 +5,38 @@ package com.mamba.picme.features.gallery.components
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AddCircleOutline
 import androidx.compose.material.icons.rounded.Cancel
-import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Face
-import androidx.compose.material.icons.rounded.Fingerprint
-import androidx.compose.material.icons.rounded.HourglassEmpty
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Label
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Replay
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Tune
-import androidx.compose.material.icons.rounded.Update
-import androidx.compose.material.icons.rounded.VerifiedUser
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.sp
 import com.mamba.picme.core.designsystem.ChatBubbleTokens
@@ -118,6 +118,10 @@ fun TagGenerationControlScreen(
     var selectedTimeRange by remember { mutableStateOf(TimeRangePreset.ALL) }
     var fullRegenerateMode by remember { mutableStateOf(false) }
 
+    // 阶段操作底部弹层 / 全量重处理二次确认
+    var stageSheetTarget by remember { mutableStateOf<TagStage?>(null) }
+    var pendingFullStage by remember { mutableStateOf<TagStage?>(null) }
+
     // 刷新统计：统一通过 TagScanOrchestrator.getDbStats(db) 获取，
     // 不依赖 Service/Orchestrator 实例，进入页面即可立即显示。
     fun refreshStats() {
@@ -183,6 +187,34 @@ fun TagGenerationControlScreen(
         }
     }
 
+    // 阶段操作：弹层选择「仅处理新增 / 全部重新处理」，全量需二次确认
+    fun startStage(stage: TagStage, full: Boolean) {
+        refreshStats()
+        val intent = when (stage) {
+            TagStage.FACE ->
+                if (full) TagGenerationService.intentScanPass1Full(context)
+                else TagGenerationService.intentScanPass1(context)
+            TagStage.PEOPLE ->
+                if (full) TagGenerationService.intentScanPass2Full(context)
+                else TagGenerationService.intentScanPass2(context)
+            TagStage.CONTENT ->
+                if (full) TagGenerationService.intentScanPass3Full(context)
+                else TagGenerationService.intentScanPass3(context)
+            TagStage.QUALITY ->
+                if (full) TagGenerationService.intentScoreAestheticFull(context)
+                else TagGenerationService.intentScoreAesthetic(context)
+        }
+        context.startForegroundService(intent)
+    }
+
+    @Composable
+    fun stageTitle(stage: TagStage): String = when (stage) {
+        TagStage.FACE -> stringResource(R.string.tag_pass_title_face)
+        TagStage.PEOPLE -> stringResource(R.string.tag_pass_title_cluster)
+        TagStage.CONTENT -> stringResource(R.string.tag_pass_title_content)
+        TagStage.QUALITY -> stringResource(R.string.tag_pass_title_aesthetic)
+    }
+
     if (guardIssues.isNotEmpty()) {
         BackgroundScanGuardDialog(
             issues = guardIssues,
@@ -206,6 +238,37 @@ fun TagGenerationControlScreen(
         )
     }
 
+    // ── 阶段操作弹层（点按阶段行弹出）+ 全量重处理二次确认 ────────
+    stageSheetTarget?.let { stage ->
+        StageActionSheet(
+            title = stageTitle(stage),
+            onDismiss = { stageSheetTarget = null },
+            onProcessNew = { startStage(stage, full = false) },
+            onReprocessAll = { pendingFullStage = stage }
+        )
+    }
+    pendingFullStage?.let { stage ->
+        AlertDialog(
+            onDismissRequest = { pendingFullStage = null },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            title = { Text(stringResource(R.string.tag_stage_full_confirm_title)) },
+            text = { Text(stringResource(R.string.tag_stage_full_confirm_msg)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    startStage(stage, full = true)
+                    pendingFullStage = null
+                }) {
+                    Text(stringResource(R.string.tag_stage_full_confirm_ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingFullStage = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -220,9 +283,25 @@ fun TagGenerationControlScreen(
                 .padding(padding)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // ── Library stats（置顶：用户最关心的数据）──
+            SectionHeader(title = stringResource(R.string.tag_section_library))
+            StatsCard(
+                totalMedia = totalMedia,
+                withFace = withFace,
+                withLabels = withLabels,
+                withSemantic = withSemantic,
+                personCount = personCount,
+                namedPersonCount = namedPersonCount,
+                embeddingCount = embeddingCount,
+                onNavigateToTagViewer = onNavigateToTagViewer
+            )
+
+            // ── Scan ──
+            SectionHeader(title = stringResource(R.string.tag_section_scan))
+
             // ── 当前任务进度卡片（统一槽位）─────────────────────
             // 扫描会话活跃时优先显示扫描进度（美学打分此时已被 Service 互斥取消，
             // 此处再兜底防竞态）；空闲时美学评分运行则显示打分进度，否则显示会话终态。
@@ -317,271 +396,97 @@ fun TagGenerationControlScreen(
                 }
             }
 
-            // ── 数据库累计统计卡片 ────────────────────────────
-            StatsCard(
-                totalMedia = totalMedia,
-                withFace = withFace,
-                withLabels = withLabels,
-                withSemantic = withSemantic,
-                personCount = personCount,
-                namedPersonCount = namedPersonCount,
-                embeddingCount = embeddingCount,
-                remainingPass1 = remainingPass1,
-                remainingPass3 = remainingPass3,
-                onNavigateToTagViewer = onNavigateToTagViewer
-            )
-
-            // ── 混合管道概览（只读状态展示） ────────────────
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        stringResource(R.string.tag_pipeline_overview),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(Modifier.height(8.dp))
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            if (withFace > 0 || !isScanning) Icons.Rounded.CheckCircle else Icons.Rounded.HourglassEmpty,
-                            null,
-                            modifier = Modifier.size(20.dp),
-                            tint = if (withFace > 0 || !isScanning) Color(0xFF4CAF50) else MaterialTheme.colorScheme.outline
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(stringResource(R.string.tag_pass_step_face), style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                stringResource(
-                                    R.string.tag_pass_overview_face,
-                                    totalMedia - remainingPass1,
-                                    remainingPass1,
-                                    withFace,
-                                    withSemantic
-                                ),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(8.dp))
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            if (personCount > 0 || !isScanning) Icons.Rounded.CheckCircle else Icons.Rounded.HourglassEmpty,
-                            null,
-                            modifier = Modifier.size(20.dp),
-                            tint = if (personCount > 0 || !isScanning) Color(0xFF4CAF50) else MaterialTheme.colorScheme.outline
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(stringResource(R.string.tag_pass_step_cluster), style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                stringResource(R.string.tag_pass_overview_cluster, personCount),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(8.dp))
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            if (withLabels > 0 || !isScanning) Icons.Rounded.CheckCircle else Icons.Rounded.HourglassEmpty,
-                            null,
-                            modifier = Modifier.size(20.dp),
-                            tint = if (withLabels > 0 || !isScanning) Color(0xFF4CAF50) else MaterialTheme.colorScheme.outline
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(stringResource(R.string.tag_pass_step_content), style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                stringResource(
-                                    R.string.tag_pass_overview_content,
-                                    totalMedia - remainingPass3,
-                                    remainingPass3
-                                ),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        }
-                    }
-
-                    // 语义编码已内联到人脸检测阶段，此处不再显示。
-                }
-            }
-
-            // ── 快速操作（空闲时显示） ────────────────
+            // ── 空闲时的扫描操作卡（大按钮区分 新增/全量）──
             AnimatedVisibility(visible = !isRunning && !isPausing && !isPaused) {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = {
-                                refreshStats()
-                                startScanWithGuard {
-                                    context.startForegroundService(TagGenerationService.intentScanAll(context))
-                                }
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.Rounded.PlayArrow, null, Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text(stringResource(R.string.tag_scan_full))
+                ScanActionCard(
+                    totalMedia = totalMedia,
+                    pendingCount = remainingPass1 + remainingPass3,
+                    lastSession = sessionProgress,
+                    onScanNew = {
+                        refreshStats()
+                        startScanWithGuard {
+                            context.startForegroundService(TagGenerationService.intentScanIncremental(context))
                         }
-                        OutlinedButton(
-                            onClick = {
-                                refreshStats()
-                                startScanWithGuard {
-                                    context.startForegroundService(TagGenerationService.intentScanIncremental(context))
-                                }
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.Rounded.Update, null, Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text(stringResource(R.string.tag_scan_incremental))
+                    },
+                    onRescanAll = {
+                        refreshStats()
+                        startScanWithGuard {
+                            context.startForegroundService(TagGenerationService.intentScanAll(context))
                         }
                     }
-                }
+                )
             }
 
-            // ── 分阶段独立控制 ────────────────
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        stringResource(R.string.tag_pass_control_title),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        stringResource(R.string.tag_pass_control_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                    Spacer(Modifier.height(8.dp))
-
-                    val pass1Progress = tagPassProgress(totalMedia, remainingPass1)
-                    val pass1Text = stringResource(
-                        R.string.tag_pass_progress_p1,
-                        pass1Progress.processed,
-                        pass1Progress.remaining,
-                        withFace
-                    )
-                    PassControlCard(
+            // ── 分阶段（点按行弹出操作弹层，避免增量/全量误触）──
+            SectionHeader(
+                title = stringResource(R.string.tag_pass_control_title),
+                hint = stringResource(R.string.tag_stages_hint)
+            )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                )
+            ) {
+                Column(modifier = Modifier.padding(vertical = 6.dp)) {
+                    StageRow(
+                        icon = Icons.Rounded.Face,
+                        iconTint = Color(0xFFFF7EB0),
                         title = stringResource(R.string.tag_pass_title_face),
                         description = stringResource(R.string.tag_pass_desc_face),
-                        progress = pass1Progress,
-                        progressText = if (pass1Progress.isEmpty) "" else pass1Text,
-                        onIncremental = {
-                            refreshStats()
-                            context.startForegroundService(TagGenerationService.intentScanPass1(context))
-                        },
-                        onFull = {
-                            refreshStats()
-                            context.startForegroundService(TagGenerationService.intentScanPass1Full(context))
-                        }
+                        trailing = stagePercentText(tagPassProgress(totalMedia, remainingPass1)),
+                        onClick = { stageSheetTarget = TagStage.FACE }
                     )
-
-                    Spacer(Modifier.height(8.dp))
-
-                    val clusterText = if (personCount > 0) {
-                        stringResource(R.string.tag_pass_cluster_done, personCount, embeddingCount)
-                    } else {
-                        stringResource(R.string.tag_pass_cluster_pending, embeddingCount)
-                    }
-                    PassControlCard(
+                    StageRow(
+                        icon = Icons.Rounded.Person,
+                        iconTint = Color(0xFF9B8CFF),
                         title = stringResource(R.string.tag_pass_title_cluster),
                         description = stringResource(R.string.tag_pass_desc_cluster),
-                        progress = null,
-                        progressText = clusterText,
-                        onIncremental = {
-                            refreshStats()
-                            context.startForegroundService(TagGenerationService.intentScanPass2(context))
-                        },
-                        onFull = {
-                            refreshStats()
-                            context.startForegroundService(TagGenerationService.intentScanPass2Full(context))
-                        }
+                        trailing = if (personCount > 0) "$personCount" else "—",
+                        onClick = { stageSheetTarget = TagStage.PEOPLE }
                     )
-
-                    Spacer(Modifier.height(8.dp))
-
-                    val pass3Progress = tagPassProgress(totalMedia, remainingPass3)
-                    val pass3Text = stringResource(
-                        R.string.tag_pass_progress_p3,
-                        pass3Progress.processed,
-                        pass3Progress.remaining
-                    )
-                    PassControlCard(
+                    StageRow(
+                        icon = Icons.Rounded.Label,
+                        iconTint = Color(0xFF22D3EE),
                         title = stringResource(R.string.tag_pass_title_content),
                         description = stringResource(R.string.tag_pass_desc_content),
-                        progress = pass3Progress,
-                        progressText = if (pass3Progress.isEmpty) "" else pass3Text,
-                        onIncremental = {
-                            refreshStats()
-                            context.startForegroundService(TagGenerationService.intentScanPass3(context))
-                        },
-                        onFull = {
-                            refreshStats()
-                            context.startForegroundService(TagGenerationService.intentScanPass3Full(context))
-                        }
+                        trailing = stagePercentText(tagPassProgress(totalMedia, remainingPass3)),
+                        onClick = { stageSheetTarget = TagStage.CONTENT }
                     )
-
-                    // 语义编码已内联到人脸检测阶段，此处不再提供独立入口。
-                    // ML Kit 英文标签已并入内容理解阶段，不再单独生成。
-
-                    Spacer(Modifier.height(8.dp))
-
-                    // 美学评分（NIMA + eDifFIQA）：独立于扫描会话，直接驱动 AestheticScoreWorker 排空积压
-                    val aestheticProgress = tagPassProgress(photoCount, photoCount - aestheticScored)
-                    PassControlCard(
+                    StageRow(
+                        icon = Icons.Rounded.Star,
+                        iconTint = Color(0xFF4ADE80),
                         title = stringResource(R.string.tag_pass_title_aesthetic),
                         description = stringResource(R.string.tag_pass_desc_aesthetic),
-                        progress = aestheticProgress,
-                        progressText = if (aestheticProgress.isEmpty) "" else stringResource(
-                            R.string.tag_pass_progress_aesthetic,
-                            aestheticScored,
-                            aestheticProgress.remaining
-                        ),
-                        onIncremental = {
-                            refreshStats()
-                            context.startForegroundService(TagGenerationService.intentScoreAesthetic(context))
-                        },
-                        onFull = {
-                            refreshStats()
-                            context.startForegroundService(TagGenerationService.intentScoreAestheticFull(context))
-                        }
+                        trailing = stagePercentText(tagPassProgress(photoCount, photoCount - aestheticScored)),
+                        onClick = { stageSheetTarget = TagStage.QUALITY }
                     )
+                }
+            }
 
-                    Spacer(Modifier.height(8.dp))
-                    HorizontalDivider()
-                    Spacer(Modifier.height(8.dp))
-
-                    // ── 精细控制：按类别 / 时间范围重新生成 ──────────
-                    Text(
-                        stringResource(R.string.tag_fine_control_title),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                    Spacer(Modifier.height(8.dp))
+            // ── 精细控制：按类别 / 时间范围重新生成 ──────────
+            SectionHeader(title = stringResource(R.string.tag_fine_control_title))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
 
                     Text(
                         stringResource(R.string.tag_select_categories),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(Modifier.height(4.dp))
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         CategoryChip(
                             label = stringResource(R.string.tag_category_face),
@@ -627,17 +532,14 @@ fun TagGenerationControlScreen(
                         )
                     }
 
-                    Spacer(Modifier.height(8.dp))
-
                     Text(
                         stringResource(R.string.tag_time_range),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(Modifier.height(4.dp))
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         TimeRangePreset.entries.forEach { preset ->
                             CategoryChip(
@@ -648,32 +550,35 @@ fun TagGenerationControlScreen(
                         }
                     }
 
-                    Spacer(Modifier.height(8.dp))
-
                     Row(
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(
-                            stringResource(
-                                R.string.tag_regenerate_mode,
-                                stringResource(
-                                    if (fullRegenerateMode) R.string.tag_mode_full_regenerate
-                                    else R.string.tag_mode_fill_missing
-                                )
-                            ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-                        )
-                        Switch(
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                stringResource(R.string.tag_overwrite_existing),
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                stringResource(R.string.tag_overwrite_existing_desc),
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        TagSwitch(
                             checked = fullRegenerateMode,
-                            onCheckedChange = { fullRegenerateMode = it }
+                            onCheckedChange = { checked -> fullRegenerateMode = checked }
                         )
                     }
 
-                    Spacer(Modifier.height(8.dp))
-
-                    Button(
+                    GradientPillButton(
+                        text = stringResource(R.string.tag_regenerate_selected),
+                        icon = Icons.Rounded.Tune,
+                        height = 44.dp,
+                        cornerRadius = 22.dp,
+                        fontSize = 14.sp,
                         onClick = {
                             refreshStats()
                             val categories = selectedCategories.ifEmpty { TagCategory.ALL }
@@ -687,13 +592,8 @@ fun TagGenerationControlScreen(
                                 )
                             )
                         },
-                        enabled = selectedCategories.isNotEmpty() || selectedTimeRange != TimeRangePreset.ALL,
                         modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Rounded.Tune, null, Modifier.size(16.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text(stringResource(R.string.tag_regenerate_selected))
-                    }
+                    )
                 }
             }
 
@@ -855,130 +755,463 @@ private fun passDisplayName(pass: TagScanPass?): String = when (pass) {
     null -> stringResource(R.string.tag_scan_preparing)
 }
 
+/** 区块标题行：左侧标题 + 可选右侧提示（设计稿 11sp 分区标签）。 */
 @Composable
-private fun PassControlCard(
-    title: String,
-    description: String,
-    progress: TagPassProgress?,
-    progressText: String,
-    onIncremental: () -> Unit,
-    onFull: () -> Unit,
+private fun SectionHeader(title: String, hint: String? = null) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (hint != null) {
+            Spacer(Modifier.weight(1f))
+            Text(
+                text = hint,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+/** 品牌渐变（青玉）：设计稿按钮/大数字同源。 */
+private val tagBrandGradient: Brush
+    get() = Brush.linearGradient(
+        listOf(ChatBubbleTokens.brandGradientStart, ChatBubbleTokens.brandGradientEnd)
+    )
+
+/** 渐变胶囊按钮（设计稿 Scan new / Regenerate）：渐变底 + 白色图标与文字。 */
+@Composable
+private fun GradientPillButton(
+    text: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    height: androidx.compose.ui.unit.Dp,
+    cornerRadius: androidx.compose.ui.unit.Dp,
+    fontSize: androidx.compose.ui.unit.TextUnit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
+    Box(
+        modifier = modifier
+            .height(height)
+            .clip(RoundedCornerShape(cornerRadius))
+            .background(tagBrandGradient)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
+            Icon(icon, null, modifier = Modifier.size(14.dp), tint = Color.White)
+            Text(text, fontSize = fontSize, fontWeight = FontWeight.SemiBold, color = Color.White)
+        }
+    }
+}
+
+/** 描边胶囊按钮（设计稿 Rescan all）：outlineVariant 描边 + 次级文字。 */
+@Composable
+private fun OutlinedPillButton(
+    text: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .height(40.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                icon,
+                null,
+                modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(text, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** 设计稿开关：44×26 r13，关=surfaceVariant 底 + 次级圆点，开=品牌色底 + 白点。 */
+@Composable
+private fun TagSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(width = 44.dp, height = 26.dp)
+            .clip(RoundedCornerShape(13.dp))
+            .background(
+                if (checked) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.surfaceVariant
+            )
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
+            .padding(3.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .align(if (checked) Alignment.CenterEnd else Alignment.CenterStart)
+                .size(20.dp)
+                .clip(CircleShape)
+                .background(
+                    if (checked) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.height(2.dp))
+        )
+    }
+}
+
+/** 空闲时的扫描操作卡：状态 chip + 进度轨道 + 「Scan new / Rescan all」大按钮（拉开词义防误触）。 */
+@Composable
+private fun ScanActionCard(
+    totalMedia: Int,
+    pendingCount: Int,
+    lastSession: TagScanSessionProgress?,
+    onScanNew: () -> Unit,
+    onRescanAll: () -> Unit
+) {
+    val upToDate = pendingCount <= 0 && totalMedia > 0
+    val chipColor = if (upToDate) Color(0xFF00E676) else Color(0xFFFFB020)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    stringResource(R.string.tag_scan_status),
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                if (progress != null) {
-                    Spacer(Modifier.height(6.dp))
-                    if (progress.isEmpty) {
-                        Text(
-                            stringResource(R.string.tag_pass_no_media),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline
-                        )
-                    } else {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            LinearProgressIndicator(
-                                progress = { progress.fraction },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(6.dp)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            if (progress.isComplete) {
-                                Icon(
-                                    imageVector = Icons.Rounded.CheckCircle,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                    tint = Color(0xFF4CAF50)
-                                )
-                            } else {
-                                Text(
-                                    "${(progress.fraction * 100).roundToInt()}%",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                    }
-                }
-                if (progressText.isNotEmpty()) {
-                    Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.weight(1f))
+                Row(
+                    modifier = Modifier
+                        .height(24.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(chipColor.copy(alpha = 0.12f))
+                        .padding(horizontal = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(chipColor)
+                    )
                     Text(
-                        text = progressText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        text = if (upToDate) {
+                            stringResource(R.string.tag_scan_up_to_date)
+                        } else {
+                            stringResource(R.string.tag_scan_chip_pending, pendingCount)
+                        },
+                        fontSize = 11.sp,
+                        color = chipColor
                     )
                 }
             }
-
-            Column(
-                modifier = Modifier.padding(start = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+            val fraction = if (totalMedia > 0) {
+                ((totalMedia - pendingCount).coerceAtLeast(0)).toFloat() / totalMedia
+            } else {
+                0f
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                Row(
+                Box(
                     modifier = Modifier
-                        .clickable { onIncremental() }
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.AddCircleOutline,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                        .fillMaxWidth(fraction)
+                        .height(6.dp)
+                        .background(tagBrandGradient)
+                )
+            }
+            // 上次会话已终结（完成/取消）时展示其结果，否则展示待处理概况
+            val terminal = lastSession?.takeIf {
+                it.state == ScanSessionState.COMPLETED || it.state == ScanSessionState.CANCELLED
+            }
+            Text(
+                text = if (terminal != null) {
+                    stringResource(
+                        R.string.tag_scan_caption_done,
+                        "%,d".format(Locale.ROOT, terminal.processed),
+                        terminal.failed
                     )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        text = stringResource(R.string.tag_action_incremental),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-                    )
-                }
-                Row(
-                    modifier = Modifier
-                        .clickable { onFull() }
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Replay,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        text = stringResource(R.string.tag_action_full),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-                    )
-                }
+                } else {
+                    stringResource(R.string.tag_scan_idle_caption, totalMedia, pendingCount)
+                },
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                GradientPillButton(
+                    text = stringResource(R.string.tag_scan_incremental),
+                    icon = Icons.Rounded.PlayArrow,
+                    height = 40.dp,
+                    cornerRadius = 20.dp,
+                    fontSize = 13.sp,
+                    onClick = onScanNew,
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedPillButton(
+                    text = stringResource(R.string.tag_scan_full),
+                    icon = Icons.Rounded.Refresh,
+                    onClick = onRescanAll,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
 }
+
+/** 阶段行：图标 + 标题/描述 + 进度% + chevron，整行可点弹出操作弹层。 */
+@Composable
+private fun StageRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconTint: Color,
+    title: String,
+    description: String,
+    trailing: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp)
+            .height(64.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .clip(RoundedCornerShape(7.dp))
+                .background(iconTint.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, null, modifier = Modifier.size(18.dp), tint = iconTint)
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
+            Text(
+                description,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Text(
+            trailing,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Icon(
+            Icons.Rounded.ChevronRight,
+            null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+/** 阶段操作底部弹层：两个大选项上下排开（单选圈示意推荐项），替代易误触的右侧堆叠小按钮。 */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun StageActionSheet(
+    title: String,
+    onDismiss: () -> Unit,
+    onProcessNew: () -> Unit,
+    onReprocessAll: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+    ) {
+        Column(
+            modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                title,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                stringResource(R.string.tag_stage_sheet_desc),
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            StageActionOption(
+                title = stringResource(R.string.tag_stage_action_new),
+                description = stringResource(R.string.tag_stage_action_new_desc),
+                recommended = true,
+                onClick = {
+                    onDismiss()
+                    onProcessNew()
+                }
+            )
+            StageActionOption(
+                title = stringResource(R.string.tag_stage_action_full),
+                description = stringResource(R.string.tag_stage_action_full_desc),
+                recommended = false,
+                onClick = {
+                    onDismiss()
+                    onReprocessAll()
+                }
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    Icons.Rounded.Info,
+                    null,
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    stringResource(R.string.tag_stage_full_note),
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            // Cancel（设计稿 btnCancel：surfaceVariant 底 r22 通栏）
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable(onClick = onDismiss),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    stringResource(R.string.cancel),
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
+}
+
+/** 弹层内的单个操作选项：推荐项高亮描边 + Recommended 徽章 + 单选圈；点按卡片直接执行。 */
+@Composable
+private fun StageActionOption(
+    title: String,
+    description: String,
+    recommended: Boolean,
+    onClick: () -> Unit
+) {
+    val accent = MaterialTheme.colorScheme.primary
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(if (recommended) accent.copy(alpha = 0.12f) else Color.Transparent)
+            .border(
+                1.dp,
+                if (recommended) accent else MaterialTheme.colorScheme.outlineVariant,
+                shape
+            )
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (recommended) {
+                    Box(
+                        modifier = Modifier
+                            .height(16.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(accent.copy(alpha = 0.2f))
+                            .padding(horizontal = 6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            stringResource(R.string.tag_action_recommended),
+                            fontSize = 10.sp,
+                            color = accent
+                        )
+                    }
+                }
+            }
+            Text(
+                description,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        // 单选圈（装饰性：推荐项为选中态）
+        Box(
+            modifier = Modifier
+                .size(20.dp)
+                .border(
+                    2.dp,
+                    if (recommended) accent else MaterialTheme.colorScheme.outlineVariant,
+                    CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (recommended) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(accent)
+                )
+            }
+        }
+    }
+}
+
+/** 可独立操作的扫描阶段（点按行弹操作弹层）。 */
+private enum class TagStage { FACE, PEOPLE, CONTENT, QUALITY }
+
+private fun stagePercentText(progress: TagPassProgress): String =
+    if (progress.isEmpty) "—" else "${(progress.fraction * 100).roundToInt()}%"
 
 internal fun formatDuration(ms: Long): String {
     val seconds = ms / 1000
@@ -1007,18 +1240,36 @@ private fun Set<TagCategory>.toggle(category: TagCategory): Set<TagCategory> {
     return if (category in this) this - category else this + category
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** 设计稿 chip：h28 r14；选中=品牌色 14% 底 + 品牌色描边/文字，未选=outlineVariant 描边 + 次级文字。 */
 @Composable
 private fun CategoryChip(
     label: String,
     selected: Boolean,
     onClick: () -> Unit
 ) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = { Text(label) }
-    )
+    val accent = MaterialTheme.colorScheme.primary
+    val shape = RoundedCornerShape(14.dp)
+    Box(
+        modifier = Modifier
+            .height(28.dp)
+            .clip(shape)
+            .background(if (selected) accent.copy(alpha = 0.14f) else Color.Transparent)
+            .border(
+                1.dp,
+                if (selected) accent else MaterialTheme.colorScheme.outlineVariant,
+                shape
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            label,
+            fontSize = 12.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (selected) accent else MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }
 
 @Suppress("LongParameterList") // 待重构：抽 stats 数据类
@@ -1031,19 +1282,24 @@ private fun StatsCard(
     personCount: Int,
     namedPersonCount: Int,
     embeddingCount: Int,
-    remainingPass1: Int,
-    remainingPass3: Int,
     onNavigateToTagViewer: () -> Unit
 ) {
-    // 设计稿 gallery/settings「相册统计」定稿：渐变大数字 + 语义覆盖率圆环 + 2×2 彩色指标瓦片
-    // + 双阶段渐变进度条（替代旧的分组数字卡/表格）
+    // 设计稿 gallery/tag_control_v2_en「Library stats」：渐变大数字 + 语义覆盖率圆环 + 2×2 指标瓦片
+    // （阶段进度条已移至 Stages 列表行内，不再重复展示）
     val semanticPct = if (totalMedia > 0) withSemantic * 100 / totalMedia else 0
-    val pass1Pct = if (totalMedia > 0) (totalMedia - remainingPass1) * 100 / totalMedia else 0
-    val pass3Pct = if (totalMedia > 0) (totalMedia - remainingPass3) * 100 / totalMedia else 0
 
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // 头部：标题 + 标签查看入口（设计稿 header 行）
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // 头部：标题 + 标签查看入口（View tags + chevron）
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1051,26 +1307,32 @@ private fun StatsCard(
             ) {
                 Text(
                     stringResource(R.string.tag_stats_title),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
                         .clickable { onNavigateToTagViewer() }
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = stringResource(R.string.tag_viewer_open_entry),
-                        style = MaterialTheme.typography.bodySmall,
+                        fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.primary
+                    )
+                    Icon(
+                        Icons.Rounded.ChevronRight,
+                        null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             }
-            Spacer(Modifier.height(14.dp))
 
-            // ── Hero：渐变大数字 + 语义覆盖率渐变圆环 ──
+            // ── Hero：渐变大数字 + 语义覆盖率圆环 ──
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1082,82 +1344,56 @@ private fun StatsCard(
                         style = TextStyle(
                             fontSize = 34.sp,
                             fontWeight = FontWeight.SemiBold,
-                            brush = Brush.linearGradient(
-                                listOf(
-                                    ChatBubbleTokens.brandGradientStart,
-                                    ChatBubbleTokens.brandGradientEnd
-                                )
-                            )
+                            brush = tagBrandGradient
                         )
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = stringResource(R.string.stats_hero_caption, semanticPct),
-                        style = MaterialTheme.typography.bodySmall,
+                        fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 StatsProgressRing(progress = semanticPct)
             }
-            Spacer(Modifier.height(14.dp))
 
-            // ── 2×2 彩色指标瓦片（设计稿 tile 阵列） ──
+            // ── 2×2 指标瓦片（设计稿 tile 阵列：数值 + 标签，无图标） ──
             Row(modifier = Modifier.fillMaxWidth()) {
                 StatsMetricTile(
-                    icon = Icons.Rounded.Face,
-                    iconColor = Color(0xFFFF7EB0),
                     label = stringResource(R.string.tag_stats_with_face),
                     value = withFace,
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(Modifier.width(10.dp))
                 StatsMetricTile(
-                    icon = Icons.Rounded.Fingerprint,
-                    iconColor = Color(0xFF22D3EE),
                     label = stringResource(R.string.tag_stats_embeddings),
                     value = embeddingCount,
                     modifier = Modifier.weight(1f)
                 )
             }
-            Spacer(Modifier.height(10.dp))
             Row(modifier = Modifier.fillMaxWidth()) {
                 StatsMetricTile(
-                    icon = Icons.Rounded.Person,
-                    iconColor = Color(0xFF9B8CFF),
                     label = stringResource(R.string.tag_stats_people),
                     value = personCount,
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(Modifier.width(10.dp))
                 StatsMetricTile(
-                    icon = Icons.Rounded.VerifiedUser,
-                    iconColor = Color(0xFF4ADE80),
                     label = stringResource(R.string.tag_stats_named),
                     value = namedPersonCount,
                     modifier = Modifier.weight(1f)
                 )
             }
-            Spacer(Modifier.height(14.dp))
-
-            // ── 阶段进度（渐变细进度条替代旧表格） ──
-            StatsStageBar(
-                label = stringResource(R.string.tag_pass_row_face),
-                progressPct = pass1Pct
-            )
-            Spacer(Modifier.height(10.dp))
-            StatsStageBar(
-                label = stringResource(R.string.tag_pass_row_content),
-                progressPct = pass3Pct
-            )
         }
     }
 }
 
-/** 72dp 渐变进度圆环（设计稿 ringSvg）：底环 surfaceVariant + 品牌渐变前景弧 + 中心百分比。 */
+/** 72dp 进度圆环（设计稿 ringSvg）：surfaceVariant 底环 + 品牌实色前景弧 + 中心百分比。 */
 @Composable
 private fun StatsProgressRing(progress: Int) {
     val sweep = 360f * (progress.coerceIn(0, 100) / 100f)
     val trackColor = MaterialTheme.colorScheme.surfaceVariant
+    val accentColor = MaterialTheme.colorScheme.primary
     Box(
         modifier = Modifier.size(72.dp),
         contentAlignment = Alignment.Center
@@ -1173,13 +1409,7 @@ private fun StatsProgressRing(progress: Int) {
             )
             if (sweep > 0f) {
                 drawArc(
-                    brush = Brush.sweepGradient(
-                        listOf(
-                            ChatBubbleTokens.brandGradientStart,
-                            ChatBubbleTokens.brandGradientEnd,
-                            ChatBubbleTokens.brandGradientStart
-                        )
-                    ),
+                    color = accentColor,
                     startAngle = -90f,
                     sweepAngle = sweep,
                     useCenter = false,
@@ -1189,17 +1419,16 @@ private fun StatsProgressRing(progress: Int) {
         }
         Text(
             text = "$progress%",
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
 
-/** 指标瓦片：彩色图标 + 数值 + 标签（surfaceVariant@0.5 底 r12 高 64）。 */
+/** 指标瓦片：数值 + 标签（surfaceVariant 底 r12 高 64，设计稿无图标）。 */
 @Composable
 private fun StatsMetricTile(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    iconColor: Color,
     label: String,
     value: Int,
     modifier: Modifier = Modifier
@@ -1208,79 +1437,23 @@ private fun StatsMetricTile(
         modifier = modifier
             .height(64.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(horizontal = 12.dp),
         contentAlignment = Alignment.CenterStart
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconColor,
-                modifier = Modifier.size(18.dp)
+        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(
+                text = "%,d".format(Locale.ROOT, value),
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1
             )
-            Column {
-                Text(
-                    text = value.toString(),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1
-                )
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
-                )
-            }
-        }
-    }
-}
-
-/** 阶段进度条：标签 + 百分比 + 6dp 渐变轨道（设计稿 stageTrack/stageHead）。 */
-@Composable
-private fun StatsStageBar(label: String, progressPct: Int) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = "$progressPct%",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
-        Spacer(Modifier.height(4.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(6.dp)
-                .clip(RoundedCornerShape(3.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(progressPct.coerceIn(0, 100) / 100f)
-                    .height(6.dp)
-                    .background(
-                        Brush.linearGradient(
-                            listOf(
-                                ChatBubbleTokens.brandGradientStart,
-                                ChatBubbleTokens.brandGradientEnd
-                            )
-                        )
-                    )
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
             )
         }
     }
