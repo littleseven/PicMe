@@ -160,3 +160,16 @@ val replyLanguage: ReplyLanguage = ReplyLanguage.SIMPLIFIED_CHINESE
 | iOS | `iosApp/PoLang/Features/Chat/ChatViewModel.swift` | 调用点传语言 |
 | 测试 | `shared/src/jvmTest/.../ChatSystemPromptGoldenTest.kt` | 三语参数化 golden |
 | 测试 | 新增 `toReplyLanguage` 单测 | 全分支覆盖 |
+
+---
+
+## 5. 执行注记（2026-08-22 会师后定稿）
+
+实现分两条线先后落地，最终机制以本注记为准（§2/§4 中「`buildChatSystemPrompt` 加参数」「三语参数化 golden」「`IosChatPrompt.build` 追加规则段」的原始表述已被以下实际机制取代）：
+
+1. **ReplyLanguage 模型与引擎级注入点由「助手性格」线（2026-08-22-assistant-persona-design.md）先行落地**：`RemoteChatEngine.buildPromptSuffix(persona, replyLanguage, today)` 是 chat system prompt 动态尾段的唯一注入点（`ChatAgentCache` 以 config/persona/replyLanguage 为重建键，语言切换经缓存键失效自动重建 agent，无需热更）。`ChatSystemPromptGoldenTest` 保持逐字节不动（锁 `buildChatSystemPrompt` 基座，suffix 在其外），**未做三语参数化 golden**；suffix 行为由 commonTest `PromptSuffixTest` 逐字断言锁定。
+2. **语言规则段（本 spec §2.4）最终并入 `buildPromptSuffix` 最末尾**（日期行 → persona 段 → 语言规则段），`replyLanguageRuleSegment` 三语常量集中于 `ReplyLanguage.kt`（internal，双端共用防漂移）；DEFAULT 性格同样注入语言规则段（语言规则与性格无关）。
+3. **locale 解析合体**：严格前缀边界（`zh`/`zh-`/`yue`/`yue-`，`zhcn` 等畸形 tag → ENGLISH）+ `_`→`-` 归一（iOS `zh_Hant_TW` 形态）+ lowercase；`yue`（粤语）按 zh 同规则解析（iOS 粤语系统语言下 UI 回退繁中，chat 须一致）。`ReplyLanguageTest` 为两侧断言并集。
+4. **iOS 无需改 `IosChatPrompt`**：`ChatAgentBridge.sendMessage` 走与 Android 相同的 `RemoteChatEngine.streamChat`，规则段经共享引擎自动注入；iOS 侧仅需 Swift `currentReplyLanguage()` 解析（含 yue/下划线，与 Kotlin 侧同规则）。
+5. **附带修复（用户实测发现）**：chat 状态文案（「正在调用工具…」等 85 处）切语言后仍中文——根因 `MainActivity` 只覆盖 Activity context locale，`applicationContext.getString` 始终按系统 locale 取词。修复为 `ChatViewModel.stringContext()` helper（按 `getAppLanguageBlocking()` 构造 Configuration override context，SYSTEM 档直返 applicationContext，非 SYSTEM 档缓存）+ 全量替换；`ChatViewModelStringContextTest` 钉住，测试基座 stub `getAppLanguageBlocking` 返回 SYSTEM（mockk relaxed 枚举返回随机值，必须 stub）。
+6. **验收记录**：Android 真机验收通过（英文界面 → 英文状态文案 + 英文回复；热切繁体不重启会话 → 繁体回复；简中请求确认携带 SIMPLIFIED_CHINESE 规则段）。iOS 真机验收待补。
