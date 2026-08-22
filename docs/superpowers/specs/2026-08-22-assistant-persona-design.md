@@ -17,7 +17,7 @@
 1. Chat system prompt 硬编码于 `RemoteChatEngine.buildChatSystemPrompt`（`shared/src/commonMain/.../inference/remote/RemoteChatEngine.kt:57-134`），无任何 persona/语气定制入口；全仓库仅相机 prompt（`RemotePromptBuilder.kt:119`）有一句「语气简洁友好」。
 2. iOS 使用独立精简版 prompt（`shared/src/iosMain/.../IosChatPrompt.kt:22-46`），与 Android 不共用——persona 段必须双端同源注入。
 3. 设置体系已有成熟模板：`AiAgentMode` 枚举的「UI → DataStore → ViewModel → 运行时」完整链路（`UserPreferencesRepository.kt:584-602` / `SettingsViewModel.kt:217-221` / `SettingsAiAgent.kt:48-73`）。
-4. 同日 spec `2026-08-22-chat-reply-language-design.md` 已确立 `ReplyLanguage` 三语枚举与 `AgentContext` 显式字段 + 请求期拼接的模式，本特性直接复用，**无需 agent 重建机制**。
+4. 同日 spec `2026-08-22-chat-reply-language-design.md` 已确立 `ReplyLanguage` 三语枚举与 `AgentContext` 显式字段 + 请求期拼接的模式，本特性直接复用。（实现裁决 2026-08-22：persona/语言作为 chat agent 缓存 key 的一部分，变更时按需重建 agent——见 §1 末尾实现裁决注记。）
 
 **目标**：用户在设置中选择助手性格（预设），Chat 回复的性格与语言方式随之改变，下一条消息即生效，双端行为一致。
 
@@ -42,6 +42,8 @@
 | C. 服务端网关注入 | server 拼性格段进 messages | 客户端零改动 | 直连第三方 LLM 链路不经过 server，行为不一致；`LlmProxy` 纯透传设计被破坏 | ❌ |
 
 早期讨论过的「`orchestrator.configure(persona)` + agent 重建」路径被方案 A 取代：回复语言 spec 已证明请求期拼接更简单（无重建触发条件维护），且生效时机相同。
+
+> **实现裁决注记（2026-08-22，实现阶段定稿）**：落地时「请求期拼接」具体化为 `RemoteChatEngine` 的 `buildPromptSuffix(persona, replyLanguage, today)` 尾段拼接；由于 Koog agent 的 system prompt 在构建期定型，persona/回复语言被纳入单条目 `ChatAgentCache` 的缓存 key——**设置变更会触发该 chat agent 的按需重建**（下一条消息生效，用户可见行为与本 spec 承诺一致）。这与上文「无需 agent 重建机制」的表述差异在于：无需的是额外的「配置变更 → 主动重建」编排机制，缓存 key 失配导致的惰性重建是实现细节，不影响方案 A 的架构取舍结论。
 
 ---
 
