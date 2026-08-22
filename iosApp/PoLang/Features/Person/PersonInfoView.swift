@@ -1,9 +1,11 @@
 import SwiftUI
 
-/// 人物详情/编辑页——对标 Android `PersonInfoScreen` + `PersonRelationPicker` + `PersonCoverPickerSheet`。
+/// 人物详情/编辑页——对标 Android `PersonInfoScreen` + `PersonRelationPicker` + `PersonCoverPickerSheet`
+/// （2026-08-22 Ardot 设计定稿五段式重排）。
 ///
-/// 区块：封面（55%×180，可点改）→ 名称（headline 行内编辑）→ 这是我 + 关系 chip 组 → 保存。
-/// 标题为 `Cluster #N`（簇 ID，非名字）。封面/关系/本人经保存按钮持久化；封面可即时换。
+/// 区块：① 120 圆形头像 + 右下相机角标（点击换封面）② 姓名输入（NAME 标签 + 灰底输入框）
+/// ③ 居中「This is me」筛选 chip ④ Relationship 分组卡片（Family/Social + 自定义称呼）
+/// ⑤ Photos 预览条（最多 4 张缩略图，点击换封面）。标题 `Edit person`；姓名常开编辑态，保存时提交。
 /// `onBack` 关闭 fullScreenCover 并通知列表刷新。
 struct PersonInfoView: View {
 
@@ -12,12 +14,11 @@ struct PersonInfoView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var vm: PersonDetailViewModel
 
-    // 本地编辑态（对标 Android PersonInfoScreen local state）
+    // 本地编辑态（对标 Android PersonInfoScreen local state；isEditingName 已移除——姓名常开编辑）
     @State private var nameText: String = ""
     @State private var currentRelation: String?
     @State private var customLabel: String = ""
     @State private var currentIsSelf: Bool = false
-    @State private var isEditingName = false
     @State private var showCoverPicker = false
     @State private var didSync = false
 
@@ -33,8 +34,21 @@ struct PersonInfoView: View {
     @Environment(\.colorScheme) private var cs
     private var s: SchemeColors { appScheme(cs) }
 
-    private var family: [RelationOptionItem] { RelationOptions.all().filter { $0.isFamily } }
-    private var social: [RelationOptionItem] { RelationOptions.all().filter { !$0.isFamily } }
+    /// 关系选择器分组（spec §5 显式 chip 列表，顺序即展示顺序；标签经 RelationOptions 从 :shared SSOT 取）
+    private static let familyChipIds = [
+        "FATHER", "MOTHER", "SON", "DAUGHTER",
+        "ELDER_BROTHER", "ELDER_SISTER", "YOUNGER_BROTHER", "YOUNGER_SISTER",
+        "GRANDFATHER", "GRANDMOTHER", "SPOUSE", "PARTNER",
+    ]
+    private static let socialChipIds = ["FRIEND", "CLASSMATE", "COLLEAGUE", "IDOL"]
+
+    private var family: [RelationOptionItem] { Self.options(forIds: Self.familyChipIds) }
+    private var social: [RelationOptionItem] { Self.options(forIds: Self.socialChipIds) }
+
+    private static func options(forIds ids: [String]) -> [RelationOptionItem] {
+        let all = RelationOptions.all()
+        return ids.compactMap { id in all.first { $0.id == id } }
+    }
 
     var body: some View {
         ZStack {
@@ -42,16 +56,15 @@ struct PersonInfoView: View {
             VStack(spacing: 0) {
                 topBar
                 ScrollView {
-                    VStack(spacing: 0) {
-                        coverHeader
-                            .padding(.vertical, 12)
-                        nameSection
-                            .padding(.vertical, 12)
-                        relationSection
-                            .padding(.vertical, 12)
+                    VStack(spacing: 20) {
+                        avatarHeader    // ① 头像
+                        nameField      // ② 姓名
+                        selfToggleChip // ③ 这是我
+                        relationCard   // ④ Relationship
+                        photosSection  // ⑤ Photos
                     }
                     .padding(.horizontal, 16)
-                    .padding(.bottom, 120)
+                    .padding(.bottom, 24)
                 }
             }
         }
@@ -102,7 +115,7 @@ struct PersonInfoView: View {
                     .foregroundColor(s.onBackground)
                     .frame(width: 36, height: 36)
             }
-            Text(String(format: L("Cluster #%1$d"), Int(personId)))
+            Text(L("Edit person"))
                 .font(.system(size: CGFloat(TopBarTokens.titleFontSize), weight: .medium))
                 .foregroundColor(s.onBackground)
             Spacer()
@@ -124,26 +137,29 @@ struct PersonInfoView: View {
         .padding(.bottom, 8)
     }
 
-    // MARK: 封面（55% 宽 × 180 高，人脸感知，可点改）
+    // MARK: ① 头像（120 圆形人脸感知封面 + 右下相机角标，点击换封面）
 
-    private var coverHeader: some View {
-        GeometryReader { geo in
-            let w = geo.size.width * PersonTokens.detailCoverWidthRatio
-            Button { showCoverPicker = true } label: {
-                ZStack {
-                    if let lid = coverLocalId {
-                        ThumbnailView(localIdentifier: lid, faceFocusY: coverFocusY, cornerRadius: PersonTokens.cardRadius)
-                    } else {
-                        coverPlaceholder
+    private var avatarHeader: some View {
+        Button { showCoverPicker = true } label: {
+            ZStack(alignment: .bottomTrailing) {
+                if let lid = coverLocalId {
+                    ThumbnailView(localIdentifier: lid, faceFocusY: coverFocusY, cornerRadius: 0)
+                        .frame(width: 120, height: 120)
+                        .clipShape(Circle())
+                } else {
+                    // 无封面占位：灰底 + 人脸图标
+                    ZStack {
+                        Circle().fill(s.surfaceVariant)
+                        MatIcon(name: "face.smiling", size: 48)
+                            .foregroundColor(s.onSurfaceVariant)
                     }
+                    .frame(width: 120, height: 120)
                 }
-                .frame(width: w, height: PersonTokens.detailCoverHeight)
-                .clipShape(RoundedRectangle(cornerRadius: PersonTokens.cardRadius, style: .continuous))
+                cameraBadge
             }
-            .buttonStyle(.plain)
-            .frame(width: geo.size.width, alignment: .center)
         }
-        .frame(height: PersonTokens.detailCoverHeight)
+        .buttonStyle(.plain)
+        .padding(.top, 16)
     }
 
     /// 当前封面（cover_media_id）的 localIdentifier / faceFocusY，从簇候选解析。
@@ -156,71 +172,82 @@ struct PersonInfoView: View {
         return vm.coverCandidates.first { $0.mediaId == cid }?.faceFocusY
     }
 
-    private var coverPlaceholder: some View {
-        ZStack {
-            s.surfaceContainer
-            VStack(spacing: 8) {
-                Image(systemName: "person.crop.square")
-                    .font(.system(size: 40))
-                    .foregroundColor(s.onSurfaceVariant.opacity(0.45))
-                Text(L("Tap to set cover"))
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(s.onBackground.opacity(0.6))
-            }
-        }
+    /// 右下 32 圆形相机角标（primary 底 + background 2dp 描边环）
+    private var cameraBadge: some View {
+        MatIcon(name: "mat_o_photo_camera", size: 16)
+            .foregroundColor(s.onPrimary)
+            .frame(width: 32, height: 32)
+            .background(Circle().fill(s.primary))
+            .overlay(Circle().stroke(s.background, lineWidth: 2))
     }
 
-    // MARK: 名称（headline 行内编辑）
+    // MARK: ② 姓名（常开编辑态，保存时提交；非空时尾随清空按钮）
 
-    private var nameSection: some View {
-        Group {
-            if isEditingName {
-                TextField("", text: $nameText)
-                    .font(.system(size: CGFloat(AppTypography.headlineSmall.size), weight: .bold))
+    private var nameField: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(L("Name").uppercased())
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1)
+                .foregroundColor(s.onSurfaceVariant)
+            HStack(spacing: 4) {
+                TextField(L("Add name"), text: $nameText)
+                    .font(.system(size: 16))
                     .foregroundColor(s.onSurface)
-                    .multilineTextAlignment(.center)
                     .submitLabel(.done)
-                    .onSubmit { isEditingName = false }
-                    .padding(.vertical, 8)
-            } else {
-                Text(nameText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? L("Add name") : nameText)
-                    .font(.system(size: CGFloat(AppTypography.headlineSmall.size), weight: .bold))
-                    .foregroundColor(nameText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? s.onSurfaceVariant : s.onSurface)
-                    .lineLimit(1)
-                    .onTapGesture { isEditingName = true }
+                if !nameText.isEmpty {
+                    Button {
+                        nameText = ""
+                    } label: {
+                        MatIcon(name: "mat_o_close", size: 18)
+                            .foregroundColor(s.onSurfaceVariant)
+                            .frame(width: 28, height: 28)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
+            .padding(.leading, 14)
+            .padding(.trailing, 6)
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: AppRadius.card, style: .continuous)
+                    .fill(s.surfaceContainerLow))
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: ③ 「这是我」筛选 chip（居中，选中态带 check）
+
+    private var selfToggleChip: some View {
+        Button {
+            currentIsSelf.toggle()
+        } label: {
+            HStack(spacing: 6) {
+                if currentIsSelf {
+                    MatIcon(name: "mat_o_check", size: 18)
+                }
+                Text(L("This is me"))
+                    .font(.system(size: 14, weight: .medium))
+            }
+            .foregroundColor(currentIsSelf ? s.onPrimaryContainer : s.onSurfaceVariant)
+            .padding(.horizontal, 16)
+            .frame(height: ChipTokens.height)
+            .background(
+                RoundedRectangle(cornerRadius: AppRadius.small, style: .continuous)
+                    .fill(currentIsSelf ? s.primaryContainer : s.surfaceVariant.opacity(0.5)))
+        }
+        .buttonStyle(.plain)
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: 关系（这是我 + 家庭/社会 chip 组 + 自定义）
+    // MARK: ④ Relationship 分组卡片（Family/Social chip 组 + 自定义称呼）
 
-    private var relationSection: some View {
-        VStack(spacing: 12) {
-            // 这是我
-            Button {
-                currentIsSelf.toggle()
-            } label: {
-                HStack(spacing: 6) {
-                    if currentIsSelf {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 13, weight: .bold))
-                    }
-                    Text(L("This is me"))
-                        .font(.system(size: 14, weight: .medium))
-                }
-                .foregroundColor(currentIsSelf ? s.onPrimaryContainer : s.onSurfaceVariant)
-                .padding(.horizontal, 14)
-                .frame(height: ChipTokens.height)
-                .background(
-                    RoundedRectangle(cornerRadius: PersonTokens.relationChipRadius, style: .continuous)
-                        .fill(currentIsSelf ? s.primaryContainer : s.surfaceVariant.opacity(0.5)))
-            }
-            .buttonStyle(.plain)
-
+    private var relationCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(L("This person is my…"))
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(s.onSurface)
             chipGroup(title: L("Family"), options: family)
             chipGroup(title: L("Social"), options: social)
-
             // 自定义称呼
             VStack(alignment: .leading, spacing: 4) {
                 Text(L("Custom label"))
@@ -238,7 +265,11 @@ struct PersonInfoView: View {
                     .foregroundColor(s.onSurfaceVariant)
             }
         }
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: PersonTokens.cardRadius, style: .continuous)
+                .fill(s.surfaceContainer))
     }
 
     private func chipGroup(title: String, options: [RelationOptionItem]) -> some View {
@@ -259,13 +290,52 @@ struct PersonInfoView: View {
                             .padding(.horizontal, 12)
                             .frame(maxWidth: .infinity, minHeight: ChipTokens.height)
                             .background(
-                                RoundedRectangle(cornerRadius: PersonTokens.relationChipRadius, style: .continuous)
+                                RoundedRectangle(cornerRadius: AppRadius.small, style: .continuous)
                                     .fill(selected ? s.primaryContainer : s.surfaceVariant.opacity(0.5)))
                     }
                     .buttonStyle(.plain)
                 }
             }
         }
+    }
+
+    // MARK: ⑤ Photos 预览条（最多 4 张 80pt 缩略图，点击进封面选择器）
+
+    @ViewBuilder
+    private var photosSection: some View {
+        if !vm.coverCandidates.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text(L("Photos"))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(s.onSurface)
+                    Spacer()
+                    Text(photosCountText)
+                        .font(.system(size: 12))
+                        .foregroundColor(s.onSurfaceVariant)
+                }
+                HStack(spacing: 8) {
+                    ForEach(Array(vm.coverCandidates.prefix(4)), id: \.mediaId) { cand in
+                        Button { showCoverPicker = true } label: {
+                            ThumbnailView(
+                                localIdentifier: cand.localIdentifier,
+                                faceFocusY: cand.faceFocusY,
+                                cornerRadius: AppRadius.button)  // radius.small(8)+2=10
+                                .frame(width: 80, height: 80)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// 照片计数（复数形态分流）。数据面用封面候选集（= 簇内照片全集排序去重，VM 未另暴露计数）。
+    private var photosCountText: String {
+        let count = vm.coverCandidates.count
+        let key = count == 1 ? "%1$d photo" : "%1$d photos"
+        return String(format: L(key), count)
     }
 
     // MARK: 封面选择器（3 列，簇内候选，按时间倒序）

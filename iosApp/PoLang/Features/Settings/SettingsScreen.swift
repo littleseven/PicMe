@@ -446,6 +446,9 @@ struct AccountSettingsView: View {
             let r = try await client.verify(email: emailInput, code: codeInput)
             token = r.token; storedEmail = emailInput; quota = QuotaInfo(email: emailInput, llmCallsUsed: r.llmCallsUsed, llmCallsLimit: r.llmCallsLimit)
             codeSent = false; codeInput = ""
+            // 访客注册引导计数清零（chat.yaml §4.1 counter.reset_on=register_success；
+            // 注册入口不止 chat——此处为 Settings 入口的同步清零挂钩）
+            ChatViewModel.resetGuestMessageCount()
         } catch { errorMsg = (error as? AuthError)?.message ?? L("Network error") }
     }
     private func refreshQuota() async {

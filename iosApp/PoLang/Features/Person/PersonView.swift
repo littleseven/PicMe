@@ -1,9 +1,11 @@
 import SwiftUI
 
-/// 人物页（列表）——对标 Android `PersonScreen` + `PersonListItem`。
+/// 人物页（列表）——对标 Android `PersonScreen` + `PersonListItem`（2026-08-22 Ardot 设计定稿重排）。
 ///
 /// 聚类模型：人物来自 TAG 扫描人脸聚类（`TagDatabase.persons`），非手动建人。
-/// 2 列网格，人脸感知封面卡，行内改名，关系 chip，Android 排序；顶栏动态计数标题 + 筛选/重聚类。
+/// 2 列网格卡片：人脸感知封面（右下黑底张数角标）→ 名字行（未命名 primary 引导）→
+/// 常驻关系行（分组配色胶囊 / 无关系描边「Add relation」引导胶囊 + info 按钮）。
+/// 顶栏两行标题：`People` + 可见统计（N people · M photos）。
 /// `onBack` 由 MainTabView（page 3）或 Settings（NavigationStack push）注入。
 struct PersonView: View {
 
@@ -46,9 +48,23 @@ struct PersonView: View {
         }
     }
 
-    // MARK: 顶栏
+    // MARK: 顶栏（两行标题：People + 可见统计行）
 
     private var visibleCount: Int { vm.items.count }
+
+    /// 可见人物照片总数（sumOf photoCounts）
+    private var visiblePhotoTotal: Int {
+        vm.items.reduce(0) { acc, item in acc + item.photoCount }
+    }
+
+    /// 统计行：复数形态分流拼装（N people · M photos）
+    private var statsLine: String {
+        let peopleKey = visibleCount == 1 ? "%1$d person" : "%1$d people"
+        let photosKey = visiblePhotoTotal == 1 ? "%1$d photo" : "%1$d photos"
+        return String(format: L(peopleKey), visibleCount)
+            + " · "
+            + String(format: L(photosKey), visiblePhotoTotal)
+    }
 
     private var topBar: some View {
         HStack(spacing: 8) {
@@ -59,10 +75,16 @@ struct PersonView: View {
                     .foregroundColor(s.onBackground)
                     .frame(width: 36, height: 36)
             }
-            Text(String(format: L("People (%1$d/%2$d)"), visibleCount, vm.totalCount))
-                .font(.system(size: CGFloat(TopBarTokens.titleFontSize), weight: .medium))
-                .foregroundColor(s.onBackground)
-                .lineLimit(1)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(L("People"))
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(s.onBackground)
+                    .lineLimit(1)
+                Text(statsLine)
+                    .font(.system(size: 12))
+                    .foregroundColor(s.onSurfaceVariant)
+                    .lineLimit(1)
+            }
             Spacer()
             // 筛选切换
             Button {
@@ -140,6 +162,43 @@ private struct DetailRoute: Identifiable {
     let id: Int64
 }
 
+// MARK: - 关系分组（列表 chip 配色）
+
+/// 关系 → 配色分组（2026-08-22 定稿）：self=primaryContainer、family=secondaryContainer、
+/// social=tertiaryContainer、custom/none=surfaceContainerHighest。
+/// 谓词族 SSOT = :shared `PersonRelationSupport.FAMILY_PREDICATES`（18 个亲属谓词）。
+enum PersonRelationGroup {
+    case selfPerson
+    case family
+    case social
+    case custom
+    case noneSet
+
+    /// 亲属谓词族（对齐 :shared FAMILY_PREDICATES；SPOUSE/PARTNER 属亲属组）
+    static let familyPredicates: Set<String> = [
+        "SPOUSE", "PARTNER",
+        "CHILD", "SON", "DAUGHTER",
+        "PARENT", "FATHER", "MOTHER",
+        "SIBLING", "ELDER_BROTHER", "ELDER_SISTER", "YOUNGER_BROTHER", "YOUNGER_SISTER",
+        "GRANDPARENT", "GRANDFATHER", "GRANDMOTHER", "GRANDCHILD", "OTHER_FAMILY",
+    ]
+
+    /// 社会谓词族（spec §5 social 组）
+    static let socialPredicates: Set<String> = ["FRIEND", "CLASSMATE", "COLLEAGUE", "IDOL"]
+
+    /// 关系行 → 分组：self 优先，customLabel 非空 → custom，谓词落 family/social 集，
+    /// 其余（OTHER/未知/无关系）→ none。
+    static func of(isSelf: Bool, relation: PersonRelationDb?) -> PersonRelationGroup {
+        if isSelf { return .selfPerson }
+        guard let relation else { return .noneSet }
+        let custom = relation.customLabel ?? ""
+        if !custom.isEmpty { return .custom }
+        if familyPredicates.contains(relation.predicate) { return .family }
+        if socialPredicates.contains(relation.predicate) { return .social }
+        return .noneSet
+    }
+}
+
 // MARK: - 人物卡片（对标 Android PersonListItem）
 
 private struct PersonCardView: View {
@@ -161,20 +220,27 @@ private struct PersonCardView: View {
             infoColumn
         }
         .background(RoundedRectangle(cornerRadius: PersonTokens.cardRadius, style: .continuous)
-            .fill(s.surfaceContainerHigh))
+            .fill(s.surfaceContainerLow))
         .clipShape(RoundedRectangle(cornerRadius: PersonTokens.cardRadius, style: .continuous))
         .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
     }
 
+    // MARK: 封面（1:1 人脸感知 + 右下张数角标）
+
     private var cover: some View {
         Button(action: onCoverTap) {
-            ZStack {
-                s.surfaceContainer
+            ZStack(alignment: .bottomTrailing) {
                 if let lid = person.coverLocalIdentifier {
                     ThumbnailView(localIdentifier: lid, faceFocusY: person.coverFaceFocusY, cornerRadius: 0)
                 } else {
-                    s.surfaceContainerHigh
+                    // 无封面占位：灰底 + 人脸图标
+                    ZStack {
+                        s.surfaceVariant
+                        MatIcon(name: "face.smiling", size: 48)
+                            .foregroundColor(s.onSurfaceVariant)
+                    }
                 }
+                countBadge
             }
         }
         .buttonStyle(.plain)
@@ -184,32 +250,41 @@ private struct PersonCardView: View {
         .accessibilityLabel(Text(person.name ?? String(format: L("Person #%1$d"), Int(person.id))))
     }
 
+    /// 张数角标（黑 60% 全圆角胶囊，白 11 SemiBold 紧凑式计数）
+    private var countBadge: some View {
+        Text(String(format: L("%1$dP"), person.photoCount))
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundColor(.white)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Capsule().fill(Color.black.opacity(0.6)))
+            .padding(8)
+    }
+
+    // MARK: 信息列（名字行 + 常驻关系行）
+
     private var infoColumn: some View {
         VStack(alignment: .leading, spacing: 6) {
+            // 行1：名字（未命名以 primary 引导点击命名；编辑态为行内 NameEditor）
             HStack(spacing: 8) {
                 nameBlock
                 Spacer(minLength: 0)
-                if !isEditing {
-                    Text(photoCountText)
-                        .font(.system(size: CGFloat(PersonTokens.photoCountFontSize)))
-                        .foregroundColor(s.onSurfaceVariant)
-                }
             }
-            // 第二行（常驻）：关系 chip 居左（无关系时透明占位保持卡片等高），详情按钮固定右下角
+            // 行2（常驻）：关系胶囊居左（无关系 → 描边「Add relation」引导胶囊），info 按钮固定右端
             HStack {
                 if showRelationChip {
                     relationChip
                 } else {
-                    relationChip.opacity(0)
+                    addRelationChip
                 }
                 Spacer(minLength: 0)
                 Button(action: onInfoTap) {
-                    MatIcon(name: "mat_o_auto_awesome", size: 20)
+                    MatIcon(name: "info.circle", size: 20)
                         .foregroundColor(s.onSurfaceVariant)
                         .frame(width: 32, height: 32)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(Text(L("Person info")))
+                .accessibilityLabel(Text(L("Edit person")))
             }
         }
         .padding(12)
@@ -220,21 +295,15 @@ private struct PersonCardView: View {
         if isEditing {
             NameEditor(
                 initial: person.name ?? "",
-                onSave: { onSaveName($0) },
+                onSave: { name in onSaveName(name) },
                 onCancel: onCancelEdit)
         } else {
             Text(person.name?.isEmpty == false ? person.name! : L("Add name"))
-                .font(.system(size: CGFloat(PersonTokens.nameFontSize), weight: .semibold))
-                .foregroundColor((person.name?.isEmpty == false) ? s.onSurface : s.onSurfaceVariant)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor((person.name?.isEmpty == false) ? s.onSurface : s.primary)
                 .lineLimit(1)
                 .onTapGesture { onStartEdit() }
         }
-    }
-
-    private var photoCountText: String {
-        // 英文单复数分流；中文两键同值（无复数形态）
-        let key = person.photoCount == 1 ? "%1$d photo" : "%1$d photos"
-        return String(format: L(key), person.photoCount)
     }
 
     private var showRelationChip: Bool {
@@ -251,16 +320,40 @@ private struct PersonCardView: View {
         return L("Not set")
     }
 
+    /// 分组配色（self/family/social/custom/none → M3 容器色对）
+    private var relationChipColors: (bg: Color, fg: Color) {
+        switch PersonRelationGroup.of(isSelf: person.isSelf, relation: person.relation) {
+        case .selfPerson: return (s.primaryContainer, s.onPrimaryContainer)
+        case .family: return (s.secondaryContainer, s.onSecondaryContainer)
+        case .social: return (s.tertiaryContainer, s.onTertiaryContainer)
+        case .custom, .noneSet: return (s.surfaceContainerHighest, s.onSurfaceVariant)
+        }
+    }
+
     private var relationChip: some View {
-        Text(relationChipLabel)
+        let colors = relationChipColors
+        return Text(relationChipLabel)
             .font(.system(size: 12))
-            .foregroundColor(person.isSelf ? s.onPrimaryContainer : s.onSurfaceVariant)
+            .foregroundColor(colors.fg)
+            .lineLimit(1)
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
-            .background(
-                RoundedRectangle(cornerRadius: PersonTokens.relationChipRadius, style: .continuous)
-                    .fill(person.isSelf ? s.primaryContainer : s.surfaceContainerHighest))
+            .background(Capsule().fill(colors.bg))
             .onTapGesture { onInfoTap() }
+    }
+
+    /// 无关系空态：描边胶囊（add 图标 + Add relation），点击进详情引导设置关系
+    private var addRelationChip: some View {
+        HStack(spacing: 4) {
+            MatIcon(name: "plus", size: 12)
+            Text(L("Add relation"))
+                .font(.system(size: 12))
+        }
+        .foregroundColor(s.onSurfaceVariant)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
+        .background(Capsule().stroke(s.outlineVariant, lineWidth: 1))
+        .onTapGesture { onInfoTap() }
     }
 }
 

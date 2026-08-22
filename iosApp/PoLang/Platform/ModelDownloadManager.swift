@@ -205,7 +205,7 @@ final class ModelDownloadManager: ObservableObject {
                 } else {
                     let base = totalDownloaded
                     let downloaded = try await downloadFileSingle(
-                        url: url, destUrl: destUrl, modelId: modelId, base: base)
+                        url: url, destUrl: destUrl, info: info, modelId: modelId, base: base)
                     totalDownloaded += downloaded
                 }
                 if cancelledModels.contains(modelId) { return }
@@ -226,8 +226,10 @@ final class ModelDownloadManager: ObservableObject {
     }
 
     /// 单连接下载（小文件）。经典 downloadTask + delegate 实时进度。
+    /// 转正前终检（对齐 Android `verifyDownloadedFile`，与并行路径 SHA256 校验同构）：
+    /// size + SHA256 任一不符 → 删除已下载文件 + 抛错 → performDownload 标 FAILED。
     private func downloadFileSingle(
-        url: URL, destUrl: URL, modelId: String, base: Int64
+        url: URL, destUrl: URL, info: ModelFileInfo?, modelId: String, base: Int64
     ) async throws -> Int64 {
         var request = URLRequest(url: url)
         request.timeoutInterval = 15  // 与 session stall 超时一致（无字节 15s → .timedOut → 重试）
@@ -289,6 +291,17 @@ final class ModelDownloadManager: ObservableObject {
         guard statusCode == 200 else { throw URLError(.badServerResponse) }
 
         if cancelledModels.contains(modelId) { return 0 }
+
+        // 转正前终检（后台线程流式校验）：size + SHA256 任一不符 → 删临时文件 + 抛错，
+        // 坏文件不落盘转正（与并行路径转正前 verifySHA256 同构）
+        let verified = await Task.detached(priority: .utility) {
+            Self.verifyDownloadedFile(tempUrl, info: info)
+        }.value
+        guard verified else {
+            NSLog("PoLang:ModelDownload integrity failed modelId=%@ file=%@",
+                  modelId, destUrl.lastPathComponent)
+            throw URLError(.cannotDecodeContentData)
+        }
 
         if FileManager.default.fileExists(atPath: destUrl.path) {
             try FileManager.default.removeItem(at: destUrl)
@@ -410,6 +423,17 @@ final class ModelDownloadManager: ObservableObject {
     }
 
     // MARK: - 文件校验（后台线程执行，流式不整读进内存）
+
+    /// 下载完成后的终检（对齐 Android `verifyDownloadedFile`）：size + SHA256 任一不符
+    /// → 删除已下载文件并返回 false（调用方抛错，本次下载标 FAILED），防止坏文件落盘转正。
+    /// 与 `verifyExistingFile` 的区别：后者只判定不删文件（启动时对已存在文件）。
+    nonisolated static func verifyDownloadedFile(_ fileUrl: URL, info: ModelFileInfo?) -> Bool {
+        let verified = verifyExistingFile(fileUrl, info: info)
+        if !verified {
+            try? FileManager.default.removeItem(at: fileUrl)
+        }
+        return verified
+    }
 
     /// 校验已存在文件是否完整：大小匹配（API 有 size 时）+ SHA256（API 有 sha 时）。
     private nonisolated static func verifyExistingFile(_ fileUrl: URL, info: ModelFileInfo?) -> Bool {

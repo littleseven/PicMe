@@ -1,18 +1,53 @@
 import SwiftUI
 
-// MARK: - 扫描页公共 helper
+// MARK: - TAG 生成控制页 v2 组件（spec: specs/screens/tag-control.yaml，特性 tag-control-v2）
+//
+// 四区块：Library 统计 / Scan 扫描动作 / Stages 阶段管理 / Regenerate 精细重生成。
+// 执行链消费既有 TagScanOrchestrator（经 TagScanViewModel），本层纯控制页 UI。
+// v2 强调色字面量按 yaml 内联（#00E676/#FFB020/#FF7EB0/#9B8CFF/#22D3EE/#4ADE80，暂不入 token）。
 
-extension View {
-    /// 中性内容卡片：secondarySystemBackground + 12dp 圆角（本 App 内容卡片统一规范，对齐 Android Card 默认 tonal）。
-    func scanCard(padding: CGFloat = Spacing.lg) -> some View {
-        self
-            .padding(padding)
-            .background(Color(.secondarySystemBackground))
-            .clipShape(AppShapes.card)
+/// 品牌渐变（ChatBubbleTokens，#0F766E→#5EA88F）：渐变按钮/大数字/轨道。
+let tagControlBrandGradient = LinearGradient(
+    colors: [ChatBubbleTokens.brandGradientStart, ChatBubbleTokens.brandGradientEnd],
+    startPoint: .topLeading,
+    endPoint: .bottomTrailing
+)
+
+/// yaml accent_literals 内联色（ARGB hex）。
+private extension Color {
+    init(hex: String) {
+        let scanner = Scanner(string: hex)
+        var hexNumber: UInt64 = 0
+        scanner.scanHexInt64(&hexNumber)
+        let a = Double((hexNumber & 0xFF00_0000) >> 24) / 255
+        let r = Double((hexNumber & 0x00FF_0000) >> 16) / 255
+        let g = Double((hexNumber & 0x0000_FF00) >> 8) / 255
+        let b = Double(hexNumber & 0x0000_00FF) / 255
+        self.init(.sRGB, red: r, green: g, blue: b, opacity: a)
     }
 }
 
-// appScheme 已提升为 DesignSystem 共享 helper（DesignTokens.swift），本文件直接复用。
+// MARK: - v2 区块卡（surfaceContainer r16）
+
+private struct TagCardBackground: ViewModifier {
+    @Environment(\.colorScheme) private var cs
+
+    func body(content: Content) -> some View {
+        content
+            .padding(Spacing.lg)
+            .background(appScheme(cs).surfaceContainer)
+            .clipShape(AppShapes.lg)
+    }
+}
+
+extension View {
+    /// v2 区块卡：surfaceContainer + 16dp 圆角（yaml token_mapping.card）。
+    func tagCard() -> some View { modifier(TagCardBackground()) }
+}
+
+// MARK: - 公共 helper
+
+private func l(_ key: String) -> String { NSLocalizedString(key, comment: "") }
 
 /// 对齐 Android formatDuration：d>0→Xd Yh；h>0→Xh Ym；m>0→Xm Ys；else→Xs。
 private func formatDuration(_ ms: Int) -> String {
@@ -24,9 +59,197 @@ private func formatDuration(_ ms: Int) -> String {
     return "\(s)s"
 }
 
-private func l(_ key: String) -> String { NSLocalizedString(key, comment: "") }
+// MARK: - 渐变胶囊按钮（GradientPillButton：渐变底/白字）
 
-// MARK: - 2) 进度卡（state 着色：primary/secondary/error container）
+struct GradientPillButton: View {
+    let titleKey: String
+    var height: CGFloat = 44
+    var fontSize: CGFloat = 14
+    var disabled: Bool = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(l(titleKey))
+                .font(.system(size: fontSize, weight: .medium))
+                .foregroundStyle(Color.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: height)
+                .background(tagControlBrandGradient)
+                .clipShape(Capsule())
+        }
+        .disabled(disabled)
+        .opacity(disabled ? 0.4 : 1)
+    }
+}
+
+// MARK: - 描边胶囊按钮（OutlinedPillButton：1dp outlineVariant 描边）
+
+struct OutlinedPillButton: View {
+    let titleKey: String
+    var height: CGFloat = 40
+    let action: () -> Void
+    @Environment(\.colorScheme) private var cs
+
+    var body: some View {
+        let s = appScheme(cs)
+        Button(action: action) {
+            Text(l(titleKey))
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(s.onSurface)
+                .frame(maxWidth: .infinity)
+                .frame(height: height)
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(s.outlineVariant, lineWidth: 1))
+        }
+    }
+}
+
+// MARK: - 区块 1：Library 统计卡（渐变 hero + 实色环 + 2×2 无图标瓦片）
+
+struct TagStatsCard: View {
+    let stats: ScanDbStats
+    @Environment(\.colorScheme) private var cs
+
+    /// 语义索引覆盖率（hero 数字 + 进度环共用）。
+    private var coverage: Double {
+        guard stats.totalMedia > 0 else { return 0 }
+        return min(1, max(0, Double(stats.withSemantic) / Double(stats.totalMedia)))
+    }
+    private var coveragePercent: Int { Int((coverage * 100).rounded()) }
+
+    var body: some View {
+        let s = appScheme(cs)
+        VStack(spacing: Spacing.lg) {
+            // hero：实色 primary 弧 + surfaceVariant 轨道 + 品牌渐变大数字
+            ZStack {
+                Circle().stroke(s.surfaceVariant, lineWidth: 8)
+                Circle()
+                    .trim(from: 0, to: coverage)
+                    .stroke(s.primary, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                Text("\(coveragePercent)%")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(tagControlBrandGradient)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+            }
+            .frame(width: 96, height: 96)
+            .frame(maxWidth: .infinity)
+            Text(String(format: l("%1$d%% semantically indexed"), coveragePercent))
+                .font(AppTypography.bodySmall.font)
+                .foregroundStyle(s.onSurfaceVariant)
+
+            // 2×2 无图标瓦片（value 17 semibold / label 11）
+            VStack(spacing: Spacing.sm) {
+                HStack(spacing: Spacing.sm) {
+                    tile("\(stats.withFace)", "Faces", s)
+                    tile("\(stats.personCount)", "People", s)
+                }
+                HStack(spacing: Spacing.sm) {
+                    tile("\(stats.withLabels)", "Content tags", s)
+                    // iOS 执行链暂无美学评分数据 → 占位（见交付报告存疑项）
+                    tile("—", "Quality scores", s)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .tagCard()
+    }
+
+    private func tile(_ value: String, _ labelKey: String, _ s: SchemeColors) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(s.onSurface)
+                .lineLimit(1)
+            Text(l(labelKey))
+                .font(.system(size: 11))
+                .foregroundStyle(s.onSurfaceVariant)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Spacing.md)
+        .background(s.surfaceVariant)
+        .clipShape(AppShapes.card)
+    }
+}
+
+// MARK: - 状态 chip（h24 r12 + 6dp dot + 11sp；绿 #00E676 / 橙 #FFB020 系）
+
+struct ScanStatusChip: View {
+    let text: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text(text)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(color)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 10)
+        .frame(height: 24)
+        .background(color.opacity(0.15))
+        .clipShape(Capsule())
+    }
+}
+
+// MARK: - 区块 2：空闲动作卡（chip + 标题 + 说明 + 渐变轨道 + 增量/全量双按钮）
+
+struct ScanActionCard: View {
+    @ObservedObject var vm: TagScanViewModel
+    @Environment(\.colorScheme) private var cs
+    @State private var showFullConfirm = false
+
+    /// 待处理媒体（Pass1 + Pass3 未覆盖数）：0 → Up to date。
+    private var pendingCount: Int { vm.stats.remainingPass1 + vm.stats.remainingPass3 }
+    private var upToDate: Bool { pendingCount == 0 }
+    /// 上次会话终态 → 换「已完成」说明文案。
+    private var doneCaption: Bool { (vm.progress?.state ?? .idle).isTerminal }
+
+    var body: some View {
+        let s = appScheme(cs)
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            ScanStatusChip(
+                text: upToDate
+                    ? l("Up to date")
+                    : String(format: l("%1$d pending"), pendingCount),
+                color: upToDate ? Color(hex: "FF00E676") : Color(hex: "FFFFB020")
+            )
+            Text(l("Scan"))
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(s.onSurface)
+            Text(doneCaption ? l("Last scan finished") : l("Scan to index new photos"))
+                .font(AppTypography.bodySmall.font)
+                .foregroundStyle(s.onSurfaceVariant)
+            // 渐变进度轨道（h6 r3）
+            Capsule()
+                .fill(tagControlBrandGradient)
+                .frame(height: 6)
+            HStack(spacing: Spacing.sm) {
+                GradientPillButton(titleKey: "Scan new", height: 40) { vm.startIncremental() }
+                    .accessibilityIdentifier("scan_new_btn")
+                OutlinedPillButton(titleKey: "Rescan all", height: 40) { showFullConfirm = true }
+                    .accessibilityIdentifier("rescan_all_btn")
+            }
+            .padding(.top, Spacing.xs)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .tagCard()
+        // 全量动作二次确认（yaml：全量前必须确认）
+        .alert(l("Reprocess everything?"), isPresented: $showFullConfirm) {
+            Button(l("Start")) { vm.startFull() }
+            Button(l("Cancel"), role: .cancel) {}
+        } message: {
+            Text(l("Existing results will be cleared and rebuilt. This can take a while."))
+        }
+    }
+}
+
+// MARK: - 区块 2：进度卡（扫描中/终态结果摘要；state 着色容器，沿用 v1 语义）
+
 struct ScanProgressCard: View {
     let progress: TagScanSessionProgress
     @Environment(\.colorScheme) private var cs
@@ -63,7 +286,7 @@ struct ScanProgressCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Spacing.lg)
         .background(cont)
-        .clipShape(AppShapes.card)
+        .clipShape(AppShapes.lg)
     }
 
     private func containerColor(_ st: ScanSessionState, _ s: SchemeColors) -> Color {
@@ -82,10 +305,13 @@ struct ScanProgressCard: View {
     }
 }
 
-// MARK: - 3) 会话控制条（secondaryContainer 卡 + 等宽图标按钮）
+// MARK: - 区块 2：会话控制条（暂停/恢复/取消/重试失败，secondaryContainer 卡）
+
 struct ScanControlRow: View {
     @ObservedObject var vm: TagScanViewModel
     @Environment(\.colorScheme) private var cs
+
+    private enum BtnStyle { case filled, outline, danger }
 
     var body: some View {
         let state = vm.progress?.state ?? .idle
@@ -95,7 +321,9 @@ struct ScanControlRow: View {
             } else if state == .paused {
                 ctrlBtn("play_arrow", "scan_action_resume", style: .filled) { vm.resume() }
             }
-            ctrlBtn("xmark.circle", "scan_action_cancel", style: .danger) { vm.cancel() }
+            if !state.isTerminal {
+                ctrlBtn("xmark.circle", "scan_action_cancel", style: .danger) { vm.cancel() }
+            }
             if (vm.progress?.failed ?? 0) > 0 {
                 ctrlBtn("arrow.clockwise", "scan_action_retry", style: .outline) { vm.retryFailed() }
             }
@@ -105,7 +333,6 @@ struct ScanControlRow: View {
         .clipShape(AppShapes.card)
     }
 
-    private enum BtnStyle { case filled, outline, danger }
     private func ctrlBtn(_ icon: String, _ key: String, style: BtnStyle, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 4) {
@@ -125,291 +352,399 @@ struct ScanControlRow: View {
     }
 }
 
-// MARK: - 4) 统计卡（单卡三分段 + 阶段表，对齐 Android StatsCard）
-struct ScanStatsCard: View {
-    let stats: ScanDbStats
+// MARK: - 区块标题（11sp 标题 + 右侧 hint）
+
+struct TagSectionHeader: View {
+    let titleKey: String
+    var hintKey: String? = nil
+    @Environment(\.colorScheme) private var cs
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text("scan_db_stats_title").font(.system(size: 14, weight: .semibold))
-
-            sectionTitle("scan_sub_media")
-            HStack(spacing: 10) {
-                numberCell("\(stats.totalMedia)", "scan_stat_total")
-                numberCell("\(stats.withSemantic)", "scan_stat_with_semantic")
-            }
-
-            Divider().padding(.vertical, Spacing.sm)
-
-            sectionTitle("scan_sub_face")
-            HStack(spacing: 10) {
-                numberCell("\(stats.withFace)", "scan_stat_with_face")
-                numberCell("\(stats.faceEmbeddingCount)", "scan_stat_embedding_count")
-            }
-            HStack(spacing: 10) {
-                numberCell("\(stats.personCount)", "scan_stat_person_count")
-                numberCell("\(stats.namedPersonCount)", "scan_stat_named_person_count")
-            }
-
-            Divider().padding(.vertical, Spacing.sm)
-
-            sectionTitle("scan_sub_stage")
-            stageTable
-        }
-        .scanCard()
-    }
-
-    private func sectionTitle(_ k: String) -> some View {
-        Text(LocalizedStringKey(k))
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundColor(.accentColor)
-            .padding(.top, Spacing.xs)
-    }
-
-    private func numberCell(_ val: String, _ label: String) -> some View {
-        VStack(spacing: 2) {
-            Text(val).font(.system(size: 16, weight: .bold)).lineLimit(1)
-            Text(LocalizedStringKey(label)).font(.system(size: 11)).foregroundColor(.secondary).lineLimit(1)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, Spacing.md).padding(.vertical, Spacing.sm)
-        .background(Color(.tertiarySystemBackground))
-        .clipShape(AppShapes.card)
-    }
-
-    private var stageTable: some View {
-        let p1Done = max(0, stats.totalMedia - stats.remainingPass1)
-        let p3Done = stats.withLabels
-        return VStack(spacing: 0) {
-            HStack {
-                Text("scan_col_stage").font(AppTypography.labelSmall.font).foregroundColor(.secondary)
-                Spacer()
-                Text("scan_col_done").font(AppTypography.labelSmall.font).foregroundColor(.secondary)
-                Spacer().frame(width: 28)
-                Text("scan_col_pending").font(AppTypography.labelSmall.font).foregroundColor(.secondary)
-            }
-            .padding(.vertical, 4)
-            Divider()
-            stageRow("scan_pass_stage_face", p1Done, stats.remainingPass1)
-            Divider()
-            stageRow("scan_pass_stage_content", p3Done, stats.remainingPass3)
-        }
-    }
-    private func stageRow(_ name: String, _ done: Int, _ pending: Int) -> some View {
-        HStack {
-            Text(l(name)).font(AppTypography.bodySmall.font).foregroundColor(.primary.opacity(AppAlpha.secondary))
-            Spacer()
-            Text("\(done)").font(.system(size: 12, weight: .semibold))
-            Spacer().frame(width: 28)
-            Text("\(pending)").font(.system(size: 12, weight: .semibold))
-        }
-        .padding(.vertical, 5)
-    }
-}
-
-// MARK: - 5) 管线概览（对齐 Android 处理阶段概览）
-struct ScanPipelineOverview: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text("scan_pipeline_overview_title").font(.system(size: 14, weight: .semibold))
-            pipelineRow("checkmark.circle", "scan_pipeline_face", done: true)
-            pipelineRow("checkmark.circle", "scan_pipeline_cluster", done: true)
-            pipelineRow("checkmark.circle", "scan_pipeline_content", done: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .scanCard()
-    }
-    private func pipelineRow(_ icon: String, _ key: String, done: Bool) -> some View {
+        let s = appScheme(cs)
         HStack(spacing: Spacing.sm) {
-            MatIcon(name: icon, size: IconSize.sm)
-                .foregroundStyle(done ? StatusColor.success : Color.secondary)
-            Text(key).font(AppTypography.bodyMedium.font)
+            Text(l(titleKey))
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(s.onSurfaceVariant)
             Spacer(minLength: 0)
+            if let hintKey {
+                Text(l(hintKey))
+                    .font(.system(size: 11))
+                    .foregroundStyle(s.onSurfaceVariant.opacity(AppAlpha.hint))
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, Spacing.xs)
+    }
+}
+
+// MARK: - 区块 3：Stages（4× StageRow → StageActionSheet）
+
+/// 阶段定义（图标字形取 MaterialIconMap 已有映射；强调色按 yaml 内联）。
+enum TagStage: String, Identifiable, CaseIterable {
+    case faces, people, content, aesthetic
+
+    var id: String { rawValue }
+
+    var titleKey: String {
+        switch self {
+        case .faces: return "Faces"
+        case .people: return "People"
+        case .content: return "Content tags"
+        case .aesthetic: return "Quality scores"
+        }
+    }
+
+    var iconName: String {
+        switch self {
+        case .faces: return "face.smiling"
+        case .people: return "person.2"
+        case .content: return "tag"
+        case .aesthetic: return "sparkles"
+        }
+    }
+
+    var accent: Color {
+        switch self {
+        case .faces: return Color(hex: "FFFF7EB0")
+        case .people: return Color(hex: "FF9B8CFF")
+        case .content: return Color(hex: "FF22D3EE")
+        case .aesthetic: return Color(hex: "FF4ADE80")
         }
     }
 }
 
-// MARK: - 6) 快捷操作（idle：全量/增量，对齐 Android quick-action card）
-struct ScanQuickActions: View {
+struct TagStageSection: View {
     @ObservedObject var vm: TagScanViewModel
-    private var idle: Bool {
-        (vm.progress?.state ?? .idle) == .idle && !vm.hasUnfinishedSession
-    }
+    /// iOS 执行链暂无美学评分 → 弹「后续版本」提示（沿用 v1 语义）。
+    var onUnavailable: () -> Void
+    @Environment(\.colorScheme) private var cs
+    @State private var activeSheet: TagStage?
+
     var body: some View {
-        Group {
-            if idle {
-                HStack(spacing: Spacing.sm) {
-                    actionBtn("play_arrow", "scan_action_scan_full", filled: true) { vm.startFull() }
-                    actionBtn("arrow.triangle.2.circlepath", "scan_action_scan_incremental", filled: false) { vm.startIncremental() }
-                }
-                .scanCard(padding: Spacing.md)
+        VStack(spacing: Spacing.md) {
+            TagSectionHeader(titleKey: "Stages", hintKey: "Tap a stage to manage")
+            VStack(spacing: 0) {
+                stageRow(.faces)
+                Divider()
+                stageRow(.people)
+                Divider()
+                stageRow(.content)
+                Divider()
+                stageRow(.aesthetic)
             }
+            .tagCard()
+        }
+        .sheet(item: $activeSheet) { stage in
+            StageActionSheet(
+                stage: stage,
+                onRunNew: { run(stage, full: false) },
+                onRunFull: { run(stage, full: true) }
+            )
         }
     }
-    private func actionBtn(_ icon: String, _ key: String, filled: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 4) {
-                MatIcon(name: icon, size: IconSize.sm)
-                Text(LocalizedStringKey(key)).font(AppTypography.labelSmall.font)
+
+    private func stageRow(_ stage: TagStage) -> some View {
+        let s = appScheme(cs)
+        return Button {
+            activeSheet = stage
+        } label: {
+            HStack(spacing: Spacing.md) {
+                MatIcon(name: stage.iconName, size: IconSize.sm)
+                    .foregroundStyle(stage.accent)
+                Text(l(stage.titleKey))
+                    .font(AppTypography.bodyMedium.font)
+                    .foregroundStyle(s.onSurface)
+                Spacer(minLength: 0)
+                Text(trailingValue(stage))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(s.primary)
+                MatIcon(name: "arrow_forward", size: IconSize.sm)
+                    .foregroundStyle(s.onSurfaceVariant.opacity(AppAlpha.hint))
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.xs)
-            .background(filled ? Color.accentColor : Color.clear)
-            .foregroundStyle(filled ? Color.white : Color.primary)
-            .clipShape(Capsule())
-            .overlay(Capsule().stroke(Color.secondary.opacity(filled ? 0 : 0.35), lineWidth: filled ? 0 : 1))
+            .padding(.vertical, Spacing.md)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("stage_\(stage.rawValue)_row")
+    }
+
+    /// 行尾值：Faces/Content tags/Quality scores=百分比；People=人数。
+    private func trailingValue(_ stage: TagStage) -> String {
+        let st = vm.stats
+        switch stage {
+        case .faces:
+            guard st.totalMedia > 0 else { return "0%" }
+            let done = Double(max(0, st.totalMedia - st.remainingPass1))
+            return "\(Int((done / Double(st.totalMedia) * 100).rounded()))%"
+        case .people:
+            return "\(st.personCount)"
+        case .content:
+            guard st.totalMedia > 0 else { return "0%" }
+            return "\(Int((Double(st.withLabels) / Double(st.totalMedia) * 100).rounded()))%"
+        case .aesthetic:
+            // iOS 执行链暂无美学评分数据 → 占位（见交付报告存疑项）
+            return "—"
+        }
+    }
+
+    /// 阶段动作 → 既有执行链（调用面不变）：
+    /// Faces new/full = 增量/全量扫描（Pass1→2→3 链）；People = 重聚类（new/full 同源）；
+    /// Content tags = Pass3 增量/全量；aesthetic = 不可用（iOS 无对应执行链）。
+    private func run(_ stage: TagStage, full: Bool) {
+        activeSheet = nil
+        switch stage {
+        case .faces:
+            if full { vm.startFull() } else { vm.startIncremental() }
+        case .people:
+            vm.runPass2()
+        case .content:
+            if full { vm.startPass3Full() } else { vm.startPass3Incremental() }
+        case .aesthetic:
+            onUnavailable()
         }
     }
 }
 
-// MARK: - 7) PassControlCard（横向：左 标题+描述+进度，右 增量/全量 图标行）
-struct PassControlCard: View {
-    let titleKey: LocalizedStringKey
-    let descKey: LocalizedStringKey
-    var fraction: Double?        // nil = 不显示进度条
-    var progressText: String?
-    var tag: String = ""          // accessibility 前缀（pass1/pass2/pass3/aesthetic）
-    var onIncremental: () -> Void
-    var onFull: () -> Void
+// MARK: - 阶段动作 Sheet（surfaceContainerHighest；单选两档，点卡片直接执行）
+
+struct StageActionSheet: View {
+    let stage: TagStage
+    var onRunNew: () -> Void
+    var onRunFull: () -> Void
+    @Environment(\.colorScheme) private var cs
+    @State private var selection: StageAction = .new
+    @State private var showFullConfirm = false
+
+    enum StageAction { case new, full }
 
     var body: some View {
-        HStack(alignment: .top, spacing: Spacing.sm) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(titleKey).font(.system(size: 14, weight: .semibold))
-                Text(descKey).font(AppTypography.bodySmall.font).foregroundColor(.secondary)
-                if let f = fraction {
+        let s = appScheme(cs)
+        VStack(alignment: .leading, spacing: Spacing.lg) {
+            Text(l(stage.titleKey))
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(s.onSurface)
+            Text(l("Choose what to reprocess in this stage."))
+                .font(AppTypography.bodySmall.font)
+                .foregroundStyle(s.onSurfaceVariant)
+            optionCard(.new, badge: l("Recommended"), s)
+            optionCard(.full, badge: nil, s)
+        }
+        .padding(Spacing.lg)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(s.surfaceContainerHighest)
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
+        // 「Reprocess everything」先确认再执行（yaml confirm_first）
+        .alert(l("Reprocess everything?"), isPresented: $showFullConfirm) {
+            Button(l("Start")) { onRunFull() }
+            Button(l("Cancel"), role: .cancel) {}
+        } message: {
+            Text(l("Existing results will be cleared and rebuilt. This can take a while."))
+        }
+    }
+
+    private func optionCard(_ action: StageAction, badge: String?, _ s: SchemeColors) -> some View {
+        let selected = selection == action
+        return Button {
+            selection = action
+            if action == .new {
+                onRunNew()
+            } else {
+                showFullConfirm = true
+            }
+        } label: {
+            HStack(alignment: .top, spacing: Spacing.md) {
+                RadioCircle(selected: selected)
+                VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: Spacing.sm) {
-                        ProgressView(value: f).tint(Color.accentColor)
-                        if f >= 0.999 {
-                            MatIcon(name: "checkmark.circle", size: IconSize.sm).foregroundStyle(StatusColor.success)
-                        } else {
-                            Text("\(Int((f * 100).rounded()))%").font(AppTypography.labelSmall.font).foregroundColor(Color.accentColor)
+                        Text(l(action == .new ? "Process new only" : "Reprocess everything"))
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(s.onSurface)
+                        if let badge {
+                            Text(badge)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(s.primary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(s.primary.opacity(0.14))
+                                .clipShape(Capsule())
                         }
                     }
-                    .padding(.top, 6)
+                    Text(l(action == .new
+                           ? "Skips already-processed photos · fastest"
+                           : "Redoes all photos · takes much longer"))
+                        .font(AppTypography.bodySmall.font)
+                        .foregroundStyle(s.onSurfaceVariant)
                 }
-                if let pt = progressText {
-                    Text(pt).font(AppTypography.bodySmall.font).foregroundColor(.secondary).padding(.top, 4)
-                }
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: Spacing.sm)
-            VStack(alignment: .trailing, spacing: 2) {
-                iconRow("plus.circle", "scan_action_incremental", onIncremental)
-                    .accessibilityIdentifier("\(tag)_incremental")
-                iconRow("arrow.clockwise.circle", "scan_action_full", onFull)
-                    .accessibilityIdentifier("\(tag)_full")
-            }
-        }
-        .padding(Spacing.md)
-        .background(Color(.tertiarySystemBackground))
-        .clipShape(AppShapes.card)
-    }
-    private func iconRow(_ icon: String, _ key: LocalizedStringKey, _ action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 4) {
-                MatIcon(name: icon, size: IconSize.sm).foregroundStyle(Color.accentColor)
-                Text(key).font(AppTypography.labelSmall.font).foregroundColor(.primary.opacity(AppAlpha.emphasis))
-            }
-            .padding(.vertical, 4)
+            .padding(Spacing.md)
+            .background(s.surfaceContainer)
+            .clipShape(AppShapes.card)
+            .overlay(
+                AppShapes.card.stroke(selected ? s.primary : s.outlineVariant,
+                                      lineWidth: selected ? 1.5 : 1)
+            )
         }
         .buttonStyle(.plain)
     }
 }
 
-// MARK: - 7+8) 分阶段独立控制（含精细控制，单卡）
-struct ScanPassControlSection: View {
-    @ObservedObject var vm: TagScanViewModel
-    var onDisabled: () -> Void
-    @State private var categories: Set<String> = ["scan_cat_face"]
-    @State private var rangeAll = true
-    @State private var fullRegenerate = false
-
-    private let catKeys: [String] = ["scan_cat_face", "scan_cat_scene", "scan_cat_activity",
-                                     "scan_cat_objects", "scan_cat_tags", "scan_cat_summary"]
-    private let rangeKeys: [String] = ["scan_range_all", "scan_range_7d", "scan_range_30d", "scan_range_90d"]
-
-    private var p1Fraction: Double? {
-        guard vm.stats.totalMedia > 0 else { return nil }
-        return Double(max(0, vm.stats.totalMedia - vm.stats.remainingPass1)) / Double(vm.stats.totalMedia)
-    }
+/// 单选圈：20dp 描边圈 + 选中内点（yaml radio_circle）。
+struct RadioCircle: View {
+    let selected: Bool
+    @Environment(\.colorScheme) private var cs
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text("scan_passctl_title").font(.system(size: 14, weight: .semibold))
-            Text("scan_passctl_sub").font(AppTypography.bodySmall.font).foregroundColor(.secondary)
-
-            PassControlCard(titleKey: "scan_pass1_title", descKey: "scan_pass1_desc",
-                            fraction: p1Fraction, tag: "pass1",
-                            onIncremental: { vm.startIncremental() }, onFull: { vm.startFull() })
-            PassControlCard(titleKey: "scan_pass2_title", descKey: "scan_pass2_desc",
-                            tag: "pass2",
-                            onIncremental: { vm.runPass2() }, onFull: { vm.runPass2() })
-            PassControlCard(titleKey: "scan_pass3_title", descKey: "scan_pass3_desc",
-                            tag: "pass3",
-                            onIncremental: { vm.startPass3Incremental() }, onFull: { vm.startPass3Full() })
-            PassControlCard(titleKey: "scan_aesthetic_title", descKey: "scan_aesthetic_desc",
-                            tag: "aesthetic",
-                            onIncremental: { onDisabled() }, onFull: { onDisabled() })
-
-            Divider().padding(.vertical, Spacing.xs)
-
-            // 精细控制（同一卡下半区）
-            Text("scan_fine_control_title").font(.system(size: 12, weight: .medium)).foregroundColor(.secondary)
-            Text("scan_cat_label").font(AppTypography.bodySmall.font)
-            FlowLayout(spacing: Spacing.sm) {
-                ForEach(catKeys, id: \.self) { k in
-                    ScanChip(key: LocalizedStringKey(k), selected: categories.contains(k)) {
-                        if categories.contains(k) { categories.remove(k) } else { categories.insert(k) }
-                    }
-                }
+        let s = appScheme(cs)
+        ZStack {
+            Circle().strokeBorder(selected ? s.primary : s.outlineVariant, lineWidth: 2)
+            if selected {
+                Circle().fill(s.primary).frame(width: 10, height: 10)
             }
-            Text("scan_range_label").font(AppTypography.bodySmall.font).padding(.top, Spacing.sm)
-            FlowLayout(spacing: Spacing.sm) {
-                ForEach(Array(rangeKeys.enumerated()), id: \.offset) { idx, k in
-                    ScanChip(key: LocalizedStringKey(k), selected: (idx == 0) == rangeAll) {
-                        rangeAll = (idx == 0)
-                    }
-                }
-            }
-            Toggle(isOn: $fullRegenerate) {
-                if fullRegenerate {
-                    Text("scan_mode_full")
-                } else {
-                    Text("scan_mode_inc")
-                }
-            }
-            .padding(.top, Spacing.sm)
-
-            Button(action: { vm.startPass3Full() }) {
-                HStack(spacing: 4) {
-                    MatIcon(name: "slider.horizontal.3", size: IconSize.sm)
-                    Text("scan_regenerate_selected").font(AppTypography.labelSmall.font)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.sm)
-                .background(Color.accentColor)
-                .foregroundStyle(.white)
-                .clipShape(Capsule())
-            }
-            .padding(.top, Spacing.sm)
         }
-        .scanCard()
+        .frame(width: 20, height: 20)
     }
 }
 
-// MARK: - 标准选择 chip（对齐本 App Settings/ModelCenter 的 capsule chip 习惯）
-private struct ScanChip: View {
-    let key: LocalizedStringKey
-    let selected: Bool
-    var action: () -> Void
+// MARK: - 区块 4：Regenerate（分类多选 + 时间范围单选 + 覆盖开关 + 渐变提交）
+
+struct TagRegenerateCard: View {
+    @ObservedObject var vm: TagScanViewModel
+    @Environment(\.colorScheme) private var cs
+    @State private var categories: Set<String> = []
+    @State private var timeRange: String = "All time"
+    @State private var overwrite = false
+    @State private var showConfirm = false
+
+    /// Faces 由 pass 决定不在此（yaml categories）；分类 key 即英文短句。
+    private let categoryKeys: [String] = ["Scenes", "Activities", "Objects", "Tags", "Summary"]
+    private let timeRangeKeys: [String] = ["All time", "7 days", "30 days", "90 days"]
+
     var body: some View {
-        Button(action: action) {
-            Text(key)
-                .font(.system(size: 13, weight: selected ? .semibold : .regular))
-                .foregroundColor(selected ? .white : .primary)
-                .padding(.horizontal, 14).padding(.vertical, 6)
-                .background(selected ? Color.accentColor : Color(.tertiarySystemBackground))
-                .clipShape(Capsule())
+        VStack(spacing: Spacing.md) {
+            TagSectionHeader(titleKey: "Regenerate")
+            VStack(alignment: .leading, spacing: Spacing.md) {
+                let s = appScheme(cs)
+                Text(l("Categories"))
+                    .font(AppTypography.bodySmall.font)
+                    .foregroundStyle(s.onSurfaceVariant)
+                FlowLayout(spacing: Spacing.sm) {
+                    ForEach(categoryKeys, id: \.self) { key in
+                        TagChip(title: l(key), selected: categories.contains(key)) {
+                            if categories.contains(key) {
+                                categories.remove(key)
+                            } else {
+                                categories.insert(key)
+                            }
+                        }
+                    }
+                }
+                Text(l("Time range"))
+                    .font(AppTypography.bodySmall.font)
+                    .foregroundStyle(s.onSurfaceVariant)
+                FlowLayout(spacing: Spacing.sm) {
+                    ForEach(timeRangeKeys, id: \.self) { key in
+                        TagChip(title: l(key), selected: timeRange == key) { timeRange = key }
+                    }
+                }
+                overwriteRow(s)
+                GradientPillButton(titleKey: "Regenerate", height: 44, fontSize: 14,
+                                   disabled: categories.isEmpty) {
+                    // 覆盖模式=全量替换 → 二次确认；补齐模式（fill missing）直接执行
+                    if overwrite {
+                        showConfirm = true
+                    } else {
+                        submit()
+                    }
+                }
+                .accessibilityIdentifier("regenerate_submit_btn")
+            }
+            .tagCard()
         }
+        .alert(l("Reprocess everything?"), isPresented: $showConfirm) {
+            Button(l("Start")) { submit() }
+            Button(l("Cancel"), role: .cancel) {}
+        } message: {
+            Text(l("Existing results will be cleared and rebuilt. This can take a while."))
+        }
+    }
+
+    /// 覆盖开关行：开=覆盖已有结果；关=仅补齐缺失（原 fill_missing 语义）。
+    private func overwriteRow(_ s: SchemeColors) -> some View {
+        HStack(spacing: Spacing.md) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(l("Overwrite existing"))
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(s.onSurface)
+                Text(l("On: replace existing results. Off: fill in missing only."))
+                    .font(.system(size: 11))
+                    .foregroundStyle(s.onSurfaceVariant)
+            }
+            Spacer(minLength: 0)
+            TagSwitch(isOn: $overwrite)
+        }
+    }
+
+    /// 映射既有执行链：overwrite=false→Pass3 增量（仅补缺失）；true→Pass3 全量（覆盖重打）。
+    /// categories/timeRange 为 UI 选择态，既有链暂不支持按类/时间过滤（见交付报告存疑项）。
+    private func submit() {
+        if overwrite {
+            vm.startPass3Full()
+        } else {
+            vm.startPass3Incremental()
+        }
+    }
+}
+
+// MARK: - 选择 chip（h28 r100；选中 = primary@14% 底 + primary 描边）
+
+struct TagChip: View {
+    let title: String
+    let selected: Bool
+    let action: () -> Void
+    @Environment(\.colorScheme) private var cs
+
+    var body: some View {
+        let s = appScheme(cs)
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 12, weight: selected ? .semibold : .regular))
+                .foregroundStyle(selected ? s.primary : s.onSurfaceVariant)
+                .padding(.horizontal, 12)
+                .frame(height: 28)
+                .background(selected ? s.primary.opacity(0.14) : s.surfaceContainerHighest)
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(selected ? s.primary : Color.clear, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - 覆盖开关（44×26 r13 白点 20，替代旧「模式: X」单选）
+
+struct TagSwitch: View {
+    @Binding var isOn: Bool
+    @Environment(\.colorScheme) private var cs
+
+    var body: some View {
+        let s = appScheme(cs)
+        Button {
+            withAnimation(.easeInOut(duration: AppMotion.fastMs / 1000)) {
+                isOn.toggle()
+            }
+        } label: {
+            ZStack {
+                Capsule().fill(isOn ? s.primary : s.surfaceVariant)
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: 20, height: 20)
+                    .offset(x: isOn ? 9 : -9)
+                    .shadow(color: Color.black.opacity(0.2), radius: 1, y: 1)
+            }
+            .frame(width: 44, height: 26)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(l("Overwrite existing"))
     }
 }

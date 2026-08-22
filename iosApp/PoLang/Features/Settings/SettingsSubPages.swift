@@ -123,7 +123,6 @@ struct AiAgentSettingsView: View {
 
 private struct AiAgentRemoteModelsSection: View {
     @EnvironmentObject private var store: ModelConfigStore
-    @State private var showAddSheet = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -179,19 +178,17 @@ private struct AiAgentRemoteModelsSection: View {
                 }
             }
 
-            // 添加按钮
-            Button { showAddSheet = true } label: {
+            // 添加入口：导航到添加远程模型页（spec §3 add_entry_target；原 AddModelSheet 弹窗流程下线）
+            NavigationLink {
+                AddRemoteProviderView()
+            } label: {
                 HStack {
                     Image(matIcon: "add").font(.system(size: 16))
                     Text(L("Add Model")).font(.system(size: 14, weight: .medium))
                 }
                 .foregroundColor(.accentColor)
             }
-        }
-        .sheet(isPresented: $showAddSheet) {
-            AddModelSheet { provider, modelId, apiKey in
-                store.add(provider: provider, modelId: modelId, apiKey: apiKey)
-            }
+            .buttonStyle(.plain)
         }
     }
 
