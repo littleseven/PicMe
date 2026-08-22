@@ -1,6 +1,7 @@
 package com.mamba.picme.agent.core.model.context
 
 import com.mamba.picme.agent.core.model.command.AgentCommand
+import com.mamba.picme.agent.core.model.config.AssistantPersona
 import com.mamba.picme.beauty.api.BeautySettings
 import com.mamba.picme.beauty.api.FilterType
 import com.mamba.picme.beauty.api.StyleFilter
@@ -37,7 +38,11 @@ data class AgentContext(
     /** 当前相册摘要，供 LLM 回答「有多少照片/人脸/是否需扫描」等问题 */
     val gallerySummary: GallerySummary? = null,
     /** 一次用户消息的关联 ID，贯穿该轮 LLM/tool/JS 三层日志；非 chat 来源为 null。 */
-    val traceId: String? = null
+    val traceId: String? = null,
+    /** Chat 助手性格预设；非 chat 调用方用默认值（不注入性格段，行为不变）。 */
+    val persona: AssistantPersona = AssistantPersona.DEFAULT,
+    /** Chat 回复语言（已解析）；非 chat 调用方用默认值。 */
+    val replyLanguage: ReplyLanguage = ReplyLanguage.SIMPLIFIED_CHINESE
 )
 
 /**
