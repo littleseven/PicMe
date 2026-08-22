@@ -1,0 +1,149 @@
+# ============================================================================
+# TAG 生成控制页规格书（Tag Control Screen Spec）—— v2 重设计（2026-08-22）
+# ============================================================================
+# 基准端：Android features/gallery/components/TagGenerationControlScreen.kt
+#        （提交 9fca3ce9e v2 重写，1193 行）
+# 视觉定稿：Ardot `gallery/tag_control_v2_en` / `gallery/tag_stage_sheet_en`
+#        （specs/screens/refs/ardot/，快照 2026-08-22T23:34）
+# 用途：iOS TagScanScreen/TagScanComponents 重写的唯一输入，不读 Android 源码
+# 值引用：colorScheme.* / ChatBubbleTokens.brandGradient；本页为 v2 新增的
+#        强调色字面量在本文内联（暂不入 design-tokens.json，后续可归一化）
+# 数据/执行链：iOS TagScanOrchestrator 等既有 Platform/Tag/* 不动——v2 是纯控制页 UI 重设计
+# i18n：键前缀 tag_section_* / tag_stage_* / tag_scan_* / tag_overwrite_*（iOS 侧由 scan_* 收敛至 tag_*）
+
+tag_control_v2:
+  type: full_screen
+  background: "colorScheme.background"
+  layout: vscroll                                  # 页面 pad 16/8/28，区块间 16dp，区块卡=surfaceContainer r16
+  entry_points:
+    - gallery_settings_entry                       # 相册设置页入口（既有）
+  sections_order: [library, scan, stages, regenerate]
+
+  # ── 区块 1：Library（Stats 置顶）──
+  library:
+    card: { background: surfaceContainer, corner_radius: 16 }
+    stats_card:
+      hero_number:
+        text: "<语义索引覆盖率 %>"                  # 大数字，品牌渐变前景
+        foreground: "brandGradient #0F766E→#5EA88F"
+        caption: "stats_hero_caption = %1$d%% semantically indexed"
+      progress_ring:
+        style: "实色 primary 弧（非渐变）；尺寸对齐 ardot 帧 tag_control_v2_en"
+        track: surfaceVariant
+      metric_tiles:                                # 2×2 无图标瓦片（v2 删图标）
+        grid: "2×2"
+        value: { size: 17, weight: semibold }
+        label: { size: 11 }
+        values: "[Faces 数, People 数, Content tags 数, Quality scores 覆盖]"
+    removed: "底部阶段进度条（v1 有，v2 删）"
+
+  # ── 区块 2：Scan ──
+  scan:
+    idle_scan_action_card:
+      status_chip:
+        height: 24
+        corner_radius: 12
+        dot: 6
+        font: { size: 11 }
+        states:
+          up_to_date: { text: "tag_scan_up_to_date = Up to date", fg_bg: "#00E676 系" }
+          pending: { text: "tag_scan_chip_pending = %1$d pending", fg_bg: "#FFB020 系" }
+      title: { size: 14 }                          # tag_scan_status / 标题短文案
+      caption: "tag_scan_idle_caption / tag_scan_caption_done（按终态）"
+      progress_track: { height: 6, corner_radius: 3, background: "brandGradient（轨道）" }
+      buttons:
+        primary:                                   # GradientPillButton
+          text: "tag_scan_incremental = Scan new"
+          height: 40
+          corner_radius: 20
+          background: "brandGradient"
+          foreground: white
+        secondary:                                 # OutlinedPillButton
+          text: "tag_scan_full = Rescan all"
+          height: 40
+          corner_radius: 20
+          stroke: { width: 1, color: outlineVariant }
+    scanning: "沿用既有 ScanProgressCard / AestheticProgressCard + 会话控制（暂停/恢复/取消：secondaryContainer / error 容器着色）"
+    terminal: "上次会话结果摘要（终态展示）"
+
+  # ── 区块 3：Stages ──
+  stages:
+    section_header: { title_size: 11, hint: "tag_stages_hint" }
+    rows:                                          # StageRow ×4
+      - { title: "tag_pass_title_face = Faces", trailing: "<百分比> + chevron" }
+      - { title: "tag_pass_title_cluster = People", trailing: "<人数> + chevron" }
+      - { title: "tag_pass_title_content = Content tags", trailing: "<百分比> + chevron" }
+      - { title: "tag_pass_title_aesthetic = Quality scores", trailing: "<百分比> + chevron" }
+    row_click: "→ StageActionSheet"
+    stage_action_sheet:                            # ModalBottomSheet，视觉定稿 ardot tag_stage_sheet_en
+      background: surfaceContainerHighest
+      desc: "tag_stage_sheet_desc"
+      options:                                     # 单选两档，点卡片直接执行
+        - { title: "tag_stage_action_new = Process new only", desc: "tag_stage_action_new_desc", badge: "tag_action_recommended = Recommended（默认选中）" }
+        - { title: "tag_stage_action_full = Reprocess everything", desc: "tag_stage_action_full_desc", confirm_first: true }
+      radio_circle: { size: 20, corner_radius: 10, style: "描边圈+选中内点" }
+      full_confirm_dialog:                         # AlertDialog 二次确认
+        title: "tag_stage_full_confirm_title"
+        message: "tag_stage_full_confirm_msg"
+        positive: "tag_stage_full_confirm_ok = Start"
+      intents: "intentScanPass1/2/3Full、intentScoreAestheticFull（既有，语义不变）"
+    removed: "行内「增量/全量」双按钮（v2 删，防误触）"
+
+  # ── 区块 4：Regenerate ──
+  regenerate:
+    section_header: { title: "tag_fine_control_title = Regenerate" }
+    category_chips:                                # CategoryChip 组（多选）
+      height: 28
+      corner_radius: 100
+      selected: { background: "primary @ 14%", stroke: primary }
+      categories: "[Faces 由 pass 决定不在此; Scene/Activity/Objects/Tags/Summary]"
+    time_range_chips:                              # 单选
+      options: "tag_time_range_all = All time / 7 days / 30 days / 90 days"
+      style: 同 category_chips
+    overwrite_switch:                              # TagSwitch，替代旧「模式: X」单选
+      size: "44×26, r13, 白点 20dp"
+      title: "tag_overwrite_existing = Overwrite existing"
+      desc: "tag_overwrite_existing_desc"
+      semantics: "开=覆盖已有结果；关=仅补齐缺失（原 fill_missing 语义）"
+    submit_button:                                 # GradientPillButton
+      text: "tag_fine_control_title = Regenerate"
+      height: 44
+      corner_radius: 22
+      font: { size: 14 }
+      background: "brandGradient"
+    removed: "tag_regenerate_mode / tag_mode_full_regenerate / tag_mode_fill_missing 单选（v2 删）"
+
+  # ── 删除清单（v1 → v2）──
+  removed_components:
+    - "Pipeline overview 卡（tag_pipeline_overview）"
+    - "StatsCard 底部阶段进度条"
+    - "行内增量/全量按钮（tag_action_incremental / tag_action_full）"
+
+  # ── 视觉令牌映射（AGENTS.md 块 + ardot 帧）──
+  token_mapping:
+    card: "surfaceContainer r16"
+    tile_track_cancel: surfaceVariant
+    sheet_confirm: surfaceContainerHighest
+    stroke: outlineVariant
+    emphasis: "primary（dark = #8FD6C6）"
+    gradient: "brandGradient #0F766E→#5EA88F（渐变按钮/大数字/轨道）"
+    accent_literals:                               # v2 新增字面量（未入 token，双端按本文对齐）
+      status_green: "#00E676"
+      status_orange: "#FFB020"
+      stage_icon_colors: "[#FF7EB0, #9B8CFF, #22D3EE, #4ADE80]"
+
+  # ── 状态机 ──
+  state_machine:
+    idle_up_to_date: "无 pending 媒体 → chip=Up to date，Scan new 主按钮"
+    idle_pending: "chip=N pending"
+    scanning: "进度卡 + 会话控制（可暂停/恢复/取消）"
+    stage_sheet_open: "点 StageRow → sheet；new 直接执行；full 先确认再执行"
+    regenerate_submitted: "按 categories × timeRange × overwrite 下发 intentRegenerateCategories"
+
+  back_stack: "系统返回（Android back / iOS NavigationStack pop）"
+
+  platform_differences:
+    capabilities: "扫描执行链 iOS=TagScanOrchestrator（既有）；UI 状态消费同源 sessionProgress 语义"
+    i18n_keys: "iOS 现用 scan_* 键位 → 本规格要求收敛至 tag_*（一次性迁移，死键清理）"
+    allowed_differences:
+      - "进度卡/会话控制的具体容器色可用两端等价 colorScheme 角色实现"
