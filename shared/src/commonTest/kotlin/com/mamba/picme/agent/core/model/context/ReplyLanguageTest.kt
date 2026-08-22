@@ -49,4 +49,18 @@ class ReplyLanguageTest {
         // 裸脚本 tag（iOS 真实形态）→ 繁体
         assertEquals(ReplyLanguage.TRADITIONAL_CHINESE, AppLanguage.SYSTEM.toReplyLanguage("zh-Hant"))
     }
+
+    @Test
+    fun `system resolves cantonese and underscore locales`() {
+        // yue（粤语）按中文同规则解析：iOS 粤语系统语言下 UI 回退繁中，chat 回复语言须与之一致
+        assertEquals(ReplyLanguage.TRADITIONAL_CHINESE, AppLanguage.SYSTEM.toReplyLanguage("yue-Hant-HK"))
+        assertEquals(ReplyLanguage.SIMPLIFIED_CHINESE, AppLanguage.SYSTEM.toReplyLanguage("yue-CN"))
+        // 裸 "yue"（无子标签）→ 简体（与裸 "zh" 对称）
+        assertEquals(ReplyLanguage.SIMPLIFIED_CHINESE, AppLanguage.SYSTEM.toReplyLanguage("yue"))
+        // "yue*" 但非 "yue-" 的畸形 tag → 英文（与 "zhcn" 对称，锁定子标签边界）
+        assertEquals(ReplyLanguage.ENGLISH, AppLanguage.SYSTEM.toReplyLanguage("yuecn"))
+        // 下划线分隔形式（iOS Locale.identifier）先归一为 BCP-47 再判定
+        assertEquals(ReplyLanguage.TRADITIONAL_CHINESE, AppLanguage.SYSTEM.toReplyLanguage("zh_TW"))
+        assertEquals(ReplyLanguage.TRADITIONAL_CHINESE, AppLanguage.SYSTEM.toReplyLanguage("zh_Hant"))
+    }
 }

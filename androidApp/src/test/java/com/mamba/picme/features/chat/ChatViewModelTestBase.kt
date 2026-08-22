@@ -88,6 +88,9 @@ abstract class ChatViewModelTestBase {
         every { userSettingsRepository.guestChatMessageCountFlow } returns flowOf(0)
         every { userSettingsRepository.assistantPersonaFlow } returns flowOf(AssistantPersona.DEFAULT)
         every { userSettingsRepository.appLanguageFlow } returns flowOf(AppLanguage.SYSTEM)
+        // relaxed mock 对枚举返回随机值：钉死 SYSTEM，使 ChatViewModel.stringContext() 直接返回
+        // context mock（走 createConfigurationContext 分支会拿到未 stub 的新 mock，getString 恒为 ""）。
+        every { userSettingsRepository.getAppLanguageBlocking() } returns AppLanguage.SYSTEM
 
         every { chatMessageDao.getMessagesBySession(any()) } returns flowOf(emptyList())
         coEvery { chatMessageDao.getLastMessageForSession(any()) } returns null
