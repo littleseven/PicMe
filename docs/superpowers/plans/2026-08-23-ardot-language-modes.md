@@ -83,7 +83,7 @@ U("105:45", {variableModes:[{variableSetId:"<langSetId>",modeId:"<zhModeId>"}]})
 ```
 U("105:45", {variableModes:[{variableSetId:"2:2",modeId:"79:1"},{variableSetId:"<langSetId>",modeId:"<zhModeId>"}]})
 ```
-截图应同时呈浅色 + 中文。验证后还原：只留 lang override 或全清（`variableModes:null`）。若两 set 互斥覆盖（后者吃前者）→ 记录限制到 probe-record.md，工具脚本改为「写全量 override 数组」策略（本步语法已是全量写，通常天然并存）。
+截图应同时呈浅色 + 中文。验证后还原：显式写回双默认 mode（`variableModes:null` 是静默 no-op，probe §5 实证）。若两 set 互斥覆盖（后者吃前者）→ 记录限制到 probe-record.md，工具脚本改为「写全量 override 数组」策略（本步语法已是全量写，通常天然并存）。
 
 - [ ] **Step 0.7 structure.json 导出形态**
 
