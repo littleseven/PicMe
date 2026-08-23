@@ -321,8 +321,8 @@
    "ardotId": "182:187"
   },
   "gallery.search.group.title": {
-   "zh": "搜索 “海边”",
-   "en": "Search “Seaside”",
+   "zh": "搜索 \"海边\"",
+   "en": "Search \"Seaside\"",
    "status": "created",
    "ardotId": "182:188"
   },
@@ -349,6 +349,524 @@
    "en": "Content understanding · Pass 3",
    "status": "created",
    "ardotId": "182:192"
+  },
+  "local.models": {
+   "zh": "本地模型",
+   "en": "Local Models",
+   "status": "created",
+   "key": "local_models",
+   "ardotId": "182:193"
+  },
+  "stage.roi.title": {
+   "zh": "ROI 检测",
+   "en": "ROI Detection",
+   "status": "created",
+   "key": "stage_roi_title",
+   "ardotId": "182:194"
+  },
+  "model.mediapipe": {
+   "zh": "MediaPipe",
+   "en": "MediaPipe",
+   "status": "created",
+   "key": "model_mediapipe",
+   "ardotId": "182:195"
+  },
+  "stage.landmark.title": {
+   "zh": "关键点检测",
+   "en": "Landmark Detection",
+   "status": "created",
+   "key": "stage_landmark_title",
+   "ardotId": "182:196"
+  },
+  "tagging.model.label": {
+   "zh": "照片打标",
+   "en": "Photo Tagging",
+   "status": "created",
+   "key": "tagging_model_label",
+   "ardotId": "182:197"
+  },
+  "tag.model.auto": {
+   "zh": "Florence-2 优先",
+   "en": "Florence-2 preferred",
+   "status": "created",
+   "key": "tag_model_auto",
+   "ardotId": "182:198"
+  },
+  "face.landmark.mode": {
+   "zh": "人脸关键点模式",
+   "en": "Face landmark mode",
+   "status": "created",
+   "key": "face_landmark_mode",
+   "ardotId": "182:199"
+  },
+  "adaptive.face.detect.interval": {
+   "zh": "动态人脸检测间隔",
+   "en": "Adaptive face detect interval",
+   "status": "created",
+   "key": "adaptive_face_detect_interval",
+   "ardotId": "182:200"
+  },
+  "face.detect.profile.title": {
+   "zh": "动态间隔强度档位",
+   "en": "Adaptive interval profile",
+   "status": "created",
+   "key": "face_detect_profile_title",
+   "ardotId": "182:201"
+  },
+  "face.detect.profile.balanced": {
+   "zh": "平衡",
+   "en": "Balanced",
+   "status": "created",
+   "key": "face_detect_profile_balanced",
+   "ardotId": "182:202"
+  },
+  "local.asr.model": {
+   "zh": "语音识别",
+   "en": "Speech Recognition",
+   "status": "created",
+   "key": "local_asr_model",
+   "ardotId": "182:203"
+  },
+  "local.kws.model": {
+   "zh": "唤醒词",
+   "en": "Wake Word",
+   "status": "created",
+   "key": "local_kws_model",
+   "ardotId": "182:204"
+  },
+  "model.pending.download": {
+   "zh": "待下载",
+   "en": "Not downloaded",
+   "status": "created",
+   "key": "model_pending_download",
+   "ardotId": "182:205"
+  },
+  "settings": {
+   "zh": "设置",
+   "en": "Settings",
+   "status": "created",
+   "key": "settings",
+   "ardotId": "182:206"
+  },
+  "account": {
+   "zh": "账号",
+   "en": "Account",
+   "status": "created",
+   "key": "account",
+   "ardotId": "182:207"
+  },
+  "account.desc": {
+   "zh": "邮箱注册、额度与 API Key 绑定。",
+   "en": "Email registration, quota and API key binding.",
+   "status": "created",
+   "key": "account_desc",
+   "ardotId": "182:208"
+  },
+  "theme.mode": {
+   "zh": "主题模式",
+   "en": "Theme Mode",
+   "status": "created",
+   "key": "theme_mode",
+   "ardotId": "182:209"
+  },
+  "system.default": {
+   "zh": "系统默认",
+   "en": "System Default",
+   "status": "created",
+   "key": "system_default",
+   "ardotId": "182:210"
+  },
+  "language": {
+   "zh": "语言",
+   "en": "Language",
+   "status": "created",
+   "key": "language",
+   "ardotId": "182:211"
+  },
+  "people.entry": {
+   "zh": "人物",
+   "en": "People",
+   "status": "created",
+   "key": "people_entry",
+   "ardotId": "182:212"
+  },
+  "settings.ai.memory": {
+   "zh": "AI 记忆",
+   "en": "AI Memory",
+   "status": "created",
+   "key": "settings_ai_memory",
+   "ardotId": "182:213"
+  },
+  "camera.settings": {
+   "zh": "相机",
+   "en": "Camera",
+   "status": "created",
+   "key": "camera_settings",
+   "ardotId": "182:214"
+  },
+  "model.center": {
+   "zh": "模型中心",
+   "en": "Model Center",
+   "status": "created",
+   "key": "model_center",
+   "ardotId": "182:215"
+  },
+  "remote.models": {
+   "zh": "远程模型",
+   "en": "Remote Models",
+   "status": "created",
+   "key": "remote_models",
+   "ardotId": "182:216"
+  },
+  "communication.channel": {
+   "zh": "通信通道",
+   "en": "Communication Channel",
+   "status": "created",
+   "key": "communication_channel",
+   "ardotId": "182:217"
+  },
+  "sandbox.settings": {
+   "zh": "沙盒与权限",
+   "en": "Sandbox &amp; Permissions",
+   "status": "created",
+   "key": "sandbox_settings",
+   "ardotId": "182:218"
+  },
+  "data.privacy.entry": {
+   "zh": "数据与隐私",
+   "en": "Data &amp; privacy",
+   "status": "created",
+   "key": "data_privacy_entry",
+   "ardotId": "182:219"
+  },
+  "developer.options": {
+   "zh": "开发者选项",
+   "en": "Developer Options",
+   "status": "created",
+   "key": "developer_options",
+   "ardotId": "182:220"
+  },
+  "app.version.footer": {
+   "zh": "破浪相册 v1.0.35",
+   "en": "PoLang v1.0.35",
+   "status": "created",
+   "key": "app_version_footer",
+   "ardotId": "182:221"
+  },
+  "model.in.use": {
+   "zh": "使用中",
+   "en": "In use",
+   "status": "created",
+   "key": "model_in_use",
+   "ardotId": "182:222"
+  },
+  "settings.provider.subtitle.deepseek": {
+   "zh": "DeepSeek 官方 · 已配置",
+   "en": "DeepSeek Official · Configured",
+   "status": "created",
+   "key": "remote_model_configured",
+   "ardotId": "182:223"
+  },
+  "settings.provider.subtitle.kimi": {
+   "zh": "Kimi 官方 · 已配置",
+   "en": "Kimi Official · Configured",
+   "status": "created",
+   "key": "remote_model_configured",
+   "ardotId": "182:224"
+  },
+  "add.model": {
+   "zh": "添加模型",
+   "en": "Add Model",
+   "status": "created",
+   "key": "add_model",
+   "ardotId": "182:225"
+  },
+  "debug": {
+   "zh": "调试",
+   "en": "Debug",
+   "status": "created",
+   "key": "debug",
+   "ardotId": "182:226"
+  },
+  "show.camera.info": {
+   "zh": "相机信息",
+   "en": "Camera Info",
+   "status": "created",
+   "key": "show_camera_info",
+   "ardotId": "182:227"
+  },
+  "show.face.debug": {
+   "zh": "人脸调试浮层",
+   "en": "Face Debug Overlay",
+   "status": "created",
+   "key": "show_face_debug",
+   "ardotId": "182:228"
+  },
+  "show.log.overlay": {
+   "zh": "日志浮层",
+   "en": "Log Overlay",
+   "status": "created",
+   "key": "show_log_overlay",
+   "ardotId": "182:229"
+  },
+  "shader.debug.mode": {
+   "zh": "Shader 调试",
+   "en": "Shader Debug",
+   "status": "created",
+   "key": "shader_debug_mode",
+   "ardotId": "182:230"
+  },
+  "llm.call.log": {
+   "zh": "LLM 调用日志",
+   "en": "LLM Call Logs",
+   "status": "created",
+   "key": "llm_call_log",
+   "ardotId": "182:231"
+  },
+  "log.management": {
+   "zh": "模块日志",
+   "en": "Module Logs",
+   "status": "created",
+   "key": "log_management",
+   "ardotId": "182:232"
+  },
+  "debug.image.download": {
+   "zh": "图片下载调试",
+   "en": "Image Download Debug",
+   "status": "created",
+   "key": "debug_image_download",
+   "ardotId": "182:233"
+  },
+  "search.test.entry.title": {
+   "zh": "搜索测试",
+   "en": "Search Test",
+   "status": "created",
+   "key": "search_test_entry_title",
+   "ardotId": "182:234"
+  },
+  "jsbridge.entry.title": {
+   "zh": "JS Bridge",
+   "en": "JS Bridge",
+   "status": "created",
+   "key": "jsbridge_entry_title",
+   "ardotId": "182:235"
+  },
+  "settings.accessibility.service.title": {
+   "zh": "无障碍服务",
+   "en": "Accessibility Service",
+   "status": "created",
+   "key": "settings_accessibility_service_title",
+   "ardotId": "182:236"
+  },
+  "settings.accessibility.service.enabled": {
+   "zh": "已开启",
+   "en": "Enabled",
+   "status": "created",
+   "key": "settings_accessibility_service_enabled",
+   "ardotId": "182:237"
+  },
+  "language.dialog.subtitle": {
+   "zh": "选择界面显示语言",
+   "en": "Choose display language",
+   "status": "created",
+   "key": "language_dialog_subtitle",
+   "ardotId": "182:238"
+  },
+  "model.type": {
+   "zh": "模型",
+   "en": "Model",
+   "status": "created",
+   "key": "model_type",
+   "ardotId": "182:239"
+  },
+  "model.det10g.mnn": {
+   "zh": "RetinaFace 500M-MNN",
+   "en": "RetinaFace 500M-MNN",
+   "status": "created",
+   "key": "model_det10g_mnn",
+   "ardotId": "182:240"
+  },
+  "inference.device.preference": {
+   "zh": "设备偏好",
+   "en": "Device Preference",
+   "status": "created",
+   "key": "inference_device_preference",
+   "ardotId": "182:241"
+  },
+  "device.preference.auto": {
+   "zh": "自动",
+   "en": "Auto",
+   "status": "created",
+   "key": "device_preference_auto",
+   "ardotId": "182:242"
+  },
+  "device.preference.force.cpu": {
+   "zh": "CPU",
+   "en": "CPU",
+   "status": "created",
+   "key": "device_preference_force_cpu",
+   "ardotId": "182:243"
+  },
+  "device.preference.force.gpu": {
+   "zh": "GPU",
+   "en": "GPU",
+   "status": "created",
+   "key": "device_preference_force_gpu",
+   "ardotId": "182:244"
+  },
+  "theme.mode.dialog.subtitle": {
+   "zh": "跟随系统或手动选择外观",
+   "en": "Follow system or pick manually",
+   "status": "created",
+   "key": "theme_mode_dialog_subtitle",
+   "ardotId": "182:245"
+  },
+  "light": {
+   "zh": "浅色",
+   "en": "Light",
+   "status": "created",
+   "key": "light",
+   "ardotId": "182:246"
+  },
+  "dark": {
+   "zh": "深色",
+   "en": "Dark",
+   "status": "created",
+   "key": "dark",
+   "ardotId": "182:247"
+  },
+  "ai.agent.auto.execute.plans": {
+   "zh": "自动执行计划",
+   "en": "Auto-Execute Plans",
+   "status": "created",
+   "key": "ai_agent_auto_execute_plans",
+   "ardotId": "182:248"
+  },
+  "js.engine.execution": {
+   "zh": "JS 引擎",
+   "en": "JS Engine",
+   "status": "created",
+   "key": "js_engine_execution",
+   "ardotId": "182:249"
+  },
+  "agent.camera.access": {
+   "zh": "相机访问",
+   "en": "Camera Access",
+   "status": "created",
+   "key": "agent_camera_access",
+   "ardotId": "182:250"
+  },
+  "camera.permission.system": {
+   "zh": "相机权限（系统）",
+   "en": "Camera Permission (System)",
+   "status": "created",
+   "key": "camera_permission_system",
+   "ardotId": "182:251"
+  },
+  "permission.system.value": {
+   "zh": "系统设置",
+   "en": "System Settings",
+   "status": "created",
+   "key": "permission_system_value",
+   "ardotId": "182:252"
+  },
+  "agent.gallery.access": {
+   "zh": "相册访问",
+   "en": "Gallery Access",
+   "status": "created",
+   "key": "agent_gallery_access",
+   "ardotId": "182:253"
+  },
+  "gallery.permission.system": {
+   "zh": "相册权限（系统）",
+   "en": "Gallery Permission (System)",
+   "status": "created",
+   "key": "gallery_permission_system",
+   "ardotId": "182:254"
+  },
+  "voice.control": {
+   "zh": "语音控制",
+   "en": "Voice Control",
+   "status": "created",
+   "key": "voice_control",
+   "ardotId": "182:255"
+  },
+  "voice.command.mode.wake.word": {
+   "zh": "唤醒词",
+   "en": "Wake Word",
+   "status": "created",
+   "key": "voice_command_mode_wake_word",
+   "ardotId": "182:256"
+  },
+  "voice.entry.enabled": {
+   "zh": "语音控制入口",
+   "en": "Voice Control Entry",
+   "status": "created",
+   "key": "voice_entry_enabled",
+   "ardotId": "182:257"
+  },
+  "add.remote.model.title": {
+   "zh": "添加远程模型",
+   "en": "Add Remote Model",
+   "status": "created",
+   "key": "add_remote_model_title",
+   "ardotId": "182:258"
+  },
+  "provider.section.connected": {
+   "zh": "已接入",
+   "en": "Connected",
+   "status": "created",
+   "key": "provider_section_connected",
+   "ardotId": "182:259"
+  },
+  "provider.section.more": {
+   "zh": "更多供应商",
+   "en": "More Providers",
+   "status": "created",
+   "key": "provider_section_more",
+   "ardotId": "182:260"
+  },
+  "api.key": {
+   "zh": "API Key",
+   "en": "API Key",
+   "status": "created",
+   "key": "api_key",
+   "ardotId": "182:261"
+  },
+  "api.key.privacy.hint": {
+   "zh": "API Key 仅保存在本机，不会上传到我们的服务器",
+   "en": "Your API Key is stored only on this device and is never uploaded to our servers.",
+   "status": "created",
+   "key": "api_key_privacy_hint",
+   "ardotId": "182:262"
+  },
+  "provider.console.link": {
+   "zh": "前往 OpenAI 控制台获取 →",
+   "en": "Get a key from OpenAI →",
+   "status": "created",
+   "key": "provider_console_link",
+   "ardotId": "182:263"
+  },
+  "select.model.section": {
+   "zh": "选择模型",
+   "en": "Choose Model",
+   "status": "created",
+   "key": "select_model_section",
+   "ardotId": "182:264"
+  },
+  "custom.model.id.title": {
+   "zh": "自定义模型 ID",
+   "en": "Custom Model ID",
+   "status": "created",
+   "key": "custom_model_id_title",
+   "ardotId": "182:265"
+  },
+  "custom.model.id.subtitle": {
+   "zh": "填写任意模型名称，如 gpt-5-pro",
+   "en": "Enter any model name, e.g. gpt-5-pro",
+   "status": "created",
+   "key": "custom_model_id_subtitle",
+   "ardotId": "182:266"
   }
  }
 }

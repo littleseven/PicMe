@@ -1,0 +1,108 @@
+frame,node_id,name,zh,en,source,var,action,note,text,id
+settings/local_models,108:367,title,本地模型,Local Models,matched,local.models,bind,,本地模型,108:367
+settings/local_models,110:38,lbl,ROI 检测,ROI Detection,matched,stage.roi.title,bind,,ROI 检测,110:38
+settings/local_models,110:39,value,MediaPipe,MediaPipe,matched,model.mediapipe,bind,multi resolved=model_mediapipe (stageModelLabel SettingsScreen.kt:1736),MediaPipe,110:39
+settings/local_models,110:48,lbl,关键点检测,Landmark Detection,matched,stage.landmark.title,bind,,关键点检测,110:48
+settings/local_models,110:49,value,MNN 2D106,MNN 2D106,literal,,skip,data,MNN 2D106,110:49
+settings/local_models,110:95,lbl,照片打标,Photo Tagging,matched,tagging.model.label,bind,multi resolved=tagging_model_label (SettingsScreen.kt:562),照片打标,110:95
+settings/local_models,110:96,value,Florence-2 优先,Florence-2 preferred,matched,tag.model.auto,bind,,Florence-2 优先,110:96
+settings/local_models,110:68,lbl,人脸关键点模式,Face landmark mode,matched,face.landmark.mode,bind,,人脸关键点模式,110:68
+settings/local_models,110:77,lbl,动态人脸检测间隔,Adaptive face detect interval,matched,adaptive.face.detect.interval,bind,,动态人脸检测间隔,110:77
+settings/local_models,110:86,lbl,检测档位,Adaptive interval profile,manual,face.detect.profile.title,bind,manual:real-key:face_detect_profile_title canvas-zh 检测档位→app 动态间隔强度档位,检测档位,110:86
+settings/local_models,110:87,value,平衡,Balanced,matched,face.detect.profile.balanced,bind,,平衡,110:87
+settings/local_models,110:104,lbl,语音识别,Speech Recognition,matched,local.asr.model,bind,multi resolved=local_asr_model (SettingsScreen.kt:606),语音识别,110:104
+settings/local_models,110:105,value,Zipformer 中英,,manual,,skip,"data(model display name from Model Center, VoiceModelRow)",Zipformer 中英,110:105
+settings/local_models,110:114,lbl,唤醒词,Wake Word,matched,local.kws.model,bind,multi resolved=local_kws_model (VoiceModelRow title SettingsScreen.kt:616),唤醒词,110:114
+settings/local_models,110:115,value,待下载,Not downloaded,matched,model.pending.download,bind,| layout-fix: lbl 110:114 width 203→hug_contents (EN Wake Word 行 value 溢出 12px+chevron 裁切),待下载,110:115
+settings/main_list,108:98,title,设置,Settings,matched,settings,bind,multi resolved=settings (titleRes MAIN SettingsScreen.kt:453),设置,108:98
+settings/main_list,108:106,title,账号,Account,matched,account,bind,,账号,108:106
+settings/main_list,108:107,subtitle,邮箱注册、额度与 API Key 绑定。,"Email registration, quota and API key binding.",matched,account.desc,bind,,邮箱注册、额度与 API Key 绑定。,108:107
+settings/main_list,108:115,lbl,主题模式,Theme Mode,matched,theme.mode,bind,,主题模式,108:115
+settings/main_list,108:116,value,系统默认,System Default,matched,system.default,bind,,系统默认,108:116
+settings/main_list,108:125,lbl,语言,Language,matched,language,bind,,语言,108:125
+settings/main_list,108:126,value,中文,,manual,,skip,language-self-name (source hardcoded AppLanguage.CHINESE->中文),中文,108:126
+settings/main_list,108:224,lbl,人物,People,matched,people.entry,bind,multi resolved=people_entry (SettingsScreen.kt:1234); group.person en=Person 不合,人物,108:224
+settings/main_list,108:233,lbl,AI 记忆,AI Memory,matched,settings.ai.memory,bind,,AI 记忆,108:233
+settings/main_list,108:242,lbl,相册,Gallery,matched,gallery.settings,bind,multi resolved=gallery_settings (SettingsScreen.kt:1248); 复用 ledger 既有变量,相册,108:242
+settings/main_list,108:252,lbl,相机,Camera,matched,camera.settings,bind,multi resolved=camera_settings (SettingsScreen.kt:1255),相机,108:252
+settings/main_list,108:260,lbl,模型中心,Model Center,matched,model.center,bind,,模型中心,108:260
+settings/main_list,108:269,lbl,远程模型,Remote Models,matched,remote.models,bind,multi resolved=remote_models (SettingsScreen.kt:1272),远程模型,108:269
+settings/main_list,108:278,lbl,本地模型,Local Models,matched,local.models,bind,,本地模型,108:278
+settings/main_list,108:287,lbl,通信通道,Communication Channel,matched,communication.channel,bind,,通信通道,108:287
+settings/main_list,108:296,lbl,沙盒与权限,Sandbox & Permissions,matched,sandbox.settings,bind,,沙盒与权限,108:296
+settings/main_list,108:304,lbl,数据与隐私,Data & privacy,matched,data.privacy.entry,bind,multi resolved=data_privacy_entry (SettingsScreen.kt:1303),数据与隐私,108:304
+settings/main_list,108:313,lbl,开发者选项,Developer Options,matched,developer.options,bind,,开发者选项,108:313
+settings/main_list,108:317,version,破浪相册 v1.0.35,PoLang v1.0.35,manual,app.version.footer,bind,manual:template:app_version_footer %1$s=app_name %2$s=v1.0.35,破浪相册 v1.0.35,108:317
+settings/remote_models,111:5,title,远程模型,Remote Models,matched,remote.models,bind,multi resolved=remote_models (titleRes SettingsScreen.kt:458),远程模型,111:5
+settings/remote_models,115:4,letter,D,D,literal,,skip,data,D,115:4
+settings/remote_models,115:7,title,deepseek-v4-flash,deepseek-v4-flash,literal,,skip,data,deepseek-v4-flash,115:7
+settings/remote_models,115:9,lbl,使用中,In use,matched,model.in.use,bind,,使用中,115:9
+settings/remote_models,115:10,subtitle,DeepSeek 官方 · 已配置,DeepSeek Official · Configured,manual,settings.provider.subtitle.deepseek,bind,manual:template:remote_model_configured+displayName(data) SettingsScreen.kt:2080,DeepSeek 官方 · 已配置,115:10
+settings/remote_models,116:3,letter,D,D,literal,,skip,data,D,116:3
+settings/remote_models,116:5,title,deepseek-reasoner,deepseek-reasoner,literal,,skip,data,deepseek-reasoner,116:5
+settings/remote_models,116:6,subtitle,DeepSeek 官方 · 已配置,DeepSeek Official · Configured,manual,settings.provider.subtitle.deepseek,bind,manual:template:remote_model_configured+displayName(data) SettingsScreen.kt:2080,DeepSeek 官方 · 已配置,116:6
+settings/remote_models,116:13,letter,M,M,literal,,skip,data,M,116:13
+settings/remote_models,116:15,title,kimi-k2.5,kimi-k2.5,literal,,skip,data,kimi-k2.5,116:15
+settings/remote_models,116:16,subtitle,Kimi 官方 · 已配置,Kimi Official · Configured,manual,settings.provider.subtitle.kimi,bind,manual:template:remote_model_configured canvas Moonshot AI→app displayName Kimi 官方,Moonshot AI · 已配置,116:16
+settings/remote_models,116:25,title,添加模型,Add Model,matched,add.model,bind,,添加模型,116:25
+settings/developer,111:133,title,开发者选项,Developer Options,matched,developer.options,bind,,开发者选项,111:133
+settings/developer,111:140,lbl,调试,Debug,matched,debug,bind,,调试,111:140
+settings/developer,111:149,lbl,相机信息,Camera Info,matched,show.camera.info,bind,multi resolved=show_camera_info (SettingsScreen.kt:1031),相机信息,111:149
+settings/developer,111:158,lbl,人脸调试浮层,Face Debug Overlay,matched,show.face.debug,bind,,人脸调试浮层,111:158
+settings/developer,111:167,lbl,日志浮层,Log Overlay,matched,show.log.overlay,bind,multi resolved=show_log_overlay (SettingsScreen.kt:1051),日志浮层,111:167
+settings/developer,111:176,lbl,Shader 调试,Shader Debug,matched,shader.debug.mode,bind,,Shader 调试,111:176
+settings/developer,111:177,value,Normal,Normal,literal,,skip,data,Normal,111:177
+settings/developer,111:185,lbl,LLM 调用日志,LLM Call Logs,matched,llm.call.log,bind,,LLM 调用日志,111:185
+settings/developer,111:194,lbl,模块日志,Module Logs,matched,log.management,bind,,模块日志,111:194
+settings/developer,111:195,value,全部,All,matched,group.none,bind,multi resolved=log_modules_all (SettingsScreen.kt:1085); 值同 ledger group.none(全部/All) 复用,全部,111:195
+settings/developer,111:203,lbl,图片下载调试,Image Download Debug,matched,debug.image.download,bind,,图片下载调试,111:203
+settings/developer,111:212,lbl,搜索测试,Search Test,matched,search.test.entry.title,bind,,搜索测试,111:212
+settings/developer,111:221,lbl,JS Bridge,JS Bridge,matched,jsbridge.entry.title,bind,,JS Bridge,111:221
+settings/developer,111:230,lbl,无障碍服务,Accessibility Service,matched,settings.accessibility.service.title,bind,,无障碍服务,111:230
+settings/developer,111:231,value,已启用,Enabled,manual,settings.accessibility.service.enabled,bind,manual:real-key:settings_accessibility_service_enabled canvas-zh 已启用→app 已开启,已启用,111:231
+settings/dialog_language,111:279,title,语言,Language,matched,language,bind,,语言,111:279
+settings/dialog_language,111:280,subtitle,选择界面显示语言,Choose display language,matched,language.dialog.subtitle,bind,,选择界面显示语言,111:280
+settings/dialog_language,111:283,lbl,系统默认,System Default,matched,system.default,bind,,系统默认,111:283
+settings/dialog_language,111:285,lbl,English,English,literal,,skip,data,English,111:285
+settings/dialog_language,111:287,lbl,中文,,manual,,skip,language-self-name,中文,111:287
+settings/dialog_language,111:291,lbl,繁體中文,,manual,,skip,language-self-name,繁體中文,111:291
+settings/dialog_language,111:293,lbl,取消,Cancel,matched,cancel,bind,multi resolved=cancel; 复用 ledger 既有变量,取消,111:293
+settings/dialog_stage,111:296,title,ROI 检测,ROI Detection,matched,stage.roi.title,bind,,ROI 检测,111:296
+settings/dialog_stage,111:297,lbl_model,模型,Model,matched,model.type,bind,multi resolved=model_type (StageConfigDialog SettingsScreen.kt:1696),模型,111:297
+settings/dialog_stage,111:301,lbl,MediaPipe,MediaPipe,matched,model.mediapipe,bind,multi resolved=model_mediapipe (StageConfigDialog SettingsScreen.kt:1653),MediaPipe,111:301
+settings/dialog_stage,111:306,lbl,RetinaFace 500M-MNN,RetinaFace 500M-MNN,matched,model.det10g.mnn,bind,,RetinaFace 500M-MNN,111:306
+settings/dialog_stage,111:307,lbl_device,设备偏好,Device Preference,matched,inference.device.preference,bind,,设备偏好,111:307
+settings/dialog_stage,111:310,lbl,自动,Auto,matched,device.preference.auto,bind,multi resolved=device_preference_auto,自动,111:310
+settings/dialog_stage,111:314,lbl,CPU,CPU,matched,device.preference.force.cpu,bind,multi resolved=device_preference_force_cpu (StageConfigDialog options),CPU,111:314
+settings/dialog_stage,111:316,lbl,GPU,GPU,matched,device.preference.force.gpu,bind,,GPU,111:316
+settings/dialog_stage,111:318,lbl,取消,Cancel,matched,cancel,bind,multi resolved=cancel; 复用 ledger 既有变量,取消,111:318
+settings/dialog_theme,111:449,title,主题模式,Theme Mode,matched,theme.mode,bind,,主题模式,111:449
+settings/dialog_theme,111:450,subtitle,跟随系统或手动选择外观,Follow system or pick manually,matched,theme.mode.dialog.subtitle,bind,,跟随系统或手动选择外观,111:450
+settings/dialog_theme,111:453,lbl,系统默认,System Default,matched,system.default,bind,,系统默认,111:453
+settings/dialog_theme,111:458,lbl,浅色,Light,matched,light,bind,,浅色,111:458
+settings/dialog_theme,111:462,lbl,深色,Dark,matched,dark,bind,,深色,111:462
+settings/dialog_theme,111:468,lbl,取消,Cancel,matched,cancel,bind,multi resolved=cancel; 复用 ledger 既有变量,取消,111:468
+settings/sandbox,111:54,title,沙盒与权限,Sandbox & Permissions,matched,sandbox.settings,bind,,沙盒与权限,111:54
+settings/sandbox,111:61,lbl,自动执行计划,Auto-Execute Plans,matched,ai.agent.auto.execute.plans,bind,,自动执行计划,111:61
+settings/sandbox,111:70,lbl,JS 引擎,JS Engine,matched,js.engine.execution,bind,,JS 引擎,111:70
+settings/sandbox,111:79,lbl,相机访问,Camera Access,matched,agent.camera.access,bind,,相机访问,111:79
+settings/sandbox,111:88,lbl,相机权限,Camera Permission (System),manual,camera.permission.system,bind,manual:real-key:camera_permission_system canvas-zh 相机权限→app 相机权限（系统）,相机权限,111:88
+settings/sandbox,111:89,value,系统设置,System Settings,matched,permission.system.value,bind,,系统设置,111:89
+settings/sandbox,111:98,lbl,相册访问,Gallery Access,matched,agent.gallery.access,bind,,相册访问,111:98
+settings/sandbox,111:107,lbl,相册权限,Gallery Permission (System),manual,gallery.permission.system,bind,manual:real-key:gallery_permission_system canvas-zh 相册权限→app 相册权限（系统）,相册权限,111:107
+settings/sandbox,111:108,value,系统设置,System Settings,matched,permission.system.value,bind,,系统设置,111:108
+settings/sandbox,111:116,lbl,语音控制,Voice Control,matched,voice.control,bind,,语音控制,111:116
+settings/sandbox,111:117,value,唤醒词,Wake Word,matched,voice.command.mode.wake.word,bind,multi resolved=voice_command_mode_wake_word (voiceModeLabelRes SettingsScreen.kt:804),唤醒词,111:117
+settings/sandbox,111:126,lbl,语音入口,Voice Control Entry,manual,voice.entry.enabled,bind,manual:real-key:voice_entry_enabled canvas-zh 语音入口→app 语音控制入口,语音入口,111:126
+settings/add_remote_provider,166:6,title,添加远程模型,Add Remote Model,matched,add.remote.model.title,bind,,添加远程模型,166:6
+settings/add_remote_provider,166:10,label,已接入,Connected,matched,provider.section.connected,bind,,已接入,166:10
+settings/add_remote_provider,166:14,label,更多供应商,More Providers,matched,provider.section.more,bind,,更多供应商,166:14
+settings/provider_config,167:5,title,OpenAI,OpenAI,literal,,skip,data,OpenAI,167:5
+settings/provider_config,167:11,label,API Key,API Key,matched,api.key,bind,,API Key,167:11
+settings/provider_config,167:14,value,sk-••••••••••••••••3f9a,sk-••••••••••••••••3f9a,literal,,skip,data,sk-••••••••••••••••3f9a,167:14
+settings/provider_config,167:15,hint,API Key 仅保存在本机，不会上传到我们的服务器,Your API Key is stored only on this device and is never uploaded to our servers.,matched,api.key.privacy.hint,bind,,API Key 仅保存在本机，不会上传到我们的服务器,167:15
+settings/provider_config,167:16,link_console,前往 OpenAI 控制台获取 →,Get a key from OpenAI →,manual,provider.console.link,bind,manual:template:provider_console_link %1$s=OpenAI,前往 OpenAI 控制台获取 →,167:16
+settings/provider_config,167:24,label,选择模型,Choose Model,matched,select.model.section,bind,,选择模型,167:24
+settings/provider_config,167:40,title,自定义模型 ID,Custom Model ID,matched,custom.model.id.title,bind,,自定义模型 ID,167:40
+settings/provider_config,167:41,subtitle,填写任意模型名称，如 gpt-5-pro,"Enter any model name, e.g. gpt-5-pro",matched,custom.model.id.subtitle,bind,,填写任意模型名称，如 gpt-5-pro,167:41
+settings/provider_config,167:45,label,添加模型,Add Model,matched,add.model,bind,,添加模型,167:45
