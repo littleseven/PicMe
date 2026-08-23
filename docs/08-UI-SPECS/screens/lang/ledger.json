@@ -19,6 +19,336 @@
    "en": "Yesterday",
    "status": "created",
    "ardotId": "182:137"
+  },
+  "image.info": {
+   "zh": "图片信息",
+   "en": "Image Info",
+   "status": "created",
+   "ardotId": "182:138"
+  },
+  "media.type.photo": {
+   "zh": "照片",
+   "en": "Photo",
+   "status": "created",
+   "ardotId": "182:139"
+  },
+  "media.info.capture.date": {
+   "zh": "拍摄日期",
+   "en": "Date taken",
+   "status": "created",
+   "ardotId": "182:140"
+  },
+  "media.info.ocr.text": {
+   "zh": "识别文字",
+   "en": "OCR text",
+   "status": "created",
+   "ardotId": "182:141"
+  },
+  "search.no.matching.photos": {
+   "zh": "未找到匹配 \"冬天\" 的照片",
+   "en": "No photos matching \"winter\"",
+   "status": "created",
+   "ardotId": "182:142"
+  },
+  "group.date": {
+   "zh": "日期",
+   "en": "Date",
+   "status": "created",
+   "ardotId": "182:143"
+  },
+  "group.face": {
+   "zh": "人脸",
+   "en": "Face",
+   "status": "created",
+   "ardotId": "182:144"
+  },
+  "group.person": {
+   "zh": "人物",
+   "en": "Person",
+   "status": "created",
+   "ardotId": "182:145"
+  },
+  "landscape": {
+   "zh": "风景",
+   "en": "Landscape",
+   "status": "created",
+   "ardotId": "182:146"
+  },
+  "gallery.group.location": {
+   "zh": "地点",
+   "en": "Location",
+   "status": "created",
+   "ardotId": "182:147"
+  },
+  "group.none": {
+   "zh": "全部",
+   "en": "All",
+   "status": "created",
+   "ardotId": "182:148"
+  },
+  "gallery.settings": {
+   "zh": "相册",
+   "en": "Gallery",
+   "status": "created",
+   "ardotId": "182:149"
+  },
+  "gallery.features": {
+   "zh": "相册打标",
+   "en": "Gallery Tagging",
+   "status": "created",
+   "ardotId": "182:150"
+  },
+  "manage.duplicates": {
+   "zh": "管理重复照片",
+   "en": "Manage Duplicates",
+   "status": "created",
+   "ardotId": "182:151"
+  },
+  "duplicate.manager.desc": {
+   "zh": "查找并删除重复或相似照片，释放存储空间。",
+   "en": "Find and remove duplicate or similar photos to free up space.",
+   "status": "created",
+   "ardotId": "182:152"
+  },
+  "tag.gen.use.opencl.title": {
+   "zh": "TAG 生成 GPU 加速",
+   "en": "TAG Generation GPU Accel",
+   "status": "created",
+   "ardotId": "182:153"
+  },
+  "ai.agent.local.backend": {
+   "zh": "本地 LLM 后端",
+   "en": "Local LLM Backend",
+   "status": "created",
+   "ardotId": "182:154"
+  },
+  "ai.agent.local.backend.cpu": {
+   "zh": "CPU",
+   "en": "CPU",
+   "status": "created",
+   "ardotId": "182:155"
+  },
+  "ai.agent.local.backend.opencl": {
+   "zh": "OpenCL（GPU）",
+   "en": "OpenCL (GPU)",
+   "status": "created",
+   "ardotId": "182:156"
+  },
+  "tag.scan.control": {
+   "zh": "TAG 扫描控制",
+   "en": "TAG Scan Control",
+   "status": "created",
+   "ardotId": "182:157"
+  },
+  "tag.scan.full": {
+   "zh": "全量重扫",
+   "en": "Rescan all",
+   "status": "created",
+   "ardotId": "182:158"
+  },
+  "tag.stats.title": {
+   "zh": "图库统计",
+   "en": "Library stats",
+   "status": "created",
+   "ardotId": "182:159"
+  },
+  "stats.hero.caption": {
+   "zh": "张照片 · 语义索引已覆盖 98%",
+   "en": "photos · 98% semantically indexed",
+   "status": "created",
+   "ardotId": "182:160"
+  },
+  "tag.stats.people": {
+   "zh": "识别出的人",
+   "en": "People found",
+   "status": "created",
+   "ardotId": "182:161"
+  },
+  "tag.stats.named": {
+   "zh": "已命名人",
+   "en": "Named",
+   "status": "created",
+   "ardotId": "182:162"
+  },
+  "done": {
+   "zh": "完成",
+   "en": "Done",
+   "status": "created",
+   "ardotId": "182:163"
+  },
+  "media.info.file.name": {
+   "zh": "文件名",
+   "en": "File name",
+   "status": "created",
+   "ardotId": "182:164"
+  },
+  "media.info.type": {
+   "zh": "类型",
+   "en": "Type",
+   "status": "created",
+   "ardotId": "182:165"
+  },
+  "media.info.source": {
+   "zh": "来源",
+   "en": "Source",
+   "status": "created",
+   "ardotId": "182:166"
+  },
+  "media.info.location": {
+   "zh": "位置",
+   "en": "Location",
+   "status": "created",
+   "ardotId": "182:167"
+  },
+  "media.info.aesthetic.score": {
+   "zh": "美学评分",
+   "en": "Aesthetic score",
+   "status": "created",
+   "ardotId": "182:168"
+  },
+  "media.info.face.section": {
+   "zh": "人脸信息",
+   "en": "Face info",
+   "status": "created",
+   "ardotId": "182:169"
+  },
+  "tag.viewer.section.tags.field": {
+   "zh": "标签",
+   "en": "Tags",
+   "status": "created",
+   "ardotId": "182:170"
+  },
+  "gallery.search.hint": {
+   "zh": "按内容、地点、文字搜索…",
+   "en": "Search by content, location, text…",
+   "status": "created",
+   "ardotId": "182:171"
+  },
+  "tag.scan.status": {
+   "zh": "扫描状态",
+   "en": "Scan status",
+   "status": "created",
+   "ardotId": "182:172"
+  },
+  "tag.scan.up.to.date": {
+   "zh": "已完成",
+   "en": "Up to date",
+   "status": "created",
+   "ardotId": "182:173"
+  },
+  "cancel": {
+   "zh": "取消",
+   "en": "Cancel",
+   "status": "created",
+   "ardotId": "182:174"
+  },
+  "tag.viewer.title": {
+   "zh": "标签查看",
+   "en": "Tag Viewer",
+   "status": "created",
+   "ardotId": "182:175"
+  },
+  "tag.stats.with.face": {
+   "zh": "含人脸照片",
+   "en": "With faces",
+   "status": "created",
+   "ardotId": "182:176"
+  },
+  "tag.stats.embeddings": {
+   "zh": "人脸 Embedding",
+   "en": "Face embeddings",
+   "status": "created",
+   "ardotId": "182:177"
+  },
+  "gallery.empty.quote": {
+   "zh": "生活不是我们活过的日子，而是我们记住的日子。",
+   "en": "Life is not the days we lived, but the days we remember.",
+   "status": "created",
+   "ardotId": "182:178"
+  },
+  "gallery.empty.quote.author": {
+   "zh": "— 加西亚·马尔克斯",
+   "en": "— Gabriel García Márquez",
+   "status": "created",
+   "ardotId": "182:179"
+  },
+  "gallery.info.date.value": {
+   "zh": "2026年8月16日 10:23",
+   "en": "Aug 16, 2026 10:23",
+   "status": "created",
+   "ardotId": "182:180"
+  },
+  "gallery.info.source.value": {
+   "zh": "相机拍摄",
+   "en": "Camera",
+   "status": "created",
+   "ardotId": "182:181"
+  },
+  "gallery.info.location.value": {
+   "zh": "北京市朝阳区",
+   "en": "Chaoyang District, Beijing",
+   "status": "created",
+   "ardotId": "182:182"
+  },
+  "gallery.info.face.value": {
+   "zh": "1 张 · 质量 0.82",
+   "en": "1 photo · quality 0.82",
+   "status": "created",
+   "ardotId": "182:183"
+  },
+  "gallery.info.tag.seaside": {
+   "zh": "海边",
+   "en": "Seaside",
+   "status": "created",
+   "ardotId": "182:184"
+  },
+  "gallery.info.tag.sunset": {
+   "zh": "日落",
+   "en": "Sunset",
+   "status": "created",
+   "ardotId": "182:185"
+  },
+  "gallery.info.tag.beach": {
+   "zh": "沙滩",
+   "en": "Beach",
+   "status": "created",
+   "ardotId": "182:186"
+  },
+  "gallery.search.result.count": {
+   "zh": "12 张",
+   "en": "12 photos",
+   "status": "created",
+   "ardotId": "182:187"
+  },
+  "gallery.search.group.title": {
+   "zh": "搜索 “海边”",
+   "en": "Search “Seaside”",
+   "status": "created",
+   "ardotId": "182:188"
+  },
+  "gallery.stats.scan.caption": {
+   "zh": "本轮扫描 12,593 张 · 失败 2 张 · 今天 22:40 完成",
+   "en": "Last scan: 12,593 photos · 2 failed · finished today at 22:40",
+   "status": "created",
+   "ardotId": "182:189"
+  },
+  "gallery.stats.db.total": {
+   "zh": "数据库累计统计",
+   "en": "All-time database stats",
+   "status": "created",
+   "ardotId": "182:190"
+  },
+  "gallery.stats.pass.face": {
+   "zh": "人脸检测 · Pass 1",
+   "en": "Face detection · Pass 1",
+   "status": "created",
+   "ardotId": "182:191"
+  },
+  "gallery.stats.pass.content": {
+   "zh": "内容理解 · Pass 3",
+   "en": "Content understanding · Pass 3",
+   "status": "created",
+   "ardotId": "182:192"
   }
  }
 }
