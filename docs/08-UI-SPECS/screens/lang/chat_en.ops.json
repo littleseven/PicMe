@@ -1,0 +1,16 @@
+[
+"U(\"171:202\", {characters:\"$ARDOTchat.empty.welcome\"})",
+"U(\"171:204\", {characters:\"$ARDOTchat.empty.capabilities\"})",
+"U(\"171:206\", {characters:\"$ARDOTchat.guest.link\"})",
+"U(\"171:232\", {characters:\"$ARDOTchat.example.group.search\"})",
+"U(\"171:236\", {characters:\"$ARDOTchat.example.prompt.last.summer\"})",
+"U(\"171:245\", {characters:\"$ARDOTchat.example.prompt.people\"})",
+"U(\"171:249\", {characters:\"$ARDOTchat.example.prompt.night\"})",
+"U(\"171:252\", {characters:\"$ARDOTchat.example.group.ask\"})",
+"U(\"171:256\", {characters:\"$ARDOTchat.example.prompt.health.report\"})",
+"U(\"171:265\", {characters:\"$ARDOTchat.example.prompt.duplicates\"})",
+"U(\"171:269\", {characters:\"$ARDOTchat.example.prompt.selfies\"})",
+"U(\"171:210\", {characters:\"$ARDOTchat.input.hint\"})",
+"U(\"171:223\", {characters:\"$ARDOTgallery.title\"})",
+"U(\"171:225\", {characters:\"$ARDOTclaude.icon.desc\"})"
+]

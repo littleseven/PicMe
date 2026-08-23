@@ -1,15 +1,15 @@
 frame,node_id,name,zh,en,source,var,action,note,text,id
-chat/empty-v2-guest,171:202,EmptyTitle,,"Hi, I'm Xiaolang",manual,,bind,no-strings-hit,"Hi, I'm Xiaolang",171:202
+chat/empty-v2-guest,171:202,EmptyTitle,你好，我是智能助手小浪,"Hi, I'm Xiaolang",matched,chat.empty.welcome,bind,"原冒烟 manual 误判:strings EN 为 'Hi, I\'m Xiaolang'(反斜杠转义)未解码;实为 chat_empty_welcome","Hi, I'm Xiaolang",171:202
 chat/empty-v2-guest,171:204,EmptySubtitle,我能搜相册·修图·调美颜·找人找场景，随便问！,"Search, edit, beautify — ask me anything!",matched,chat.empty.capabilities,bind,,"Search, edit, beautify — ask me anything!",171:204
 chat/empty-v2-guest,171:206,guestLink,未注册？注册领免费额度，或配置自己的 Token →,Not registered? Sign up or use your Token →,matched,chat.guest.link,bind,,Not registered? Sign up or use your Token →,171:206
 chat/empty-v2-guest,171:232,groupLabel,找照片,Find photos,matched,chat.example.group.search,bind,,Find photos,171:232
-chat/empty-v2-guest,171:236,chipText,,Find photos from last summer,manual,,bind,no-strings-hit,Find photos from last summer,171:236
-chat/empty-v2-guest,171:245,chipText,,Find photos with people,manual,,bind,no-strings-hit,Find photos with people,171:245
-chat/empty-v2-guest,171:249,chipText,,Search for night scene photos,manual,,bind,no-strings-hit,Search for night scene photos,171:249
+chat/empty-v2-guest,171:236,chipText,找去年夏天的照片,Find photos from last summer,manual,chat.example.prompt.last.summer,bind,manual→array chat_example_prompts_search[0];zh 对照 172:163(empty-v2-guest-zh 帧)=strings 数组 zh 一致,Find photos from last summer,171:236
+chat/empty-v2-guest,171:245,chipText,找有人物的照片,Find photos with people,manual,chat.example.prompt.people,bind,manual→array chat_example_prompts_search[1];zh 对照 172:165(empty-v2-guest-zh 帧)=strings 数组 zh 一致,Find photos with people,171:245
+chat/empty-v2-guest,171:249,chipText,搜索夜景照片,Search for night scene photos,manual,chat.example.prompt.night,bind,manual→array chat_example_prompts_search[2];zh 对照 172:167(empty-v2-guest-zh 帧)=strings 数组 zh 一致,Search for night scene photos,171:249
 chat/empty-v2-guest,171:252,groupLabel,问相册,Ask about your gallery,matched,chat.example.group.ask,bind,,Ask about your gallery,171:252
-chat/empty-v2-guest,171:256,chipText,,Give me a gallery health report,manual,,bind,no-strings-hit,Give me a gallery health report,171:256
-chat/empty-v2-guest,171:265,chipText,,Find duplicate photos,manual,,bind,no-strings-hit,Find duplicate photos,171:265
-chat/empty-v2-guest,171:269,chipText,,How many selfies did I take?,manual,,bind,no-strings-hit,How many selfies did I take?,171:269
-chat/empty-v2-guest,171:210,InputPlaceholder,向 AI 助手提问...,Ask AI Agent...,matched,ai.agent.input.hint,bind,"multi:ai_agent_input_hint,chat_input_hint,floating_chat_input_hint",Ask AI Agent...,171:210
-chat/empty-v2-guest,171:223,GalleryLabel,相册,Gallery,matched,gallery.title,bind,"multi:gallery,gallery_settings",Gallery,171:223
+chat/empty-v2-guest,171:256,chipText,给我一份相册健康报告,Give me a gallery health report,manual,chat.example.prompt.health.report,bind,manual→array chat_example_prompts_ask[0];zh 对照 172:169(empty-v2-guest-zh 帧)=strings 数组 zh 一致,Give me a gallery health report,171:256
+chat/empty-v2-guest,171:265,chipText,帮我清理重复照片,Find duplicate photos,manual,chat.example.prompt.duplicates,bind,manual→array chat_example_prompts_ask[1];zh 对照 172:171(empty-v2-guest-zh 帧)=strings 数组 zh 一致,Find duplicate photos,171:265
+chat/empty-v2-guest,171:269,chipText,我拍了多少张自拍？,How many selfies did I take?,manual,chat.example.prompt.selfies,bind,manual→array chat_example_prompts_ask[2];zh 对照 172:173(empty-v2-guest-zh 帧)=strings 数组 zh 一致,How many selfies did I take?,171:269
+chat/empty-v2-guest,171:210,InputPlaceholder,向 AI 助手提问...,Ask AI Agent...,matched,chat.input.hint,bind,"multi:ai_agent_input_hint,chat_input_hint,floating_chat_input_hint→chat_input_hint(ChatScreen.kt:1982;ai_agent=AiChatPanel 830,floating=悬浮泡 595)",Ask AI Agent...,171:210
+chat/empty-v2-guest,171:223,GalleryLabel,相册,Gallery,matched,gallery.title,bind,"multi:gallery,gallery_settings→gallery(ChatScreen.kt:2029 底栏)",Gallery,171:223
 chat/empty-v2-guest,171:225,EngineerLabel,AI 工程师,AI Engineer,matched,claude.icon.desc,bind,,AI Engineer,171:225

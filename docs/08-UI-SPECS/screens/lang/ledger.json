@@ -6,7 +6,8 @@
    "zh": "相册",
    "en": "Gallery",
    "status": "created",
-   "ardotId": "182:135"
+   "ardotId": "182:135",
+   "key": "gallery"
   },
   "gallery.today": {
    "zh": "今天",
@@ -867,6 +868,233 @@
    "status": "created",
    "key": "custom_model_id_subtitle",
    "ardotId": "182:266"
+  },
+  "chat.empty.welcome": {
+   "zh": "你好，我是智能助手小浪",
+   "en": "Hi, I'm Xiaolang",
+   "status": "created",
+   "key": "chat_empty_welcome",
+   "ardotId": "183:1"
+  },
+  "chat.empty.capabilities": {
+   "zh": "我能搜相册·修图·调美颜·找人找场景，随便问！",
+   "en": "Search, edit, beautify — ask me anything!",
+   "status": "created",
+   "key": "chat_empty_capabilities",
+   "ardotId": "183:2"
+  },
+  "chat.guest.link": {
+   "zh": "未注册？注册领免费额度，或配置自己的 Token →",
+   "en": "Not registered? Sign up or use your Token →",
+   "status": "created",
+   "key": "chat_guest_link",
+   "ardotId": "183:3"
+  },
+  "chat.input.hint": {
+   "zh": "向 AI 助手提问…",
+   "en": "Ask AI Agent...",
+   "status": "created",
+   "key": "chat_input_hint",
+   "ardotId": "183:4"
+  },
+  "claude.icon.desc": {
+   "zh": "AI 工程师",
+   "en": "AI Engineer",
+   "status": "created",
+   "key": "claude_icon_desc",
+   "ardotId": "183:5"
+  },
+  "sidebar.title": {
+   "zh": "聊天历史",
+   "en": "Chat History",
+   "status": "created",
+   "key": "sidebar_title",
+   "ardotId": "183:6"
+  },
+  "search.history": {
+   "zh": "搜索历史",
+   "en": "Search history",
+   "status": "created",
+   "key": "search_history",
+   "ardotId": "183:7"
+  },
+  "new.chat": {
+   "zh": "新建聊天",
+   "en": "New Chat",
+   "status": "created",
+   "key": "new_chat",
+   "ardotId": "183:8"
+  },
+  "chat.thread.feishu": {
+   "zh": "飞书远程控制",
+   "en": "Feishu Remote Control",
+   "status": "created",
+   "key": "chat_thread_feishu",
+   "ardotId": "183:9"
+  },
+  "chat.guest.nudge.title": {
+   "zh": "喜欢小浪？解锁完整体验",
+   "en": "Enjoying Xiaolang? Unlock the full experience",
+   "status": "created",
+   "key": "chat_guest_nudge_title",
+   "ardotId": "183:10"
+  },
+  "chat.guest.nudge.subtitle": {
+   "zh": "注册领取免费额度，或配置自己的 LLM Token，二选一即可继续畅聊",
+   "en": "Register for free quota, or configure your own LLM Token. Either way, keep chatting.",
+   "status": "created",
+   "key": "chat_guest_nudge_subtitle",
+   "ardotId": "183:11"
+  },
+  "chat.guest.nudge.register": {
+   "zh": "邮箱注册 · 领免费额度",
+   "en": "Sign up with email · Get free quota",
+   "status": "created",
+   "key": "chat_guest_nudge_register",
+   "ardotId": "183:12"
+  },
+  "chat.guest.nudge.own.key": {
+   "zh": "配置自己的 Token",
+   "en": "Use my own Token",
+   "status": "created",
+   "key": "chat_guest_nudge_own_key",
+   "ardotId": "183:13"
+  },
+  "chat.example.group.search": {
+   "zh": "找照片",
+   "en": "Find photos",
+   "status": "created",
+   "key": "chat_example_group_search",
+   "ardotId": "183:14"
+  },
+  "chat.example.group.ask": {
+   "zh": "问相册",
+   "en": "Ask about your gallery",
+   "status": "created",
+   "key": "chat_example_group_ask",
+   "ardotId": "183:15"
+  },
+  "chat.example.prompt.last.summer": {
+   "zh": "找去年夏天的照片",
+   "en": "Find photos from last summer",
+   "status": "created",
+   "key": "chat_example_prompts_search[0]",
+   "ardotId": "183:16"
+  },
+  "chat.example.prompt.people": {
+   "zh": "找有人物的照片",
+   "en": "Find photos with people",
+   "status": "created",
+   "key": "chat_example_prompts_search[1]",
+   "ardotId": "183:17"
+  },
+  "chat.example.prompt.night": {
+   "zh": "搜索夜景照片",
+   "en": "Search for night scene photos",
+   "status": "created",
+   "key": "chat_example_prompts_search[2]",
+   "ardotId": "183:18"
+  },
+  "chat.example.prompt.health.report": {
+   "zh": "给我一份相册健康报告",
+   "en": "Give me a gallery health report",
+   "status": "created",
+   "key": "chat_example_prompts_ask[0]",
+   "ardotId": "183:19"
+  },
+  "chat.example.prompt.duplicates": {
+   "zh": "帮我清理重复照片",
+   "en": "Find duplicate photos",
+   "status": "created",
+   "key": "chat_example_prompts_ask[1]",
+   "ardotId": "183:20"
+  },
+  "chat.example.prompt.selfies": {
+   "zh": "我拍了多少张自拍？",
+   "en": "How many selfies did I take?",
+   "status": "created",
+   "key": "chat_example_prompts_ask[2]",
+   "ardotId": "183:21"
+  },
+  "chat.guest.nudge.note": {
+   "zh": "已免费体验 20 轮对话 · 也可随时在「设置 → AI 助手」中管理",
+   "en": "20 free conversations used · Manage anytime in Settings → AI Assistant",
+   "status": "created",
+   "key": "chat_guest_nudge_note",
+   "ardotId": "183:22"
+  },
+  "chat.conv.media.result": {
+   "zh": "找到 1598 张「去年大宝」的照片",
+   "en": "Found 1598 photos matching \"Dabao from last year\"",
+   "status": "created",
+   "key": "chat_results_found",
+   "ardotId": "183:23"
+  },
+  "chat.empty.try.label": {
+   "zh": "试试这些：",
+   "en": "Try these:",
+   "status": "created",
+   "ardotId": "183:24"
+  },
+  "chat.empty.chip.seaside": {
+   "zh": "搜索海边的照片",
+   "en": "Search seaside photos",
+   "status": "created",
+   "ardotId": "183:25"
+  },
+  "chat.empty.chip.crossanalyze": {
+   "zh": "按标签和时间交叉分析我的照片",
+   "en": "Analyze photos by tag & time",
+   "status": "created",
+   "ardotId": "183:26"
+  },
+  "chat.conv.agent.reply.stats": {
+   "zh": "根据刚才的数据，大宝的照片有 262 张，是所有已命名人物中出现频次最高的。",
+   "en": "Based on that data, Dabao has 262 photos — the highest count among all named people.",
+   "status": "created",
+   "ardotId": "183:27"
+  },
+  "chat.conv.user.query": {
+   "zh": "去年大宝的照片",
+   "en": "Photos of Dabao from last year",
+   "status": "created",
+   "ardotId": "183:28"
+  },
+  "chat.conv.agent.reply.found": {
+   "zh": "找到了！去年大宝的照片共有 1,598 张，已经展示在卡片中供你浏览。需要我帮你进一步筛选吗？比如只看周末、室内或者合照。",
+   "en": "Found them! You have 1,598 photos of Dabao from last year, now shown in the card for you to browse. Want me to narrow it down — weekends only, indoors, or group shots?",
+   "status": "created",
+   "ardotId": "183:29"
+  },
+  "chat.sidebar.preview.health": {
+   "zh": "找到了！去年大宝的照片共有 1,598 张，已经展示在卡片中…",
+   "en": "Found them! 1,598 photos of Dabao from last year are now in the card…",
+   "status": "created",
+   "ardotId": "183:30"
+  },
+  "chat.sidebar.preview.speed": {
+   "zh": "是的，我的响应速度一直保持稳定，处理这些测试都是即时返回的…",
+   "en": "Yes, my response speed has stayed consistent — these tests all came back instantly…",
+   "status": "created",
+   "ardotId": "183:31"
+  },
+  "chat.sidebar.preview.dabao": {
+   "zh": "去年大宝除了夏天之外的照片已经筛出来了，分两批展示…",
+   "en": "Dabao's photos from last year excluding summer are filtered out, shown in two batches…",
+   "status": "created",
+   "ardotId": "183:32"
+  },
+  "chat.sidebar.preview.feishu": {
+   "zh": "绑定设备后，可在飞书会话中远程控制相册…",
+   "en": "After binding a device, you can control the gallery remotely from a Feishu chat…",
+   "status": "created",
+   "ardotId": "183:33"
+  },
+  "chat.sidebar.preview.summer": {
+   "zh": "找到啦！去年夏天（2025 年 6～8 月）的照片一共有 562 张…",
+   "en": "Found them! Last summer (June–August 2025) adds up to 562 photos…",
+   "status": "created",
+   "ardotId": "183:34"
   }
  }
 }
