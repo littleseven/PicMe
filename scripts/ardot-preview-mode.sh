@@ -7,6 +7,7 @@
 #
 # 用法：
 #   scripts/ardot-preview-mode.sh <frameId> <light|dark|auto> [--lang en|zh|auto] [--shot out.png]
+#   ⚠️ <frameId> 仅帧 id，页根 id（manifest pages[].id，如 103:1/111:319）不支持——脚本拒绝并 exit 2
 #   scripts/ardot-preview-mode.sh 105:45 dark --lang zh --shot /tmp/x.png  # 深色+中文预览
 #   scripts/ardot-preview-mode.sh <frameId> light   # 切浅色预览
 #   scripts/ardot-preview-mode.sh <frameId> dark    # 切深色预览
@@ -35,6 +36,26 @@ MODE="${2:?light|dark|auto}"
 shift 2 || true
 SHOT=""
 if [ "${1:-}" = "--shot" ]; then SHOT="${2:?--shot 需要输出路径}"; fi
+
+# 页根防呆（Task 8 实证：PAGE 节点无 variableModes 属性，对页 id 写 override 引擎静默忽略）。
+# 权威判定=manifest pages[].id；manifest 不可读时退回 N:1 页根惯例正则兜底
+MANIFEST="$(cd "$(dirname "$0")/.." && pwd)/docs/08-UI-SPECS/screens/refs/ardot/manifest.json"
+if [ "$(/usr/bin/python3 - "$FRAME" "$MANIFEST" <<'GUARD'
+import json, re, sys
+frame, manifest = sys.argv[1], sys.argv[2]
+page_ids = []
+try:
+    with open(manifest) as fh:
+        page_ids = [str(p.get('id')) for p in json.load(fh).get('pages', [])]
+except Exception:
+    pass
+if frame in page_ids or (not page_ids and re.fullmatch(r'\d+:1', frame)):
+    print('PAGE-ROOT')
+GUARD
+)" = "PAGE-ROOT" ]; then
+  echo "⚠️ 页根节点不支持 variableModes override（引擎忽略，Task 8 实证）——请逐帧调用" >&2
+  exit 2
+fi
 
 SET_ID="2:2"; DARK_ID="2:0"; LIGHT_ID="79:1"; ENDPOINT="http://127.0.0.1:50501/api/v1/mcp"
 # UI Language 变量集（探针实测 id，台账: docs/08-UI-SPECS/screens/lang/probe-record.md §1；--lang 未传时不触碰该 override）

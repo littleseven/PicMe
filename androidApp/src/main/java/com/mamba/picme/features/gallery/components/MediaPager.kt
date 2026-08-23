@@ -1036,7 +1036,7 @@ private fun mediaPagerBottomBar(
 }
 
 /**
- * 预览页底栏 icon+文本按钮（gallery-grid.yaml §18 bottom_bar，Ardot gallery/viewer-bottombar-en-preview）。
+ * 预览页底栏 icon+文本按钮（gallery-grid.yaml §18 bottom_bar，Ardot gallery/viewer-bottombar-preview）。
  *
  * 无容器形状：M3 [IconButton] 的圆形 Surface 会把长文案两端切弧（EN "ID Photo" 的
  * 字尾被圆弧吃掉，2026-08-23 真机实证）——改为裸 Column 直排，宽度 hug 文本、

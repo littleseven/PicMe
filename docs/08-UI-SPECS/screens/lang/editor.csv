@@ -67,7 +67,7 @@ editor/concept_a_crop,118:508,rail_adjust_lbl,调节,Adjust,matched,editor.tab.a
 editor/concept_a_crop,118:510,rail_beauty_lbl,美颜,Beauty,matched,editor.tab.beauty,bind,multi→editor_tab_beauty(rail 语境),美颜,118:510
 editor/concept_a_crop,118:512,rail_filter_lbl,滤镜,Filter,matched,editor.tab.filter,bind,multi→editor_tab_filter(rail 语境),滤镜,118:512
 editor/concept_a_crop,118:514,rail_markup_lbl,标记,Markup,matched,editor.tab.markup,bind,,标记,118:514
-editor/concept_a_crop,118:516,rail_erase_lbl,消除,Eraser,manual,editor.rail.erase,bind,"虚构:concept rail 消除工具,app 无对应 key(remove_background=去背景为另一功能)",消除,118:516
+editor/concept_a_crop,118:516,rail_erase_lbl,消除,Eraser,manual,editor.rail.erase,bind,"虚构:concept rail 消除工具,app 无对应 key(remove_background=去背景为另一功能); layout-note: EN Eraser(w48,x279)与118:518(w60,x326)同y重叠1px, concept示意帧容忍不修(既有,Task6 w52→60副作用)",消除,118:516
 editor/concept_a_crop,118:518,rail_ai_lbl,AI 一键优化,AI Optimize,manual,ai.optimize,bind,manual→key ai_optimize;zh 升格 canvas AI优化→app AI 一键优化; layout-fix: 框 w52→60 居中保位(EN AI Optimize 2 行→单行),AI优化,118:518
 editor/concept_a_crop,118:554,crop_label,构图,Crop,matched,editor.tab.crop,bind,同 key editor_tab_crop 复用(裁剪面板标题=tab 名),构图,118:554
 editor/concept_a_crop,118:564,cr_free_lbl,自由,Free,matched,aspect.ratio.free,bind,"review-fix: spec 审查补漏(独漏此帧,同 118:141 复用 aspect_ratio_free)",自由,118:564

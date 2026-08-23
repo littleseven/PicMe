@@ -1,7 +1,7 @@
 # ArDot 全画布英文默认 + 语言变量集切换 — 设计文档
 
 - 日期：2026-08-23
-- 状态：已批准（用户 2026-08-23 签核）
+- 状态：已实施（2026-08-23，Task 0-9 全量落地；验收见 refs 快照 + lang/ 台账）
 - 云端文件：`polang-ui-spec`（ardot.tencent.com/file/715061534788814，唯一编辑区）
 - 快照管线：`scripts/export-ardot-snapshot.py` → `docs/08-UI-SPECS/screens/refs/ardot/`
 
@@ -55,7 +55,7 @@ EN 为 canonical 正稿，中文一键预览/导出，零物理重复帧。
   文件名、`sk-•••`、`tok` 计数、型号名（`deepseek-v4-flash`、`RetinaFace 500M-MN`）
   等与语言无关的字符串；含语言单位的数据文本（日期、量词）按 §3.4 绑变量
 - 绑定操作走 `batch_edit`；绑定能力地图中 TEXT_CONTENT 无实证 → Step 0 探针为硬门
-- 例外（2026-08-23 Task 7 裁定）：stat tile 数值/人名等 zh==en 语言不变文本，可为 tile 级统一而绑（无 strings 锚，note 标 no-anchor）——与「(6) 计数 skip」的区分=是否属计数括号类纯数据
+- 例外（2026-08-23 Task 7 裁定）：stat tile 数值/人名等 zh==en 语言不变文本，可为 tile 级统一而绑（无 strings 锚，note 标 no-anchor）——区分标准：计数括号类纯数据（`(6)`）skip；stat tile 数值/人名/品牌自名等 zh==en 但属界面内容表达的，可绑（no-anchor noop 标记）
 
 ### 3.3 EN 文案来源（SSOT 对齐）
 
@@ -83,6 +83,7 @@ UI Language 集不进 push/pull/check 门禁，双向同步零污染。
    两个 set 的 override——并存性列入 Step 0 验证项）。`auto` 语义=移除 lang override。
    > **Step 0 实测修正（2026-08-23）**：override 无法用 `null`/`[]` 移除（静默 no-op），且数组
    > 写入是 merge 语义；`auto` 须实现为「写回 English 默认 mode」。见 docs/08-UI-SPECS/screens/lang/probe-record.md §5。
+   > ⚠️ 页根 override 不受引擎支持（Task 8 实证：PAGE 节点无 variableModes 属性）——语言/主题切换均须逐帧；脚本已加页根防呆。
 2. **zh 版快照 pass**：「临时 override → export → 还原」，产物入 refs（命名如
    `gallery-grid-zh.png`），同浅色预览法先例。
 3. **structure.json diff 语义（Step 0 实测，2026-08-23）**：已绑定文本节点的 `characters`
@@ -120,11 +121,11 @@ Step 5 people 2 帧补绑 + 命名收敛 + 删 _zh 物理帧
 
 ## 6. 验收标准
 
-1. 默认 English mode：全部设计帧 EN 渲染，capture_layout 零新增 problemsOnly 问题
-2. zh override：每页抽查 ≥1 帧正确回中文（含已 EN 帧补绑的页）
-3. `scripts/sync-ardot-variables.py --check` 零漂移（PoLang Tokens 不受影响）
-4. 快照入库：manifest + EN PNG + structure.json 更新，zh 抽查帧 PNG 入 refs
-5. EN 文案与 strings.xml 对齐率：界面文案 100%（设计虚构内容除外）
+1. ✅ 默认 English mode：全部设计帧 EN 渲染，capture_layout 零新增 problemsOnly 问题（39 帧零残留，Task 6 布局回归清零）
+2. ✅ zh override：每页抽查 ≥1 帧正确回中文（含已 EN 帧补绑的页）（五页实证：Gallery/Settings/Chat/Editor/People）
+3. ✅ `scripts/sync-ardot-variables.py --check` 零漂移（exit 0，PoLang Tokens 不受影响）
+4. ✅ 快照入库：manifest + EN PNG + structure.json 更新，zh 抽查帧 PNG 入 refs（Task 9 完成）
+5. ✅ EN 文案与 strings.xml 对齐率：界面文案 100%（设计虚构内容除外）——对齐率承诺达成，含 INSTANCE 级绑定对齐
 
 ## 7. 附带清理（已批准）
 

@@ -1284,7 +1284,7 @@ private fun StatsCard(
     embeddingCount: Int,
     onNavigateToTagViewer: () -> Unit
 ) {
-    // 设计稿 gallery/tag_control_v2_en「Library stats」：渐变大数字 + 语义覆盖率圆环 + 2×2 指标瓦片
+    // 设计稿 gallery/tag_control_v2「Library stats」：渐变大数字 + 语义覆盖率圆环 + 2×2 指标瓦片
     // （阶段进度条已移至 Stages 列表行内，不再重复展示）
     val semanticPct = if (totalMedia > 0) withSemantic * 100 / totalMedia else 0
 

@@ -1,11 +1,11 @@
 {
   "endpoint": "http://127.0.0.1:50501/api/v1/mcp",
-  "exportedAt": "2026-08-22T23:34:16+08:00",
+  "exportedAt": "2026-08-23T17:59:17+08:00",
   "file": {
     "id": "715061534788814",
     "name": "polang-ui-spec",
     "permission": "readwrite",
-    "url": "cocraft://localhost/file/715061534788814?node_id=111%3A319"
+    "url": "cocraft://localhost/file/715061534788814?node_id=152%3A1"
   },
   "note": "云端画布为编辑工作区；本目录快照由 export-ardot-snapshot.py 生成（多页聚合，2026-08-16 起），重跑覆盖。变量 SSOT=shared/src/commonMain/resources/design-tokens.json，不在本快照内。",
   "pages": [
@@ -99,13 +99,18 @@
         },
         {
           "id": "171:273",
-          "name": "gallery/tag_control_v2_en",
-          "png": "gallery-tag_control_v2_en.png"
+          "name": "gallery/tag_control_v2",
+          "png": "gallery-tag_control_v2.png"
         },
         {
           "id": "172:113",
-          "name": "gallery/tag_stage_sheet_en",
-          "png": "gallery-tag_stage_sheet_en.png"
+          "name": "gallery/tag_stage_sheet",
+          "png": "gallery-tag_stage_sheet.png"
+        },
+        {
+          "id": "182:63",
+          "name": "gallery/viewer-bottombar-preview",
+          "png": "gallery-viewer-bottombar-preview.png"
         }
       ],
       "id": "103:1",
@@ -137,11 +142,6 @@
           "id": "171:187",
           "name": "chat/empty-v2-guest",
           "png": "chat-empty-v2-guest.png"
-        },
-        {
-          "id": "172:117",
-          "name": "chat/empty-v2-guest-zh",
-          "png": "chat-empty-v2-guest-zh.png"
         }
       ],
       "id": "111:319",
@@ -234,6 +234,11 @@
           "id": "118:583",
           "name": "editor/concept_a_beauty",
           "png": "editor-concept_a_beauty.png"
+        },
+        {
+          "id": "182:93",
+          "name": "editor/tabbar-en-preview",
+          "png": "editor-tabbar-en-preview.png"
         }
       ],
       "id": "118:104",
@@ -274,13 +279,13 @@
         },
         {
           "id": "152:30",
-          "name": "05-privacy/zh-CN",
-          "png": "05-privacy-zh-CN.png"
+          "name": "08-privacy/zh-CN",
+          "png": "08-privacy-zh-CN.png"
         },
         {
           "id": "152:37",
-          "name": "06-insight/zh-CN",
-          "png": "06-insight-zh-CN.png"
+          "name": "07-insight/zh-CN",
+          "png": "07-insight-zh-CN.png"
         },
         {
           "id": "152:44",
@@ -304,13 +309,13 @@
         },
         {
           "id": "152:72",
-          "name": "05-privacy/en-US",
-          "png": "05-privacy-en-US.png"
+          "name": "08-privacy/en-US",
+          "png": "08-privacy-en-US.png"
         },
         {
           "id": "152:79",
-          "name": "06-insight/en-US",
-          "png": "06-insight-en-US.png"
+          "name": "07-insight/en-US",
+          "png": "07-insight-en-US.png"
         },
         {
           "id": "152:86",
@@ -334,13 +339,13 @@
         },
         {
           "id": "152:114",
-          "name": "05-privacy/zh-TW",
-          "png": "05-privacy-zh-TW.png"
+          "name": "08-privacy/zh-TW",
+          "png": "08-privacy-zh-TW.png"
         },
         {
           "id": "152:121",
-          "name": "06-insight/zh-TW",
-          "png": "06-insight-zh-TW.png"
+          "name": "07-insight/zh-TW",
+          "png": "07-insight-zh-TW.png"
         },
         {
           "id": "152:128",
@@ -356,6 +361,26 @@
           "id": "152:140",
           "name": "feature-graphic/zh-TW",
           "png": "feature-graphic-zh-TW.png"
+        },
+        {
+          "id": "185:1",
+          "name": "05-person-groups/en-US",
+          "png": "05-person-groups-en-US.png"
+        },
+        {
+          "id": "185:9",
+          "name": "06-chat-welcome/en-US",
+          "png": "06-chat-welcome-en-US.png"
+        },
+        {
+          "id": "185:33",
+          "name": "05-person-groups/zh-TW",
+          "png": "05-person-groups-zh-TW.png"
+        },
+        {
+          "id": "185:41",
+          "name": "06-chat-welcome/zh-TW",
+          "png": "06-chat-welcome-zh-TW.png"
         }
       ],
       "id": "152:1",
@@ -379,5 +404,5 @@
     }
   ],
   "scale": 1,
-  "structureSha256": "43c74373c0088f37d74d47d22b77fb131b34b1cba8075c8fe0f3e13d482f7f14"
+  "structureSha256": "bebc25d3d28d333f4f14f225d78eeab0eef5611e6e2a3e103125473bcb8b3a99"
 }
