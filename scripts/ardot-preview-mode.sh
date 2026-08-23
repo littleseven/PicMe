@@ -37,7 +37,7 @@ SHOT=""
 if [ "${1:-}" = "--shot" ]; then SHOT="${2:?--shot 需要输出路径}"; fi
 
 SET_ID="2:2"; DARK_ID="2:0"; LIGHT_ID="79:1"; ENDPOINT="http://127.0.0.1:50501/api/v1/mcp"
-# UI Language 变量集（探针实测 id；--lang 未传时不触碰该 override）
+# UI Language 变量集（探针实测 id，台账: docs/08-UI-SPECS/screens/lang/probe-record.md §1；--lang 未传时不触碰该 override）
 LANG_SET_ID="182:133"
 LANG_EN_ID="182:132"
 LANG_ZH_ID="182:134"
@@ -78,8 +78,11 @@ rpc("initialize", {"protocolVersion":"2024-11-05","capabilities":{},
 r = rpc("tools/call", {"name":"batch_edit","arguments":{
     "operations": f'U("{frame}", {{variableModes: {mode_json}}})'}})
 txt = json.dumps(r)[:120]
+# ⚠️ no-op 也回 success——批量场景还原后须 --shot 截图复核，不能只看退出码/OK
 ok = '"success":true' in json.dumps(r) or 'updated' in json.dumps(r)
 print(("OK " if ok else "FAIL ") + txt)
+if not ok:
+    sys.exit(1)
 
 if shot:
     s = rpc("tools/call", {"name":"capture_screenshot","arguments":{
@@ -91,4 +94,5 @@ if shot:
         os.replace(files[-1], shot); print("SHOT " + shot)
     else:
         print("SHOT-MISSING 检查 /tmp/ardot-mode-shot/")
+        sys.exit(1)
 PYEOF
