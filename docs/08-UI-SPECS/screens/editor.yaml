@@ -158,16 +158,20 @@ bottom_bar:
     layout: row
     horizontal_padding: 8          # topBar.horizontalPadding 同源 8
     vertical_padding: 4
-    arrangement: space_evenly
-    items:                         # 5 个 FilterChip（chip 节点：height=36）
+    arrangement: center + gap 6    # 2026-08-23 EN 折行修复：等宽平分(space_evenly)在 EN 下
+                                   # 槽位≈68dp 容不下 labelLarge+M3 内距 → 改 hug 宽度居中集群
+    items:                         # 5 个 tab chip（自定义 EditorTabChip：hug 宽度，无 ✓ 图标）
       - { tab: CROP,   label_key: editor_tab_crop,   zh: 构图 }
       - { tab: ADJUST, label_key: editor_tab_adjust, zh: 调节 }
       - { tab: BEAUTY, label_key: editor_tab_beauty, zh: 美颜 }
       - { tab: FILTER, label_key: editor_tab_filter, zh: 滤镜 }
       - { tab: MARKUP, label_key: editor_tab_markup, zh: 标记 }
-    chip_style:                    # chip 节点
+    chip_style:                    # chip 节点（Ardot editor/tabbar-en-preview 方案A 定稿）
       height: 36
-      selected: primaryContainer 系
+      width: hug_contents          # 自适应文本宽度（EN/zh/zh-TW 三语单行放下）
+      horizontal_padding: 8        # M3 FilterChip 16 → 8（FilterChip 无法调内距，故自定义 chip）
+      corner_radius: 8
+      selected: primaryContainer 系（仅底色区分选中，无 ✓ 图标）
       unselected: surfaceVariant @ alpha 0.5
       content_description: "Editor tab {label}"
 

@@ -10,6 +10,8 @@ struct EditorChip: View {
     let title: String
     var isSelected: Bool = false
     var icon: String? = nil
+    /// 水平内距：底栏 tab 用紧凑 8（EN 折行修复，editor.yaml §5），其余沿用 12
+    var horizontalPadding: CGFloat = 12
     let action: () -> Void
 
     var body: some View {
@@ -21,12 +23,12 @@ struct EditorChip: View {
                 Text(title).font(.system(size: 14))
             }
             .frame(height: ChipTokens.height)
-            .padding(.horizontal, 12)
+            .padding(.horizontal, horizontalPadding)
             .background(isSelected
                         ? s.primaryContainer
                         : s.surfaceVariant.opacity(ChipTokens.unselectedContainerAlpha))
             .foregroundStyle(isSelected ? s.onPrimaryContainer : s.onSurfaceVariant)
-            .clipShape(Capsule())
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.small))
         }
         .buttonStyle(.plain)
     }
@@ -39,16 +41,19 @@ struct EditorBottomBar: View {
     let onSelect: (EditorTab) -> Void
 
     var body: some View {
-        HStack(alignment: .center) {
+        // chip 宽度 hug 文本 + 紧凑内距 8 + 间距 6 整行居中（2026-08-23 EN 折行修复，
+        // 对齐 Android EditorBottomBar / Ardot editor/tabbar-en-preview 方案A）
+        HStack(spacing: 6) {
             ForEach(EditorTab.allCases, id: \.self) { tab in
                 EditorChip(
                     title: String(localized: String.LocalizationValue(tab.labelKey)),
-                    isSelected: selectedTab == tab) {
+                    isSelected: selectedTab == tab,
+                    horizontalPadding: 8) {
                     onSelect(tab)
                 }
-                Spacer(minLength: 0)
             }
         }
+        .frame(maxWidth: .infinity)
         .padding(.horizontal, Spacing.sm)
         .padding(.vertical, Spacing.xs)
     }
