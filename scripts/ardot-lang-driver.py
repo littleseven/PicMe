@@ -85,6 +85,15 @@ def run_ops(path):
         print(f"batch {i//25}: {len(chunk)} ops → {content(r)[:200]}")
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        sys.exit('usage: ardot-lang-driver.py sync-vars | fetch-ids | run <page>.ops.json')
-    {'sync-vars': sync_vars, 'fetch-ids': fetch_ids}.get(sys.argv[1], lambda: run_ops(sys.argv[1]))()
+    # 修A：显式分派——原 dict.get 兜底把 sys.argv[1] 整体传 run_ops，`run x.ops.json` 收到的是 'run' 而非文件名
+    usage = 'usage: ardot-lang-driver.py sync-vars | fetch-ids | run <page>.ops.json'
+    if len(sys.argv) >= 2 and sys.argv[1] == 'run':
+        if len(sys.argv) < 3:
+            print(usage, file=sys.stderr); sys.exit(2)
+        run_ops(sys.argv[2])
+    elif len(sys.argv) >= 2 and sys.argv[1] == 'sync-vars':
+        sync_vars()
+    elif len(sys.argv) >= 2 and sys.argv[1] == 'fetch-ids':
+        fetch_ids()
+    else:
+        print(usage, file=sys.stderr); sys.exit(2)

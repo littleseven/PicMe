@@ -77,7 +77,8 @@ def main():
         if names and (has_cjk or a.from_en or val in src_val_set):
             if not var: var = names[0].replace('_', '.')
             rows.append({**t, 'zh': val if not a.from_en else zh.get(names[0], ''),
-                         'en': dst_val.get(names[0], '') if names else '',
+                         'en': val if a.from_en else dst_val.get(names[0], ''),  # 修C：from-en 时 dst_val=zh 字典，en 列须写 EN 源文（text）
+
                          'source': 'matched' if names else 'manual', 'var': var,
                          'action': 'bind', 'note': 'multi:' + ','.join(names) if len(names) > 1 else ''})
         elif has_cjk:
@@ -86,8 +87,13 @@ def main():
                          'source': 'manual', 'var': var,
                          'action': 'bind',
                          'note': ('ledger:' + var) if var else 'no-strings-hit'})
+        elif a.from_en:
+            # 修D：EN 帧未命中 strings 的文本此前落 else 被误标 literal/skip——须 manual 留待译中文
+            rows.append({**t, 'zh': '', 'en': val, 'source': 'manual', 'var': '',
+                         'action': 'bind', 'note': 'no-strings-hit'})
         else:
             rows.append({**t, 'zh': val, 'en': val, 'source': 'literal', 'var': '', 'action': 'skip', 'note': 'data'})
+    for r in rows: r['node_id'] = r['id']  # 修B：行 dict 原只有 id 键，fieldnames 的 node_id 列恒空
     os.makedirs(OUTDIR, exist_ok=True)
     with open(f'{OUTDIR}/{a.page}.csv', 'w', newline='') as f:
         w = csv.DictWriter(f, fieldnames=['frame','node_id','name','zh','en','source','var','action','note','text','id'])

@@ -1,89 +1,89 @@
 frame,node_id,name,zh,en,source,var,action,note,text,id
-gallery/empty,,quote_text,生活不是我们活过的日子，而是我们记住的日子。,,manual,,bind,no-strings-hit,生活不是我们活过的日子，而是我们记住的日子。,103:4
-gallery/empty,,quote_author,— 加西亚·马尔克斯,,manual,,bind,no-strings-hit,— 加西亚·马尔克斯,103:5
-gallery/empty,,title_album,相册,Gallery,matched,gallery.title,bind,"multi:gallery,gallery_settings",相册,107:60
-gallery/info,,title,照片信息,,manual,,bind,no-strings-hit,照片信息,105:3
-gallery/info,,done,完成,Done,matched,done,bind,"multi:done,tag_scan_state_completed",完成,105:4
-gallery/info,,label,文件名,File name,matched,media.info.file.name,bind,,文件名,105:7
-gallery/info,,value,IMG_20260816_102344.jpg,IMG_20260816_102344.jpg,literal,,skip,data,IMG_20260816_102344.jpg,105:8
-gallery/info,,label,类型,Type,matched,media.info.type,bind,,类型,105:10
-gallery/info,,value,照片,PHOTO,matched,photo,bind,"multi:photo,person_photos_section,media_type_photo,tag_viewer_tab_photos,a11y_photo_desc",照片,105:11
-gallery/info,,label,日期,Date,matched,group.date,bind,,日期,105:13
-gallery/info,,value,2026年8月16日 10:23,,manual,,bind,no-strings-hit,2026年8月16日 10:23,105:14
-gallery/info,,label,来源,Source,matched,media.info.source,bind,,来源,105:16
-gallery/info,,value,相机拍摄,,manual,,bind,no-strings-hit,相机拍摄,105:17
-gallery/info,,label,位置,Location,matched,media.info.location,bind,,位置,105:19
-gallery/info,,value,北京市朝阳区,,manual,,bind,no-strings-hit,北京市朝阳区,105:20
-gallery/info,,label,美学评分,Aesthetic score,matched,media.info.aesthetic.score,bind,,美学评分,105:25
-gallery/info,,value,7.2 / 10,7.2 / 10,literal,,skip,data,7.2 / 10,105:26
-gallery/info,,label,人脸信息,Face info,matched,media.info.face.section,bind,,人脸信息,105:28
-gallery/info,,value,1 张 · 质量 0.82,,manual,,bind,no-strings-hit,1 张 · 质量 0.82,105:29
-gallery/info,,section_title,标签,Tags,matched,tag.viewer.section.tags.field,bind,"multi:tag_viewer_section_tags_field,tag_category_tags",标签,105:37
-gallery/info,,chip,海边,,manual,,bind,no-strings-hit,海边,105:39
-gallery/info,,chip2,日落,,manual,,bind,no-strings-hit,日落,105:40
-gallery/info,,chip3,沙滩,,manual,,bind,no-strings-hit,沙滩,105:41
-gallery/info,,section_title,OCR 文本,,manual,,bind,no-strings-hit,OCR 文本,105:43
-gallery/info,,ocr_body,Summer vacation 2026 · Beidaihe,Summer vacation 2026 · Beidaihe,literal,,skip,data,Summer vacation 2026 · Beidaihe,105:44
-gallery/grid,,title_album,相册,Gallery,matched,gallery.title,bind,"multi:gallery,gallery_settings",相册,105:47
-gallery/grid,,group_title,今天,Today,manual,gallery.today,bind,ledger:gallery.today,今天,107:33
-gallery/grid,,group_count,(6),(6),literal,,skip,data,(6),107:34
-gallery/grid,,group_title,昨天,Yesterday,manual,gallery.yesterday,bind,ledger:gallery.yesterday,昨天,107:35
-gallery/grid,,group_count,(3),(3),literal,,skip,data,(3),107:36
-gallery/search,,placeholder,按内容、地点、文字搜索…,"Search by content, location, text…",matched,gallery.search.hint,bind,,按内容、地点、文字搜索…,107:120
-gallery/search,,result_count,12 张,,manual,,bind,no-strings-hit,12 张,107:123
-gallery/search,,group_title,搜索 “海边”,,manual,,bind,no-strings-hit,搜索 “海边”,107:126
-gallery/search,,group_count,(12),(12),literal,,skip,data,(12),107:127
-gallery/search_no_result,,placeholder,按内容、地点、文字搜索…,"Search by content, location, text…",matched,gallery.search.hint,bind,,按内容、地点、文字搜索…,107:163
-gallery/search_no_result,,result_count,12 张,,manual,,bind,no-strings-hit,12 张,107:160
-gallery/search_no_result,,no_result_msg,未找到匹配 “冬天” 的照片,,manual,,bind,no-strings-hit,未找到匹配 “冬天” 的照片,107:168
-gallery/scanning,,title_album,相册,Gallery,matched,gallery.title,bind,"multi:gallery,gallery_settings",相册,107:191
-gallery/scanning,,group_title,今天,Today,manual,gallery.today,bind,ledger:gallery.today,今天,107:231
-gallery/scanning,,group_count,(6),(6),literal,,skip,data,(6),107:232
-gallery/scanning,,group_title,昨天,Yesterday,manual,gallery.yesterday,bind,ledger:gallery.yesterday,昨天,107:239
-gallery/scanning,,group_count,(3),(3),literal,,skip,data,(3),107:240
-gallery/sort_menu,,title_album,相册,Gallery,matched,gallery.title,bind,"multi:gallery,gallery_settings",相册,107:266
-gallery/sort_menu,,group_title,今天,Today,manual,gallery.today,bind,ledger:gallery.today,今天,107:304
-gallery/sort_menu,,group_count,(6),(6),literal,,skip,data,(6),107:305
-gallery/sort_menu,,group_title,昨天,Yesterday,manual,gallery.yesterday,bind,ledger:gallery.yesterday,昨天,107:312
-gallery/sort_menu,,group_count,(3),(3),literal,,skip,data,(3),107:313
-gallery/sort_menu,,label,按日期分组,,manual,,bind,no-strings-hit,按日期分组,107:340
-gallery/sort_menu,,label,按人脸分组,,manual,,bind,no-strings-hit,按人脸分组,107:344
-gallery/sort_menu,,label,按人物分组,,manual,,bind,no-strings-hit,按人物分组,107:346
-gallery/sort_menu,,label,按风景分组,,manual,,bind,no-strings-hit,按风景分组,107:348
-gallery/sort_menu,,label,按位置分组,,manual,,bind,no-strings-hit,按位置分组,107:350
-gallery/sort_menu,,label,不分组,,manual,,bind,no-strings-hit,不分组,107:352
-gallery/selection,,title_album,相册,Gallery,matched,gallery.title,bind,"multi:gallery,gallery_settings",相册,107:355
-gallery/selection,,group_title,今天,Today,manual,gallery.today,bind,ledger:gallery.today,今天,107:389
-gallery/selection,,group_count,(6),(6),literal,,skip,data,(6),107:390
-gallery/settings,,title,相册设置,,manual,,bind,no-strings-hit,相册设置,118:5
-gallery/settings,,secLabelA,相册功能,,manual,,bind,no-strings-hit,相册功能,118:7
-gallery/settings,,t,重复图管理,,manual,,bind,no-strings-hit,重复图管理,118:14
-gallery/settings,,st,查找并删除重复相似照片，释放空间,,manual,,bind,no-strings-hit,查找并删除重复相似照片，释放空间,118:15
-gallery/settings,,t,TAG 生成加速,,manual,,bind,no-strings-hit,TAG 生成加速,118:23
-gallery/settings,,st,端侧打标推理后端,,manual,,bind,no-strings-hit,端侧打标推理后端,118:24
-gallery/settings,,optCpu,CPU,CPU,matched,device.preference.force.cpu,bind,"multi:device_preference_force_cpu,ai_agent_local_backend_cpu",CPU,118:26
-gallery/settings,,t,OpenCL,OpenCL,literal,,skip,data,OpenCL,118:28
-gallery/settings,,secLabelB,扫描控制,,manual,,bind,no-strings-hit,扫描控制,118:29
-gallery/settings,,t,扫描状态,Scan status,matched,tag.scan.status,bind,,扫描状态,118:32
-gallery/settings,,t,已完成,Up to date,matched,tag.scan.up.to.date,bind,,已完成,118:36
-gallery/settings,,scanCaption,"本轮扫描 12,593 张 · 失败 2 张 · 今天 22:40 完成",,manual,,bind,no-strings-hit,"本轮扫描 12,593 张 · 失败 2 张 · 今天 22:40 完成",118:39
-gallery/settings,,t,重新扫描,,manual,,bind,no-strings-hit,重新扫描,118:44
-gallery/settings,,t,取消,Cancel,matched,cancel,bind,"multi:cancel,ai_chat_cancel,report_issue_cancel",取消,118:48
-gallery/settings,,secLabelC,相册统计,,manual,,bind,no-strings-hit,相册统计,118:49
-gallery/settings,,t,数据库累计统计,,manual,,bind,no-strings-hit,数据库累计统计,118:52
-gallery/settings,,entry,标签查看,Tag Viewer,matched,tag.viewer.title,bind,,标签查看,118:54
-gallery/settings,,bigNum,"12,593","12,593",literal,,skip,data,"12,593",118:59
-gallery/settings,,heroCap,张照片 · 语义索引已覆盖 98%,,manual,,bind,no-strings-hit,张照片 · 语义索引已覆盖 98%,118:60
-gallery/settings,,ringPct,98%,98%,literal,,skip,data,98%,118:65
-gallery/settings,,v,"3,208","3,208",literal,,skip,data,"3,208",118:71
-gallery/settings,,l,含人脸照片,With faces,matched,tag.stats.with.face,bind,,含人脸照片,118:72
-gallery/settings,,v,"3,207","3,207",literal,,skip,data,"3,207",118:77
-gallery/settings,,l,人脸 Embedding,Face embeddings,matched,tag.stats.embeddings,bind,,人脸 Embedding,118:78
-gallery/settings,,v,47,47,literal,,skip,data,47,118:84
-gallery/settings,,l,识别出的人物,,manual,,bind,no-strings-hit,识别出的人物,118:85
-gallery/settings,,v,18,18,literal,,skip,data,18,118:90
-gallery/settings,,l,已命名人物,,manual,,bind,no-strings-hit,已命名人物,118:91
-gallery/settings,,l,人脸检测 · Pass 1,,manual,,bind,no-strings-hit,人脸检测 · Pass 1,118:93
-gallery/settings,,p,98%,98%,literal,,skip,data,98%,118:95
-gallery/settings,,l,内容理解 · Pass 3,,manual,,bind,no-strings-hit,内容理解 · Pass 3,118:99
-gallery/settings,,p,85%,85%,literal,,skip,data,85%,118:101
+gallery/empty,103:4,quote_text,生活不是我们活过的日子，而是我们记住的日子。,,manual,,bind,no-strings-hit,生活不是我们活过的日子，而是我们记住的日子。,103:4
+gallery/empty,103:5,quote_author,— 加西亚·马尔克斯,,manual,,bind,no-strings-hit,— 加西亚·马尔克斯,103:5
+gallery/empty,107:60,title_album,相册,Gallery,matched,gallery.title,bind,"multi:gallery,gallery_settings",相册,107:60
+gallery/info,105:3,title,照片信息,,manual,,bind,no-strings-hit,照片信息,105:3
+gallery/info,105:4,done,完成,Done,matched,done,bind,"multi:done,tag_scan_state_completed",完成,105:4
+gallery/info,105:7,label,文件名,File name,matched,media.info.file.name,bind,,文件名,105:7
+gallery/info,105:8,value,IMG_20260816_102344.jpg,IMG_20260816_102344.jpg,literal,,skip,data,IMG_20260816_102344.jpg,105:8
+gallery/info,105:10,label,类型,Type,matched,media.info.type,bind,,类型,105:10
+gallery/info,105:11,value,照片,PHOTO,matched,photo,bind,"multi:photo,person_photos_section,media_type_photo,tag_viewer_tab_photos,a11y_photo_desc",照片,105:11
+gallery/info,105:13,label,日期,Date,matched,group.date,bind,,日期,105:13
+gallery/info,105:14,value,2026年8月16日 10:23,,manual,,bind,no-strings-hit,2026年8月16日 10:23,105:14
+gallery/info,105:16,label,来源,Source,matched,media.info.source,bind,,来源,105:16
+gallery/info,105:17,value,相机拍摄,,manual,,bind,no-strings-hit,相机拍摄,105:17
+gallery/info,105:19,label,位置,Location,matched,media.info.location,bind,,位置,105:19
+gallery/info,105:20,value,北京市朝阳区,,manual,,bind,no-strings-hit,北京市朝阳区,105:20
+gallery/info,105:25,label,美学评分,Aesthetic score,matched,media.info.aesthetic.score,bind,,美学评分,105:25
+gallery/info,105:26,value,7.2 / 10,7.2 / 10,literal,,skip,data,7.2 / 10,105:26
+gallery/info,105:28,label,人脸信息,Face info,matched,media.info.face.section,bind,,人脸信息,105:28
+gallery/info,105:29,value,1 张 · 质量 0.82,,manual,,bind,no-strings-hit,1 张 · 质量 0.82,105:29
+gallery/info,105:37,section_title,标签,Tags,matched,tag.viewer.section.tags.field,bind,"multi:tag_viewer_section_tags_field,tag_category_tags",标签,105:37
+gallery/info,105:39,chip,海边,,manual,,bind,no-strings-hit,海边,105:39
+gallery/info,105:40,chip2,日落,,manual,,bind,no-strings-hit,日落,105:40
+gallery/info,105:41,chip3,沙滩,,manual,,bind,no-strings-hit,沙滩,105:41
+gallery/info,105:43,section_title,OCR 文本,,manual,,bind,no-strings-hit,OCR 文本,105:43
+gallery/info,105:44,ocr_body,Summer vacation 2026 · Beidaihe,Summer vacation 2026 · Beidaihe,literal,,skip,data,Summer vacation 2026 · Beidaihe,105:44
+gallery/grid,105:47,title_album,相册,Gallery,matched,gallery.title,bind,"multi:gallery,gallery_settings",相册,105:47
+gallery/grid,107:33,group_title,今天,Today,manual,gallery.today,bind,ledger:gallery.today,今天,107:33
+gallery/grid,107:34,group_count,(6),(6),literal,,skip,data,(6),107:34
+gallery/grid,107:35,group_title,昨天,Yesterday,manual,gallery.yesterday,bind,ledger:gallery.yesterday,昨天,107:35
+gallery/grid,107:36,group_count,(3),(3),literal,,skip,data,(3),107:36
+gallery/search,107:120,placeholder,按内容、地点、文字搜索…,"Search by content, location, text…",matched,gallery.search.hint,bind,,按内容、地点、文字搜索…,107:120
+gallery/search,107:123,result_count,12 张,,manual,,bind,no-strings-hit,12 张,107:123
+gallery/search,107:126,group_title,搜索 “海边”,,manual,,bind,no-strings-hit,搜索 “海边”,107:126
+gallery/search,107:127,group_count,(12),(12),literal,,skip,data,(12),107:127
+gallery/search_no_result,107:163,placeholder,按内容、地点、文字搜索…,"Search by content, location, text…",matched,gallery.search.hint,bind,,按内容、地点、文字搜索…,107:163
+gallery/search_no_result,107:160,result_count,12 张,,manual,,bind,no-strings-hit,12 张,107:160
+gallery/search_no_result,107:168,no_result_msg,未找到匹配 “冬天” 的照片,,manual,,bind,no-strings-hit,未找到匹配 “冬天” 的照片,107:168
+gallery/scanning,107:191,title_album,相册,Gallery,matched,gallery.title,bind,"multi:gallery,gallery_settings",相册,107:191
+gallery/scanning,107:231,group_title,今天,Today,manual,gallery.today,bind,ledger:gallery.today,今天,107:231
+gallery/scanning,107:232,group_count,(6),(6),literal,,skip,data,(6),107:232
+gallery/scanning,107:239,group_title,昨天,Yesterday,manual,gallery.yesterday,bind,ledger:gallery.yesterday,昨天,107:239
+gallery/scanning,107:240,group_count,(3),(3),literal,,skip,data,(3),107:240
+gallery/sort_menu,107:266,title_album,相册,Gallery,matched,gallery.title,bind,"multi:gallery,gallery_settings",相册,107:266
+gallery/sort_menu,107:304,group_title,今天,Today,manual,gallery.today,bind,ledger:gallery.today,今天,107:304
+gallery/sort_menu,107:305,group_count,(6),(6),literal,,skip,data,(6),107:305
+gallery/sort_menu,107:312,group_title,昨天,Yesterday,manual,gallery.yesterday,bind,ledger:gallery.yesterday,昨天,107:312
+gallery/sort_menu,107:313,group_count,(3),(3),literal,,skip,data,(3),107:313
+gallery/sort_menu,107:340,label,按日期分组,,manual,,bind,no-strings-hit,按日期分组,107:340
+gallery/sort_menu,107:344,label,按人脸分组,,manual,,bind,no-strings-hit,按人脸分组,107:344
+gallery/sort_menu,107:346,label,按人物分组,,manual,,bind,no-strings-hit,按人物分组,107:346
+gallery/sort_menu,107:348,label,按风景分组,,manual,,bind,no-strings-hit,按风景分组,107:348
+gallery/sort_menu,107:350,label,按位置分组,,manual,,bind,no-strings-hit,按位置分组,107:350
+gallery/sort_menu,107:352,label,不分组,,manual,,bind,no-strings-hit,不分组,107:352
+gallery/selection,107:355,title_album,相册,Gallery,matched,gallery.title,bind,"multi:gallery,gallery_settings",相册,107:355
+gallery/selection,107:389,group_title,今天,Today,manual,gallery.today,bind,ledger:gallery.today,今天,107:389
+gallery/selection,107:390,group_count,(6),(6),literal,,skip,data,(6),107:390
+gallery/settings,118:5,title,相册设置,,manual,,bind,no-strings-hit,相册设置,118:5
+gallery/settings,118:7,secLabelA,相册功能,,manual,,bind,no-strings-hit,相册功能,118:7
+gallery/settings,118:14,t,重复图管理,,manual,,bind,no-strings-hit,重复图管理,118:14
+gallery/settings,118:15,st,查找并删除重复相似照片，释放空间,,manual,,bind,no-strings-hit,查找并删除重复相似照片，释放空间,118:15
+gallery/settings,118:23,t,TAG 生成加速,,manual,,bind,no-strings-hit,TAG 生成加速,118:23
+gallery/settings,118:24,st,端侧打标推理后端,,manual,,bind,no-strings-hit,端侧打标推理后端,118:24
+gallery/settings,118:26,optCpu,CPU,CPU,matched,device.preference.force.cpu,bind,"multi:device_preference_force_cpu,ai_agent_local_backend_cpu",CPU,118:26
+gallery/settings,118:28,t,OpenCL,OpenCL,literal,,skip,data,OpenCL,118:28
+gallery/settings,118:29,secLabelB,扫描控制,,manual,,bind,no-strings-hit,扫描控制,118:29
+gallery/settings,118:32,t,扫描状态,Scan status,matched,tag.scan.status,bind,,扫描状态,118:32
+gallery/settings,118:36,t,已完成,Up to date,matched,tag.scan.up.to.date,bind,,已完成,118:36
+gallery/settings,118:39,scanCaption,"本轮扫描 12,593 张 · 失败 2 张 · 今天 22:40 完成",,manual,,bind,no-strings-hit,"本轮扫描 12,593 张 · 失败 2 张 · 今天 22:40 完成",118:39
+gallery/settings,118:44,t,重新扫描,,manual,,bind,no-strings-hit,重新扫描,118:44
+gallery/settings,118:48,t,取消,Cancel,matched,cancel,bind,"multi:cancel,ai_chat_cancel,report_issue_cancel",取消,118:48
+gallery/settings,118:49,secLabelC,相册统计,,manual,,bind,no-strings-hit,相册统计,118:49
+gallery/settings,118:52,t,数据库累计统计,,manual,,bind,no-strings-hit,数据库累计统计,118:52
+gallery/settings,118:54,entry,标签查看,Tag Viewer,matched,tag.viewer.title,bind,,标签查看,118:54
+gallery/settings,118:59,bigNum,"12,593","12,593",literal,,skip,data,"12,593",118:59
+gallery/settings,118:60,heroCap,张照片 · 语义索引已覆盖 98%,,manual,,bind,no-strings-hit,张照片 · 语义索引已覆盖 98%,118:60
+gallery/settings,118:65,ringPct,98%,98%,literal,,skip,data,98%,118:65
+gallery/settings,118:71,v,"3,208","3,208",literal,,skip,data,"3,208",118:71
+gallery/settings,118:72,l,含人脸照片,With faces,matched,tag.stats.with.face,bind,,含人脸照片,118:72
+gallery/settings,118:77,v,"3,207","3,207",literal,,skip,data,"3,207",118:77
+gallery/settings,118:78,l,人脸 Embedding,Face embeddings,matched,tag.stats.embeddings,bind,,人脸 Embedding,118:78
+gallery/settings,118:84,v,47,47,literal,,skip,data,47,118:84
+gallery/settings,118:85,l,识别出的人物,,manual,,bind,no-strings-hit,识别出的人物,118:85
+gallery/settings,118:90,v,18,18,literal,,skip,data,18,118:90
+gallery/settings,118:91,l,已命名人物,,manual,,bind,no-strings-hit,已命名人物,118:91
+gallery/settings,118:93,l,人脸检测 · Pass 1,,manual,,bind,no-strings-hit,人脸检测 · Pass 1,118:93
+gallery/settings,118:95,p,98%,98%,literal,,skip,data,98%,118:95
+gallery/settings,118:99,l,内容理解 · Pass 3,,manual,,bind,no-strings-hit,内容理解 · Pass 3,118:99
+gallery/settings,118:101,p,85%,85%,literal,,skip,data,85%,118:101
