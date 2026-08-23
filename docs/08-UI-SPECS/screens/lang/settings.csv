@@ -63,7 +63,7 @@ settings/developer,111:231,value,已启用,Enabled,manual,settings.accessibility
 settings/dialog_language,111:279,title,语言,Language,matched,language,bind,,语言,111:279
 settings/dialog_language,111:280,subtitle,选择界面显示语言,Choose display language,matched,language.dialog.subtitle,bind,,选择界面显示语言,111:280
 settings/dialog_language,111:283,lbl,系统默认,System Default,matched,system.default,bind,,系统默认,111:283
-settings/dialog_language,111:285,lbl,English,English,literal,,skip,data,English,111:285
+settings/dialog_language,111:285,lbl,English,English,literal,,skip,language-self-name,English,111:285
 settings/dialog_language,111:287,lbl,中文,,manual,,skip,language-self-name,中文,111:287
 settings/dialog_language,111:291,lbl,繁體中文,,manual,,skip,language-self-name,繁體中文,111:291
 settings/dialog_language,111:293,lbl,取消,Cancel,matched,cancel,bind,multi resolved=cancel; 复用 ledger 既有变量,取消,111:293

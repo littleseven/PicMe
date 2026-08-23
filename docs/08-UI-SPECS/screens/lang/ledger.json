@@ -527,14 +527,14 @@
   },
   "sandbox.settings": {
    "zh": "沙盒与权限",
-   "en": "Sandbox &amp; Permissions",
+   "en": "Sandbox & Permissions",
    "status": "created",
    "key": "sandbox_settings",
    "ardotId": "182:218"
   },
   "data.privacy.entry": {
    "zh": "数据与隐私",
-   "en": "Data &amp; privacy",
+   "en": "Data & privacy",
    "status": "created",
    "key": "data_privacy_entry",
    "ardotId": "182:219"
