@@ -61,37 +61,104 @@ esac
 MODE_JSON="[$entries]"
 
 /usr/bin/python3 - "$FRAME" "$MODE_JSON" "$ENDPOINT" "$SHOT" <<'PYEOF'
-import json, sys, urllib.request
+import glob, json, os, sys, time, urllib.request
 frame, mode_json, endpoint, shot = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 
-def rpc(method, params):
-    body = {"jsonrpc":"2.0","id":1,"method":method,**({"params":params} if params else {})}
-    req = urllib.request.Request(endpoint, data=json.dumps(body).encode(),
-        headers={'Content-Type':'application/json','Accept':'application/json, text/event-stream'})
-    resp = urllib.request.urlopen(req, timeout=120)
-    for line in resp.read().decode().splitlines():
-        if line.startswith('data:'): return json.loads(line[5:])
-    return {}
+# SSE 解析对齐 ardot-lang-driver.rpc 健壮版：
+# 1) 每次调用独立递增 id（initialize=1、batch_edit=2、screenshot=3…），响应按 id 回显匹配——
+#    固定 id:1 时通知行/错配响应会被当 tools/call 结果（OK 判定永假 + 偶发 operations:[] 空应用的共同根源）；
+# 2) 遍历所有 data: 行，只认带 result/error 顶层键且 id 匹配的那条，跳过 endpoint/event 通知行；
+# 3) 传输失败（适配器闪断）30/60/90s 重试。
+_rpc_seq = 0
+
+def rpc(method, params, retry=(30, 60, 90)):
+    global _rpc_seq
+    _rpc_seq += 1
+    rid = _rpc_seq
+    for attempt, wait in enumerate([0] + list(retry)):
+        if wait:
+            time.sleep(wait)
+        body = {"jsonrpc":"2.0","id":rid,"method":method,**({"params":params} if params else {})}
+        req = urllib.request.Request(endpoint, data=json.dumps(body).encode(),
+            headers={'Content-Type':'application/json','Accept':'application/json, text/event-stream'})
+        try:
+            raw = urllib.request.urlopen(req, timeout=120).read().decode()
+        except Exception as e:
+            print(f"rpc {method} attempt{attempt} transport-fail {e}", file=sys.stderr)
+            continue
+        parsed = []
+        for line in raw.splitlines():
+            if line.startswith('data:'):
+                try:
+                    parsed.append(json.loads(line[5:]))
+                except ValueError:
+                    pass
+        response = next((x for x in parsed if ('result' in x or 'error' in x)
+                         and ('id' not in x or str(x.get('id')) == str(rid))), None)
+        if response is None:
+            print(f"rpc {method} attempt{attempt} no-response-line: {raw[:200]}", file=sys.stderr)
+            continue
+        if response.get('error'):
+            print(f"rpc {method} MCP error: {json.dumps(response['error'])[:400]}", file=sys.stderr)
+            sys.exit(1)
+        if response.get('result', {}).get('isError'):
+            print(f"rpc {method} isError: {json.dumps(response)[:400]}", file=sys.stderr)
+            sys.exit(1)
+        return response
+    print(f"rpc {method} exhausted retries", file=sys.stderr)
+    sys.exit(1)
 
 rpc("initialize", {"protocolVersion":"2024-11-05","capabilities":{},
-    "clientInfo":{"name":"ardot-preview-mode","version":"1.0"}})
+    "clientInfo":{"name":"ardot-preview-mode","version":"1.1"}})
 r = rpc("tools/call", {"name":"batch_edit","arguments":{
     "operations": f'U("{frame}", {{variableModes: {mode_json}}})'}})
-txt = json.dumps(r)[:120]
+# 判定须基于 result.content[0].text（真实文本，已解转义一层）；
+# 对整个 response json.dumps 会把内层 JSON 二次转义成 \"success\":true，子串永不匹配（旧版 OK 永假的根因）
+content = r.get('result', {}).get('content', [])
+body = content[0].get('text', '') if content else ''
 # ⚠️ no-op 也回 success——批量场景还原后须 --shot 截图复核，不能只看退出码/OK
-ok = '"success":true' in json.dumps(r) or 'updated' in json.dumps(r)
-print(("OK " if ok else "FAIL ") + txt)
+try:
+    data = json.loads(body)
+except ValueError:
+    data = None
+items = None
+if isinstance(data, list):
+    items = data
+elif isinstance(data, dict):
+    # 实测响应形如 {"success":true,"data":{"operations":[...]}}——operations 嵌在 data 键下，须多挖一层
+    probes = [data]
+    inner = data.get('data')
+    if isinstance(inner, dict):
+        probes.append(inner)
+    items = next((v for probe in probes
+                  for v in (probe.get('results'), probe.get('operations'))
+                  if isinstance(v, list)), None)
+if items is not None:
+    # 成败统计同 driver run_ops：error 真值 / success is False / status=='failed' 记失败
+    fails = [x for x in items if isinstance(x, dict) and
+             (x.get('error') or x.get('success') is False or x.get('status') == 'failed')]
+    ok = not fails
+    detail = f"ops={len(items)} failed={len(fails)}"
+    if fails:
+        detail += ' ' + json.dumps(fails, ensure_ascii=False)[:400]
+    print(("OK " if ok else "FAIL ") + detail)
+else:
+    ok = '"success"' in body
+    print(("OK " if ok else "FAIL ") + body[:120])
 if not ok:
     sys.exit(1)
 
 if shot:
-    s = rpc("tools/call", {"name":"capture_screenshot","arguments":{
+    os.makedirs('/tmp/ardot-mode-shot', exist_ok=True)
+    # 记录调用前已有文件，只接受本次新生成的截图——防止误取历史残留文件
+    pat = f"/tmp/ardot-mode-shot/screenshot-{frame.replace(':','_')}-*.png"
+    before = set(glob.glob(pat))
+    rpc("tools/call", {"name":"capture_screenshot","arguments":{
         "nodeIds":[frame], "screenShotDir":"/tmp/ardot-mode-shot"}})
-    import re, glob, os, time
-    # 截图落在 /tmp/ardot-mode-shot/<frame>.png（带时间戳），取最新的复制到目标
-    files = sorted(glob.glob(f"/tmp/ardot-mode-shot/screenshot-{frame.replace(':','_')}-*.png"), key=os.path.getmtime)
-    if files:
-        os.replace(files[-1], shot); print("SHOT " + shot)
+    # 截图落在 /tmp/ardot-mode-shot/（带时间戳），取最新的本次新生成文件移到目标
+    fresh = sorted((f for f in glob.glob(pat) if f not in before), key=os.path.getmtime)
+    if fresh:
+        os.replace(fresh[-1], shot); print("SHOT " + shot)
     else:
         print("SHOT-MISSING 检查 /tmp/ardot-mode-shot/")
         sys.exit(1)
