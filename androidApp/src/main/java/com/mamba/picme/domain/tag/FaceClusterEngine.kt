@@ -403,6 +403,10 @@ class FaceClusterEngine(private val context: Context) {
      * 与 [createCluster]/[addToCluster] 的区别：Pass1 已把 embedding 写入 face_embeddings，
      * 这里用 [PersonDao.assignEmbedding] 改派 personId（不重新插入行），并同步质心缓存。
      *
+     * 分配成功后同步回写 media_assets.faceId（与 Pass 2 DBSCAN 簇落库语义一致，后写覆盖先写）：
+     * 相册「人物分组」按 media_assets.faceId 聚合，不回写则扫描中途（全量重聚尚未触发时）
+     * 人物分组数与 persons 表严重脱节。
+     *
      * @return 本次处理的 embedding 数（0 表示无未分配项）
      */
     suspend fun assignStoredEmbeddings(): Int {
@@ -410,6 +414,8 @@ class FaceClusterEngine(private val context: Context) {
         if (unassigned.isEmpty()) return 0
 
         var processed = 0
+        // mediaId -> personId，循环结束后按 person 分组批量回写 faceId（同媒体多人脸时后写覆盖先写）
+        val mediaFaceIds = mutableMapOf<Long, Long>()
         for (entity in unassigned) {
             val feature = byteArrayToFloatArray(entity.embedding)
             processed++
@@ -420,6 +426,7 @@ class FaceClusterEngine(private val context: Context) {
             if (matchedId != null) {
                 personDao.assignEmbedding(entity.embeddingId, matchedId)
                 personDao.incrementFaceCount(matchedId)
+                mediaFaceIds[entity.mediaId] = matchedId
                 // 增量质心，与 addToCluster 一致
                 centroidCache[matchedId]?.let { (oldCentroid, oldCount) ->
                     val newCount = oldCount + 1
@@ -435,7 +442,16 @@ class FaceClusterEngine(private val context: Context) {
                 )
                 personDao.assignEmbedding(entity.embeddingId, personId)
                 centroidCache[personId] = feature.clone() to 1
+                mediaFaceIds[entity.mediaId] = personId
             }
+        }
+        if (mediaFaceIds.isNotEmpty()) {
+            val mediaDao = AppDatabase.getDatabase(context).mediaDao()
+            mediaFaceIds.entries
+                .groupBy({ entry -> entry.value }, { entry -> entry.key })
+                .forEach { (personId, mediaIds) ->
+                    mediaDao.updateFaceIdBatch(mediaIds, personId.toString())
+                }
         }
         Log.i(TAG, "Streaming-assigned $processed stored embeddings (unassigned were ${unassigned.size})")
         return processed
