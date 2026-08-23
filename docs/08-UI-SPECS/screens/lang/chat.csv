@@ -22,7 +22,7 @@ chat/conversation,111:445,DateText,2025-12-30,2025-12-30,literal,,skip,data,2025
 chat/conversation,111:574,AgentText2,"找到了！去年大宝的照片共有 1,598 张，已经展示在卡片中供你浏览。需要我帮你进一步筛选吗？比如只看周末、室内或者合照。","Found them! You have 1,598 photos of Dabao from last year, now shown in the card for you to browse. Want me to narrow it down — weekends only, indoors, or group shots?",manual,chat.conv.agent.reply.found,bind,"虚构:设计示例回复,语义翻译","找到了！去年大宝的照片共有 1,598 张，已经展示在卡片中供你浏览。需要我帮你进一步筛选吗？比如只看周末、室内或者合照。",111:574
 chat/conversation,111:575,PerfRow2,17649 tok · 149 · 2400ms · 62.1 t/s,17649 tok · 149 · 2400ms · 62.1 t/s,literal,,skip,data,17649 tok · 149 · 2400ms · 62.1 t/s,111:575
 chat/conversation,111:475,InputPlaceholder,向 AI 助手提问…,Ask AI Agent...,matched,chat.input.hint,bind,同 111:366,向 AI 助手提问…,111:475
-chat/conversation,111:480,ModelName,deepseek-v4-flash,deepseek-v4-flash,literal,,skip,"data; layout-fix: 节点已删(ModelCapsule 111:478)—同 111:371 根因(EN 401>337 重叠 64px)",deepseek-v4-flash,111:480
+chat/conversation,111:480,ModelName,deepseek-v4-flash,deepseek-v4-flash,literal,,skip,data; layout-fix: 节点已删(ModelCapsule 111:478)—同 111:371 根因(EN 401>337 重叠 64px),deepseek-v4-flash,111:480
 chat/conversation,111:484,GalleryLabel,相册,Gallery,matched,gallery.title,bind,multi 消歧同 111:375; layout-fix: 同 111:375 底栏密度收敛(conversation 帧),相册,111:484
 chat/conversation,111:488,EngineerLabel,AI 工程师,AI Engineer,matched,claude.icon.desc,bind,layout-fix: 同 111:375 底栏密度收敛(conversation 帧),AI 工程师,111:488
 chat/sidebar,111:496,SidebarTitle,聊天历史,Chat History,matched,sidebar.title,bind,ChatThreadSidebar.kt:113,聊天历史,111:496
@@ -32,12 +32,12 @@ chat/sidebar,111:511,ThreadPreview,"找到了！去年大宝的照片共有 1,59
 chat/sidebar,111:516,ThreadTitle,新建聊天,New Chat,matched,new.chat,bind,ChatThreadSidebar.kt:121,新建聊天,111:516
 chat/sidebar,111:517,ThreadPreview,是的，我的响应速度一直保持稳定，处理这些测试都是即时返回的…,"Yes, my response speed has stayed consistent — these tests all came back instantly…",manual,chat.sidebar.preview.speed,bind,"虚构:会话预览片段,语义翻译",是的，我的响应速度一直保持稳定，处理这些测试都是即时返回的…,111:517
 chat/sidebar,111:522,ThreadTitle,找有人物的照片,Find photos with people,manual,chat.example.prompt.people,bind,同 key 复用 search[1],找有人物的照片,111:522
-chat/sidebar,111:523,ThreadPreview,去年大宝除了夏天之外的照片已经筛出来了，分两批展示…,"Dabao's photos from last year excluding summer are ready — shown in two batches…",manual,chat.sidebar.preview.dabao,bind,"虚构:会话预览片段,语义翻译; review-fix: filtered out→ready (筛好了待看,非剔除)",去年大宝除了夏天之外的照片已经筛出来了，分两批展示…,111:523
+chat/sidebar,111:523,ThreadPreview,去年大宝除了夏天之外的照片已经筛出来了，分两批展示…,Dabao's photos from last year excluding summer are ready — shown in two batches…,manual,chat.sidebar.preview.dabao,bind,"虚构:会话预览片段,语义翻译; review-fix: filtered out→ready (筛好了待看,非剔除)",去年大宝除了夏天之外的照片已经筛出来了，分两批展示…,111:523
 chat/sidebar,111:528,ThreadTitle,飞书远程控制,Feishu Remote Control,matched,chat.thread.feishu,bind,,飞书远程控制,111:528
 chat/sidebar,111:529,ThreadPreview,绑定设备后，可在飞书会话中远程控制相册…,"After binding a device, you can control the gallery remotely from a Feishu chat…",manual,chat.sidebar.preview.feishu,bind,"虚构:会话预览片段,语义翻译",绑定设备后，可在飞书会话中远程控制相册…,111:529
 chat/sidebar,111:534,ThreadTitle,找去年夏天的照片,Find photos from last summer,manual,chat.example.prompt.last.summer,bind,同 key 复用 search[0]; layout-fix: width hug→fill_container (EN 212>行宽出界),找去年夏天的照片,111:534
 chat/sidebar,111:535,ThreadPreview,找到啦！去年夏天（2025 年 6～8 月）的照片一共有 562 张…,Found them! Last summer (June–August 2025) adds up to 562 photos…,manual,chat.sidebar.preview.summer,bind,"虚构:会话预览片段,语义翻译",找到啦！去年夏天（2025 年 6～8 月）的照片一共有 562 张…,111:535
-chat/guest-nudge-sheet,171:176,title,喜欢小浪？解锁完整体验,Enjoying Xiaolang? Unlock the full experience,matched,chat.guest.nudge.title,bind,; layout-fix: width hug→fill_container (EN 441>393 卡片被裁),喜欢小浪？解锁完整体验,171:176
+chat/guest-nudge-sheet,171:176,title,喜欢小浪？解锁完整体验,Enjoying Xiaolang? Unlock the full experience,matched,chat.guest.nudge.title,bind,layout-fix: width hug→fill_container (EN 441>393 卡片被裁),喜欢小浪？解锁完整体验,171:176
 chat/guest-nudge-sheet,171:178,desc,注册领取免费额度，或配置自己的 LLM Token，二选一即可继续畅聊,"Register for free quota, or configure your own LLM Token. Either way, keep chatting.",matched,chat.guest.nudge.subtitle,bind,,注册领取免费额度，或配置自己的 LLM Token，二选一即可继续畅聊,171:178
 chat/guest-nudge-sheet,171:181,label,邮箱注册 · 领免费额度,Sign up with email · Get free quota,matched,chat.guest.nudge.register,bind,,邮箱注册 · 领免费额度,171:181
 chat/guest-nudge-sheet,171:184,label,配置自己的 Token,Use my own Token,matched,chat.guest.nudge.own.key,bind,,配置自己的 Token,171:184

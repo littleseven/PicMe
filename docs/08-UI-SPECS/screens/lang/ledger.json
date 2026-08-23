@@ -1095,6 +1095,186 @@
    "en": "Found them! Last summer (June–August 2025) adds up to 562 photos…",
    "status": "created",
    "ardotId": "183:34"
+  },
+  "edit": {
+   "zh": "编辑",
+   "en": "Edit",
+   "status": "created",
+   "key": "edit",
+   "ardotId": "183:37"
+  },
+  "crop.ratio.label": {
+   "zh": "裁剪比例",
+   "en": "Aspect Ratio",
+   "status": "created",
+   "key": "crop_ratio_label",
+   "ardotId": "183:38"
+  },
+  "aspect.ratio.free": {
+   "zh": "自由",
+   "en": "Free",
+   "status": "created",
+   "key": "aspect_ratio_free",
+   "ardotId": "183:39"
+  },
+  "aspect.ratio.original": {
+   "zh": "原始",
+   "en": "Original",
+   "status": "created",
+   "key": "aspect_ratio_original",
+   "ardotId": "183:40"
+  },
+  "editor.tab.crop": {
+   "zh": "构图",
+   "en": "Crop",
+   "status": "created",
+   "key": "editor_tab_crop",
+   "ardotId": "183:41"
+  },
+  "editor.tab.adjust": {
+   "zh": "调节",
+   "en": "Adjust",
+   "status": "created",
+   "key": "editor_tab_adjust",
+   "ardotId": "183:42"
+  },
+  "editor.tab.beauty": {
+   "zh": "美颜",
+   "en": "Beauty",
+   "status": "created",
+   "key": "editor_tab_beauty",
+   "ardotId": "183:43"
+  },
+  "editor.tab.filter": {
+   "zh": "滤镜",
+   "en": "Filter",
+   "status": "created",
+   "key": "editor_tab_filter",
+   "ardotId": "183:44"
+  },
+  "editor.tab.markup": {
+   "zh": "标记",
+   "en": "Markup",
+   "status": "created",
+   "key": "editor_tab_markup",
+   "ardotId": "183:45"
+  },
+  "adjust.brightness": {
+   "zh": "亮度",
+   "en": "Brightness",
+   "status": "created",
+   "key": "adjust_brightness",
+   "ardotId": "183:46"
+  },
+  "reset": {
+   "zh": "重置",
+   "en": "Reset",
+   "status": "created",
+   "key": "reset",
+   "ardotId": "183:47"
+  },
+  "adjust.exposure": {
+   "zh": "曝光",
+   "en": "Exposure",
+   "status": "created",
+   "key": "adjust_exposure",
+   "ardotId": "183:48"
+  },
+  "contrast": {
+   "zh": "对比度",
+   "en": "Contrast",
+   "status": "created",
+   "key": "contrast",
+   "ardotId": "183:49"
+  },
+  "saturation": {
+   "zh": "饱和度",
+   "en": "Saturation",
+   "status": "created",
+   "key": "saturation",
+   "ardotId": "183:50"
+  },
+  "adjust.temperature": {
+   "zh": "色温",
+   "en": "Temperature",
+   "status": "created",
+   "key": "adjust_temperature",
+   "ardotId": "183:51"
+  },
+  "adjust.tint": {
+   "zh": "色调",
+   "en": "Tint",
+   "status": "created",
+   "key": "adjust_tint",
+   "ardotId": "183:52"
+  },
+  "save": {
+   "zh": "保存",
+   "en": "Save",
+   "status": "created",
+   "key": "save",
+   "ardotId": "183:53"
+  },
+  "filter.none": {
+   "zh": "原图",
+   "en": "Original",
+   "status": "created",
+   "key": "filter_none",
+   "ardotId": "183:54"
+  },
+  "filter.leica.classic": {
+   "zh": "徕卡经典",
+   "en": "Leica Authentic",
+   "status": "created",
+   "key": "filter_leica_classic",
+   "ardotId": "183:55"
+  },
+  "filter.leica.vibrant": {
+   "zh": "徕卡生动",
+   "en": "Leica Vibrant",
+   "status": "created",
+   "key": "filter_leica_vibrant",
+   "ardotId": "183:56"
+  },
+  "filter.film.gold": {
+   "zh": "胶片金",
+   "en": "Film Gold",
+   "status": "created",
+   "key": "filter_film_gold",
+   "ardotId": "183:57"
+  },
+  "filter.vintage": {
+   "zh": "复古",
+   "en": "Vintage",
+   "status": "created",
+   "key": "filter_vintage",
+   "ardotId": "183:58"
+  },
+  "filter.cool": {
+   "zh": "冷色",
+   "en": "Cool",
+   "status": "created",
+   "key": "filter_cool",
+   "ardotId": "183:59"
+  },
+  "ai.optimize": {
+   "zh": "AI 一键优化",
+   "en": "AI Optimize",
+   "status": "created",
+   "key": "ai_optimize",
+   "ardotId": "183:60"
+  },
+  "editor.filter.intensity": {
+   "zh": "滤镜强度",
+   "en": "Filter Strength",
+   "status": "created",
+   "ardotId": "183:61"
+  },
+  "editor.rail.erase": {
+   "zh": "消除",
+   "en": "Eraser",
+   "status": "created",
+   "ardotId": "183:62"
   }
  }
 }

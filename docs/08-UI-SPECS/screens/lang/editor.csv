@@ -1,0 +1,85 @@
+frame,node_id,name,zh,en,source,var,action,note,text,id
+editor/current_crop,118:120,top_title,编辑,Edit,matched,edit,bind,multi→edit(PhotoEditorScreen.kt:83 编辑器标题),编辑,118:120
+editor/current_crop,118:139,crop_ratio_label,裁剪比例,Aspect Ratio,matched,crop.ratio.label,bind,,裁剪比例,118:139
+editor/current_crop,118:141,lbl,自由,Free,matched,aspect.ratio.free,bind,layout-fix: 比例 chip 绝对定位→auto-layout 容器 183:63(hug+gap);EN 7 chip 382px>容器 365→gap5→4+pad11→10,自由,118:141
+editor/current_crop,118:143,lbl,原始,Original,matched,aspect.ratio.original,bind,layout-fix: 同 183:63 容器化,原始,118:143
+editor/current_crop,118:145,lbl,1:1,1:1,matched,,skip,data-ratio:跨语言同形数字;实现键 aspect_ratio_square; layout-fix: 同 183:63 容器化,1:1,118:145
+editor/current_crop,118:147,lbl,4:3,4:3,matched,,skip,data-ratio:跨语言同形数字;实现键 aspect_ratio_4_3; layout-fix: 同 183:63 容器化,4:3,118:147
+editor/current_crop,118:149,lbl,3:4,3:4,matched,,skip,data-ratio:跨语言同形数字;实现键 aspect_ratio_3_4; layout-fix: 同 183:63 容器化,3:4,118:149
+editor/current_crop,118:151,lbl,16:9,16:9,matched,,skip,data-ratio:跨语言同形数字;实现键 aspect_ratio_16_9; layout-fix: 同 183:63 容器化,16:9,118:151
+editor/current_crop,118:153,lbl,9:16,9:16,matched,,skip,data-ratio:跨语言同形数字;实现键 aspect_ratio_9_16; layout-fix: 同 183:63 容器化,9:16,118:153
+editor/current_crop,118:155,lbl,构图,Crop,matched,editor.tab.crop,bind,"layout-fix: tab chip 绝对定位 pitch48→容器 183:64 hug+gap6(EN 折行/重叠,方案A 16acea187)",构图,118:155
+editor/current_crop,118:157,lbl,调节,Adjust,matched,editor.tab.adjust,bind,layout-fix: 同 183:64 容器化,调节,118:157
+editor/current_crop,118:159,lbl,美颜,Beauty,matched,editor.tab.beauty,bind,multi→editor_tab_beauty(底部 tab 语境); layout-fix: 同 183:64 容器化,美颜,118:159
+editor/current_crop,118:161,lbl,滤镜,Filter,matched,editor.tab.filter,bind,multi→editor_tab_filter(底部 tab 语境); layout-fix: 同 183:64 容器化,滤镜,118:161
+editor/current_crop,118:163,lbl,标记,Markup,matched,editor.tab.markup,bind,layout-fix: 同 183:64 容器化,标记,118:163
+editor/current_adjust,118:169,top_title,编辑,Edit,matched,edit,bind,multi→edit(PhotoEditorScreen.kt:83 编辑器标题),编辑,118:169
+editor/current_adjust,118:216,lbl,构图,Crop,matched,editor.tab.crop,bind,layout-fix: tab chip 绝对定位 pitch48→容器 183:65 hug+gap6(方案A 16acea187),构图,118:216
+editor/current_adjust,118:217,lbl,调节,Adjust,matched,editor.tab.adjust,bind,layout-fix: 同 183:65 容器化,调节,118:217
+editor/current_adjust,118:218,lbl,美颜,Beauty,matched,editor.tab.beauty,bind,multi→editor_tab_beauty(底部 tab 语境); layout-fix: 同 183:65 容器化,美颜,118:218
+editor/current_adjust,118:219,lbl,滤镜,Filter,matched,editor.tab.filter,bind,multi→editor_tab_filter(底部 tab 语境); layout-fix: 同 183:65 容器化,滤镜,118:219
+editor/current_adjust,118:220,lbl,标记,Markup,matched,editor.tab.markup,bind,layout-fix: 同 183:65 容器化,标记,118:220
+editor/current_adjust,118:225,adjust_param_label,亮度,Brightness,matched,adjust.brightness,bind,,亮度,118:225
+editor/current_adjust,118:226,adjust_value,0,0,literal,,skip,data,0,118:226
+editor/current_adjust,118:227,adjust_reset,重置,Reset,matched,reset,bind,,重置,118:227
+editor/current_adjust,118:231,lbl,亮度,Brightness,matched,adjust.brightness,bind,layout-fix: 参数 chip→容器 183:66;EN 全显 505px>393→clipsContent 截断示意 horizontalScroll(AdjustPanel.kt:115-119),亮度,118:231
+editor/current_adjust,118:233,lbl,曝光,Exposure,matched,adjust.exposure,bind,multi→adjust_exposure(调节面板); layout-fix: 同 183:66 容器化,曝光,118:233
+editor/current_adjust,118:235,lbl,对比度,Contrast,matched,contrast,bind,layout-fix: 同 183:66 容器化,对比度,118:235
+editor/current_adjust,118:237,lbl,饱和度,Saturation,matched,saturation,bind,layout-fix: 同 183:66 容器化,饱和度,118:237
+editor/current_adjust,118:239,lbl,色温,Temperature,matched,adjust.temperature,bind,layout-fix: 同 183:66 容器化;EN 下 Temperature 部分截断=scroll 示意,色温,118:239
+editor/current_adjust,118:241,lbl,色调,Tint,matched,adjust.tint,bind,layout-fix: 同 183:66 容器化;EN 下整 chip 在可视区外=scroll 示意,色调,118:241
+editor/concept_a_hypic,118:260,lbl,保存,Save,matched,save,bind,multi→save(编辑器 R.string.save),保存,118:260
+editor/concept_a_hypic,118:266,filter_intensity_label,滤镜强度,Filter Strength,manual,editor.filter.intensity,bind,"虚构:concept 滤镜强度控件,FilterPanel 无对应 key",滤镜强度,118:266
+editor/concept_a_hypic,118:267,filter_intensity_value,80,80,literal,,skip,data,80,118:267
+editor/concept_a_hypic,118:272,ft_none_lbl,原图,Original,matched,filter.none,bind,"multi→filter_none(滤镜 chip,FilterPanel displayNameRes)",原图,118:272
+editor/concept_a_hypic,118:274,ft_leica_lbl,徕卡经典,Leica Authentic,matched,filter.leica.classic,bind,"layout-fix: EN 2 行图注(54px 缩略图题注惯例,zh 单行不变)",徕卡经典,118:274
+editor/concept_a_hypic,118:276,ft_vibrant_lbl,徕卡生动,Leica Vibrant,manual,filter.leica.vibrant,bind,"manual→key filter_leica_vibrant;zh 升格 canvas 徕卡鲜艳→app 徕卡生动; layout-fix: EN 2 行图注(54px 缩略图题注惯例,zh 单行不变)",徕卡鲜艳,118:276
+editor/concept_a_hypic,118:278,ft_gold_lbl,胶片金,Film Gold,matched,filter.film.gold,bind,,胶片金,118:278
+editor/concept_a_hypic,118:280,ft_vintage_lbl,复古,Vintage,matched,filter.vintage,bind,,复古,118:280
+editor/concept_a_hypic,118:282,ft_cool_lbl,冷色,Cool,matched,filter.cool,bind,multi→filter_cool(滤镜 chip),冷色,118:282
+editor/concept_a_hypic,118:286,rail_crop_lbl,构图,Crop,matched,editor.tab.crop,bind,,构图,118:286
+editor/concept_a_hypic,118:290,rail_adjust_lbl,调节,Adjust,matched,editor.tab.adjust,bind,,调节,118:290
+editor/concept_a_hypic,118:294,rail_beauty_lbl,美颜,Beauty,matched,editor.tab.beauty,bind,multi→editor_tab_beauty(rail 语境),美颜,118:294
+editor/concept_a_hypic,118:298,rail_filter_lbl,滤镜,Filter,matched,editor.tab.filter,bind,multi→editor_tab_filter(rail 语境),滤镜,118:298
+editor/concept_a_hypic,118:302,rail_markup_lbl,标记,Markup,matched,editor.tab.markup,bind,,标记,118:302
+editor/concept_a_hypic,118:306,rail_erase_lbl,消除,Eraser,manual,editor.rail.erase,bind,"虚构:concept rail 消除工具,app 无对应 key(remove_background=去背景为另一功能); layout-fix: x 左移 1px(清与 rail_ai_lbl 1px 框重叠,字形不碰)",消除,118:306
+editor/concept_a_hypic,118:310,rail_ai_lbl,AI 一键优化,AI Optimize,manual,ai.optimize,bind,manual→key ai_optimize;zh 升格 canvas AI优化→app AI 一键优化; layout-fix: 框 w52→60 居中保位(EN AI Optimize 2 行→单行),AI优化,118:310
+editor/concept_a_adjust,118:423,lbl,保存,Save,matched,save,bind,multi→save(编辑器 R.string.save),保存,118:423
+editor/concept_a_adjust,118:398,rail_crop_lbl,构图,Crop,matched,editor.tab.crop,bind,,构图,118:398
+editor/concept_a_adjust,118:400,rail_adjust_lbl,调节,Adjust,matched,editor.tab.adjust,bind,,调节,118:400
+editor/concept_a_adjust,118:402,rail_beauty_lbl,美颜,Beauty,matched,editor.tab.beauty,bind,multi→editor_tab_beauty(rail 语境),美颜,118:402
+editor/concept_a_adjust,118:404,rail_filter_lbl,滤镜,Filter,matched,editor.tab.filter,bind,multi→editor_tab_filter(rail 语境),滤镜,118:404
+editor/concept_a_adjust,118:406,rail_markup_lbl,标记,Markup,matched,editor.tab.markup,bind,,标记,118:406
+editor/concept_a_adjust,118:408,rail_erase_lbl,消除,Eraser,manual,editor.rail.erase,bind,"虚构:concept rail 消除工具,app 无对应 key(remove_background=去背景为另一功能); layout-fix: x 左移 1px(清与 rail_ai_lbl 1px 框重叠,字形不碰)",消除,118:408
+editor/concept_a_adjust,118:410,rail_ai_lbl,AI 一键优化,AI Optimize,manual,ai.optimize,bind,manual→key ai_optimize;zh 升格 canvas AI优化→app AI 一键优化; layout-fix: 框 w52→60 居中保位(EN AI Optimize 2 行→单行),AI优化,118:410
+editor/concept_a_adjust,118:446,adjust_label,亮度,Brightness,matched,adjust.brightness,bind,,亮度,118:446
+editor/concept_a_adjust,118:447,adjust_reset,重置,Reset,matched,reset,bind,,重置,118:447
+editor/concept_a_adjust,118:448,adjust_value,0,0,literal,,skip,data,0,118:448
+editor/concept_a_adjust,118:455,ap_brightness_lbl,亮度,Brightness,matched,adjust.brightness,bind,,亮度,118:455
+editor/concept_a_adjust,118:459,ap_exposure_lbl,曝光,Exposure,matched,adjust.exposure,bind,multi→adjust_exposure(调节面板),曝光,118:459
+editor/concept_a_adjust,118:463,ap_contrast_lbl,对比度,Contrast,matched,contrast,bind,,对比度,118:463
+editor/concept_a_adjust,118:467,ap_saturation_lbl,饱和度,Saturation,matched,saturation,bind,,饱和度,118:467
+editor/concept_a_adjust,118:471,ap_temperature_lbl,色温,Temperature,matched,adjust.temperature,bind,layout-fix: 框 w54→66 居中保位(EN Temperature 2 行→单行),色温,118:471
+editor/concept_a_adjust,118:479,ap_tint_lbl,色调,Tint,matched,adjust.tint,bind,,色调,118:479
+editor/concept_a_crop,118:531,lbl,保存,Save,matched,save,bind,multi→save(编辑器 R.string.save),保存,118:531
+editor/concept_a_crop,118:506,rail_crop_lbl,构图,Crop,matched,editor.tab.crop,bind,,构图,118:506
+editor/concept_a_crop,118:508,rail_adjust_lbl,调节,Adjust,matched,editor.tab.adjust,bind,,调节,118:508
+editor/concept_a_crop,118:510,rail_beauty_lbl,美颜,Beauty,matched,editor.tab.beauty,bind,multi→editor_tab_beauty(rail 语境),美颜,118:510
+editor/concept_a_crop,118:512,rail_filter_lbl,滤镜,Filter,matched,editor.tab.filter,bind,multi→editor_tab_filter(rail 语境),滤镜,118:512
+editor/concept_a_crop,118:514,rail_markup_lbl,标记,Markup,matched,editor.tab.markup,bind,,标记,118:514
+editor/concept_a_crop,118:516,rail_erase_lbl,消除,Eraser,manual,editor.rail.erase,bind,"虚构:concept rail 消除工具,app 无对应 key(remove_background=去背景为另一功能)",消除,118:516
+editor/concept_a_crop,118:518,rail_ai_lbl,AI 一键优化,AI Optimize,manual,ai.optimize,bind,manual→key ai_optimize;zh 升格 canvas AI优化→app AI 一键优化; layout-fix: 框 w52→60 居中保位(EN AI Optimize 2 行→单行),AI优化,118:518
+editor/concept_a_crop,118:554,crop_label,构图,Crop,matched,editor.tab.crop,bind,同 key editor_tab_crop 复用(裁剪面板标题=tab 名),构图,118:554
+editor/concept_a_crop,118:567,cr_original_lbl,原始,Original,matched,aspect.ratio.original,bind,,原始,118:567
+editor/concept_a_crop,118:570,cr_11_lbl,1:1,1:1,matched,,skip,data-ratio:跨语言同形数字;实现键 aspect_ratio_square,1:1,118:570
+editor/concept_a_crop,118:573,cr_43_lbl,4:3,4:3,matched,,skip,data-ratio:跨语言同形数字;实现键 aspect_ratio_4_3,4:3,118:573
+editor/concept_a_crop,118:576,cr_34_lbl,3:4,3:4,matched,,skip,data-ratio:跨语言同形数字;实现键 aspect_ratio_3_4,3:4,118:576
+editor/concept_a_crop,118:579,cr_169_lbl,16:9,16:9,matched,,skip,data-ratio:跨语言同形数字;实现键 aspect_ratio_16_9,16:9,118:579
+editor/concept_a_crop,118:582,cr_916_lbl,9:16,9:16,matched,,skip,data-ratio:跨语言同形数字;实现键 aspect_ratio_9_16,9:16,118:582
+editor/concept_a_beauty,118:634,lbl,保存,Save,matched,save,bind,multi→save(编辑器 R.string.save),保存,118:634
+editor/concept_a_beauty,118:609,rail_crop_lbl,构图,Crop,matched,editor.tab.crop,bind,,构图,118:609
+editor/concept_a_beauty,118:611,rail_adjust_lbl,调节,Adjust,matched,editor.tab.adjust,bind,,调节,118:611
+editor/concept_a_beauty,118:615,rail_filter_lbl,滤镜,Filter,matched,editor.tab.filter,bind,multi→editor_tab_filter(rail 语境),滤镜,118:615
+editor/concept_a_beauty,118:617,rail_markup_lbl,标记,Markup,matched,editor.tab.markup,bind,,标记,118:617
+editor/concept_a_beauty,118:619,rail_erase_lbl,消除,Eraser,manual,editor.rail.erase,bind,"虚构:concept rail 消除工具,app 无对应 key(remove_background=去背景为另一功能); layout-fix: x 左移 1px(清与 rail_ai_lbl 1px 框重叠,字形不碰)",消除,118:619
+editor/concept_a_beauty,118:621,rail_ai_lbl,AI 一键优化,AI Optimize,manual,ai.optimize,bind,manual→key ai_optimize;zh 升格 canvas AI优化→app AI 一键优化; layout-fix: 框 w52→60 居中保位(EN AI Optimize 2 行→单行),AI优化,118:621
