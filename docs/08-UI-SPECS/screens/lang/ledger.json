@@ -1718,10 +1718,11 @@
    "ardotId": "184:66"
   },
   "tag.stats.total.caption": {
-   "zh": "张照片 · 98% 已语义索引",
+   "zh": "张照片 · 语义索引已覆盖 98%",
    "en": "photos · 98% semantically indexed",
    "status": "created",
-   "ardotId": "184:67"
+   "ardotId": "184:67",
+   "key": "stats_hero_caption"
   },
   "tag.stats.indexed.pct": {
    "zh": "98%",

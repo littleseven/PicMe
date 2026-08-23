@@ -24,7 +24,7 @@ EN 为 canonical 正稿，中文一键预览/导出，零物理重复帧。
 | Settings | 10 | main_list(108:94) local_models(108:363) remote_models(111:1) sandbox(111:50) developer(111:129) dialog_language(111:276) dialog_stage(111:294) dialog_theme(111:446) add_remote_provider(166:3) provider_config(167:2) |
 | Chat | 4 | empty(111:321) conversation(111:383) sidebar(111:492) guest-nudge-sheet(171:171) |
 | Editor | 6 | current_crop(118:105) current_adjust(118:165) concept_a_hypic(118:243) concept_a_adjust(118:372) concept_a_crop(118:480) concept_a_beauty(118:583) |
-| 已有 EN 帧补绑 | 5 | people/grid(171:3) people/detail(171:87) gallery/tag_control_v2_en(171:273) gallery/tag_stage_sheet_en(172:113) chat/empty-v2-guest(171:187) |
+| 已有 EN 帧补绑 | 5 | people/grid(171:3) people/detail(171:87) gallery/tag_control_v2(171:273) gallery/tag_stage_sheet(172:113) chat/empty-v2-guest(171:187) |
 
 补绑目的：zh mode 下这些帧同样可切中文——「所有设计图」的完整含义。
 
@@ -55,6 +55,7 @@ EN 为 canonical 正稿，中文一键预览/导出，零物理重复帧。
   文件名、`sk-•••`、`tok` 计数、型号名（`deepseek-v4-flash`、`RetinaFace 500M-MN`）
   等与语言无关的字符串；含语言单位的数据文本（日期、量词）按 §3.4 绑变量
 - 绑定操作走 `batch_edit`；绑定能力地图中 TEXT_CONTENT 无实证 → Step 0 探针为硬门
+- 例外（2026-08-23 Task 7 裁定）：stat tile 数值/人名等 zh==en 语言不变文本，可为 tile 级统一而绑（无 strings 锚，note 标 no-anchor）——与「(6) 计数 skip」的区分=是否属计数括号类纯数据
 
 ### 3.3 EN 文案来源（SSOT 对齐）
 

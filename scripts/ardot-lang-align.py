@@ -31,7 +31,10 @@ PAGES = {
 def strings(fname):
     out = {}
     for s in ET.parse(f'{RES}/{fname}').getroot().findall('string'):
-        out[s.get('name')] = ''.join(s.itertext()).strip()
+        # 修M3：Android 反斜杠转义还原（\" \'）——ElementTree 只解码 XML 实体(&amp; 等)，
+        # Android strings 的 \" 须手动还原，否则 canvas 同文被误判 no-strings-hit
+        # （实证：chat_empty_welcome / tag_stage_full_note 两案根因）。
+        out[s.get('name')] = ''.join(s.itertext()).strip().replace('\\"', '"').replace("\\'", "'")
     return out
 
 def walk_texts(node, frame, acc):
