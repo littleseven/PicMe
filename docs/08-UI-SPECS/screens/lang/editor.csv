@@ -70,6 +70,7 @@ editor/concept_a_crop,118:514,rail_markup_lbl,标记,Markup,matched,editor.tab.m
 editor/concept_a_crop,118:516,rail_erase_lbl,消除,Eraser,manual,editor.rail.erase,bind,"虚构:concept rail 消除工具,app 无对应 key(remove_background=去背景为另一功能)",消除,118:516
 editor/concept_a_crop,118:518,rail_ai_lbl,AI 一键优化,AI Optimize,manual,ai.optimize,bind,manual→key ai_optimize;zh 升格 canvas AI优化→app AI 一键优化; layout-fix: 框 w52→60 居中保位(EN AI Optimize 2 行→单行),AI优化,118:518
 editor/concept_a_crop,118:554,crop_label,构图,Crop,matched,editor.tab.crop,bind,同 key editor_tab_crop 复用(裁剪面板标题=tab 名),构图,118:554
+editor/concept_a_crop,118:564,cr_free_lbl,自由,Free,matched,aspect.ratio.free,bind,"review-fix: spec 审查补漏(独漏此帧,同 118:141 复用 aspect_ratio_free)",自由,118:564
 editor/concept_a_crop,118:567,cr_original_lbl,原始,Original,matched,aspect.ratio.original,bind,,原始,118:567
 editor/concept_a_crop,118:570,cr_11_lbl,1:1,1:1,matched,,skip,data-ratio:跨语言同形数字;实现键 aspect_ratio_square,1:1,118:570
 editor/concept_a_crop,118:573,cr_43_lbl,4:3,4:3,matched,,skip,data-ratio:跨语言同形数字;实现键 aspect_ratio_4_3,4:3,118:573
@@ -79,6 +80,7 @@ editor/concept_a_crop,118:582,cr_916_lbl,9:16,9:16,matched,,skip,data-ratio:跨�
 editor/concept_a_beauty,118:634,lbl,保存,Save,matched,save,bind,multi→save(编辑器 R.string.save),保存,118:634
 editor/concept_a_beauty,118:609,rail_crop_lbl,构图,Crop,matched,editor.tab.crop,bind,,构图,118:609
 editor/concept_a_beauty,118:611,rail_adjust_lbl,调节,Adjust,matched,editor.tab.adjust,bind,,调节,118:611
+editor/concept_a_beauty,118:613,rail_beauty_lbl,美颜,Beauty,matched,editor.tab.beauty,bind,"review-fix: spec 审查补漏(独漏此帧,同 118:294/402/510 复用 editor_tab_beauty)",美颜,118:613
 editor/concept_a_beauty,118:615,rail_filter_lbl,滤镜,Filter,matched,editor.tab.filter,bind,multi→editor_tab_filter(rail 语境),滤镜,118:615
 editor/concept_a_beauty,118:617,rail_markup_lbl,标记,Markup,matched,editor.tab.markup,bind,,标记,118:617
 editor/concept_a_beauty,118:619,rail_erase_lbl,消除,Eraser,manual,editor.rail.erase,bind,"虚构:concept rail 消除工具,app 无对应 key(remove_background=去背景为另一功能); layout-fix: x 左移 1px(清与 rail_ai_lbl 1px 框重叠,字形不碰)",消除,118:619
