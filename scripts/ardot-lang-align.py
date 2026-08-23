@@ -48,6 +48,9 @@ def main():
     ap.add_argument('--page', required=True, choices=PAGES)
     ap.add_argument('--from-en', action='store_true')
     a = ap.parse_args()
+    # 修M5：_en 页漏传 --from-en 会按 zh 侧解析静默产出全 skip 废表——硬报错
+    if a.page.endswith('_en') and not a.from_en:
+        ap.error(f"--page {a.page} is an EN-source page and requires --from-en")
     zh, en = strings('values-zh-rCN/strings.xml'), strings('values/strings.xml')
     src_val, dst_val = (en, zh) if a.from_en else (zh, en)
     by_value = {}
