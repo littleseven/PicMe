@@ -23,6 +23,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -90,6 +91,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -99,6 +101,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
@@ -1007,94 +1011,65 @@ private fun mediaPagerBottomBar(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 发送
-            IconButton(
-                onClick = onShare,
-                colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = Color.Transparent
-                )
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.AutoMirrored.Rounded.Send,
-                        contentDescription = stringResource(R.string.send),
-                        tint = Color.White.copy(alpha = 0.9f),
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Text(
-                        stringResource(R.string.send),
-                        color = Color.White.copy(alpha = 0.7f),
-                        fontSize = 10.sp
-                    )
-                }
-            }
-
-            // 编辑
-            IconButton(
-                onClick = onStartEdit,
-                colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = Color.Transparent
-                )
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Rounded.AutoFixHigh,
-                        contentDescription = stringResource(R.string.edit),
-                        tint = Color.White.copy(alpha = 0.9f),
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Text(
-                        stringResource(R.string.edit),
-                        color = Color.White.copy(alpha = 0.7f),
-                        fontSize = 10.sp
-                    )
-                }
-            }
-
-            // 证件照
-            IconButton(
-                onClick = onStartIdPhoto,
-                colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = Color.Transparent
-                )
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Rounded.Badge,
-                        contentDescription = stringResource(R.string.id_photo_action),
-                        tint = Color.White.copy(alpha = 0.9f),
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Text(
-                        stringResource(R.string.id_photo_action_short),
-                        color = Color.White.copy(alpha = 0.7f),
-                        fontSize = 10.sp
-                    )
-                }
-            }
-
-            // 删除
-            IconButton(
-                onClick = onDelete,
-                colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = Color.Transparent
-                )
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Rounded.Delete,
-                        contentDescription = stringResource(R.string.delete),
-                        tint = Color.White.copy(alpha = 0.9f),
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Text(
-                        stringResource(R.string.delete),
-                        color = Color.White.copy(alpha = 0.7f),
-                        fontSize = 10.sp
-                    )
-                }
-            }
+            pagerActionButton(
+                icon = Icons.AutoMirrored.Rounded.Send,
+                labelRes = R.string.send,
+                onClick = onShare
+            )
+            pagerActionButton(
+                icon = Icons.Rounded.AutoFixHigh,
+                labelRes = R.string.edit,
+                onClick = onStartEdit
+            )
+            pagerActionButton(
+                icon = Icons.Rounded.Badge,
+                labelRes = R.string.id_photo_action,
+                onClick = onStartIdPhoto
+            )
+            pagerActionButton(
+                icon = Icons.Rounded.Delete,
+                labelRes = R.string.delete,
+                onClick = onDelete
+            )
         }
+    }
+}
+
+/**
+ * 预览页底栏 icon+文本按钮（gallery-grid.yaml §18 bottom_bar，Ardot gallery/viewer-bottombar-en-preview）。
+ *
+ * 无容器形状：M3 [IconButton] 的圆形 Surface 会把长文案两端切弧（EN "ID Photo" 的
+ * 字尾被圆弧吃掉，2026-08-23 真机实证）——改为裸 Column 直排，宽度 hug 文本、
+ * [Modifier.defaultMinSize] 保 48dp 触控目标，任何语言不裁字。
+ */
+@Composable
+private fun pagerActionButton(
+    icon: ImageVector,
+    labelRes: Int,
+    onClick: () -> Unit
+) {
+    val label = stringResource(labelRes)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+            .padding(horizontal = 4.dp)
+            .semantics { contentDescription = label }
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.9f),
+            modifier = Modifier.size(22.dp)
+        )
+        Text(
+            label,
+            color = Color.White.copy(alpha = 0.7f),
+            fontSize = 10.sp,
+            softWrap = false
+        )
     }
 }
 

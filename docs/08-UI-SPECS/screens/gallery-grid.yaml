@@ -599,6 +599,11 @@ media_pager:
     anchor: bottom                          # 底部对齐 safe area
 
     layout: row_evenly_spaced               # 均匀分布
+    slot_width: min 48dp, hug label         # 2026-08-23 EN 修复：槽位宽度不锁死，label 单行完整显示
+                                             # （id_photo EN 曾缩成 "ID" 短文案致语义缺失，已废弃改全文案）
+    container: none                         # 🔴 按钮禁用形状容器：M3 IconButton 圆形 Surface 会把长文案
+                                             # 两端切弧（EN "ID Photo" 字尾被圆弧吃掉，真机实证）——
+                                             # 裸 Column 直排 + clickable，48dp 触控目标由 defaultMinSize 保
     visible_when: is_photo                  # 仅照片显示底栏（视频见 video_player）
 
     items:

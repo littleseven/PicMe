@@ -132,7 +132,6 @@
     <string name="id_photo_matting_failed">人像抠图失败</string>
     <string name="id_photo_drag_hint">拖动或双指缩放调整构图</string>
     <string name="id_photo_action">证件照</string>
-    <string name="id_photo_action_short">证照</string>
     <string name="id_photo_size_1in">1寸</string>
     <string name="id_photo_size_2in">2寸</string>
     <string name="id_photo_size_small_1in">小1寸</string>

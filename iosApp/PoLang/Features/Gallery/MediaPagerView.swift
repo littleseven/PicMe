@@ -236,7 +236,7 @@ struct MediaPagerView: View {
             }
             Spacer()
             bottomBarItem(icon: "mat_badge",
-                          title: String(localized: "ID"),
+                          title: String(localized: "ID Photo"),
                           accessibilityID: "pager_id_photo",
                           isEnabled: true) {
                 if let uri = currentAsset?.uri { idPhotoTarget = EditorTarget(localIdentifier: uri) }
@@ -263,8 +263,10 @@ struct MediaPagerView: View {
                 Text(title)
                     .font(.system(size: 10))
                     .foregroundStyle(Color.white.opacity(0.7))
+                    .lineLimit(1)
             }
-            .frame(width: 48, height: 48)
+            // EN "ID Photo" 等长文案：宽度不再锁死 48（minWidth 保触控目标），完整显示（2026-08-23）
+            .frame(minWidth: 48, height: 48)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
