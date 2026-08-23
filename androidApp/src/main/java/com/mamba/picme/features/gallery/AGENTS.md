@@ -35,7 +35,7 @@
 - **分组模式**:
   - `NONE`: 按时间倒序平铺
   - `DATE`: 按日期分组（今天、昨天、本周、本月）
-  - `PERSON`: 按人物聚类（人脸检测走 beauty-engine `FaceDetectorManager`，MediaPipe 468→106 点主链路 + MNN 备选；人脸 embedding 由 MNN Glint360K R100 生成，TAG Pass 2 经 DBSCAN 聚类）
+  - `PERSON`: 按人物聚类（人脸检测走 beauty-engine `FaceDetectorManager`，MediaPipe 468→106 点主链路 + MNN 备选；人脸 embedding 由 MNN Glint360K R100 生成，TAG Pass 2 经 DBSCAN 聚类）。分组按 `media_assets.faceId` 聚合，该列由 Pass 1 流式增量聚类（`FaceClusterEngine.assignStoredEmbeddings`）与 Pass 2 DBSCAN 共同回写；存量缺失由 `PersonDao.reconcilePersons` 的 `backfillFaceIdsFromEmbeddings` 幂等回填
   - `LANDSCAPE`: 风景照片单独分组，匹配 `labels` 中的风景相关 `scene` 或 `tags`（如「风景」「山脉」「海边」「landscape」等）
   - `SWIMWEAR`: 匹配 `labels` 中的泳装相关标签（如「泳衣」「比基尼」「swimsuit」「bikini」）
   - `SEXY`: 匹配 `labels` 中的风格标签（如「性感」「sexy」）

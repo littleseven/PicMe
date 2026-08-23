@@ -243,7 +243,29 @@ interface PersonDao {
     suspend fun reconcileDanglingFaceIds()
 
     /**
-     * 单事务对齐 persons 表：清孤儿 embedding → 删孤儿人物 → 重算 faceCount → 修悬空封面 → 修悬空 faceId。
+     * 回填缺失 faceId：媒体有人脸且 embedding 已分配人物、但 faceId 为空时，
+     * 改指该媒体首个已分配 embedding 的人物（与 [reconcileDanglingFaceIds] 同一取值口径）。
+     * 修复流式增量聚类历史版本不回写 media_assets.faceId 留下的存量（相册人物分组漏组）。幂等。
+     */
+    @Query(
+        """
+        UPDATE media_assets SET faceId = (
+            SELECT CAST(fe.personId AS TEXT) FROM face_embeddings fe
+            WHERE fe.mediaId = media_assets.id AND fe.personId IS NOT NULL
+            ORDER BY fe.embeddingId LIMIT 1
+        )
+        WHERE (faceId IS NULL OR faceId = '') AND hasFace = 1
+        AND EXISTS (
+            SELECT 1 FROM face_embeddings fe2
+            WHERE fe2.mediaId = media_assets.id AND fe2.personId IS NOT NULL
+        )
+        """
+    )
+    suspend fun backfillFaceIdsFromEmbeddings()
+
+    /**
+     * 单事务对齐 persons 表：清孤儿 embedding → 删孤儿人物 → 重算 faceCount → 修悬空封面 →
+     * 回填缺失 faceId → 修悬空 faceId。
      *
      * 调用时机：进入人物页前、聚类（DBSCAN）完成后、媒体删除后。幂等。
      */
@@ -253,6 +275,7 @@ interface PersonDao {
         deleteOrphanPersons()
         recomputeFaceCounts(now)
         fixDanglingCovers()
+        backfillFaceIdsFromEmbeddings()
         reconcileDanglingFaceIds()
     }
 
