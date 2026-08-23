@@ -82,9 +82,9 @@ section { padding: var(--section-py) 0; }
 .card h3 { font-size: 17px; font-weight: 700; margin: 16px 0 8px; }
 .card p { font-size: 14.5px; color: var(--text-muted); line-height: 1.65; }
 
-/* 一眼所见(截图)：桌面两排各 4 张（grid），移动端横向滑动 */
-.shots { display: grid; grid-template-columns: repeat(4, auto); justify-content: center; gap: 14px; }
-.shots img { height: 290px; width: auto; border-radius: 16px; border: 1px solid var(--border); box-shadow: var(--shadow-md), 0 0 0 6px rgba(127, 231, 210, .04); }
+/* 一眼所见(截图)：桌面两排各 4 张（grid，撑满列宽），移动端横向滑动 */
+.shots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.shots img { width: 100%; height: auto; border-radius: 16px; border: 1px solid var(--border); box-shadow: var(--shadow-md), 0 0 0 6px rgba(127, 231, 210, .04); }
 
 /* 使用示例 */
 .demo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
@@ -170,7 +170,7 @@ footer .x-logo svg { width: 56px; height: 56px; }
   .section-sub { font-size: 15px; margin-bottom: 26px; }
   .grid, .demo-grid { grid-template-columns: 1fr; }
   .shots { display: flex; flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; padding-bottom: 10px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-  .shots img { flex-shrink: 0; }
+  .shots img { width: auto; height: 340px; flex-shrink: 0; }
   .shots::-webkit-scrollbar { display: none; }
   .shots img { height: 340px; scroll-snap-align: center; }
   .nav-links { gap: 12px; font-size: 13px; }
