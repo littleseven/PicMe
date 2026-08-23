@@ -1275,6 +1275,542 @@
    "en": "Eraser",
    "status": "created",
    "ardotId": "183:62"
+  },
+  "person.relation.group.family": {
+   "zh": "家庭",
+   "en": "Family",
+   "status": "created",
+   "key": "person_relation_group_family",
+   "ardotId": "184:1"
+  },
+  "person.relation.friend": {
+   "zh": "朋友",
+   "en": "Friend",
+   "status": "created",
+   "key": "person_relation_friend",
+   "ardotId": "184:2"
+  },
+  "person.relation.colleague": {
+   "zh": "同事",
+   "en": "Colleague",
+   "status": "created",
+   "key": "person_relation_colleague",
+   "ardotId": "184:3"
+  },
+  "person.edit.name.hint": {
+   "zh": "添加名字",
+   "en": "Add name",
+   "status": "created",
+   "key": "person_edit_name_hint",
+   "ardotId": "184:4"
+  },
+  "person.is.self": {
+   "zh": "这是我",
+   "en": "This is me",
+   "status": "created",
+   "key": "person_is_self",
+   "ardotId": "184:5"
+  },
+  "person.relation.father": {
+   "zh": "爸爸",
+   "en": "Father",
+   "status": "created",
+   "key": "person_relation_father",
+   "ardotId": "184:6"
+  },
+  "person.relation.mother": {
+   "zh": "妈妈",
+   "en": "Mother",
+   "status": "created",
+   "key": "person_relation_mother",
+   "ardotId": "184:7"
+  },
+  "person.relation.spouse": {
+   "zh": "配偶",
+   "en": "Spouse",
+   "status": "created",
+   "key": "person_relation_spouse",
+   "ardotId": "184:8"
+  },
+  "person.relation.child": {
+   "zh": "孩子",
+   "en": "Child",
+   "status": "created",
+   "key": "person_relation_child",
+   "ardotId": "184:9"
+  },
+  "person.relation.classmate": {
+   "zh": "同学",
+   "en": "Classmate",
+   "status": "created",
+   "key": "person_relation_classmate",
+   "ardotId": "184:10"
+  },
+  "person.photos.section": {
+   "zh": "照片",
+   "en": "Photos",
+   "status": "created",
+   "key": "person_photos_section",
+   "ardotId": "184:11"
+  },
+  "people.grid.subtitle": {
+   "zh": "36 人 · 141 张照片",
+   "en": "36 people · 141 photos",
+   "status": "created",
+   "ardotId": "184:12"
+  },
+  "people.grid.count.48p": {
+   "zh": "48 张",
+   "en": "48P",
+   "status": "created",
+   "ardotId": "184:13"
+  },
+  "people.grid.count.35p": {
+   "zh": "35 张",
+   "en": "35P",
+   "status": "created",
+   "ardotId": "184:14"
+  },
+  "people.grid.count.21p": {
+   "zh": "21 张",
+   "en": "21P",
+   "status": "created",
+   "ardotId": "184:15"
+  },
+  "people.grid.count.18p": {
+   "zh": "18 张",
+   "en": "18P",
+   "status": "created",
+   "ardotId": "184:16"
+  },
+  "people.grid.count.9p": {
+   "zh": "9 张",
+   "en": "9P",
+   "status": "created",
+   "ardotId": "184:17"
+  },
+  "people.grid.count.12p": {
+   "zh": "12 张",
+   "en": "12P",
+   "status": "created",
+   "ardotId": "184:18"
+  },
+  "people.grid.name.mom": {
+   "zh": "妈妈",
+   "en": "Mom",
+   "status": "created",
+   "ardotId": "184:19"
+  },
+  "people.grid.name.dad": {
+   "zh": "爸爸",
+   "en": "Dad",
+   "status": "created",
+   "ardotId": "184:20"
+  },
+  "people.grid.name.alex": {
+   "zh": "Alex Chen",
+   "en": "Alex Chen",
+   "status": "created",
+   "ardotId": "184:21"
+  },
+  "people.grid.name.lin": {
+   "zh": "林晓雨",
+   "en": "林晓雨",
+   "status": "created",
+   "ardotId": "184:22"
+  },
+  "people.grid.name.christopher": {
+   "zh": "Christopher W.",
+   "en": "Christopher W.",
+   "status": "created",
+   "ardotId": "184:23"
+  },
+  "person.relation.add": {
+   "zh": "+ 添加关系",
+   "en": "+ Add relation",
+   "status": "created",
+   "key": "person_relation_add",
+   "ardotId": "184:24"
+  },
+  "person.info.title": {
+   "zh": "编辑人物",
+   "en": "Edit Person",
+   "status": "created",
+   "key": "person_info_title",
+   "ardotId": "184:25"
+  },
+  "people.detail.label.name": {
+   "zh": "姓名",
+   "en": "NAME",
+   "status": "created",
+   "key": "person_name_label",
+   "ardotId": "184:26"
+  },
+  "people.detail.name.value": {
+   "zh": "Alex Chen",
+   "en": "Alex Chen",
+   "status": "created",
+   "ardotId": "184:27"
+  },
+  "people.detail.section.relationship": {
+   "zh": "关系",
+   "en": "Relationship",
+   "status": "created",
+   "ardotId": "184:28"
+  },
+  "people.detail.label.family": {
+   "zh": "家庭",
+   "en": "FAMILY",
+   "status": "created",
+   "key": "person_relation_group_family",
+   "ardotId": "184:29"
+  },
+  "person.relation.brother": {
+   "zh": "哥哥",
+   "en": "Brother",
+   "status": "created",
+   "ardotId": "184:30"
+  },
+  "person.relation.sister": {
+   "zh": "姐姐",
+   "en": "Sister",
+   "status": "created",
+   "ardotId": "184:31"
+  },
+  "people.detail.label.social": {
+   "zh": "社会",
+   "en": "SOCIAL",
+   "status": "created",
+   "key": "person_relation_group_social",
+   "ardotId": "184:32"
+  },
+  "person.relation.neighbor": {
+   "zh": "邻居",
+   "en": "Neighbor",
+   "status": "created",
+   "ardotId": "184:33"
+  },
+  "person.relation.custom.label": {
+   "zh": "自定义称呼…",
+   "en": "Custom relationship…",
+   "status": "created",
+   "key": "person_relation_custom_label",
+   "ardotId": "184:34"
+  },
+  "people.detail.add.glyph": {
+   "zh": "+",
+   "en": "+",
+   "status": "created",
+   "ardotId": "184:35"
+  },
+  "people.detail.photo.count": {
+   "zh": "48 张照片",
+   "en": "48 photos",
+   "status": "created",
+   "ardotId": "184:36"
+  },
+  "tag.section.library": {
+   "zh": "图库",
+   "en": "Library",
+   "status": "created",
+   "key": "tag_section_library",
+   "ardotId": "184:37"
+  },
+  "tag.scan.incremental": {
+   "zh": "扫描新增",
+   "en": "Scan new",
+   "status": "created",
+   "key": "tag_scan_incremental",
+   "ardotId": "184:38"
+  },
+  "tag.section.scan": {
+   "zh": "扫描",
+   "en": "Scan",
+   "status": "created",
+   "key": "tag_section_scan",
+   "ardotId": "184:39"
+  },
+  "tag.pass.control.title": {
+   "zh": "分阶段",
+   "en": "Stages",
+   "status": "created",
+   "key": "tag_pass_control_title",
+   "ardotId": "184:40"
+  },
+  "tag.stages.hint": {
+   "zh": "点按阶段进行管理",
+   "en": "Tap a stage to manage",
+   "status": "created",
+   "key": "tag_stages_hint",
+   "ardotId": "184:41"
+  },
+  "tag.pass.title.face": {
+   "zh": "人脸",
+   "en": "Faces",
+   "status": "created",
+   "key": "tag_pass_title_face",
+   "ardotId": "184:42"
+  },
+  "tag.pass.desc.face": {
+   "zh": "检测人脸 · 构建语义索引",
+   "en": "Detect faces · build semantic index",
+   "status": "created",
+   "key": "tag_pass_desc_face",
+   "ardotId": "184:43"
+  },
+  "tag.pass.desc.cluster": {
+   "zh": "将人脸聚合为人物",
+   "en": "Group faces into people",
+   "status": "created",
+   "key": "tag_pass_desc_cluster",
+   "ardotId": "184:44"
+  },
+  "tag.pass.title.content": {
+   "zh": "内容标签",
+   "en": "Content tags",
+   "status": "created",
+   "key": "tag_pass_title_content",
+   "ardotId": "184:45"
+  },
+  "tag.pass.desc.content": {
+   "zh": "场景、活动与物体",
+   "en": "Scenes, activities & objects",
+   "status": "created",
+   "key": "tag_pass_desc_content",
+   "ardotId": "184:46"
+  },
+  "tag.pass.title.aesthetic": {
+   "zh": "质量评分",
+   "en": "Quality scores",
+   "status": "created",
+   "key": "tag_pass_title_aesthetic",
+   "ardotId": "184:47"
+  },
+  "tag.pass.desc.aesthetic": {
+   "zh": "美学与人脸画质",
+   "en": "Aesthetic & face quality",
+   "status": "created",
+   "key": "tag_pass_desc_aesthetic",
+   "ardotId": "184:48"
+  },
+  "tag.fine.control.title": {
+   "zh": "重新生成",
+   "en": "Regenerate",
+   "status": "created",
+   "key": "tag_fine_control_title",
+   "ardotId": "184:49"
+  },
+  "tag.select.categories": {
+   "zh": "类别",
+   "en": "Categories",
+   "status": "created",
+   "key": "tag_select_categories",
+   "ardotId": "184:50"
+  },
+  "tag.viewer.section.scenes": {
+   "zh": "场景",
+   "en": "Scenes",
+   "status": "created",
+   "key": "tag_viewer_section_scenes",
+   "ardotId": "184:51"
+  },
+  "tag.category.activity": {
+   "zh": "活动",
+   "en": "Activities",
+   "status": "created",
+   "key": "tag_category_activity",
+   "ardotId": "184:52"
+  },
+  "tag.viewer.section.objects": {
+   "zh": "物体",
+   "en": "Objects",
+   "status": "created",
+   "key": "tag_viewer_section_objects",
+   "ardotId": "184:53"
+  },
+  "tag.category.summary": {
+   "zh": "摘要",
+   "en": "Summary",
+   "status": "created",
+   "key": "tag_category_summary",
+   "ardotId": "184:54"
+  },
+  "tag.time.range": {
+   "zh": "时间范围",
+   "en": "Time range",
+   "status": "created",
+   "key": "tag_time_range",
+   "ardotId": "184:55"
+  },
+  "tag.time.range.all": {
+   "zh": "全部",
+   "en": "All time",
+   "status": "created",
+   "key": "tag_time_range_all",
+   "ardotId": "184:56"
+  },
+  "tag.time.range.days.7": {
+   "zh": "最近7天",
+   "en": "7 days",
+   "status": "created",
+   "key": "tag_time_range_days_7",
+   "ardotId": "184:57"
+  },
+  "tag.time.range.days.30": {
+   "zh": "最近30天",
+   "en": "30 days",
+   "status": "created",
+   "key": "tag_time_range_days_30",
+   "ardotId": "184:58"
+  },
+  "tag.time.range.days.90": {
+   "zh": "最近90天",
+   "en": "90 days",
+   "status": "created",
+   "key": "tag_time_range_days_90",
+   "ardotId": "184:59"
+  },
+  "tag.overwrite.existing": {
+   "zh": "覆盖已有结果",
+   "en": "Overwrite existing",
+   "status": "created",
+   "key": "tag_overwrite_existing",
+   "ardotId": "184:60"
+  },
+  "tag.stage.sheet.desc": {
+   "zh": "选择该阶段要处理的范围",
+   "en": "Choose what to reprocess in this stage.",
+   "status": "created",
+   "key": "tag_stage_sheet_desc",
+   "ardotId": "184:61"
+  },
+  "tag.stage.action.new": {
+   "zh": "仅处理新增",
+   "en": "Process new only",
+   "status": "created",
+   "key": "tag_stage_action_new",
+   "ardotId": "184:62"
+  },
+  "ai.optimize.recommended": {
+   "zh": "推荐",
+   "en": "Recommended",
+   "status": "created",
+   "key": "ai_optimize_recommended",
+   "ardotId": "184:63"
+  },
+  "tag.stage.action.full": {
+   "zh": "全部重新处理",
+   "en": "Reprocess everything",
+   "status": "created",
+   "key": "tag_stage_action_full",
+   "ardotId": "184:64"
+  },
+  "tag.stats.view.tags": {
+   "zh": "查看标签",
+   "en": "View tags",
+   "status": "created",
+   "ardotId": "184:65"
+  },
+  "tag.stats.total.value": {
+   "zh": "12,593",
+   "en": "12,593",
+   "status": "created",
+   "ardotId": "184:66"
+  },
+  "tag.stats.total.caption": {
+   "zh": "张照片 · 98% 已语义索引",
+   "en": "photos · 98% semantically indexed",
+   "status": "created",
+   "ardotId": "184:67"
+  },
+  "tag.stats.indexed.pct": {
+   "zh": "98%",
+   "en": "98%",
+   "status": "created",
+   "ardotId": "184:68"
+  },
+  "tag.stats.with.face.value": {
+   "zh": "3,208",
+   "en": "3,208",
+   "status": "created",
+   "ardotId": "184:69"
+  },
+  "tag.stats.embeddings.value": {
+   "zh": "3,207",
+   "en": "3,207",
+   "status": "created",
+   "ardotId": "184:70"
+  },
+  "tag.stats.people.value": {
+   "zh": "47",
+   "en": "47",
+   "status": "created",
+   "ardotId": "184:71"
+  },
+  "tag.stats.named.value": {
+   "zh": "18",
+   "en": "18",
+   "status": "created",
+   "ardotId": "184:72"
+  },
+  "tag.scan.caption.done": {
+   "zh": "已扫描 12,593 项 · 失败 2 项 · 今天 22:40 完成",
+   "en": "12,593 items scanned · 2 failed · Finished today 22:40",
+   "status": "created",
+   "key": "tag_scan_caption_done",
+   "ardotId": "184:73"
+  },
+  "tag.pass.face.pct": {
+   "zh": "98%",
+   "en": "98%",
+   "status": "created",
+   "ardotId": "184:74"
+  },
+  "tag.pass.cluster.pct": {
+   "zh": "47",
+   "en": "47",
+   "status": "created",
+   "ardotId": "184:75"
+  },
+  "tag.pass.content.pct": {
+   "zh": "85%",
+   "en": "85%",
+   "status": "created",
+   "ardotId": "184:76"
+  },
+  "tag.pass.aesthetic.pct": {
+   "zh": "76%",
+   "en": "76%",
+   "status": "created",
+   "ardotId": "184:77"
+  },
+  "tag.overwrite.existing.desc": {
+   "zh": "关闭：仅补齐缺失标签",
+   "en": "Off = fill in missing tags only",
+   "status": "created",
+   "key": "tag_overwrite_existing_desc",
+   "ardotId": "184:78"
+  },
+  "tag.stage.action.new.desc": {
+   "zh": "跳过已打标的 10,711 张照片 · 速度最快",
+   "en": "Skips 10,711 already-tagged photos · fastest",
+   "status": "created",
+   "key": "tag_stage_action_new_desc",
+   "ardotId": "184:79"
+  },
+  "tag.stage.action.full.desc": {
+   "zh": "重做全部 12,593 张照片 · 耗时更长",
+   "en": "Redoes all 12,593 photos · takes much longer",
+   "status": "created",
+   "key": "tag_stage_action_full_desc",
+   "ardotId": "184:80"
+  },
+  "tag.stage.full.note": {
+   "zh": "「全部重新处理」执行前会再次确认",
+   "en": "\"Reprocess everything\" asks for confirmation first.",
+   "status": "created",
+   "key": "tag_stage_full_note",
+   "ardotId": "184:81"
   }
  }
 }

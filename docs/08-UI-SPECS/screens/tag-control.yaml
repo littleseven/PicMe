@@ -3,7 +3,7 @@
 # ============================================================================
 # 基准端：Android features/gallery/components/TagGenerationControlScreen.kt
 #        （提交 9fca3ce9e v2 重写，1193 行）
-# 视觉定稿：Ardot `gallery/tag_control_v2_en` / `gallery/tag_stage_sheet_en`
+# 视觉定稿：Ardot `gallery/tag_control_v2` / `gallery/tag_stage_sheet`
 #        （docs/08-UI-SPECS/screens/refs/ardot/，快照 2026-08-22T23:34）
 # 用途：iOS TagScanScreen/TagScanComponents 重写的唯一输入，不读 Android 源码
 # 值引用：colorScheme.* / ChatBubbleTokens.brandGradient；本页为 v2 新增的
@@ -28,7 +28,7 @@ tag_control_v2:
         foreground: "brandGradient #0F766E→#5EA88F"
         caption: "stats_hero_caption = %1$d%% semantically indexed"
       progress_ring:
-        style: "实色 primary 弧（非渐变）；尺寸对齐 ardot 帧 tag_control_v2_en"
+        style: "实色 primary 弧（非渐变）；尺寸对齐 ardot 帧 tag_control_v2"
         track: surfaceVariant
       metric_tiles:                                # 2×2 无图标瓦片（v2 删图标）
         grid: "2×2"
@@ -75,7 +75,7 @@ tag_control_v2:
       - { title: "tag_pass_title_content = Content tags", trailing: "<百分比> + chevron" }
       - { title: "tag_pass_title_aesthetic = Quality scores", trailing: "<百分比> + chevron" }
     row_click: "→ StageActionSheet"
-    stage_action_sheet:                            # ModalBottomSheet，视觉定稿 ardot tag_stage_sheet_en
+    stage_action_sheet:                            # ModalBottomSheet，视觉定稿 ardot tag_stage_sheet
       background: surfaceContainerHighest
       desc: "tag_stage_sheet_desc"
       options:                                     # 单选两档，点卡片直接执行

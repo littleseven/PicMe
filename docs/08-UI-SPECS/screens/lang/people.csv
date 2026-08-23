@@ -1,0 +1,42 @@
+frame,node_id,name,zh,en,source,var,action,note,text,id
+people/grid,171:8,title,人物,People,matched,people.entry,bind,"multi:people_title,people_entry,gallery_people_entry,tag_pass_title_cluster;ledger 复用 people.entry",People,171:8
+people/grid,171:9,subtitle,36 人 · 141 张照片,36 people · 141 photos,manual,people.grid.subtitle,bind,slot 虚构统计;plurals people_people_count+people_stats_format+people_photos_count_full,36 people · 141 photos,171:9
+people/grid,171:159,48P,48 张,48P,manual,people.grid.count.48p,bind,plural people_photos_count(%1$dP/%1$d 张)具象,48P,171:159
+people/grid,171:21,person_name,妈妈,Mom,manual,people.grid.name.mom,bind,slot 虚构人名,Mom,171:21
+people/grid,171:26,chip_label,家庭,Family,matched,person.relation.group.family,bind,,Family,171:26
+people/grid,171:161,35P,35 张,35P,manual,people.grid.count.35p,bind,plural people_photos_count 具象,35P,171:161
+people/grid,171:36,person_name,爸爸,Dad,manual,people.grid.name.dad,bind,slot 虚构人名,Dad,171:36
+people/grid,171:35,chip_label,家庭,Family,matched,person.relation.group.family,bind,,Family,171:35
+people/grid,171:163,21P,21 张,21P,manual,people.grid.count.21p,bind,plural people_photos_count 具象,21P,171:163
+people/grid,171:48,person_name,Alex Chen,Alex Chen,manual,people.grid.name.alex,bind,slot 虚构人名 zh 保留,Alex Chen,171:48
+people/grid,171:47,chip_label,朋友,Friend,matched,person.relation.friend,bind,,Friend,171:47
+people/grid,171:165,18P,18 张,18P,manual,people.grid.count.18p,bind,plural people_photos_count 具象,18P,171:165
+people/grid,171:60,person_name,林晓雨,,manual,people.grid.name.lin,bind,slot 虚构人名 EN 帧含中文名,林晓雨,171:60
+people/grid,171:59,chip_label,同事,Colleague,matched,person.relation.colleague,bind,,Colleague,171:59
+people/grid,171:167,9P,9 张,9P,manual,people.grid.count.9p,bind,plural people_photos_count 具象,9P,171:167
+people/grid,171:72,person_name,Christopher W.,Christopher W.,manual,people.grid.name.christopher,bind,slot 虚构人名 zh 保留,Christopher W.,171:72
+people/grid,171:71,chip_label,朋友,Friend,matched,person.relation.friend,bind,,Friend,171:71
+people/grid,171:169,12P,12 张,12P,manual,people.grid.count.12p,bind,plural people_photos_count 具象,12P,171:169
+people/grid,171:84,person_name,添加名字,Add name,matched,person.edit.name.hint,bind,,Add name,171:84
+people/grid,171:83,chip_label,+ 添加关系,+ Add relation,manual,person.relation.add,bind,canvas 带 + 前缀;key person_relation_add(EN=Add relation/添加关系),+ Add relation,171:83
+people/detail,171:91,title,编辑人物,Edit Person,manual,person.info.title,bind,canvas 大写 Person;key person_info_title(EN=Edit person),Edit Person,171:91
+people/detail,171:101,label,姓名,NAME,manual,people.detail.label.name,bind,全大写节标签;key person_name_label(EN=Name),NAME,171:101
+people/detail,171:103,name_value,Alex Chen,Alex Chen,manual,people.detail.name.value,bind,slot 虚构人名 zh 保留,Alex Chen,171:103
+people/detail,171:107,me_label,这是我,This is me,matched,person.is.self,bind,,This is me,171:107
+people/detail,171:109,section_title,关系,Relationship,manual,people.detail.section.relationship,bind,slot;app person_relation_label 文异(This person is my…/TA 是我的…),Relationship,171:109
+people/detail,171:110,family_label,家庭,FAMILY,manual,people.detail.label.family,bind,全大写节标签;key person_relation_group_family,FAMILY,171:110
+people/detail,171:113,Father,爸爸,Father,matched,person.relation.father,bind,,Father,171:113
+people/detail,171:115,Mother,妈妈,Mother,matched,person.relation.mother,bind,,Mother,171:115
+people/detail,171:117,Brother,哥哥,Brother,manual,person.relation.brother,bind,slot;app 仅 person_relation_elder_brother(哥哥)/sibling(兄弟姐妹),Brother,171:117
+people/detail,171:119,Sister,姐姐,Sister,manual,person.relation.sister,bind,slot;app 仅 person_relation_elder_sister(姐姐),Sister,171:119
+people/detail,171:121,Spouse,配偶,Spouse,matched,person.relation.spouse,bind,,Spouse,171:121
+people/detail,171:123,Child,孩子,Child,matched,person.relation.child,bind,,Child,171:123
+people/detail,171:124,social_label,社会,SOCIAL,manual,people.detail.label.social,bind,全大写节标签;key person_relation_group_social(zh=社会),SOCIAL,171:124
+people/detail,171:127,Friend,朋友,Friend,matched,person.relation.friend,bind,,Friend,171:127
+people/detail,171:129,Colleague,同事,Colleague,matched,person.relation.colleague,bind,,Colleague,171:129
+people/detail,171:131,Classmate,同学,Classmate,matched,person.relation.classmate,bind,,Classmate,171:131
+people/detail,171:133,Neighbor,邻居,Neighbor,manual,person.relation.neighbor,bind,slot 虚构 app 无 Neighbor,Neighbor,171:133
+people/detail,171:135,Custom relationship…,自定义称呼…,Custom relationship…,manual,person.relation.custom.label,bind,canvas 文异;key person_relation_custom_label(Custom relation/自定义称呼),Custom relationship…,171:135
+people/detail,171:136,+,+,+,manual,people.detail.add.glyph,bind,slot 字形,+,171:136
+people/detail,171:139,Photos,照片,Photos,matched,person.photos.section,bind,"multi:person_photos_section,tag_viewer_tab_photos",Photos,171:139
+people/detail,171:140,48 photos,48 张照片,48 photos,manual,people.detail.photo.count,bind,plural people_photos_count_full(%1$d photos/%1$d 张照片)具象,48 photos,171:140

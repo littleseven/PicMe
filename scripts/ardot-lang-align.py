@@ -24,7 +24,7 @@ PAGES = {
   'editor':   ['editor/current_crop','editor/current_adjust','editor/concept_a_hypic',
                'editor/concept_a_adjust','editor/concept_a_crop','editor/concept_a_beauty'],
   'people':   ['people/grid','people/detail'],
-  'gallery_en': ['gallery/tag_control_v2_en','gallery/tag_stage_sheet_en'],
+  'gallery_en': ['gallery/tag_control_v2','gallery/tag_stage_sheet'],
   'chat_en':  ['chat/empty-v2-guest'],
 }
 
