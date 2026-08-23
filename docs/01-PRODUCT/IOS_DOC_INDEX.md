@@ -15,10 +15,10 @@
 | [`../superpowers/plans/2026-08-07-polang-kmp-ios-transformation.md`](../superpowers/plans/2026-08-07-polang-kmp-ios-transformation.md) | **Phase 路线图**：Phase 1-7 + 决策 + 风险登记 + 变更记录 |
 | [`../superpowers/plans/2026-08-10-ios-implementation-tasks.md`](../superpowers/plans/2026-08-10-ios-implementation-tasks.md) | **缺口主排序**：G1-G7 → T0-T11 Wave |
 | [`../reviews/2026-08-10-ios-android-consistency-gap.md`](../reviews/2026-08-10-ios-android-consistency-gap.md) | **5 屏 code 级差异审计**（最新；相机项已完成） |
-| [`../../specs/PARITY_MASTER_PLAN.md`](../../specs/PARITY_MASTER_PLAN.md) | **Parity 顶层架构**（五层防线） |
+| [`../../docs/08-UI-SPECS/PARITY_MASTER_PLAN.md`](../../docs/08-UI-SPECS/PARITY_MASTER_PLAN.md) | **Parity 顶层架构**（五层防线） |
 | [`../03-TECHNICAL-SPECS/IOS_ANDROID_UI_PARITY.md`](../03-TECHNICAL-SPECS/IOS_ANDROID_UI_PARITY.md) | **Parity 方法论** |
-| [`../../specs/README.md`](../../specs/README.md) | **Vibe Coding 流程** |
-| [`../../specs/screens/*.yaml`](../../specs/screens/) | **逐屏契约**：camera / gallery-grid / chat / settings / model-download-center |
+| [`../../docs/08-UI-SPECS/README.md`](../../docs/08-UI-SPECS/README.md) | **Vibe Coding 流程** |
+| [`../../docs/08-UI-SPECS/screens/*.yaml`](../../docs/08-UI-SPECS/screens/) | **逐屏契约**：camera / gallery-grid / chat / settings / model-download-center |
 | [`../superpowers/specs/2026-08-10-ios-follow-command-design.md`](../superpowers/specs/2026-08-10-ios-follow-command-design.md) | **`/ios-follow` 命令设计**（待审批） |
 
 ---

@@ -4,7 +4,7 @@
 - **feature**：人物页（列表 + 详情）
 - **分支**：`feat/ios-tag-scan-core`（保留主 checkout：依赖本分支 TagDatabase schema + 可构建二进制产物）
 - **设计 spec**：`docs/superpowers/specs/2026-08-10-ios-person-page-cluster-parity-design.md`
-- **契约**：`specs/screens/person.yaml` · `tmp/ios-follow/person/{follow-plan,contracts}.md`
+- **契约**：`docs/08-UI-SPECS/screens/person.yaml` · `tmp/ios-follow/person/{follow-plan,contracts}.md`
 
 ## 改动摘要
 

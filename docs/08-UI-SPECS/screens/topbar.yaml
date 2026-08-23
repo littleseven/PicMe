@@ -83,13 +83,13 @@ topbar:
   appendix_camera:
     form: overlay（无标题栏，控件浮于取景器之上）
     icon_rule: 顶部图标钮遵循本文件 icons 节 + 44 热区
-    geometry_ssot: specs/screens/camera.yaml（top_tool_bar / top_left_controls）
+    geometry_ssot: docs/08-UI-SPECS/screens/camera.yaml（top_tool_bar / top_left_controls）
 
   # ── 附录 F：编辑器浮层顶栏（引用，不重复定义）────────────────
   appendix_editor:
     form: "✕ 32圆钮 | undo·redo | 保存胶囊（方案 A glass-noir）"
     icon_rule: 遵循本文件 icons 节；close 字形在 32 钮内为 18
-    geometry_ssot: specs/screens/editor.yaml §18 redesign_a
+    geometry_ssot: docs/08-UI-SPECS/screens/editor.yaml §18 redesign_a
 
   # ── 禁止事项 ─────────────────────────────────────────────────
   anti_patterns:

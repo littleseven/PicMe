@@ -120,7 +120,7 @@ val persona: AssistantPersona = AssistantPersona.DEFAULT
 ### 2.6 iOS 设置与 PARITY
 
 - `@AppStorage("assistant_persona")` 存枚举 name；设置页新增同款单选区块（选项文案与 Android 一致）。
-- 更新 `specs/screens/settings.yaml` 固化新条目；chat 行为变化在 `chat.yaml` 备注。
+- 更新 `docs/08-UI-SPECS/screens/settings.yaml` 固化新条目；chat 行为变化在 `chat.yaml` 备注。
 
 ### 2.7 i18n
 
@@ -188,5 +188,5 @@ val persona: AssistantPersona = AssistantPersona.DEFAULT
 | iOS | `iosApp/PoLang/Features/Settings/` | 单选区块 + `@AppStorage` |
 | iOS | `iosApp/PoLang/Features/Chat/ChatViewModel.swift` | 调用点传 persona |
 | iOS | `iosApp/PoLang/Resources/Localizable.xcstrings` | 9 个 i18n key |
-| spec | `specs/screens/settings.yaml` | 固化新设置条目 |
+| spec | `docs/08-UI-SPECS/screens/settings.yaml` | 固化新设置条目 |
 | 测试 | `shared/src/jvmTest/.../ChatSystemPromptGoldenTest.kt` + 新增单测 | 参数化性格段断言、`personaPromptSegment` 全分支 |

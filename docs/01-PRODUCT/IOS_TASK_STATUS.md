@@ -28,7 +28,7 @@
 
 ## §2 Phase 6 详细（当前主战场）
 
-> **2026-08-16 优先级调整（用户拍板）**：**相册 + 聊天优先追齐**，设置页涉及项随批次一并补齐；**相机线冻结**（2026-08-16 决策：双端相机页 UI 一致性问题收敛后生效——剩余相机 UI 对齐项为**冻结前最后一批相机投入**，收敛后不再投入 parity 打磨；G5 功能深化取消；Android 场景面板移除为冻结前收尾待办）。UI 调整必须走 ui-parity-guard 三同步 + **Ardot 页面预览先行**（`sync-ardot-variables.py` / `export-ardot-snapshot.py`，快照入库 `specs/screens/refs/ardot/`）。
+> **2026-08-16 优先级调整（用户拍板）**：**相册 + 聊天优先追齐**，设置页涉及项随批次一并补齐；**相机线冻结**（2026-08-16 决策：双端相机页 UI 一致性问题收敛后生效——剩余相机 UI 对齐项为**冻结前最后一批相机投入**，收敛后不再投入 parity 打磨；G5 功能深化取消；Android 场景面板移除为冻结前收尾待办）。UI 调整必须走 ui-parity-guard 三同步 + **Ardot 页面预览先行**（`sync-ardot-variables.py` / `export-ardot-snapshot.py`，快照入库 `docs/08-UI-SPECS/screens/refs/ardot/`）。
 
 ### 6.1 TAG 3-Pass 流水线 — ✅ 三 Pass 全通并合入 main；🔄 聚类质量待终验 + MetalGuardian/后台扫描待建
 

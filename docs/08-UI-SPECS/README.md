@@ -1,6 +1,6 @@
 # Per-Screen UI 研发流程
 
-> **总纲**：`specs/PARITY_MASTER_PLAN.md`（五层防线体系 + 子文档索引）
+> **总纲**：`docs/08-UI-SPECS/PARITY_MASTER_PLAN.md`（五层防线体系 + 子文档索引）
 > **红线**：[PARITY] 已纳入根 `AGENTS.md` §5 全局红线
 
 > **适用**：PoLang 项目所有新页面的 UI 开发（双端：Android Compose + iOS SwiftUI）
@@ -24,7 +24,7 @@
 ```
 ① Android Vibe Coding（你 + K3，自由迭代，无 spec 约束）
      ↓ UI 定稿，感觉对了
-② 固化 Spec（从定稿代码/截图反向提取 specs/screens/<new>.yaml + 新 token）
+② 固化 Spec（从定稿代码/截图反向提取 docs/08-UI-SPECS/screens/<new>.yaml + 新 token）
      ↓
 ③ iOS 实现（GLM 或你，读 spec，不读 Android 代码）
      ↓
@@ -47,10 +47,10 @@
 
 **方式 A：你手写 spec（10-15 分钟）**
 
-参照 `specs/screens/camera.yaml` / `gallery-grid.yaml` 格式，从定稿代码提取：
+参照 `docs/08-UI-SPECS/screens/camera.yaml` / `gallery-grid.yaml` 格式，从定稿代码提取：
 
 ```yaml
-# specs/screens/<new-page>.yaml
+# docs/08-UI-SPECS/screens/<new-page>.yaml
 system_bars:          # 状态栏显隐 + 内容色 / Home 指示器处理
 back_stack:           # Back 优先级链（面板 > 选择 > 退出）
 elements:             # 元素树：anchor + size（引用 token 名）
@@ -63,10 +63,10 @@ allowed_differences:  # 允许的平台原生差异
 
 **方式 B：派 AI 提取 spec（更省力）**
 
-给 AI（K3）指令：「读 `CameraPreviewContent.kt` 和这张定稿截图，输出 `specs/screens/camera.yaml`，尺寸引用 `design-tokens.json` 的 token 名。新出现的尺寸加到 tokens 里。」AI 做提取 + 归一化比从零写更快。
+给 AI（K3）指令：「读 `CameraPreviewContent.kt` 和这张定稿截图，输出 `docs/08-UI-SPECS/screens/camera.yaml`，尺寸引用 `design-tokens.json` 的 token 名。新出现的尺寸加到 tokens 里。」AI 做提取 + 归一化比从零写更快。
 
 **无论哪种方式，②的产出是四件套**：
-1. `specs/screens/<new>.yaml` — 结构化规格
+1. `docs/08-UI-SPECS/screens/<new>.yaml` — 结构化规格
 2. `design-tokens.json` 新增 token（如有）→ 跑 `python3 scripts/gen-design-tokens.py` **自动重新生成**双端镜像（Android `Spacing.kt` 等 / iOS `DesignTokens.swift` 均为生成物，禁止手改；详见 `docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md`）
 3. 定稿截图（如尚未采集）
 4. **Android 代码中的硬编码值建议替换为 token 引用**（可选，但强烈推荐——否则后续改 token 时 Android 不生效）
@@ -78,7 +78,7 @@ allowed_differences:  # 允许的平台原生差异
 spec 已经包含所有需要的信息：元素树（anchor + size）、系统栏状态、Back 栈、状态机。截图提供视觉参照（"长什么样"），spec 提供参数（"多大/多远/什么比例"）。
 
 这步可以交给 GLM 做或你亲自做。交给 GLM 时，prompt 模板：
-> 读 `specs/screens/<screen>.yaml` 和 `tmp/ui-reference/<screenshot>.png`，按 spec 实现该屏 SwiftUI。尺寸引用 `DesignTokens.swift` 常量。
+> 读 `docs/08-UI-SPECS/screens/<screen>.yaml` 和 `tmp/ui-reference/<screenshot>.png`，按 spec 实现该屏 SwiftUI。尺寸引用 `DesignTokens.swift` 常量。
 
 ### ④ 验收
 
@@ -107,7 +107,7 @@ spec 已经包含所有需要的信息：元素树（anchor + size）、系统�
 UI 定稿后，后续的改动（加功能、调尺寸）走**三同步**：
 
 ```
-改 spec（specs/screens/<screen>.yaml）
+改 spec（docs/08-UI-SPECS/screens/<screen>.yaml）
      ↓
 同步改 Android（Compose 代码，引用 token）
 同步改 iOS（SwiftUI 代码，引用 token）
@@ -132,7 +132,7 @@ spec 是"当前事实的记录"。改的时候三处一起改，不允许只改�
 ④ 截图比对 + 验收
 ```
 
-现有的 `specs/screens/camera.yaml` 和 `gallery-grid.yaml` 就是这样从 Android 反向提取的。
+现有的 `docs/08-UI-SPECS/screens/camera.yaml` 和 `gallery-grid.yaml` 就是这样从 Android 反向提取的。
 
 ---
 
@@ -165,6 +165,6 @@ spec 是"当前事实的记录"。改的时候三处一起改，不允许只改�
 
 - `docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md` — Token 工作流 SSOT（codegen + Ardot 预览层）
 - `shared/src/commonMain/resources/design-tokens.json` — Token SSOT
-- `specs/screens/camera.yaml` / `gallery-grid.yaml` — spec 示例（从 Android 反向提取的）
+- `docs/08-UI-SPECS/screens/camera.yaml` / `gallery-grid.yaml` — spec 示例（从 Android 反向提取的）
 - `skills/ui-parity-guard/SKILL.md` — 5 步硬规则
 - `docs/03-TECHNICAL-SPECS/IOS_ANDROID_UI_PARITY.md` — 完整方法论

@@ -3,7 +3,7 @@
 - 日期：2026-08-16
 - 分支：`feat/ios-camera-wb`（worktree `.worktrees/feat-ios-camera-wb`，基于 main 553fab36e）
 - 实现：K3 主 agent；审查：GLM review 子 agent（交叉）
-- 契约基线：`specs/screens/camera.yaml` §13 / §21 `white_balance`
+- 契约基线：`docs/08-UI-SPECS/screens/camera.yaml` §13 / §21 `white_balance`
 
 ## 改动清单（3 文件）
 
@@ -11,7 +11,7 @@
 |------|------|
 | `iosApp/PoLang/Features/Camera/Beauty/Shaders/lut.metal` | 色温系数 0.01 → 0.05（与 Android colorgrade.glsl 同源；🔴 修复「参考副本已同步、编译产物未跟」的强度偏差） |
 | `iosApp/PoLang/Features/Camera/Preview/CameraPreviewView.swift` | WB chip → Kelvin 映射写入 temperature；手动拖色温滑杆退预设（chip 回 Auto）；`camera_wb_mode`（@AppStorage）+ `camera_color_temperature`（UserDefaults）持久化与恢复；色温默认态显示 `--`（偏差 ≤50K） |
-| `specs/screens/camera.yaml` | §21 white_balance 条目回写（lut.metal 为实际编译产物、glsl 为参考副本的澄清） |
+| `docs/08-UI-SPECS/screens/camera.yaml` | §21 white_balance 条目回写（lut.metal 为实际编译产物、glsl 为参考副本的澄清） |
 
 ## 审查结论（GLM → K3 交叉）
 

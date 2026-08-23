@@ -234,7 +234,7 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 | **[I18N]** | 禁止硬编码，三语同步 | 资源文件检查 |
 | **[DOC-SYNC]** | 代码变更必须同步文档 | CI 文档检查 |
 | **[AGENT-FIRST]** | 新代码必须遵循 Agent First 原则 | 代码审查 |
-| **[PARITY]** | 双端 UI 一致性：信息层级/布局结构/功能默认/文案状态/无障碍语义零容差一致。新页面 Android 定稿后必须固化 spec；iOS 实现必须读 spec 不读 Android 源码；后续修改走三同步（spec + 双端代码 + token） | Spec 完整性检查、截图比对、gap analysis。详见 `specs/PARITY_MASTER_PLAN.md` |
+| **[PARITY]** | 双端 UI 一致性：信息层级/布局结构/功能默认/文案状态/无障碍语义零容差一致。新页面 Android 定稿后必须固化 spec；iOS 实现必须读 spec 不读 Android 源码；后续修改走三同步（spec + 双端代码 + token） | Spec 完整性检查、截图比对、gap analysis。详见 `docs/08-UI-SPECS/PARITY_MASTER_PLAN.md` |
 
 > **版本优先级原则（2026-08-09 用户定，iOS 首个版本完成前有效）**：**功能 > UI > 性能**。资源分配与排期按此序——功能缺位优先补，UI 对齐/美观其次，性能实测与优化最后（发版门前再集中过 [PERF] 红线）。例外：崩溃、数据错误、明显卡顿到不可用的缺陷属「功能可用性」范畴，不按性能往后排。
 
@@ -268,8 +268,8 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 | 类型 | 文档 |
 |------|------|
 | **顶层治理** | `AGENTS.md`（本文档） |
-| **★ 双端 UI 一致性总纲** | `specs/PARITY_MASTER_PLAN.md`（五层防线体系 + 子文档索引） |
-| **★ 双端 UI 研发流程** | `specs/README.md`（Vibe Coding → 固化 Spec → iOS 翻译） |
+| **★ 双端 UI 一致性总纲** | `docs/08-UI-SPECS/PARITY_MASTER_PLAN.md`（五层防线体系 + 子文档索引） |
+| **★ 双端 UI 研发流程** | `docs/08-UI-SPECS/README.md`（Vibe Coding → 固化 Spec → iOS 翻译） |
 | **iOS 对等跟随编排** | `docs/superpowers/specs/2026-08-10-ios-follow-command-design.md`（/ios-follow 六阶段管线设计 SSOT + platform_differences 台账层；可执行形态 `skills/ios-follow/SKILL.md`） |
 | **AI 工具配置索引** | `AI_TOOLS.md`（四工具配置位置、Skills/Plans/Specs SSOT 约定） |
 | **产品定义** | `PRODUCT.md` |
@@ -310,7 +310,7 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 > - **JS Engine（QuickJS 沙箱）**：引擎无关层在 `:shared` commonMain `agent/core/js/`（JsEngine/JsValue/JsBridge/JsRuntime/NativeHandler），QuickJS 实现与应用 handler 在 `:androidApp` `features/chat/js/`（QuickJsEngine/GalleryScriptHandlers/ChartJs/CapabilityDispatchHandler）；除只读取数 handler 外，已存在 `capability.dispatch` **写通路**（CommandRisk 分级 + 用户确认 + ChatMediaWriteCapability）。详见 `docs/03-TECHNICAL-SPECS/JS_ENGINE_TECH_SPEC.md`
 > - **AI 工程师模式（原诊断模式已并入）**：Chat「AI Engineer」toggle → `POST /v1/claude-chat` → chisel 隧道 → KimiClaw 云主机 Claude Code（GLM）；云主机 MCP server（`scripts/claude-tunnel/gateway/app_tools_mcp.py`）暴露 5 个 `app_*` 工具（日志/崩溃/聊天历史/运行时状态/相册摘要），tool call 经 SSE 下行 `app_tool_request` 到 App，`AppToolExecutor`（`androidApp/src/main/java/com/mamba/picme/core/agenttools/`）采集脱敏后经 `POST /v1/claude-tool-result` 回传；`claudeSid` 经 `ClaudeSidStore`（SharedPreferences）持久化，进程重建后可 `--resume` 续上下文。诊断工单链路（DiagRoute/diag-worker）已于 2026-08-01 移除。**账号白名单区分读写**：`/v1/claude-chat` 与 `/v1/claude-tool-result` 对所有已认证账号开放（只读诊断），仅 `/v1/claude-deliver` 代码交付受 `ai_engineer_whitelist` 限制；`/v1/claude-engineer/available` 返回 `{available, canDeliver}`。**用户问题上报**：Chat 顶部新增「上报问题」入口 → `POST /v1/report-issue`，服务端脱敏后自动在 `littleseven/polang` 创建 GitHub issue；管理后台「设置」页（`/admin/settings#whitelist`）承载「AI 工程师白名单」配置，「问题诊断」页（`/admin/diagnosis`）承载「用户上报问题」，原 `/admin/ai-engineer-whitelist` 已 301 重定向到设置页白名单区块。详见 `docs/superpowers/specs/2026-08-01-ai-engineer-diag-merge-design.md`
 > - **服务端（`server/`）**：独立 Ktor 工程，提供 AI 网关（Channel 路由 / LLM 代理）、账号体系（邮箱注册 / Token 认证）、管理后台（Admin 视图）、推荐引擎（RuleEngine）、限流（RateLimiter）、COS 对象存储。与 Android 客户端通过 Monorepo 管理，但不纳入 Android `settings.gradle`。
-> - **iOS 应用（`iosApp/`）**：SwiftUI，相机（AVFoundation + Metal 4-pass 美颜 + MediaPipe/MNN 双关键点源）、相册、Chat（Phase 6.2 已实装：经 SharedKit `ChatAgentBridge` 流式远程推理 + tool_calls UI 动作；多会话历史侧栏已落地——会话索引+每会话消息文件持久化、自动标题/重命名/删除/搜索，spec `specs/screens/chat.yaml` §2.5）、设置（含模型下载中心）均已落地；人物页为占位；分模块边界（相册 Swift 主导 presentation 消费 shared 领域层 / 相机纯 Swift + Metal 美颜管线；Phase 5 骨架设计稿已并入 iOS 文档体系，前门 `docs/01-PRODUCT/IOS_DOC_INDEX.md`）；双端图标统一 Material Icons Round（`Assets.xcassets/mat_*.imageset`）；SharedKit XCFramework embed 集成（Gradle 构建 → XcodeGen `project.yml` 声明 → build-shared-kit.sh 增量）
+> - **iOS 应用（`iosApp/`）**：SwiftUI，相机（AVFoundation + Metal 4-pass 美颜 + MediaPipe/MNN 双关键点源）、相册、Chat（Phase 6.2 已实装：经 SharedKit `ChatAgentBridge` 流式远程推理 + tool_calls UI 动作；多会话历史侧栏已落地——会话索引+每会话消息文件持久化、自动标题/重命名/删除/搜索，spec `docs/08-UI-SPECS/screens/chat.yaml` §2.5）、设置（含模型下载中心）均已落地；人物页为占位；分模块边界（相册 Swift 主导 presentation 消费 shared 领域层 / 相机纯 Swift + Metal 美颜管线；Phase 5 骨架设计稿已并入 iOS 文档体系，前门 `docs/01-PRODUCT/IOS_DOC_INDEX.md`）；双端图标统一 Material Icons Round（`Assets.xcassets/mat_*.imageset`）；SharedKit XCFramework embed 集成（Gradle 构建 → XcodeGen `project.yml` 声明 → build-shared-kit.sh 增量）
 
 ---
 

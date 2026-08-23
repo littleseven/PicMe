@@ -20,7 +20,7 @@ root:
 # 2. 顶部栏（ChatTopBar）
 # ============================================================================
 top_bar:
-  # 几何 SSOT → specs/screens/topbar.yaml 变体 D（variant_iconrow）；本节仅保留 chat 专属行为
+  # 几何 SSOT → docs/08-UI-SPECS/screens/topbar.yaml 变体 D（variant_iconrow）；本节仅保留 chat 专属行为
   background: "surface"
   status_bar_padding: true
   title: ""                         # ⚠️ 无标题文字
@@ -712,7 +712,7 @@ platform_differences:
 # ============================================================================
 # 基准端：ChatOptimizeGachaController.kt / components/GachaCandidateStrip.kt /
 #         ChatViewModel.kt(gacha selections/rerolling 状态机)
-# 引擎与数值契约：specs/screens/editor.yaml §17 + AI_OPTIMIZATION.md §11.5（chat 复用同一引擎，零改动）
+# 引擎与数值契约：docs/08-UI-SPECS/screens/editor.yaml §17 + AI_OPTIMIZATION.md §11.5（chat 复用同一引擎，零改动）
 # shared 契约：OptimizeCandidateGroup（commonMain domain/chat/ChatMessage.kt，iOS 直接经 XCFramework 获得）
 optimize_gacha:
   trigger:

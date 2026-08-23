@@ -46,7 +46,7 @@
 
 ### 2.2a 相机页 UI 结构（2026-08-15/16 顶部工具栏改版）
 
-> 结构与数值 SSOT 为 `specs/screens/camera.yaml`（§4 工具栏 / §8 美颜抽屉 / §13 白平衡 / §17 状态记忆），本节只列实现落点。
+> 结构与数值 SSOT 为 `docs/08-UI-SPECS/screens/camera.yaml`（§4 工具栏 / §8 美颜抽屉 / §13 白平衡 / §17 状态记忆），本节只列实现落点。
 
 - **顶部居中文字工具栏** `CameraTopToolBar`（`CameraControlButtons.kt`）：五个胶囊 chip——**美颜 / 比例 / 辅助线 / 滤镜 / 专业**；左上角独立「返回」幽灵按钮 `CameraBackButton`；相机页无设置入口。
 - **内联滑出面板**：比例/辅助线/滤镜/专业面板经 `InlineControlPanel` 挂工具栏下方从**顶部**滑入（`CameraPreviewContent.kt`），不再使用底部半屏 Sheet；主面板互斥。

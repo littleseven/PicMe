@@ -2,7 +2,7 @@
 
 > 2026-08-16 · 分支 `feat/ios-optimize-gacha` · 模式 B（功能追齐）
 > 实现：引擎=fable reasoner / shared=主 agent(K3) / Chat·Editor UI=GLM coder / 审查=fable reviewer（交叉，铁律 4）
-> 输入：specs/screens/editor.yaml §17 + chat.yaml §17（Stage 2 反向提取）+ AI_OPTIMIZATION.md §11.5 数值契约
+> 输入：docs/08-UI-SPECS/screens/editor.yaml §17 + chat.yaml §17（Stage 2 反向提取）+ AI_OPTIMIZATION.md §11.5 数值契约
 
 ## 裁决
 

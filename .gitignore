@@ -120,5 +120,5 @@ docs-site/docs/
 
 # 地面真值原始截图:可由 scripts/capture_camera_auto.py / XCUITest 重采,不入库
 # (a11y dump txt/json 仍入库=结构化地面真真值)
-specs/screens/refs/android/*.png
-specs/screens/refs/ios/shots/*.png
+docs/08-UI-SPECS/screens/refs/android/*.png
+docs/08-UI-SPECS/screens/refs/ios/shots/*.png

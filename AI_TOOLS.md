@@ -12,7 +12,7 @@
 | **Claude Code** | `.claude/commands/*.md` + `.claude/CLAUDE.md` | 项目级 | AI 开发环境之一·日常备选（命令目录与索引） |
 | **kimi-cli** | `.kimi/AGENTS.md` + `.kimi/skills/` | 项目级 | 终端交互式 AI 开发·主力；`.kimi/skills` → `../skills` |
 | **kimi-code** | `.kimi-code/skills/` | 项目级 | 终端交互式 AI 开发·主力；`.kimi-code/skills` → `../skills`（2026-08-11 补链，否则 Project scope Skills 不可见） |
-| **Arbot (Ardot)** | Arbot 客户端 + MCP（`.kimi-code/mcp.json`） | 项目级 | UI 可视化预览工具（**非 SSOT**）：token 活体预览层 + 设计画布（**仅云端文档**；git 形态 = `export-ardot-snapshot.py` 快照 → `specs/screens/refs/ardot/`）。SSOT = `design-tokens.json`（codegen，见 `docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md`）+ `specs/screens/*.yaml`；MCP 用法速查 `.kimi-code/ARDOT_MCP.md` |
+| **Arbot (Ardot)** | Arbot 客户端 + MCP（`.kimi-code/mcp.json`） | 项目级 | UI 可视化预览工具（**非 SSOT**）：token 活体预览层 + 设计画布（**仅云端文档**；git 形态 = `export-ardot-snapshot.py` 快照 → `docs/08-UI-SPECS/screens/refs/ardot/`）。SSOT = `design-tokens.json`（codegen，见 `docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md`）+ `docs/08-UI-SPECS/screens/*.yaml`；MCP 用法速查 `.kimi-code/ARDOT_MCP.md` |
 | **AndroidStudio Qwen 插件** | `AGENTS.md`（根目录） | 项目级 | IDE 内置助手，读取根 AGENTS.md 治理 |
 | **通用治理** | `AGENTS.md`（根目录） | 项目级 | 顶层治理、架构原则、全局红线 |
 
@@ -221,5 +221,5 @@ cd ~/AndroidStudioProjects/polang && claude
 | 2026-08-11 | 新增 `.kimi-code/skills` 软链 | 补齐 kimi-code 项目级 Skill 入口（→ `../skills`）；此前缺失导致 Project scope Skills（含 `ios-follow`）在 kimi-code 不可见 |
 | 2026-08-15 | **Arbot 替代 Figma 成为 UI 设计首选工具** | Camera 页面作为试点完成 iOS 系统相机风格优化；`polang-ui-spec.ardot` 成为 Camera spec SSOT，Figma 稿降级为历史参考 |
 | 2026-08-16 | **更正 Arbot 定位：预览层，非 spec SSOT** | 「画布作 SSOT」路线已于 2026-08-15 随 codegen 工作流废止（`design-tokens.json` 为唯一 SSOT，双端镜像由 `gen-design-tokens.py` 生成 + `ai-gate.sh --check` 门禁）；Arbot/Figma 画布降级为**可视化预览层**。上行的「polang-ui-spec.ardot 成为 Camera spec SSOT」表述作废——实际画布文件为根目录 `polang-ui-spec.fig`（untracked）。历史决策以本表 2026-08-15/16 条目为准（原 spec/plan 已随 2026-08-22 文档清理删除，细节查 git 历史） |
-| 2026-08-16 | **Ardot 快照入库 + 删除过时 `.fig`** | Ardot 仅云端（无本地文件功能，用户实测拍板），设计稿 git 形态 = `scripts/export-ardot-snapshot.py` → `specs/screens/refs/ardot/`（structure.json 可 diff + PNG 快照，commit `70fb3770d`）；云端文档为唯一编辑区。根目录 Figma 时代一次性导出 `polang-ui-spec.fig` 已删除 |
+| 2026-08-16 | **Ardot 快照入库 + 删除过时 `.fig`** | Ardot 仅云端（无本地文件功能，用户实测拍板），设计稿 git 形态 = `scripts/export-ardot-snapshot.py` → `docs/08-UI-SPECS/screens/refs/ardot/`（structure.json 可 diff + PNG 快照，commit `70fb3770d`）；云端文档为唯一编辑区。根目录 Figma 时代一次性导出 `polang-ui-spec.fig` 已删除 |
 | 2026-08-22 | **specs/plans 历史清理（103 篇）** | 删除 `docs/superpowers/` 下 ≤08-20 的已交付 spec 77 + plan 25 + nightly 1，仅留在途/活跃 SSOT 白名单；活文档引用统一改「已随交付清理，git 历史可查」；建立「交付即清理、git 历史即归档」约定（`docs/superpowers/README.md` §2） |

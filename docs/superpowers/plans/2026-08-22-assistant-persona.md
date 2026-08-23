@@ -36,7 +36,7 @@
 | `iosApp/PoLang/Features/Chat/ChatViewModel.swift` | 调用点传 persona + replyLanguage | 修改 |
 | `iosApp/PoLang/Features/Settings/SettingsSubPages.swift` | AiAgentSettingsView 加性格区块 | 修改 |
 | `iosApp/PoLang/Resources/Localizable.xcstrings` | iOS 文案 | 修改 |
-| `specs/screens/settings.yaml` | 固化新设置条目 | 修改 |
+| `docs/08-UI-SPECS/screens/settings.yaml` | 固化新设置条目 | 修改 |
 | `androidApp/src/main/java/com/mamba/picme/features/settings/AGENTS.md` | 模块文档同步 | 修改 |
 
 ---
@@ -969,12 +969,12 @@ git commit -m "feat(ios): 设置新增助手性格选择（三语）"
 ### Task 11: PARITY spec 固化与文档同步
 
 **Files:**
-- Modify: `specs/screens/settings.yaml`
+- Modify: `docs/08-UI-SPECS/screens/settings.yaml`
 - Modify: `androidApp/src/main/java/com/mamba/picme/features/settings/AGENTS.md`
 
 - [ ] **Step 1: settings.yaml 固化**
 
-在 `specs/screens/settings.yaml` 的远程模型（remote model）分类区块中追加条目（锚定现有 `remote_models`/`REMOTE_MODEL` 段落，按其现有 YAML 风格）：
+在 `docs/08-UI-SPECS/screens/settings.yaml` 的远程模型（remote model）分类区块中追加条目（锚定现有 `remote_models`/`REMOTE_MODEL` 段落，按其现有 YAML 风格）：
 
 ```yaml
   assistant_persona:
@@ -1000,7 +1000,7 @@ git commit -m "feat(ios): 设置新增助手性格选择（三语）"
 - [ ] **Step 3: Commit**
 
 ```bash
-git add specs/screens/settings.yaml androidApp/src/main/java/com/mamba/picme/features/settings/AGENTS.md
+git add docs/08-UI-SPECS/screens/settings.yaml androidApp/src/main/java/com/mamba/picme/features/settings/AGENTS.md
 git commit -m "docs(parity): 固化助手性格设置条目 spec 与模块文档"
 ```
 

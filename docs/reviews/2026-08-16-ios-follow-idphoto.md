@@ -2,7 +2,7 @@
 
 > 管线：`/ios-follow 证照功能`（模式 B 追齐）· 日期：2026-08-16
 > 分支：`feat/ios-idphoto`（worktree `.worktrees/feat-ios-idphoto`）
-> 契约基线：Android `main@9228bbe3b` · spec：`specs/screens/idphoto.yaml`（418 行，本次反向提取）
+> 契约基线：Android `main@9228bbe3b` · spec：`docs/08-UI-SPECS/screens/idphoto.yaml`（418 行，本次反向提取）
 > 交叉审查（铁律4）：UI=GLM coder 实现/K3 主审 ✓；管线=K3 主实现/GLM reviewer 对抗审 ✓
 
 ## 0. 结论

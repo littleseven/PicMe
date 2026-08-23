@@ -19,7 +19,7 @@ tags:
 > **定位**：把「Android 探路 → 契约固化 → iOS 实现 → 双端验收」四环节串成**一条命令**的编排器（spec/token/skill/hook/ios-auto-dev-loop 零件的运转总线）。
 > **触发时机**：Android 功能在专用分支提交完成后执行；或 iOS 1.0 追齐期按功能/屏名追平 Android 存量功能。
 > **设计 SSOT**：`docs/superpowers/specs/2026-08-10-ios-follow-command-design.md`（D1-D4 决策锁定）；本文是其可执行形态，冲突以设计文档为准。
-> **上游**：`specs/PARITY_MASTER_PLAN.md`（五层防线总纲）、`specs/README.md`（Vibe Coding → 固化 Spec → iOS 翻译流程 SSOT）。
+> **上游**：`docs/08-UI-SPECS/PARITY_MASTER_PLAN.md`（五层防线总纲）、`docs/08-UI-SPECS/README.md`（Vibe Coding → 固化 Spec → iOS 翻译流程 SSOT）。
 
 ---
 
@@ -61,7 +61,7 @@ tags:
 
 **模式 B（功能追齐）**——不跑 diff，改走 **spec 存在性检查**：
 
-1. `specs/screens/<screen>.yaml` 存在且覆盖该功能 → 直接采用为契约基线，分析项 = 该屏 + 关联 shared 接口 + 台账差异项
+1. `docs/08-UI-SPECS/screens/<screen>.yaml` 存在且覆盖该功能 → 直接采用为契约基线，分析项 = 该屏 + 关联 shared 接口 + 台账差异项
 2. spec 缺失 → 标记「Stage 2 需先反向提取」，分析项从 Android 现状（`androidApp` 对应 features 目录 + shared 接口）梳理
 3. 同模式 A 输出 shared 契约清单与平台能力调用点（从 Android 现状全量扫，非 diff）
 
@@ -73,8 +73,8 @@ tags:
 
 对 follow-plan 中每一项：
 
-1. **UI Spec**：`specs/screens/<screen>.yaml` 新建或更新（参照 `camera.yaml`/`gallery-grid.yaml` 格式；质量标准见 `specs/PARITY_MASTER_PLAN.md` §4.2——自包含/到元素粒度/状态机完整/Back 栈显式/allowed_differences 登记）。
-   - 模式 B 且 spec 缺失时：从 Android 定稿代码 + 截图**反向提取**（`specs/README.md` ②步方式 B：读实现代码 + 定稿截图输出 yaml，新尺寸归一化进 tokens）。
+1. **UI Spec**：`docs/08-UI-SPECS/screens/<screen>.yaml` 新建或更新（参照 `camera.yaml`/`gallery-grid.yaml` 格式；质量标准见 `docs/08-UI-SPECS/PARITY_MASTER_PLAN.md` §4.2——自包含/到元素粒度/状态机完整/Back 栈显式/allowed_differences 登记）。
+   - 模式 B 且 spec 缺失时：从 Android 定稿代码 + 截图**反向提取**（`docs/08-UI-SPECS/README.md` ②步方式 B：读实现代码 + 定稿截图输出 yaml，新尺寸归一化进 tokens）。
    - 新尺寸/颜色/圆角提取进 `shared/src/commonMain/resources/design-tokens.json` → 跑 `python3 scripts/gen-design-tokens.py` 自动重新生成 Android/iOS 镜像（生成物禁止手改，详见 `docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md`）。
    - `adb exec-out screencap` 采集定稿截图到 `tmp/ui-reference/<screen>.png`（设备不在线则复用已有截图并在报告中标记）。
 2. **平台差异台账**（spec 内 `platform_differences` 节，本管线的契约层新增）：
@@ -148,8 +148,8 @@ tags:
 ## 相关文件
 
 - 设计 SSOT：`docs/superpowers/specs/2026-08-10-ios-follow-command-design.md`
-- 总纲：`specs/PARITY_MASTER_PLAN.md`；流程 SSOT：`specs/README.md`；方法论：`docs/03-TECHNICAL-SPECS/IOS_ANDROID_UI_PARITY.md`
-- spec 示例：`specs/screens/camera.yaml` / `gallery-grid.yaml`；tokens：`shared/src/commonMain/resources/design-tokens.json`
+- 总纲：`docs/08-UI-SPECS/PARITY_MASTER_PLAN.md`；流程 SSOT：`docs/08-UI-SPECS/README.md`；方法论：`docs/03-TECHNICAL-SPECS/IOS_ANDROID_UI_PARITY.md`
+- spec 示例：`docs/08-UI-SPECS/screens/camera.yaml` / `gallery-grid.yaml`；tokens：`shared/src/commonMain/resources/design-tokens.json`
 - [kmp-ios-interop](skills/kmp-ios-interop/SKILL.md) — SKIE 互操作铁律（Stage 3 shared 消费必读）
 - [ui-parity-guard](skills/ui-parity-guard/SKILL.md) — 5 步硬规则
 - [dev-loop](skills/dev-loop/SKILL.md) / `scripts/ios-auto-dev-loop.sh` — 验收闭环载体

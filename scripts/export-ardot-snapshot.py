@@ -28,7 +28,7 @@ import time
 import urllib.request
 
 DEFAULT_ENDPOINT = "http://127.0.0.1:50501/api/v1/mcp"
-DEFAULT_OUT = "specs/screens/refs/ardot"
+DEFAULT_OUT = "docs/08-UI-SPECS/screens/refs/ardot"
 PNG_BATCH = 5  # export_nodes PNG 每批上限（工具约束）
 EXPORT_LINE = re.compile(r"^\s*(\S+)\s*→\s*(\S+)\s*$")
 
@@ -198,7 +198,7 @@ def main():
     print(f"   structure.json  sha256={manifest['structureSha256'][:12]}…")
     if missing:
         raise SystemExit(f"❌ {len(missing)} 帧 PNG 缺失: {missing}")
-    print("提示：git diff specs/screens/refs/ardot/structure.json 可审查画布结构变更。")
+    print("提示：git diff docs/08-UI-SPECS/screens/refs/ardot/structure.json 可审查画布结构变更。")
 
 
 if __name__ == "__main__":

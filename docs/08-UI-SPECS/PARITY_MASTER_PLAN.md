@@ -2,7 +2,7 @@
 
 > **版本**：2.0（2026-08-16 重整：L2 数据层升级 codegen、各层状态刷新、消除与子文档的重复维护）
 > **创建**：2026-08-09 · **状态**：生效中 · **维护者**：项目开发者
-> **定位**：双端 UI 一致性的**顶层架构文件**，负责编排各层零件与追踪状态。**流程细节以 `specs/README.md` 为 SSOT，token 细节以 `docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md` 为 SSOT**——本文不重复维护，只给指针与状态。
+> **定位**：双端 UI 一致性的**顶层架构文件**，负责编排各层零件与追踪状态。**流程细节以 `docs/08-UI-SPECS/README.md` 为 SSOT，token 细节以 `docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md` 为 SSOT**——本文不重复维护，只给指针与状态。
 
 ---
 
@@ -28,9 +28,9 @@
 │     触发：每次代码改动（AI 工具开机即加载）                 │
 ├─────────────────────────────────────────────────────────┤
 │ L4: 流程层 — Vibe Coding → 固化 Spec → iOS 翻译           │
-│     载体：specs/README.md + ui-parity-guard skill        │
+│     载体：docs/08-UI-SPECS/README.md + ui-parity-guard skill        │
 ├─────────────────────────────────────────────────────────┤
-│ L3: 规格层 — Per-Screen Spec（specs/screens/*.yaml）      │
+│ L3: 规格层 — Per-Screen Spec（docs/08-UI-SPECS/screens/*.yaml）      │
 │     载体：camera / gallery-grid / chat / settings / ...  │
 ├─────────────────────────────────────────────────────────┤
 │ L2: 数据层 — Design Tokens codegen（SSOT→生成双端镜像）   │
@@ -49,11 +49,11 @@
 
 ## 3. L4 流程层：Vibe Coding 研发模式
 
-**SSOT = `specs/README.md`**（新页面 4 步 / 老页面改造 / 后续修改三同步 / 何时需要 spec / 成本账），本文不重复。一句话概括：**Android 自由探路 → 定稿反向固化 spec（+ token）→ iOS 读 spec 不读源码 → 截图比对 + 真机验收（浅色+深色双跑）**。②③④已编排为单命令 `/ios-follow`（六阶段管线 + 断点续跑）。
+**SSOT = `docs/08-UI-SPECS/README.md`**（新页面 4 步 / 老页面改造 / 后续修改三同步 / 何时需要 spec / 成本账），本文不重复。一句话概括：**Android 自由探路 → 定稿反向固化 spec（+ token）→ iOS 读 spec 不读源码 → 截图比对 + 真机验收（浅色+深色双跑）**。②③④已编排为单命令 `/ios-follow`（六阶段管线 + 断点续跑）。
 
 ## 4. L3 规格层：Per-Screen Spec
 
-**载体**：`specs/screens/*.yaml`。
+**载体**：`docs/08-UI-SPECS/screens/*.yaml`。
 
 ### 4.1 当前覆盖（2026-08-16）
 
@@ -119,7 +119,7 @@ Android 截图（adb screencap）+ iOS 截图（XCUITest / App 内捕获）
 
 ### 6.5 完整性闸门（可选验收工具）
 
-`scripts/completeness-check.sh <screen> <state>`：iOS a11y 树 dump（`specs/screens/refs/ios/`）vs 设计帧 node 树（`specs/screens/refs/figma/`）逐元素匹配，判「该有的元素在不在」。Figma/Ardot 先导期产物；画布已降级预览层后，此闸门作为**可选**逐屏验收工具保留（帧参照 Ardot 云端画布，快照 `specs/screens/refs/ardot/`；Android 真值截图 `specs/screens/refs/android/`）。
+`scripts/completeness-check.sh <screen> <state>`：iOS a11y 树 dump（`docs/08-UI-SPECS/screens/refs/ios/`）vs 设计帧 node 树（`docs/08-UI-SPECS/screens/refs/figma/`）逐元素匹配，判「该有的元素在不在」。Figma/Ardot 先导期产物；画布已降级预览层后，此闸门作为**可选**逐屏验收工具保留（帧参照 Ardot 云端画布，快照 `docs/08-UI-SPECS/screens/refs/ardot/`；Android 真值截图 `docs/08-UI-SPECS/screens/refs/android/`）。
 
 ---
 
@@ -127,12 +127,12 @@ Android 截图（adb screencap）+ iOS 截图（XCUITest / App 内捕获）
 
 | 层 | 文档/载体 | 定位 |
 |----|------|------|
-| **总纲** | 本文（`specs/PARITY_MASTER_PLAN.md`） | 顶层编排 + 状态追踪 |
+| **总纲** | 本文（`docs/08-UI-SPECS/PARITY_MASTER_PLAN.md`） | 顶层编排 + 状态追踪 |
 | **红线** | 根 `AGENTS.md` §5 | [PARITY] 红线定义 |
-| **流程** | `specs/README.md` | Vibe Coding 研发模式 SSOT（新页面/老页面/三同步） |
+| **流程** | `docs/08-UI-SPECS/README.md` | Vibe Coding 研发模式 SSOT（新页面/老页面/三同步） |
 | **方法论** | `docs/03-TECHNICAL-SPECS/IOS_ANDROID_UI_PARITY.md` | 度量体系/系统栏/Back/无障碍/深色/动效/RTL/键盘 |
 | **Token SSOT** | `docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md` | token 工作流 + iOS 应用指南 + 内容色板 + 漂移记录 |
-| **Spec** | `specs/screens/*.yaml`（7 份）+ `refs/`（双端地面真值） | 逐屏完整规格 |
+| **Spec** | `docs/08-UI-SPECS/screens/*.yaml`（7 份）+ `refs/`（双端地面真值） | 逐屏完整规格 |
 | **Skill** | `skills/ui-parity-guard/SKILL.md`（镜像 `.claude/commands/ui-parity-guard.md`） | UI 任务硬规则约束层 |
 | **Skill** | `skills/compose-ui-expert/SKILL.md` [PARITY] 段 / `skills/swiftui-expert/SKILL.md` [PARITY] 段 | 双端各自约束 |
 | **编排** | `skills/ios-follow/SKILL.md`（镜像 `.claude/commands/ios-follow.md`） | /ios-follow 六阶段管线；设计 SSOT `docs/superpowers/specs/2026-08-10-ios-follow-command-design.md` |
@@ -151,13 +151,13 @@ Android 截图（adb screencap）+ iOS 截图（XCUITest / App 内捕获）
 |---|------|--------|------|
 | A1 | 根 AGENTS.md §5 [PARITY] 红线 | — | ✅ 完成 |
 | A2 | post-edit hook 追加 dp/color 硬编码检测 | — | ✅ 完成（`parity-hardcode.sh`） |
-| A3/A4/A5 | specs/README、ui-parity-guard、AGENTS.md §7 引用总纲 | — | ✅ 完成 |
+| A3/A4/A5 | docs/08-UI-SPECS/README、ui-parity-guard、AGENTS.md §7 引用总纲 | — | ✅ 完成 |
 | A6 | 存量 token 替换：`CameraPreviewContent.kt`（~68 处） | 🟡 P1 | ❌ 开放（改到哪替到哪） |
 | A7 | 存量 token 替换：`MediaPager.kt`（~80 处） | 🟡 P1 | ❌ 开放 |
 | A8 | 存量 token 替换：`BeautyPanel.kt`（~15 处） | 🟢 P2 | ❌ 开放 |
 | A9 | chat 屏 spec 产出 | — | ✅ 完成（另 editor/person 亦已建） |
 | A10 | 自动截图 diff CI（双端截图 → 比对） | 🟢 P2 | ❌ 开放（依赖 iOS 侧截图自动化稳定） |
-| A11 | `specs/screens/refs/android/`（27MB 真值截图）入库策略 | 🟢 P2 | 🔶 半决策：`polang-ui-spec.fig` 已删除（2026-08-16，Ardot 仅云端，git 形态改走 `specs/screens/refs/ardot/` 快照）；android 真值目录仍 untracked 待决策 |
+| A11 | `docs/08-UI-SPECS/screens/refs/android/`（27MB 真值截图）入库策略 | 🟢 P2 | 🔶 半决策：`polang-ui-spec.fig` 已删除（2026-08-16，Ardot 仅云端，git 形态改走 `docs/08-UI-SPECS/screens/refs/ardot/` 快照）；android 真值目录仍 untracked 待决策 |
 
 ---
 

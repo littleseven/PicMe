@@ -71,7 +71,7 @@ grid_page:
   # 🔴 R1：自建，不用 NavigationStack 大标题。
 
   top_bar:
-    # 几何 SSOT → specs/screens/topbar.yaml 变体 B（variant_home）；本节仅保留相册页专属行为
+    # 几何 SSOT → docs/08-UI-SPECS/screens/topbar.yaml 变体 B（variant_home）；本节仅保留相册页专属行为
     type: AppTopBar                         # 自建组件
     background: colorScheme.surface
     anchor: safe_area_top                   # 自动避让状态栏
@@ -138,7 +138,7 @@ grid_page:
   # placeholder/结果计数格式与位置以代码为准）。
 
   search_top_bar:
-    # 几何 SSOT → specs/screens/topbar.yaml 变体 C（variant_search）；本节仅保留相册搜索专属行为
+    # 几何 SSOT → docs/08-UI-SPECS/screens/topbar.yaml 变体 C（variant_search）；本节仅保留相册搜索专属行为
     visible_when: search_active
     type: SearchTopBar                      # 替换普通 AppTopBar
     background: colorScheme.surface

@@ -4,7 +4,7 @@
 # 基准端：Android features/gallery/components/TagGenerationControlScreen.kt
 #        （提交 9fca3ce9e v2 重写，1193 行）
 # 视觉定稿：Ardot `gallery/tag_control_v2_en` / `gallery/tag_stage_sheet_en`
-#        （specs/screens/refs/ardot/，快照 2026-08-22T23:34）
+#        （docs/08-UI-SPECS/screens/refs/ardot/，快照 2026-08-22T23:34）
 # 用途：iOS TagScanScreen/TagScanComponents 重写的唯一输入，不读 Android 源码
 # 值引用：colorScheme.* / ChatBubbleTokens.brandGradient；本页为 v2 新增的
 #        强调色字面量在本文内联（暂不入 design-tokens.json，后续可归一化）

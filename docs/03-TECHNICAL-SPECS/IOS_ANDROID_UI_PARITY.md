@@ -80,9 +80,9 @@
 
 ### 2.1 实现前：逐屏规格契约（Per-Screen Spec）
 
-> 🔴 **双端 AI 工具实现/修改某屏时，先读 `specs/screens/<screen>.yaml`，不看对端源码。** 如果 spec 不存在，先创建 spec 再写代码。
+> 🔴 **双端 AI 工具实现/修改某屏时，先读 `docs/08-UI-SPECS/screens/<screen>.yaml`，不看对端源码。** 如果 spec 不存在，先创建 spec 再写代码。
 
-每屏一个 YAML 规格（`specs/screens/`），定义：
+每屏一个 YAML 规格（`docs/08-UI-SPECS/screens/`），定义：
 - **元素树**——每屏有哪些元素、分组、父子关系（对应 §0 信息层级）
 - **每元素 anchor + size**——引用 `design-tokens.json` 的 token 名（如 `topBar.height`），不写裸数值
 - **系统栏状态**——状态栏显隐 + 内容色、Home Indicator/导航区处理（对应 §1.3）
@@ -90,14 +90,14 @@
 - **状态机**——idle / panel_expanded / searching / selection_mode / permission_denied 等
 - **已知差异**——允许的平台原生差异项必须显式登记
 
-现有 spec（持续扩充，见 `specs/screens/` 目录）：
-- `specs/screens/camera.yaml` — 相机屏
-- `specs/screens/gallery-grid.yaml` — 相册网格屏
-- `specs/screens/chat.yaml` — 聊天屏
-- `specs/screens/settings.yaml` — 设置屏
-- `specs/screens/model-download-center.yaml` — 模型下载中心
-- `specs/screens/editor.yaml` — 图片编辑器
-- `specs/screens/person.yaml` — 人物页
+现有 spec（持续扩充，见 `docs/08-UI-SPECS/screens/` 目录）：
+- `docs/08-UI-SPECS/screens/camera.yaml` — 相机屏
+- `docs/08-UI-SPECS/screens/gallery-grid.yaml` — 相册网格屏
+- `docs/08-UI-SPECS/screens/chat.yaml` — 聊天屏
+- `docs/08-UI-SPECS/screens/settings.yaml` — 设置屏
+- `docs/08-UI-SPECS/screens/model-download-center.yaml` — 模型下载中心
+- `docs/08-UI-SPECS/screens/editor.yaml` — 图片编辑器
+- `docs/08-UI-SPECS/screens/person.yaml` — 人物页
 
 ### 2.2 实现后：视觉 + 量化地面真值
 

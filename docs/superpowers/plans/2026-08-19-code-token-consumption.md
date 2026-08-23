@@ -4,7 +4,7 @@
 
 **Goal:** 双端 UI 代码消费面对齐统一后的 token/icon 体系：顶栏图标 filled→Outlined、dynamicColor 全局关钉青玉、编辑器选中态青玉化、chat 残余蓝清除。
 
-**规范锚点:** `specs/screens/topbar.yaml` icons.platforms · design-tokens.json（440→524 token）· 普查报告（2026-08-19 消费面清单，file:line 级）。
+**规范锚点:** `docs/08-UI-SPECS/screens/topbar.yaml` icons.platforms · design-tokens.json（440→524 token）· 普查报告（2026-08-19 消费面清单，file:line 级）。
 
 **已签核决策:** dynamicColor 全局关闭钉青玉 · 相机 features 冻结排除 · 模型来源语义色保留非品牌 · iOS mat_* 资产替换另开波次。
 
@@ -47,7 +47,7 @@
 - [ ] `python3 scripts/gen-design-tokens.py --check` 绿（防误碰生成物）
 - [ ] AppTopBarTest（JVM 部分可跑则跑）+ 相关单测
 - [ ] 真机截图基线重采（顶栏图标全局视觉变更，按 ui-parity 流程重采 refs/android 顶栏截图——需设备，无设备则登记待采）
-- [ ] 更新 specs/screens/topbar.yaml 头注「双端代码已落地」+ Commit
+- [ ] 更新 docs/08-UI-SPECS/screens/topbar.yaml 头注「双端代码已落地」+ Commit
 
 ### C7: iOS 小项（本波）
 

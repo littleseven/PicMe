@@ -2,7 +2,7 @@
 
 > **日期**：2026-08-10
 > **状态**：待用户审批
-> **上游**：`specs/PARITY_MASTER_PLAN.md`（五层防线总纲）、`specs/README.md`（Vibe Coding → 固化 Spec → iOS 翻译）、`docs/03-TECHNICAL-SPECS/IOS_ANDROID_UI_PARITY.md`（对齐方法论）
+> **上游**：`docs/08-UI-SPECS/PARITY_MASTER_PLAN.md`（五层防线总纲）、`docs/08-UI-SPECS/README.md`（Vibe Coding → 固化 Spec → iOS 翻译）、`docs/03-TECHNICAL-SPECS/IOS_ANDROID_UI_PARITY.md`（对齐方法论）
 > **背景**：双端开发工作流中，「Android 探路 → 契约固化 → iOS 实现 → 双端验收」四个环节已各自有零件（spec/token/skill/hook/ios-auto-dev-loop），缺一个把它们串成**一条命令**的编排器。本设计补这一环，同时补 `platform_differences` 台账层（底层平台差异的契约化缺口）。
 
 ---
@@ -46,7 +46,7 @@
 
 对 follow-plan 中每一项：
 
-1. **UI Spec**：`specs/screens/<screen>.yaml` 新建或更新（参照 `camera.yaml` / `gallery-grid.yaml` 格式）；新尺寸/颜色/圆角提取进 `design-tokens.json` → 跑 `python3 scripts/gen-design-tokens.py` 重新生成双端镜像（Android `Spacing.kt` 等 / iOS `DesignTokens.swift` 均为生成物，禁止手改，见 `DESIGN_TOKENS_SPEC.md`）；`adb exec-out screencap` 采集定稿截图到 `tmp/ui-reference/<screen>.png`（设备不在线则复用已有截图并在报告中标记）
+1. **UI Spec**：`docs/08-UI-SPECS/screens/<screen>.yaml` 新建或更新（参照 `camera.yaml` / `gallery-grid.yaml` 格式）；新尺寸/颜色/圆角提取进 `design-tokens.json` → 跑 `python3 scripts/gen-design-tokens.py` 重新生成双端镜像（Android `Spacing.kt` 等 / iOS `DesignTokens.swift` 均为生成物，禁止手改，见 `DESIGN_TOKENS_SPEC.md`）；`adb exec-out screencap` 采集定稿截图到 `tmp/ui-reference/<screen>.png`（设备不在线则复用已有截图并在报告中标记）
 2. **平台差异台账**（本设计新增的契约层）：spec 内新增 `platform_differences` 节，登记：
    - `permission`：双端权限模型与状态机映射（如 Android 单次授权 vs iOS Full/Limited/AddOnly/Denied 四态）→ shared 语义对齐点
    - `capabilities`：API 能力矩阵（功能 × 端 → 支持 / 替代方案 / 平台独有流程），shared 接口只暴露业务语义
@@ -106,8 +106,8 @@
 
 本设计落地时同步：
 
-1. `specs/README.md` — 流程补 `/ios-follow` 入口段（一条命令 = ②③④ 的自动化封装）
-2. `specs/PARITY_MASTER_PLAN.md` — L3 规格层登记 `platform_differences` 台账节；§7 子文档索引加本文
+1. `docs/08-UI-SPECS/README.md` — 流程补 `/ios-follow` 入口段（一条命令 = ②③④ 的自动化封装）
+2. `docs/08-UI-SPECS/PARITY_MASTER_PLAN.md` — L3 规格层登记 `platform_differences` 台账节；§7 子文档索引加本文
 3. 根 `AGENTS.md` §7 — 文档索引加本设计
 4. `AI_TOOLS.md` — skill/command 清单加 `ios-follow`（如该文件维护清单）
 

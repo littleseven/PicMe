@@ -115,8 +115,8 @@ tags:
 > 实现或修改任何屏幕的 UI 时，必须遵循 `ui-parity-guard` skill 的 5 步硬规则。
 
 **核心约束**：
-1. **Android vibe coding 不受约束**——自由迭代，硬编码 `dp` 可以。但 UI **定稿后**（iOS 开工前），必须固化 `specs/screens/<screen>.yaml` + 提取新 token 到 `design-tokens.json` → 跑 `python3 scripts/gen-design-tokens.py` 重新生成双端镜像。
+1. **Android vibe coding 不受约束**——自由迭代，硬编码 `dp` 可以。但 UI **定稿后**（iOS 开工前），必须固化 `docs/08-UI-SPECS/screens/<screen>.yaml` + 提取新 token 到 `design-tokens.json` → 跑 `python3 scripts/gen-design-tokens.py` 重新生成双端镜像。
 2. **定稿后替换硬编码**：Android 定稿代码中的关键尺寸替换为 `MaterialTheme.spacing.xxx` / `MaterialTheme.appShapes.xxx`，使后续 token 改动生效。
 3. **后续修改走三同步**：改 spec → 同步改两端代码 → 同步改 token（如有新值：改 JSON → 跑生成器）。
 
-详见：[`ui-parity-guard`](/ui-parity-guard) · [`specs/README.md`](/specs/README.md) · [`DESIGN_TOKENS_SPEC.md`](/docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md) · [`IOS_ANDROID_UI_PARITY.md`](/docs/03-TECHNICAL-SPECS/IOS_ANDROID_UI_PARITY.md)
+详见：[`ui-parity-guard`](/ui-parity-guard) · [`docs/08-UI-SPECS/README.md`](/docs/08-UI-SPECS/README.md) · [`DESIGN_TOKENS_SPEC.md`](/docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md) · [`IOS_ANDROID_UI_PARITY.md`](/docs/03-TECHNICAL-SPECS/IOS_ANDROID_UI_PARITY.md)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """自动采集相机页各状态(Android ground truth)。
 用 ui_driver(accessibility 驱动点击)+ adb screencap,无需手动操作。
-产物:specs/screens/refs/android/camera-<state>.{png,txt}(png=视觉地面真值,txt=a11y 树)。
+产物:docs/08-UI-SPECS/screens/refs/android/camera-<state>.{png,txt}(png=视觉地面真值,txt=a11y 树)。
 """
 import sys, time, subprocess
 from pathlib import Path

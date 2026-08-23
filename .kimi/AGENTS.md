@@ -52,7 +52,7 @@
 ## 设计稿 ↔ 代码工作流（Ardot MCP）
 
 > **状态（2026-08-15）**：Figma MCP 因 OAuth 403 无法完成登录，已暂停使用；Ardot 本地 MCP 已配置并通过验证，作为当前设计稿 ↔ 代码的主链路。
-> **定位（2026-08-16 明确）**：Ardot 画布是**探索/预览层，不是规格 SSOT**——UI 契约以 `specs/screens/*.yaml` 为准，样式以 `design-tokens.json`（codegen）为准（见 `docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md`）。「画布作 SSOT」路线已于 2026-08-15 废止。
+> **定位（2026-08-16 明确）**：Ardot 画布是**探索/预览层，不是规格 SSOT**——UI 契约以 `docs/08-UI-SPECS/screens/*.yaml` 为准，样式以 `design-tokens.json`（codegen）为准（见 `docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md`）。「画布作 SSOT」路线已于 2026-08-15 废止。
 
 ### 配置
 

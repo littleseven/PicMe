@@ -2,7 +2,7 @@
 
 - **日期**：2026-08-11
 - **分支**：`fix/ios-ui-detail-polish`（worktree `.worktrees/ios-ui-detail-polish`）
-- **契约**：`specs/screens/person.yaml` / `specs/screens/editor.yaml` / `design-tokens.json`
+- **契约**：`docs/08-UI-SPECS/screens/person.yaml` / `docs/08-UI-SPECS/screens/editor.yaml` / `design-tokens.json`
 - **起因**：用户反馈 ios-follow 同步结果「UI 细节不够」。explore 子 agent 做 spec↔iOS 对照产出 47 项差距清单（结构 11 / 尺寸 10 / 颜色形状 i18n 26），本轮全量修复。
 - **模型分工（铁律 4）**：GLM coder ×2 实现（人物 25 项 / 编辑器 22 项）→ **K3 主会话亲审全部 diff 并修正**（交叉审查）。
 
@@ -38,7 +38,7 @@
 
 ## spec 变更
 
-- `specs/screens/editor.yaml` §14 新增 **B7_style_filter_approx_render**（severity: acceptable）：style 滤镜 CI 近似渲染登记，观感对齐留真机终验，逐像素对齐再评估 Metal kernel/LUT。
+- `docs/08-UI-SPECS/screens/editor.yaml` §14 新增 **B7_style_filter_approx_render**（severity: acceptable）：style 滤镜 CI 近似渲染登记，观感对齐留真机终验，逐像素对齐再评估 Metal kernel/LUT。
 
 ## ✅ 自动通过
 

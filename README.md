@@ -111,7 +111,7 @@ PoLang 覆盖了端侧语义搜图应用（iOS 的 Queryable 寻隐、Android �
   <img src="docs/assets/architecture.svg" alt="PoLang 架构图" width="920">
 </p>
 
-> 注：`:shared` 五 target（android / jvm / iosX64 / iosArm64 / iosSimulatorArm64），iOS 经 SharedKit XCFramework 消费；iosApp 相机 / 相册 / Chat / 设置已落地，人物页聚类已对齐，端侧 VLM 打标与部分能力仍为 stub，按 [`specs/PARITY_MASTER_PLAN.md`](specs/PARITY_MASTER_PLAN.md) 逐屏追齐。架构图由 [`scripts/gen_arch_svg.py`](scripts/gen_arch_svg.py) 网格化生成（改内容跑一遍脚本即可，保证排版整齐）。
+> 注：`:shared` 五 target（android / jvm / iosX64 / iosArm64 / iosSimulatorArm64），iOS 经 SharedKit XCFramework 消费；iosApp 相机 / 相册 / Chat / 设置已落地，人物页聚类已对齐，端侧 VLM 打标与部分能力仍为 stub，按 [`docs/08-UI-SPECS/PARITY_MASTER_PLAN.md`](docs/08-UI-SPECS/PARITY_MASTER_PLAN.md) 逐屏追齐。架构图由 [`scripts/gen_arch_svg.py`](scripts/gen_arch_svg.py) 网格化生成（改内容跑一遍脚本即可，保证排版整齐）。
 
 ### Chat 双模式架构
 

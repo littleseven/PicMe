@@ -11,7 +11,7 @@
 #   scripts/ardot-preview-mode.sh <frameId> auto    # 还原（继承页面/默认=Dark）
 #   scripts/ardot-preview-mode.sh <frameId> light --shot /tmp/x.png  # 切换并截图
 #
-# 常用帧 id（specs/screens/refs/ardot/manifest.json 可查全量）：
+# 常用帧 id（docs/08-UI-SPECS/screens/refs/ardot/manifest.json 可查全量）：
 #   settings/main_list=108:94  gallery/grid=105:45  chat/empty=111:321
 #   editor/concept_a_hypic=118:243  camera/idle=118:1146
 set -euo pipefail

@@ -13,7 +13,7 @@
 #
 #
 # ── 2026-08-18 Ardot 高精度还原（三轮修正后定稿）──
-# 依据 Ardot 画布 specs/screens/refs/ardot/camera-*.png（07 帧）落地并三轮真机修正：
+# 依据 Ardot 画布 docs/08-UI-SPECS/screens/refs/ardot/camera-*.png（07 帧）落地并三轮真机修正：
 # ① 底部控制区：行序改为 模式行→变焦胶囊行→快门行；快门底距屏底 60dp
 #   （camera.bottomControlsPaddingBottom；一轮 123 偏高/二轮 20 偏低的折中）；
 #   行距 模式→变焦 20dp、变焦→快门 28dp；快门行三元素垂直居中。
@@ -36,7 +36,7 @@
 #    仅色系换 cameraAccent；滑杆结构回老版（icon+标签行重置、数值默认 "--"），
 #    AppSlider 新增 CameraOverlay 档（白@15% 轨道+accent 激活段+纯白 thumb 无描边）。
 #
-# ── 顶栏归属 ── 相机 overlay 顶区遵循 specs/screens/topbar.yaml 附录 E（appendix_camera）（icon 体系见其 icons 节）
+# ── 顶栏归属 ── 相机 overlay 顶区遵循 docs/08-UI-SPECS/screens/topbar.yaml 附录 E（appendix_camera）（icon 体系见其 icons 节）
 #
 
 # ── 2026-08-19 iPhone 15（393×852）画布迁移定稿（M5）──
@@ -55,7 +55,7 @@
 # 可视化预览（非 SSOT）：build/design-tokens/ardot-variables.json 经 Ardot MCP apply_variables
 #   推入画布做「token 活体预览」；Figma「PoLang UI Spec」仅作历史参考，不再维护。
 # Arbot 作为首选设计预览/迭代工具：结构与样式可视化以 Arbot 画布为准，最终以 token JSON 落地。
-# 地面真值:specs/screens/refs/android/camera-<state>.{png,txt}(真机截图+a11y 实测)。
+# 地面真值:docs/08-UI-SPECS/screens/refs/android/camera-<state>.{png,txt}(真机截图+a11y 实测)。
 # ⚠️ 教训:文案/结构以 a11y 实测为准,勿从本 yaml 推测(曾致 FULL/三分/黄金 全错)。
 # 瘦身进度:beauty_panel 段已完成(模板),其余段随对齐推进逐步瘦身。
 

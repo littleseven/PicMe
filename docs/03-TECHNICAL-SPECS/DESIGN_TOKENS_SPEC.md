@@ -6,7 +6,7 @@
 > - SSOT：`shared/src/commonMain/resources/design-tokens.json`（v2.0.0）
 > - 生成器：`scripts/gen-design-tokens.py`（含 `--check` 校验模式）
 > - Ardot 双向同步：`scripts/sync-ardot-variables.py`（用法/故障排查见 `.kimi-code/ARDOT_MCP.md` §Token 同步工作流；三向语义见 §9）
-> - Ardot 快照入库：`scripts/export-ardot-snapshot.py` → `specs/screens/refs/ardot/`（云端文档导不出可编辑源文件，结构 JSON + PNG 快照是本地 git 管理形态；改画布后重跑、diff 审查）
+> - Ardot 快照入库：`scripts/export-ardot-snapshot.py` → `docs/08-UI-SPECS/screens/refs/ardot/`（云端文档导不出可编辑源文件，结构 JSON + PNG 快照是本地 git 管理形态；改画布后重跑、diff 审查）
 > - Android 生成物：`androidApp/.../core/designsystem/`（`Spacing` / `AppShapes` / `Color` / `Typography` / `DesignTokens.kt` 组件级 token）
 > - Android 手写保留：`Theme.kt`（主题装配逻辑；引用 Color.kt 生成值，色值随 SSOT 自动同步）
 > - iOS 生成物：`iosApp/PoLang/DesignSystem/DesignTokens.swift`

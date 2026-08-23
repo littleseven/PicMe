@@ -2,7 +2,7 @@
 
 - **日期**：2026-08-11
 - **分支**：`fix/ios-gallery-crop`（commit `e74fd863`，已 merge `--no-ff` 入 main `60115682`）
-- **模式**：B（功能追齐），spec 基线 `specs/screens/gallery-grid.yaml`（R3 / gap#5）
+- **模式**：B（功能追齐），spec 基线 `docs/08-UI-SPECS/screens/gallery-grid.yaml`（R3 / gap#5）
 
 ## 根因
 

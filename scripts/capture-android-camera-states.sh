@@ -3,11 +3,11 @@
 # 采集相机页各状态的真机截图 + uiautomator dump(地面真值)。
 # 交互式:每个状态提示你在设备上进入该状态,回车后抓取。需在你的交互 shell 运行:
 #   ! .worktrees/figma-camera-spec/scripts/capture-android-camera-states.sh [state...]
-# 输出落到 worktree 的 specs/screens/refs/android/camera-<state>.{png,xml}(与脚本位置无关)。
+# 输出落到 worktree 的 docs/08-UI-SPECS/screens/refs/android/camera-<state>.{png,xml}(与脚本位置无关)。
 # 瞬时态(capturing 闪屏 / focusing 对焦环):靠人肉时机抓;抓不到就在提交时标注「未锚定」。
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-OUT="$ROOT/specs/screens/refs/android"
+OUT="$ROOT/docs/08-UI-SPECS/screens/refs/android"
 mkdir -p "$OUT"
 
 STATES=("$@")

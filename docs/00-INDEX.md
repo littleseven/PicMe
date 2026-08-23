@@ -47,6 +47,22 @@
 
 ---
 
+## 文档地图：spec / plan / ADR 集中管理（2026-08-23 起）
+
+> 按**生命周期**分四类，各有唯一的家；由 `scripts/check_doc_sync.py` 检查 4（散逸门禁）机器强制——`*spec*/*plan*/*design*/*adr*` 命名的 git 追踪文档出现在批准目录之外即 FAIL。
+
+| 生命周期 | 唯一位置 | 放什么 | 清理规则 |
+|---|---|---|---|
+| **决策（活）** | [`02-ARCHITECTURE/ADR/`](./02-ARCHITECTURE/ADR/README.md)（索引） | 架构决策记录（why） | 失效即删，编号不复用 |
+| **规范（活）** | [`03-TECHNICAL-SPECS/`](./03-TECHNICAL-SPECS/) + 产品规格于 [`01-PRODUCT/`](./01-PRODUCT/) | 技术/产品规范 SSOT（how） | 随代码原子更新 |
+| **双端 UI 契约（活）** | `docs/08-UI-SPECS/`（内部，不上线） | `PARITY_MASTER_PLAN` + `screens/*.yaml` 逐屏规格 | 随三同步（spec+双端代码+token）更新 |
+| **在途工作文档** | `docs/superpowers/{specs,plans}/`（内部，不上线） | AI 协作设计/执行计划 | **交付即清理**，git 历史即归档 |
+| **时间点快照** | `docs/reviews/` | 审计/验收/复盘报告 | 只增不改 |
+
+> 仓库根与模块目录**不放** spec/plan/design 命名文档（原根 `specs/` 已于 2026-08-23 迁入 `docs/08-UI-SPECS/`）。例外登记于 `scripts/check_doc_sync.py` 的 `DOC_GATE_WHITELIST`。
+
+---
+
 ## 快速导航
 
 - **新人入门** → [FEATURES](./01-PRODUCT/FEATURES.md) → [AGENT_ARCHITECTURE](./02-ARCHITECTURE/AGENT_ARCHITECTURE.md) → [COMMAND_REFERENCE](./04-AGENT-CAPABILITIES/COMMAND_REFERENCE.md)

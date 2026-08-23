@@ -9,8 +9,8 @@ SCREEN="${1:?usage: completeness-check.sh <screen> <state>}"
 STATE="${2:?state required}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-FIGMA_NODES="$ROOT/specs/screens/refs/figma/${SCREEN}-frames-nodes.json"
-IOS_NODES="$ROOT/specs/screens/refs/ios/${SCREEN}-${STATE}.json"
+FIGMA_NODES="$ROOT/docs/08-UI-SPECS/screens/refs/figma/${SCREEN}-frames-nodes.json"
+IOS_NODES="$ROOT/docs/08-UI-SPECS/screens/refs/ios/${SCREEN}-${STATE}.json"
 [ -f "$FIGMA_NODES" ] || { echo "缺 Figma nodes: $FIGMA_NODES"; exit 2; }
 [ -f "$IOS_NODES" ] || { echo "缺 iOS dump: $IOS_NODES(先跑 XCUITest dump 该状态)"; exit 2; }
 

@@ -12,7 +12,7 @@ Android editor（~3,240 行，5 类编辑 + 对话式编辑）已在 main；iOS 
 ## 1. 交付物
 
 ### Stage 2 契约（✅）
-- `specs/screens/editor.yaml` — 16 节完整 spec（结构/状态机/5 面板到元素粒度/渲染管线/Recipe 模型/allowed_differences/platform_differences/i18n）
+- `docs/08-UI-SPECS/screens/editor.yaml` — 16 节完整 spec（结构/状态机/5 面板到元素粒度/渲染管线/Recipe 模型/allowed_differences/platform_differences/i18n）
 - `tmp/ios-follow/editor/contracts.md` — Swift 模型签名 + shared 消费清单
 - `platform_differences` 台账（permission/capabilities/privacy_disclosure）— spec §15
 - design-tokens：`EditorTokens`/`AppSliderTokens`/`ChipTokens` **双端早已就位**，本轮零 token 同步工作
@@ -117,5 +117,5 @@ reviewer 独立通读 8 文件 + FilterColorMatrix/ThumbnailLoader/PhotoSaver，
 ## 5. 断点续跑锚点
 
 - `tmp/ios-follow/editor/state.json`（各阶段状态）
-- `tmp/ios-follow/editor/follow-plan.md`、`contracts.md`、`specs/screens/editor.yaml`
+- `tmp/ios-follow/editor/follow-plan.md`、`contracts.md`、`docs/08-UI-SPECS/screens/editor.yaml`
 - 续跑 `/ios-follow editor` 从第一个非 done 阶段续（本轮 Stage 0-4 done，Stage 5 进行中＝本报告 + 审查闭环）。

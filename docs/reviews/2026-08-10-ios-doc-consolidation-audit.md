@@ -41,7 +41,7 @@
 | D6 | `2026-08-09-ios-spec-test-gaps.md` §一 + `2026-08-09-ios-camera-gallery-gap.md` §1：相机面板(ratio/scene/grid/pro/互斥/composition) ❌ | 已合并 main | 🟡 | 标 ✅ 已实现；相册项保持 |
 | D7 | i18n 计数「239」散见看板/路线图/产品参考 | main 239 准确，但分支 ~323 未体现 | 🟡 | 各处补注「分支 ~323 待合并」 |
 | D8 | `PARITY_MASTER_PLAN.md` §0/§8 A1：「`[PARITY]` 不在 AGENTS.md，P0 待办」 | **已在 `AGENTS.md` §5:236**；A3（README 反链）也已完成 | 🟡 | §0 行标 ✅ 已落实；§8 A1/A3 标完成；§4.1 chat/settings yaml 标 ✅ 已建 |
-| D9 | `PARITY_MASTER_PLAN.md` §3：4 步流程整段抄 `specs/README.md` | 重复 | 🟢 | §3 收敛为交叉引用 README |
+| D9 | `PARITY_MASTER_PLAN.md` §3：4 步流程整段抄 `docs/08-UI-SPECS/README.md` | 重复 | 🟢 | §3 收敛为交叉引用 README |
 | D10 | `camera-gallery-gap.md` §5：zh-Hant「全局缺失」 | 08-10 已补齐 | 🟢 | 标已解决 |
 
 ---

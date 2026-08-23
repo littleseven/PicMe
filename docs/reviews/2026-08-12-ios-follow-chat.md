@@ -3,7 +3,7 @@
 - **日期**: 2026-08-12
 - **模式**: B（功能追齐）
 - **基准端**: Android `features/chat/`（SSOT）
-- **契约基线**: `specs/screens/chat.yaml`
+- **契约基线**: `docs/08-UI-SPECS/screens/chat.yaml`
 - **分支**: `feat/ios-chat-align`
 - **用户裁决**: 全五区深度对齐（A+B1+B2+B3），含反转 spec §11 AI 工程师豁免
 - **关联**: 计划 `tmp/ios-follow/chat/follow-plan.md` · 契约 `tmp/ios-follow/chat/contracts.md`
@@ -30,7 +30,7 @@ chat 页五区经三 Explore agent 全量核查后，gap 分化极大：**聊天
 
 ## 1. Stage 2 契约固化（全五区，已完成）
 
-### 1.1 spec 变更 `specs/screens/chat.yaml`
+### 1.1 spec 变更 `docs/08-UI-SPECS/screens/chat.yaml`
 - **§11 反转**：撤回「AI 工程师模式 iOS Phase 6.3 未实现」「Claude Agent Steps」两条豁免（用户签）。
 - **§12 新增** 上下文附件（photo picker + 72dp 暂存缩略图 + 三意图 chip UNDERSTAND/FIND_SIMILAR/EDIT + 隐私 STRICT）。
 - **§13 新增** JS 工具调用（manifest 暴露 run_gallery_script/draw_chart + 引擎选型 + chart 卡 + 写确认弹窗 + 沙箱徽章）。

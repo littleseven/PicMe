@@ -60,7 +60,7 @@
 
 | # | 节:行 | 漂移 | 修正 |
 |---|---|---|---|
-| C1 | §2.1:93-96 | spec 清单仅列 camera/gallery-grid 两个 yaml | 补 chat/settings/model-download-center，或改「见 `specs/screens/` 目录」 |
+| C1 | §2.1:93-96 | spec 清单仅列 camera/gallery-grid 两个 yaml | 补 chat/settings/model-download-center，或改「见 `docs/08-UI-SPECS/screens/` 目录」 |
 | C2 | §4.4:186 | RTL「iOS 待 Phase 5 验证」 | →「iOS 待 Phase 6.x 验证」（Phase 5 已发） |
 | C3 | §6/参考来源 | 把 2026-08-08 两份 gap-analysis 当「当前实证」引用 | 加日期标注：快照，多数 gap 已关，勿用于当前规划 |
 

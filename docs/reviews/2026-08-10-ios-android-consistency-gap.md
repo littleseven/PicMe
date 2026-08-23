@@ -1,7 +1,7 @@
 # 双端体验一致性差异清单（Android ↔ iOS）
 
 > **目的**：逐屏 code 级结构对齐审计，产出按「用户体感影响」排序的差异清单，驱动对齐工作（**相机页高 ROI 项 #1/#3 已于 2026-08-10 对齐合并 main**；下一优先见 §0 策略）。
-> **基准**：Android `main` 为 ground truth；契约 SSOT = `specs/screens/*.yaml`（camera/gallery-grid/chat/settings/model-download-center）。
+> **基准**：Android `main` 为 ground truth；契约 SSOT = `docs/08-UI-SPECS/screens/*.yaml`（camera/gallery-grid/chat/settings/model-download-center）。
 > **方法**：5 个并行只读 subagent 逐屏比对 Android Compose 实现 vs iOS SwiftUI 实现；高严重度项附双侧 `文件:行` 证据。一致性框架见 [`IOS_ANDROID_UI_PARITY.md`](../03-TECHNICAL-SPECS/IOS_ANDROID_UI_PARITY.md) §0。
 > **日期**：2026-08-10 · 真机 baseline 已采（iPhone 15，`scripts/auto_test_output/ios_20260810_005256/`）。
 > **图例**：🔴 需一致层（信息层级/布局/功能默认/文案状态/触发时机/无障碍） · 🟢 允许平台原生差异 · 体感：高=每次用都察觉/核心流；中=细心用户察觉/边缘；低=几乎不察觉。
@@ -44,7 +44,7 @@
 | 17 | 美颜角标绿≠accent / 面板高 38%≠35% / 滤镜面板 53%≠50% | 相机 | 低 | 极低 | token 已有正确值 |
 | 18 | 相机左列 返回/Reset no-op | 相机 | 中（返回断链） | 低 | 接线 dismiss/重置 |
 
-> **策略**：~~相机是下一步重点~~ ✅ **相机高 ROI 项 #1（快门 token+黑闪+反馈）/ #3（右列 4 面板）已于 2026-08-10 对齐合并 main**（`f050d6ea`/`262bf406`/`0267b62f`/`19ae5942`/`04b912fa`/`e965445e`）。剩 #8（十字星接人脸）→ #9（makeup/滤镜）→ #6（录像，大工程留后）属 **G5 功能深化**（见 `IOS_TASK_STATUS.md` §6.6）。~~聊天的两个 bug（#13）~~ ✅ 已修（08-12 批次）。~~#12 流式节奏器~~ ✅（`b0b58dff2`）。#14 聊天富消息 🔄 6/11 在用（08-15 批次①②）；#7 设置账号 🔄 大部分落地（`85b686ae3`，缺清除访客）；#10 AI 记忆仍非功能骨架。**08-16 后下一步建议**（~~相机深化优先~~ → **2026-08-16 用户拍板优先级调整**）：**相册 + 聊天优先追齐**（速赢 → 功能深化 → 大工程分批），设置页涉及项随批次一并补齐；**相机线冻结**（2026-08-16 决策：双端相机页 UI 一致性问题收敛后生效——剩余相机 UI 对齐项为**冻结前最后一批相机投入**，收敛后不再投入 parity 打磨；G5 功能深化取消；Android 场景面板移除为冻结前收尾，见 §3 分类口径）。**所有 UI 调整必须走 ui-parity-guard 三同步闭环**（spec → token codegen → 双端实现），且**先在 Ardot 画布创建页面预览**（`sync-ardot-variables.py` 推 token / `export-ardot-snapshot.py` 快照入库 `specs/screens/refs/ardot/`），防漂移。
+> **策略**：~~相机是下一步重点~~ ✅ **相机高 ROI 项 #1（快门 token+黑闪+反馈）/ #3（右列 4 面板）已于 2026-08-10 对齐合并 main**（`f050d6ea`/`262bf406`/`0267b62f`/`19ae5942`/`04b912fa`/`e965445e`）。剩 #8（十字星接人脸）→ #9（makeup/滤镜）→ #6（录像，大工程留后）属 **G5 功能深化**（见 `IOS_TASK_STATUS.md` §6.6）。~~聊天的两个 bug（#13）~~ ✅ 已修（08-12 批次）。~~#12 流式节奏器~~ ✅（`b0b58dff2`）。#14 聊天富消息 🔄 6/11 在用（08-15 批次①②）；#7 设置账号 🔄 大部分落地（`85b686ae3`，缺清除访客）；#10 AI 记忆仍非功能骨架。**08-16 后下一步建议**（~~相机深化优先~~ → **2026-08-16 用户拍板优先级调整**）：**相册 + 聊天优先追齐**（速赢 → 功能深化 → 大工程分批），设置页涉及项随批次一并补齐；**相机线冻结**（2026-08-16 决策：双端相机页 UI 一致性问题收敛后生效——剩余相机 UI 对齐项为**冻结前最后一批相机投入**，收敛后不再投入 parity 打磨；G5 功能深化取消；Android 场景面板移除为冻结前收尾，见 §3 分类口径）。**所有 UI 调整必须走 ui-parity-guard 三同步闭环**（spec → token codegen → 双端实现），且**先在 Ardot 画布创建页面预览**（`sync-ardot-variables.py` 推 token / `export-ardot-snapshot.py` 快照入库 `docs/08-UI-SPECS/screens/refs/ardot/`），防漂移。
 
 ---
 
@@ -78,7 +78,7 @@
 >
 > 🔄 **2026-08-16 复核**：相-3 分组模式 **FACE/PERSON 已实做**（`GalleryViewModel.swift:174-210`，hasFace 两分组 + faceId 分组；`489bf503f`+`7b674428b`），**LANDSCAPE/LOCATION 可点但仍为「待扫描」占位组、不筛选**（`GalleryViewModel.swift:211-216`，Android 按 labels/city 真分组）；相-9 PhotoInfo 补 Location 纯文本地名（`MediaPagerView.swift:541-543`，无 lat/lon、不可点跳地图）。
 > ✅ **2026-08-16 批次A速赢已落地**：相-5 长按大图→编辑器+medium 触感（视频页无长按）· 相-10 删除确认收敛为仅系统 PHAsset 窗（app 层 confirmationDialog 两处移除+孤儿 key 清理）· 相-13 相邻页预热激活（`preloadAround()` ±2 页 1600²，PHCachingImageManager）· 相-14 空相册格言占位（复用 `SplashPlaceholder`；spec 漂移同步修正+**Ardot 画布 Gallery 页 `gallery/empty` 预览已建并快照入库**）。
-> ✅ **2026-08-16 批次B相册功能深化已落地**（真机验证绿）：相-3 尾部 **LANDSCAPE 关键词筛选单组（74 词同源 Android LANDSCAPE_SCENES）+ LOCATION 按城市分组+无位置兜底组**（spec 同步修正：LANDSCAPE 实为筛选非按标签分组；`TagDatabase` 新增 labels/city 查询）· 相-4 **拖拽批量选择**（`69dd8c8d7` 修正版：纯 0.4s 长按进选择 + 选择模式网格层拖拽扫格+方向守卫——首版 sequenced 手势与滚动并行识别致上下滑误触，已回退该路径；取舍：失去「长按后不松手连续拖」）· 相-9 **PhotoInfo 补齐至 spec 全字段**（+来源/美学评分/人脸三行/标签 FlowRow/OCR 段；位置行可点 MKMapItem 跳地图）。**Ardot 画布 Gallery 页补 `gallery/info`+`gallery/grid` 两帧**（快照入库，共 3 帧）。**仍缺**：相-6 视频播放（全 app 无 AVPlayer）· ~~相-8 证件照~~（✅ 08-16 `/ios-follow idphoto`：toast 占位已替换为 fullScreenCover 全流程，spec `specs/screens/idphoto.yaml`；chat 入口待 chat MediaPager）。
+> ✅ **2026-08-16 批次B相册功能深化已落地**（真机验证绿）：相-3 尾部 **LANDSCAPE 关键词筛选单组（74 词同源 Android LANDSCAPE_SCENES）+ LOCATION 按城市分组+无位置兜底组**（spec 同步修正：LANDSCAPE 实为筛选非按标签分组；`TagDatabase` 新增 labels/city 查询）· 相-4 **拖拽批量选择**（`69dd8c8d7` 修正版：纯 0.4s 长按进选择 + 选择模式网格层拖拽扫格+方向守卫——首版 sequenced 手势与滚动并行识别致上下滑误触，已回退该路径；取舍：失去「长按后不松手连续拖」）· 相-9 **PhotoInfo 补齐至 spec 全字段**（+来源/美学评分/人脸三行/标签 FlowRow/OCR 段；位置行可点 MKMapItem 跳地图）。**Ardot 画布 Gallery 页补 `gallery/info`+`gallery/grid` 两帧**（快照入库，共 3 帧）。**仍缺**：相-6 视频播放（全 app 无 AVPlayer）· ~~相-8 证件照~~（✅ 08-16 `/ios-follow idphoto`：toast 占位已替换为 fullScreenCover 全流程，spec `docs/08-UI-SPECS/screens/idphoto.yaml`；chat 入口待 chat MediaPager）。
 
 | # | 子区 | 差异 | 证据 | 体感 |
 |---|---|---|---|---|
@@ -218,7 +218,7 @@
 
 ## §6 方法论与下一步
 
-- **契约 SSOT**：`specs/screens/*.yaml`（camera/gallery-grid/chat/settings/model-download-center）。对齐 = iOS 实现 → yaml 契约（yaml 镜像 Android）。
+- **契约 SSOT**：`docs/08-UI-SPECS/screens/*.yaml`（camera/gallery-grid/chat/settings/model-download-center）。对齐 = iOS 实现 → yaml 契约（yaml 镜像 Android）。
 - **真机验证**：`./scripts/ios-auto-dev-loop.sh --quick --screenshot <name>`（baseline 已采，iPhone 15）。相机视觉类改动用 before/after 截图 + syslog 崩溃检查。
 - **下一步**：~~相机页对齐（T7b）~~ ✅ **已完成并合并 main（2026-08-10）**——快门 token 启用+黑闪+反馈（`f050d6ea`）+ 右列 4 面板（比例/网格/场景/ProMode + 面板互斥状态机，`262bf406`/`0267b62f`/`19ae5942`/`04b912fa`/`e965445e`）。§3 剩余 #8 十字星接人脸 / #9 makeup·风格滤镜 / #6 录像属 **G5 功能深化**（见 [`IOS_TASK_STATUS.md`](../01-PRODUCT/IOS_TASK_STATUS.md) §6.6 / [`plans/2026-08-10-ios-implementation-tasks.md`](../superpowers/plans/2026-08-10-ios-implementation-tasks.md) T9）。
 - **2026-08-16 下一步（优先级调整后）**：~~批次A 速赢~~ ✅ **已落地**（相-5/10/13/14 + 聊-2 + demo 文案 i18n；spec 修正 + Ardot Gallery/empty 预览 + 快照入库 + 导出脚本多页化）。~~批次B 相册功能~~ ✅ **已落地**（LANDSCAPE/LOCATION 分组真实现 · PhotoInfo 全字段 · 拖拽多选；Ardot Gallery 页 3 帧入库；device 构建+真机 dev-loop 全过）。→ **批次C 聊天③+设置涉及项**（JS 写操作+确认弹窗 · 消息类型产生源 · 清除访客/AI 记忆等随批）→ **大工程**（视频播放 · 证件照 · 语音输入 · 抽卡）。相机 G5 暂缓；Android 场景面板移除待办保留。UI 类改动一律先 Ardot 页面预览。
