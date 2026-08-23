@@ -80,10 +80,15 @@ UI Language 集不进 push/pull/check 门禁，双向同步零污染。
 1. **`scripts/ardot-preview-mode.sh` 增加 `--lang en|zh`**：向帧写 UI Language 的
    variableModes override；与 theme override 并存（variableModes 为数组，同帧可同时挂
    两个 set 的 override——并存性列入 Step 0 验证项）。`auto` 语义=移除 lang override。
+   > **Step 0 实测修正（2026-08-23）**：override 无法用 `null`/`[]` 移除（静默 no-op），且数组
+   > 写入是 merge 语义；`auto` 须实现为「写回 English 默认 mode」。见 probe-record.md §5。
 2. **zh 版快照 pass**：「临时 override → export → 还原」，产物入 refs（命名如
    `gallery-grid-zh.png`），同浅色预览法先例。
-3. **structure.json diff 语义**：文本绑定后 `characters` 字段可能导出解析值或变引用——
-   Step 0 确认实际形态后在此处注明，避免快照审查误判。
+3. **structure.json diff 语义（Step 0 实测，2026-08-23）**：已绑定文本节点的 `characters`
+   导出为**引用字符串**（如 `"$182:135"`），与 fills（`"$2:149"`）、fontSize（`"$2:114"`）
+   同构；未绑定节点仍导出字面量。快照 diff 中绑定操作表现为 `相册 → $182:135` 的
+   characters 变更——**这是绑定而非数据丢失，审查勿误判**。详见
+   `docs/08-UI-SPECS/screens/lang/probe-record.md` §6。
 
 ## 5. 实施顺序（风险驱动）
 
@@ -131,9 +136,9 @@ Step 5 people 2 帧补绑 + 命名收敛 + 删 _zh 物理帧
 
 | 风险 | 缓解 |
 |------|------|
-| TEXT_CONTENT 绑定未实证（绑定地图缺口） | Step 0 探针硬门；失败回落纯英文方案 |
-| 双 override 并存未验证 | 探针项 ③ |
+| TEXT_CONTENT 绑定未实证（绑定地图缺口） | Step 0 探针硬门；失败回落纯英文方案。**已实证可行（2026-08-23 GO）**：`U(node,{characters:"$varId"})`，见 probe-record.md §2 |
+| 双 override 并存未验证 | 探针项 ③。**已实证并存可用（2026-08-23）**；但 override 移除须写回默认 mode，见 probe-record.md §5 |
 | ~400 次绑定操作量大 | 逐页分批、batch_edit 逐 op 回 id、子代理可并行页级任务 |
-| 绑定后画布直改文案工效变化 | 探针项 ⑤；若直改即破坏绑定，约定「文案改动走变量面板」并写入 spec |
+| 绑定后画布直改文案工效变化 | 探针项 ⑤；若直改即破坏绑定，约定「文案改动走变量面板」并写入 spec。**该项延后**：需桌面端人工协助，Step 0 未验证（2026-08-23 控制器安排），工效约定待补 |
 | export 渲染缓存冷致空白帧 | 已知问题，终局 stat <5KB 检查 + MCP capture 恢复套路 |
 | 相机帧 refs 中 PNG 空白（camera-idle.png 3.2KB） | 既有问题非本任务引入，另行处理 |
