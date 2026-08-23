@@ -138,31 +138,34 @@ set -- "${args[@]}"
 ```
 （原 `FRAME="${1:?…}"; MODE="${2:?…}"; shift 2` 与 `--shot` 解析保持不变，置于本段之后。）
 
-`case "$MODE"` 构造 `MODE_JSON` 处，把单对象改为组装数组，并在 auto（还原主题）时仍允许仅写 lang 项：
+`case "$MODE"` 构造 `MODE_JSON` 处，把单对象改为组装数组，`auto` 还原=写回默认（Dark/English）——null/[] 是静默 no-op（probe-record.md §5）：
 
 ```bash
 entries=""
 case "$MODE" in
   light) entries="{\"variableSetId\":\"$SET_ID\",\"modeId\":\"$LIGHT_ID\"}" ;;
   dark)  entries="{\"variableSetId\":\"$SET_ID\",\"modeId\":\"$DARK_ID\"}" ;;
-  auto)  entries="" ;;
+  # null/[] 是静默 no-op（probe-record §5 实证），还原=显式写回默认 Dark
+  auto)  entries="{\"variableSetId\":\"$SET_ID\",\"modeId\":\"$DARK_ID\"}" ;;
 esac
 case "${LANG_MODE:-}" in
-  en) entries="${entries:+$entries,}{\"variableSetId\":\"$LANG_SET_ID\",\"modeId\":\"$LANG_EN_ID\"}" ;;
-  zh) entries="${entries:+$entries,}{\"variableSetId\":\"$LANG_SET_ID\",\"modeId\":\"$LANG_ZH_ID\"}" ;;
-  auto) : ;;
+  en)  entries="${entries:+$entries,}{\"variableSetId\":\"$LANG_SET_ID\",\"modeId\":\"$LANG_EN_ID\"}" ;;
+  zh)  entries="${entries:+$entries,}{\"variableSetId\":\"$LANG_SET_ID\",\"modeId\":\"$LANG_ZH_ID\"}" ;;
+  # --lang auto 还原=写回 English 默认 mode（同上，null 无效）
+  auto) entries="${entries:+$entries,}{\"variableSetId\":\"$LANG_SET_ID\",\"modeId\":\"$LANG_EN_ID\"}" ;;
+  "")  : ;;  # 未传 --lang：不触碰 lang override
 esac
-if [ -n "$entries" ]; then MODE_JSON="[$entries]"; else MODE_JSON="null"; fi
+MODE_JSON="[$entries]"
 ```
 
 - [ ] **Step 1.2 验证三态**
 
 ```bash
 scripts/ardot-preview-mode.sh 105:45 dark --lang zh --shot /tmp/t1.png   # OK + 中文截图
-scripts/ardot-preview-mode.sh 105:45 auto --lang auto                    # OK（还原 null）
+scripts/ardot-preview-mode.sh 105:45 auto --lang auto                    # OK（还原=写回默认 Dark/English；null 是 no-op）
 scripts/ardot-preview-mode.sh 105:45 light --lang zh --shot /tmp/t2.png  # OK + 浅色中文并存
 ```
-Read 核验 /tmp/t1.png、/tmp/t2.png（t2 若非浅色 → 回看 Step 0.6 结论按全量数组策略修正）。验证后 `105:45` 还原 auto/auto。
+Read 核验 /tmp/t1.png、/tmp/t2.png（t2 若非浅色 → 回看 Step 0.6 结论按全量数组策略修正）。验证后 `105:45` 还原 auto/auto，并 `--shot` 截图确认渲染回到 Dark+English——不能只看 OK 响应（no-op 也回 success）。
 
 - [ ] **Step 1.3 提交**
 
@@ -597,6 +600,8 @@ git add -A docs/ && git commit -m "feat(ardot): people/tag_control 补绑+命名
 39 帧 `capture_layout problemsOnly` 全绿（对照：修复记录均在 CSV note 列，无新增 OUTSIDE_PARENT/裁字）。
 
 - [ ] **Step 8.3 zh 模式全页抽查**
+
+页根 override 继承未在探针验证（仅帧根实证）——首次对 103:1 写 override 后先单帧截图确认继承生效，再进入循环。
 
 ```bash
 for p in 103:1 108:1 111:319 118:104 171:1; do scripts/ardot-preview-mode.sh $p dark --lang zh --shot /tmp/zh-$p.png; done

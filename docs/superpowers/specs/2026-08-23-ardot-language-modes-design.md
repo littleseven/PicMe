@@ -81,7 +81,7 @@ UI Language 集不进 push/pull/check 门禁，双向同步零污染。
    variableModes override；与 theme override 并存（variableModes 为数组，同帧可同时挂
    两个 set 的 override——并存性列入 Step 0 验证项）。`auto` 语义=移除 lang override。
    > **Step 0 实测修正（2026-08-23）**：override 无法用 `null`/`[]` 移除（静默 no-op），且数组
-   > 写入是 merge 语义；`auto` 须实现为「写回 English 默认 mode」。见 probe-record.md §5。
+   > 写入是 merge 语义；`auto` 须实现为「写回 English 默认 mode」。见 docs/08-UI-SPECS/screens/lang/probe-record.md §5。
 2. **zh 版快照 pass**：「临时 override → export → 还原」，产物入 refs（命名如
    `gallery-grid-zh.png`），同浅色预览法先例。
 3. **structure.json diff 语义（Step 0 实测，2026-08-23）**：已绑定文本节点的 `characters`

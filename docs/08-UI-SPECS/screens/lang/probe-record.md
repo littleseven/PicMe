@@ -40,7 +40,9 @@ U("<nodeId>", {characters:"$<varId>"})
 - **解绑单节点**：字面量覆写 `U("<nodeId>", {characters:"相册"})`
   ——实测 characters 回字面量、boundVariables.characters 条目消失（fontSize/fills 保留）。
   注意：解绑后渲染不再随 mode 切换，勿留半解绑态。
+  另注：memory 警告「U 对已绑属性传纯值=静默 no-op」不适用于 characters 解绑——探针实测字面量覆写即真解绑（boundVariables 条目消失）。
 - **删变量集**：`apply_variables` 传 `replace:true` 且不含该集（未在本探针执行，备查）。
+- ⚠️ `replace:true` 语义=输入中未出现的变量集全删——直接以最小载荷执行本配方会把 PoLang Tokens（437 变量）一并清掉。安全做法：先 `fetch_variables` 取全量，以「全量减 UI Language」为载荷；或直接在桌面端 UI 删集。
 
 ## 4. mode 切换验证（Step 0.5 通过）
 
