@@ -1812,6 +1812,111 @@
    "status": "created",
    "key": "tag_stage_full_note",
    "ardotId": "184:81"
+  },
+  "settings.provider.tag.configured": {
+   "zh": "已配置",
+   "en": "Configured",
+   "status": "created",
+   "key": "remote_model_configured",
+   "ardotId": "185:17"
+  },
+  "settings.provider.tag.coming": {
+   "zh": "即将支持",
+   "en": "Coming soon",
+   "status": "created",
+   "key": "provider_coming_soon",
+   "ardotId": "185:18"
+  },
+  "settings.provider.openai.subtitle": {
+   "zh": "GPT-5 · GPT-4.1 等 4 个预置模型",
+   "en": "GPT-5 · GPT-4.1 · 4 preset models",
+   "status": "created",
+   "key": "provider_preset_models_summary",
+   "ardotId": "185:19"
+  },
+  "settings.provider.anthropic.subtitle": {
+   "zh": "Claude Sonnet 4.5 等 3 个预置模型",
+   "en": "Claude Sonnet 4.5 · 3 preset models",
+   "status": "created",
+   "key": "provider_preset_models_summary",
+   "ardotId": "185:20"
+  },
+  "settings.provider.deepseek.subtitle": {
+   "zh": "DeepSeek V4 · R1 系列",
+   "en": "DeepSeek V4 · R1 series",
+   "status": "created",
+   "ardotId": "185:21"
+  },
+  "settings.provider.kimi.subtitle": {
+   "zh": "Kimi K2.5 等预置模型",
+   "en": "Kimi K2.5 · preset models",
+   "status": "created",
+   "ardotId": "185:22"
+  },
+  "settings.provider.tokenhub.subtitle": {
+   "zh": "混元 · DeepSeek 聚合网关",
+   "en": "Hunyuan · DeepSeek aggregation gateway",
+   "status": "created",
+   "ardotId": "185:23"
+  },
+  "settings.provider.zhipu.subtitle": {
+   "zh": "GLM-5 · GLM-4.6 系列",
+   "en": "GLM-5 · GLM-4.6 series",
+   "status": "created",
+   "key": "provider_zhipu_subtitle",
+   "ardotId": "185:24"
+  },
+  "settings.provider.openrouter.subtitle": {
+   "zh": "200+ 模型聚合 · OpenAI 兼容",
+   "en": "200+ models · OpenAI compatible",
+   "status": "created",
+   "key": "provider_openrouter_subtitle",
+   "ardotId": "185:25"
+  },
+  "settings.provider.custom.name": {
+   "zh": "自定义供应商",
+   "en": "Custom Provider",
+   "status": "created",
+   "key": "custom_provider_name",
+   "ardotId": "185:26"
+  },
+  "settings.provider.custom.subtitle": {
+   "zh": "OpenAI 兼容协议 · 自定义 Base URL",
+   "en": "OpenAI-compatible · custom Base URL",
+   "status": "created",
+   "key": "custom_provider_subtitle",
+   "ardotId": "185:27"
+  },
+  "settings.provider.official.summary": {
+   "zh": "官方服务 · OpenAI 协议",
+   "en": "Official service · OpenAI protocol",
+   "status": "created",
+   "key": "provider_summary_official",
+   "ardotId": "185:28"
+  },
+  "settings.model.gpt5.desc": {
+   "zh": "旗舰模型 · 支持工具调用",
+   "en": "Flagship · Tool calling supported",
+   "status": "created",
+   "ardotId": "185:29"
+  },
+  "settings.model.gpt5mini.desc": {
+   "zh": "更快、更低成本",
+   "en": "Faster, more cost-effective",
+   "status": "created",
+   "ardotId": "185:30"
+  },
+  "settings.model.gpt41.desc": {
+   "zh": "100 万 token 长上下文",
+   "en": "1M-token context",
+   "status": "created",
+   "ardotId": "185:31"
+  },
+  "settings.model.gpt4o.desc": {
+   "zh": "多模态 · 成熟稳定",
+   "en": "Multimodal · Mature and stable",
+   "status": "created",
+   "ardotId": "185:32"
   }
  }
 }

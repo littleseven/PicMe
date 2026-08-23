@@ -21,10 +21,10 @@ people/grid,171:84,person_name,添加名字,Add name,matched,person.edit.name.hi
 people/grid,171:83,chip_label,+ 添加关系,+ Add relation,manual,person.relation.add,bind,canvas 带 + 前缀;key person_relation_add(EN=Add relation/添加关系),+ Add relation,171:83
 people/detail,171:91,title,编辑人物,Edit Person,manual,person.info.title,bind,canvas 大写 Person;key person_info_title(EN=Edit person),Edit Person,171:91
 people/detail,171:101,label,姓名,NAME,manual,people.detail.label.name,bind,全大写节标签;key person_name_label(EN=Name),NAME,171:101
-people/detail,171:103,name_value,Alex Chen,Alex Chen,manual,people.detail.name.value,bind,slot 虚构人名 zh 保留,Alex Chen,171:103
+people/detail,171:103,name_value,Alex Chen,Alex Chen,manual,people.detail.name.value,bind,slot 虚构人名 zh 保留;no-anchor noop,Alex Chen,171:103
 people/detail,171:107,me_label,这是我,This is me,matched,person.is.self,bind,,This is me,171:107
 people/detail,171:109,section_title,关系,Relationship,manual,people.detail.section.relationship,bind,slot;app person_relation_label 文异(This person is my…/TA 是我的…),Relationship,171:109
-people/detail,171:110,family_label,家庭,FAMILY,manual,people.detail.label.family,bind,全大写节标签;key person_relation_group_family,FAMILY,171:110
+people/detail,171:110,family_label,家庭,FAMILY,manual,people.detail.label.family,bind,全大写节标签;key person_relation_group_family;layout-fix: 171:111 wrap 惰性未重算(Task7 EN 变宽)→轻推 width/gap 触发,6 chips 两行全显对标 PersonRelationPicker.kt:119 FlowRow,FAMILY,171:110
 people/detail,171:113,Father,爸爸,Father,matched,person.relation.father,bind,,Father,171:113
 people/detail,171:115,Mother,妈妈,Mother,matched,person.relation.mother,bind,,Mother,171:115
 people/detail,171:117,Brother,哥哥,Brother,manual,person.relation.brother,bind,slot;app 仅 person_relation_elder_brother(哥哥)/sibling(兄弟姐妹),Brother,171:117
