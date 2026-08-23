@@ -1,1 +1,1 @@
-Private AI photo gallery: semantic search, search by image, edit — on-device.
+Private AI photo gallery: search by image, organize & edit photos on-device.

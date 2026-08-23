@@ -69,4 +69,5 @@ google-play-listing/<locale>/
 - ⚠️ 03/04/06 源图含真实人物照片与人名（内部测试数据），上架前确认可公开使用，否则重新截取替换
 - 📤 **上传方式**：当前图形素材手动传 Console；如需纳入自动化，迁入 GPP 约定目录 `androidApp/src/main/play/listings/<lang>/graphics/{feature-graphic,phone-screenshots}/` 后即可随 `publishListing` 上传（维度约束见运维手册）
 
-> 策略与关键词地图见 `docs/superpowers/specs/2026-08-08-google-play-aso-design.md`。
+> 策略与关键词地图见 `docs/superpowers/specs/2026-08-08-google-play-aso-design.md`（第二轮迭代见其 §7）。
+> 检索词台账（词表分层/覆盖计数/双周搜索词报告记录）：`google-play-listing/keyword-ledger.md`（2026-08-24 起）。
