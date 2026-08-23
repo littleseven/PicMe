@@ -1,0 +1,24 @@
+{
+ "bindStyle": "characters:$",
+ "endpoint": "http://127.0.0.1:50501/api/v1/mcp",
+ "variables": {
+  "gallery.title": {
+   "zh": "相册",
+   "en": "Gallery",
+   "status": "created",
+   "ardotId": "182:135"
+  },
+  "gallery.today": {
+   "zh": "今天",
+   "en": "Today",
+   "status": "created",
+   "ardotId": "182:136"
+  },
+  "gallery.yesterday": {
+   "zh": "昨天",
+   "en": "Yesterday",
+   "status": "created",
+   "ardotId": "182:137"
+  }
+ }
+}
