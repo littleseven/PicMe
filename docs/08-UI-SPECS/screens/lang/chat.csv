@@ -1,5 +1,5 @@
 frame,node_id,name,zh,en,source,var,action,note,text,id
-chat/empty,111:341,EmptyTitle,你好，我是智能助手小浪,"Hi, I\'m Xiaolang",matched,chat.empty.welcome,bind,,你好，我是智能助手小浪,111:341
+chat/empty,111:341,EmptyTitle,你好，我是智能助手小浪,"Hi, I'm Xiaolang",matched,chat.empty.welcome,bind,,你好，我是智能助手小浪,111:341
 chat/empty,111:343,EmptySubtitle,我能搜相册·修图·调美颜·找人找场景，随便问！,"Search, edit, beautify — ask me anything!",matched,chat.empty.capabilities,bind,,我能搜相册·修图·调美颜·找人找场景，随便问！,111:343
 chat/empty,111:346,TryLabel,试试这些：,Try these:,manual,chat.empty.try.label,bind,"虚构:老设计标签,无 strings key",试试这些：,111:346
 chat/empty,111:540,chipText,找去年夏天的照片,Find photos from last summer,manual,chat.example.prompt.last.summer,bind,"manual→array chat_example_prompts_search[0](ChatEmptyState.kt:141 stringArrayResource); layout-fix: chips 2列→1列×6行(任意两枚 EN chip 并列>393,单枚最大258;行序保持阅读序)+flexSpacer 198→86 补高",找去年夏天的照片,111:540
@@ -11,7 +11,7 @@ chat/empty,111:555,chipText,按标签和时间交叉分析我的照片,Cross-ana
 chat/empty,111:366,InputPlaceholder,向 AI 助手提问…,Ask AI Agent...,matched,chat.input.hint,bind,"multi:ai_agent_input_hint,chat_input_hint,floating_chat_input_hint→chat_input_hint(ChatScreen.kt:1982 主聊天输入;ai_agent=AiChatPanel,floating=悬浮泡)",向 AI 助手提问…,111:366
 chat/empty,111:371,ModelName,deepseek-v4-flash,deepseek-v4-flash,literal,,skip,"data; layout-fix: 节点已删(ModelCapsule 111:369)—EN 底栏总固有宽 401>337,Voice/Send 按钮压尾字致 AI Engin 截断;app 已移除 model 胶囊(ChatScreen.kt:2023),画布滞后同步",deepseek-v4-flash,111:371
 chat/empty,111:375,GalleryLabel,相册,Gallery,matched,gallery.title,bind,"multi:gallery,gallery_settings→gallery(ChatScreen.kt:2029 底栏);复用 Task3 gallery.title; layout-fix: 底栏容器密度收敛(旧设计多塞 model chip 致 EN 溢出;app 已移除 model 胶囊,ChatScreen.kt:2023): chip padding 10→6/gap 8→6,内 gap 6→5",相册,111:375
-chat/empty,111:379,EngineerLabel,AI 工程师,AI Engineer,matched,claude.icon.desc,bind,; layout-fix: 同 111:375 底栏密度收敛,AI 工程师,111:379
+chat/empty,111:379,EngineerLabel,AI 工程师,AI Engineer,matched,claude.icon.desc,bind,layout-fix: 同 111:375 底栏密度收敛,AI 工程师,111:379
 chat/conversation,111:567,AgentText1,根据刚才的数据，大宝的照片有 262 张，是所有已命名人物中出现频次最高的。,"Based on that data, Dabao has 262 photos — the highest count among all named people.",manual,chat.conv.agent.reply.stats,bind,"虚构:设计示例回复,语义翻译(EN 自然对话体)",根据刚才的数据，大宝的照片有 262 张，是所有已命名人物中出现频次最高的。,111:567
 chat/conversation,111:568,PerfRow1,8818 tok · 53 · 1830ms · 29.0 t/s,8818 tok · 53 · 1830ms · 29.0 t/s,literal,,skip,data,8818 tok · 53 · 1830ms · 29.0 t/s,111:568
 chat/conversation,111:403,UserText,去年大宝的照片,Photos of Dabao from last year,manual,chat.conv.user.query,bind,"虚构:示例用户消息,语义翻译",去年大宝的照片,111:403
@@ -24,7 +24,7 @@ chat/conversation,111:575,PerfRow2,17649 tok · 149 · 2400ms · 62.1 t/s,17649 
 chat/conversation,111:475,InputPlaceholder,向 AI 助手提问…,Ask AI Agent...,matched,chat.input.hint,bind,同 111:366,向 AI 助手提问…,111:475
 chat/conversation,111:480,ModelName,deepseek-v4-flash,deepseek-v4-flash,literal,,skip,"data; layout-fix: 节点已删(ModelCapsule 111:478)—同 111:371 根因(EN 401>337 重叠 64px)",deepseek-v4-flash,111:480
 chat/conversation,111:484,GalleryLabel,相册,Gallery,matched,gallery.title,bind,multi 消歧同 111:375; layout-fix: 同 111:375 底栏密度收敛(conversation 帧),相册,111:484
-chat/conversation,111:488,EngineerLabel,AI 工程师,AI Engineer,matched,claude.icon.desc,bind,; layout-fix: 同 111:375 底栏密度收敛(conversation 帧),AI 工程师,111:488
+chat/conversation,111:488,EngineerLabel,AI 工程师,AI Engineer,matched,claude.icon.desc,bind,layout-fix: 同 111:375 底栏密度收敛(conversation 帧),AI 工程师,111:488
 chat/sidebar,111:496,SidebarTitle,聊天历史,Chat History,matched,sidebar.title,bind,ChatThreadSidebar.kt:113,聊天历史,111:496
 chat/sidebar,111:506,SearchPlaceholder,搜索历史,Search history,matched,search.history,bind,ChatThreadSidebar.kt:137,搜索历史,111:506
 chat/sidebar,111:510,ThreadTitle,给我一份相册健康报告,Give me a gallery health report,manual,chat.example.prompt.health.report,bind,"同 key 复用 ask[0];zh 升格(线程标题=历史用户消息,源即示例词); layout-fix: width hug→fill_container (EN 223>行宽出界)",给我一份相册健康度报告,111:510
@@ -32,7 +32,7 @@ chat/sidebar,111:511,ThreadPreview,"找到了！去年大宝的照片共有 1,59
 chat/sidebar,111:516,ThreadTitle,新建聊天,New Chat,matched,new.chat,bind,ChatThreadSidebar.kt:121,新建聊天,111:516
 chat/sidebar,111:517,ThreadPreview,是的，我的响应速度一直保持稳定，处理这些测试都是即时返回的…,"Yes, my response speed has stayed consistent — these tests all came back instantly…",manual,chat.sidebar.preview.speed,bind,"虚构:会话预览片段,语义翻译",是的，我的响应速度一直保持稳定，处理这些测试都是即时返回的…,111:517
 chat/sidebar,111:522,ThreadTitle,找有人物的照片,Find photos with people,manual,chat.example.prompt.people,bind,同 key 复用 search[1],找有人物的照片,111:522
-chat/sidebar,111:523,ThreadPreview,去年大宝除了夏天之外的照片已经筛出来了，分两批展示…,"Dabao's photos from last year excluding summer are filtered out, shown in two batches…",manual,chat.sidebar.preview.dabao,bind,"虚构:会话预览片段,语义翻译",去年大宝除了夏天之外的照片已经筛出来了，分两批展示…,111:523
+chat/sidebar,111:523,ThreadPreview,去年大宝除了夏天之外的照片已经筛出来了，分两批展示…,"Dabao's photos from last year excluding summer are ready — shown in two batches…",manual,chat.sidebar.preview.dabao,bind,"虚构:会话预览片段,语义翻译; review-fix: filtered out→ready (筛好了待看,非剔除)",去年大宝除了夏天之外的照片已经筛出来了，分两批展示…,111:523
 chat/sidebar,111:528,ThreadTitle,飞书远程控制,Feishu Remote Control,matched,chat.thread.feishu,bind,,飞书远程控制,111:528
 chat/sidebar,111:529,ThreadPreview,绑定设备后，可在飞书会话中远程控制相册…,"After binding a device, you can control the gallery remotely from a Feishu chat…",manual,chat.sidebar.preview.feishu,bind,"虚构:会话预览片段,语义翻译",绑定设备后，可在飞书会话中远程控制相册…,111:529
 chat/sidebar,111:534,ThreadTitle,找去年夏天的照片,Find photos from last summer,manual,chat.example.prompt.last.summer,bind,同 key 复用 search[0]; layout-fix: width hug→fill_container (EN 212>行宽出界),找去年夏天的照片,111:534
