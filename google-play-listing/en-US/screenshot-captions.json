@@ -1,45 +1,57 @@
 {
-  "note": "Google Play screenshot marketing copy (en-US, default locale). Frames in Ardot page 'Play Store Assets' named <nn>-<scene>/en-US. image = real screenshot from docs-site/assets/.",
+  "note": "Google Play screenshot marketing copy (en-US, default locale). Frames in Ardot page 'Play Store Assets' named <nn>-<scene>/en-US. image = real screenshot from docs-site/assets/shots-src/en-US/ (2026-08-23 device capture, DarkMode English UI, 1200x2670). Spare unused: spare-gallery2.jpg (second gallery grid; Play Console caps phone screenshots at 8). Re-shoot candidate: 03-chat.jpg has a「有脸」chip (Chinese remnant in EN UI). 06 slot swapped library→chat-welcome (2026-08-23, user decision; old 06-library source removed).",
   "shots": [
     {
       "id": "01-gallery",
-      "image": "screenshot-2.jpg",
+      "image": "01-gallery.jpg",
       "headline": "AI gallery,\nperfectly organized",
       "subline": "Auto tagging · People grouping · Smart cleanup"
     },
     {
       "id": "02-search",
-      "image": "screenshot-10.jpg",
+      "image": "02-search.jpg",
       "headline": "Just say it.\nFind any photo.",
       "subline": "Semantic search · Search by image · On-device"
     },
     {
       "id": "03-chat",
-      "image": "screenshot-1.jpg",
-      "headline": "Chat with\nyour gallery",
-      "subline": "Conversational AI that understands every photo"
+      "image": "03-chat.jpg",
+      "headline": "Ask. Refine.\nEdit in chat.",
+      "subline": "Multi-turn retrieval · In-chat photo editing · On-device"
     },
     {
       "id": "04-people",
-      "image": "screenshot-4.jpg",
-      "headline": "Browse by people,\nauto-grouped",
-      "subline": "On-device face recognition · Fully local"
+      "image": "04-people.jpg",
+      "headline": "People graph,\nbuilt from tags",
+      "subline": "Relation graph · Search by relation · On-device"
     },
     {
-      "id": "05-privacy",
-      "image": "screenshot-6.jpg",
-      "headline": "AI runs on-device.\nPhotos stay put.",
-      "subline": "Local models · Works offline · Privacy first"
+      "id": "05-person-groups",
+      "image": "05-person-groups.jpg",
+      "headline": "Face clustering,\n100% on-device",
+      "subline": "Local algorithms · Face vectors × tags · Never uploaded"
     },
     {
-      "id": "06-insight",
-      "image": "screenshot-9.jpg",
+      "id": "06-chat-welcome",
+      "image": "06-chat-welcome.jpg",
+      "headline": "Meet Xiaolang,\nyour photo AI",
+      "subline": "Search · Edit · Beautify · Ask anything"
+    },
+    {
+      "id": "07-insight",
+      "image": "07-insight.jpg",
       "headline": "AI insights for\nyour gallery",
       "subline": "Ask anything — get instant photo stats"
+    },
+    {
+      "id": "08-privacy",
+      "image": "08-privacy.jpg",
+      "headline": "AI runs on-device.\nPhotos stay put.",
+      "subline": "Local models · Works offline · Privacy first"
     }
   ],
   "featureGraphic": {
-    "image": "screenshot-2.jpg",
+    "image": "01-gallery.jpg",
     "headline": "AI Photo Gallery",
     "subline": "Private & on-device · Semantic search · Edit by chat"
   }

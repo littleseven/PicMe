@@ -41,26 +41,32 @@ Google Play **没有独立关键词字段**，它索引标题 + 短描述 + 完�
 
 > 本目录是**商店上架素材**，独立于 App 内 `strings.xml`（应用内显示名）。改动不影响 App 代码。
 
-## 图形素材（2026-08-20 起）
+## 图形素材（2026-08-23 槽位重排：6→8）
 
-每个语言目录：
+每个语言目录（Play Console 手机截图上限 8 张，en-US 已用满）：
 
 ```
 google-play-listing/<locale>/
 ├── feature-graphic.png        1024×500 置顶横幅（Play Console → Main store listing → Feature graphic）
-├── screenshots/               1080×1920 ×6，按顺序上传
-│   ├── 01-gallery.png         AI 智能整理（相册网格）
-│   ├── 02-search.png          自然语言搜索
-│   ├── 03-chat.png            对话式 AI 助手
-│   ├── 04-people.png          人物分组
-│   ├── 05-privacy.png         端侧隐私（模型中心）
-│   └── 06-insight.png         相册洞察
+├── screenshots/               1080×1920 ×8（三语已全部换新；zh-CN 源图复用 zh-TW 繁体截图+简体文案，用户拍板），按顺序上传
+│   ├── 01-gallery.png         AI 智能整理（相册/相簿网格）
+│   ├── 02-search.png          自然语言搜索（chat 同学/同學搜索 + Found/找到 结果）
+│   ├── 03-chat.png            对话式多轮检索 + 聊天中修图（多轮精炼卖点）
+│   ├── 04-people.png          人物关系图谱（标注关系→图谱→按关系搜索）
+│   ├── 05-person-groups.png   自动人脸聚类（本地算法·向量×标签·不上云）
+│   ├── 06-chat-welcome.png    AI 助手欢迎页（小浪/Xiaolang；2026-08-23 替换原 library 槽位）
+│   ├── 07-insight.png         相册洞察（chat 健康报告）
+│   └── 08-privacy.png         端侧隐私（Settings/設定）
 └── screenshot-captions.json   文案 SSOT：标题/副标语 ↔ frame ↔ 源截图的映射
 ```
 
 - 设计与产出在 Ardot 文件页面 **Play Store Assets**：改文案改图在 Ardot 里改 frame（命名 `<序号>-<scene>/<locale>`），`export_nodes` 重新导出即可；文案以 `screenshot-captions.json` 为准同步
-- 源截图为 `docs-site/assets/screenshot-*.jpg`（2026-07 真机截图，UI 如更新需重截重灌）
-- ⚠️ 03/04/06 场景源图含真实人物照片与人名（内部测试数据），上架前确认可公开使用，否则重新截取替换
+- **en-US 源截图 = `docs-site/assets/shots-src/en-US/`**（2026-08-23 真机重截，DarkMode 英文 UI，1200×2670；spare-gallery2.jpg 第二张相册网格备用未上槽）。成品 JPG 镜像同步于 `docs-site/assets/shots/en-US/`（官网 At a Glance 区引用）
+- ⚠️ **重截候选**（i18n 残留/杂质）：en 03-chat 含「有脸」小标签；zh-TW 07-insight 回复含简体「相册」、03-chat 历史消息为简体、02/03 可见调试统计行（18895 7573ms 类）——上架前建议重截替换
+- 📌 **识别教训（2026-08-23）**：批量并行读图时内联渲染顺序会乱，场景识别必须以 OCR 逐张核对为准，勿目测指认（本次曾据乱序目测错配全部槽位，用户发现图文不符后修正）
+- **zh-TW 已换新（2026-08-23）**：源图 `docs-site/assets/shots-src/zh-TW/`（繁体 DarkMode 8 屏），含新建 05-person-groups/06-chat-welcome 帧 + feature-graphic 换图
+- **zh-CN 已换新（2026-08-23）**：**源图复用 zh-TW 繁体截图 + 简体文案**（用户拍板）；如后续要求简体 UI 截图，按繁体 8 屏清单重截（相册网格 / chat 同学搜索 / chat 人脸精炼 / 人物页 / 人物分组相册 / chat 空欢迎页 / chat 健康报告 / 设置页，聊天类务必**新会话**避免跨语言历史残留）后灌 `shots-src/zh-CN/` 重导即可
+- ⚠️ 03/04/06 源图含真实人物照片与人名（内部测试数据），上架前确认可公开使用，否则重新截取替换
 - 📤 **上传方式**：当前图形素材手动传 Console；如需纳入自动化，迁入 GPP 约定目录 `androidApp/src/main/play/listings/<lang>/graphics/{feature-graphic,phone-screenshots}/` 后即可随 `publishListing` 上传（维度约束见运维手册）
 
 > 策略与关键词地图见 `docs/superpowers/specs/2026-08-08-google-play-aso-design.md`。

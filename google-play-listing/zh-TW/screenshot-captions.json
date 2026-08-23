@@ -1,45 +1,57 @@
 {
-  "note": "Google Play 截圖行銷文案（zh-TW）。與 Ardot 頁面「Play Store Assets」中的 frame 一一對應，frame 命名 <序號>-<scene>/zh-TW。image 為 docs-site/assets/ 下的真實截圖。",
+  "note": "Google Play 截圖行銷文案（zh-TW）。與 Ardot 頁面「Play Store Assets」中的 frame 一一對應，frame 命名 <序號>-<scene>/zh-TW。image = docs-site/assets/shots-src/zh-TW/ 真機截圖（2026-08-23 繁體 UI，DarkMode，1200x2670）。⚠️ 重截候選：07-insight 回覆含簡體「相冊」殘留；03-chat 上方歷史訊息為簡體（跨語言會話殘留）且 02/03 可見除錯統計行（如 18895 7573ms）。",
   "shots": [
     {
       "id": "01-gallery",
-      "image": "screenshot-2.jpg",
-      "headline": "AI 相簿，\n井井有條",
+      "image": "01-gallery.jpg",
+      "headline": "AI 相簿\n井井有條",
       "subline": "智慧整理 · 自動標記 · 人物分組"
     },
     {
       "id": "02-search",
-      "image": "screenshot-10.jpg",
-      "headline": "說句話，\n就能找到照片",
+      "image": "02-search.jpg",
+      "headline": "說句話\n就能找到照片",
       "subline": "語意搜尋 · 以圖搜圖 · 照片絕不上傳"
     },
     {
       "id": "03-chat",
-      "image": "screenshot-1.jpg",
-      "headline": "和相簿\n聊聊天",
-      "subline": "對話式 AI 助理 · 看懂每一張照片"
+      "image": "03-chat.jpg",
+      "headline": "越聊越懂\n一句話修圖",
+      "subline": "對話式多輪檢索 · 聊天中直接修圖 · 端側完成"
     },
     {
       "id": "04-people",
-      "image": "screenshot-4.jpg",
-      "headline": "按人瀏覽，\n自動分組",
-      "subline": "端側人臉辨識 · 自動聚類 · 本機完成"
+      "image": "04-people.jpg",
+      "headline": "標註關係\n生成人物圖譜",
+      "subline": "關係圖譜 · 按關係搜尋 · 端側完成"
     },
     {
-      "id": "05-privacy",
-      "image": "screenshot-6.jpg",
-      "headline": "AI 在本機跑，\n照片不出手機",
-      "subline": "端側模型 · 無需聯網 · 隱私優先"
+      "id": "05-person-groups",
+      "image": "05-person-groups.jpg",
+      "headline": "自動人臉聚類\n全程本機運行",
+      "subline": "本地演算法 · 向量 × 標籤 · 照片不上雲"
     },
     {
-      "id": "06-insight",
-      "image": "screenshot-9.jpg",
+      "id": "06-chat-welcome",
+      "image": "06-chat-welcome.jpg",
+      "headline": "認識小浪\n你的相簿 AI",
+      "subline": "搜尋 · 修圖 · 美顏 · 什麼都能問"
+    },
+    {
+      "id": "07-insight",
+      "image": "07-insight.jpg",
       "headline": "AI 讀懂\n你的相簿",
       "subline": "一句話生成相簿盤點與洞察"
+    },
+    {
+      "id": "08-privacy",
+      "image": "08-privacy.jpg",
+      "headline": "AI 在本機跑\n照片不出手機",
+      "subline": "端側模型 · 無需聯網 · 隱私優先"
     }
   ],
   "featureGraphic": {
-    "image": "screenshot-2.jpg",
+    "image": "01-gallery.jpg",
     "headline": "AI 智慧相簿",
     "subline": "隱私優先 · 語意搜尋 · 對話式修圖"
   }

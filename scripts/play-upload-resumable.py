@@ -21,14 +21,17 @@
 #   ./scripts/play-upload-resumable.py --images androidApp/src/main/play/listings   # 仅图像
 #   ./scripts/play-upload-resumable.py --listing androidApp/src/main/play/listings  # 文本+详情+图像
 #
-# AAB 模式仅做上传 + 挂轨道 + commit；listing 模式只做新增/更新，不删除远端图像
-# （删除需在 Console 操作，防误删线上素材）。
+# AAB 模式仅做上传 + 挂轨道 + commit；listing 模式默认只做新增/更新，不删除远端图像
+# （防误删线上素材）。显式传 --prune-types phoneScreenshots,featureGraphic 可在本次
+# edit 内先清空指定 imageType 的远端图像再重传本地全集（槽位重排/删图用；edit 未
+# commit 前自动过期，不会留下半删状态）。
 #
 
 import argparse
 import base64
 import json
 import os
+import ssl
 import subprocess
 import sys
 import tempfile
@@ -83,7 +86,8 @@ def get_access_token(sa_json_path: str) -> str:
         "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
         "assertion": jwt,
     }).encode()
-    with urllib.request.urlopen(urllib.request.Request(OAUTH_TOKEN_URL, data=body)) as resp:
+    with urllib.request.urlopen(urllib.request.Request(OAUTH_TOKEN_URL, data=body),
+                                timeout=60) as resp:
         return json.load(resp)["access_token"]
 
 
@@ -97,7 +101,7 @@ def api_request(method: str, url: str, token: str, payload=None, extra_headers=N
         headers["Content-Type"] = "application/json"
     req = urllib.request.Request(url, data=data, headers=headers, method=method)
     try:
-        with urllib.request.urlopen(req) as resp:
+        with urllib.request.urlopen(req, timeout=90) as resp:
             text = resp.read().decode()
             return json.loads(text) if text else {}, dict(resp.headers)
     except urllib.error.HTTPError as e:
@@ -214,20 +218,39 @@ IMAGE_TYPE_MAP = {
     "tv-screenshots": "tvScreenshots",
     "wear-screenshots": "wearScreenshots",
 }
-IMAGE_UPLOAD_MAX_RETRIES = 5
+IMAGE_UPLOAD_MAX_RETRIES = 8
 
 
-def list_remote_image_hashes(package: str, edit_id: str, token: str,
-                             lang: str, image_type: str) -> set:
-    """远端该 language/imageType 下已有图像的 sha256 集合（用于跳过未变更图像）。"""
+def list_remote_images(package: str, edit_id: str, token: str,
+                       lang: str, image_type: str) -> list:
+    """远端该 language/imageType 下已有图像列表（含 id/sha256）。"""
     url = f"{API_BASE}/applications/{package}/edits/{edit_id}/listings/{lang}/{image_type}"
     try:
         body, _ = api_request("GET", url, token)
     except RuntimeError as e:
         if "HTTP 404" in str(e):
-            return set()  # 该 language/imageType 远端尚无任何图像
+            return []  # 该 language/imageType 远端尚无任何图像
         raise
-    return {img["sha256"] for img in body.get("images", []) if "sha256" in img}
+    return [img for img in body.get("images", []) if "id" in img]
+
+
+def list_remote_image_hashes(package: str, edit_id: str, token: str,
+                             lang: str, image_type: str) -> set:
+    """远端该 language/imageType 下已有图像的 sha256 集合（用于跳过未变更图像）。"""
+    return {img["sha256"] for img in
+            list_remote_images(package, edit_id, token, lang, image_type)
+            if "sha256" in img}
+
+
+def delete_remote_images(package: str, edit_id: str, token: str,
+                         lang: str, image_type: str) -> int:
+    """删除远端该 language/imageType 下全部图像（--prune-types 用，随本次 edit 生效）。"""
+    images = list_remote_images(package, edit_id, token, lang, image_type)
+    for img in images:
+        url = (f"{API_BASE}/applications/{package}/edits/{edit_id}"
+               f"/listings/{lang}/{image_type}/{img['id']}")
+        api_request("DELETE", url, token)
+    return len(images)
 
 
 def upload_image(package: str, edit_id: str, token: str,
@@ -249,7 +272,8 @@ def upload_image(package: str, edit_id: str, token: str,
             with urllib.request.urlopen(req, timeout=120) as resp:
                 resp.read()
             return
-        except (urllib.error.URLError, ConnectionError, TimeoutError, OSError) as e:
+        except (urllib.error.URLError, ConnectionError, TimeoutError, OSError,
+                ssl.SSLError) as e:
             last_err = e
             wait = min(2 ** attempt, 30)
             log(f"  上传中断（{e}），{wait}s 后重试（第 {attempt} 次）")
@@ -257,7 +281,8 @@ def upload_image(package: str, edit_id: str, token: str,
     raise RuntimeError(f"图像上传重试 {IMAGE_UPLOAD_MAX_RETRIES} 次仍失败: {path}: {last_err}")
 
 
-def sync_listing_text(package: str, edit_id: str, token: str, listings_dir: str) -> None:
+def sync_listing_text(package: str, edit_id: str, token: str, listings_dir: str,
+                      langs=frozenset()) -> None:
     """文本 listing + 全局详情（app details）同步。listings_dir = play/listings。"""
     import glob
     play_dir = os.path.dirname(listings_dir.rstrip("/"))
@@ -278,6 +303,8 @@ def sync_listing_text(package: str, edit_id: str, token: str, listings_dir: str)
         if not os.path.isdir(lang_dir):
             continue
         lang = os.path.basename(lang_dir)
+        if langs and lang not in langs:
+            continue
         payload = {}
         for fname, key in [("title.txt", "title"),
                            ("short-description.txt", "shortDescription"),
@@ -293,15 +320,20 @@ def sync_listing_text(package: str, edit_id: str, token: str, listings_dir: str)
             log(f"  文本 listing: {lang}（{len(payload)} 个字段）")
 
 
-def sync_listing_images(package: str, edit_id: str, token: str, listings_dir: str) -> tuple:
+def sync_listing_images(package: str, edit_id: str, token: str, listings_dir: str,
+                        prune_types=frozenset(), langs=frozenset()) -> tuple:
     """上传 listings_dir/<lang>/graphics/<imageTypeDir>/ 下所有有变更的图像（不含 commit）。
 
-    只做新增/更新，不删除远端图像（删除需在 Console 操作，防误删线上素材）。
+    默认只做新增/更新，不删除远端图像（防误删线上素材）。
+    prune_types 中的 imageType 会先清空远端再重传本地全集（槽位重排用）。
+    langs 非空时只处理指定 language（配合 --langs 分语言逐 edit 提交，失败只回滚当前语言）。
     """
     import glob
     import hashlib
-    uploaded = skipped = 0
+    uploaded = skipped = deleted = 0
     for graphics_dir in sorted(glob.glob(os.path.join(listings_dir, "*", "graphics"))):
+        if langs and os.path.basename(os.path.dirname(graphics_dir)) not in langs:
+            continue
         lang = os.path.basename(os.path.dirname(graphics_dir))
         for type_dir in sorted(glob.glob(os.path.join(graphics_dir, "*"))):
             dir_name = os.path.basename(type_dir)
@@ -313,7 +345,14 @@ def sync_listing_images(package: str, edit_id: str, token: str, listings_dir: st
                            if f.lower().endswith((".png", ".jpg", ".jpeg")))
             if not files:
                 continue
-            remote_hashes = list_remote_image_hashes(package, edit_id, token, lang, image_type)
+            if image_type in prune_types:
+                n = delete_remote_images(package, edit_id, token, lang, image_type)
+                if n:
+                    log(f"  清空远端 {lang}/{image_type}（{n} 张，--prune-types）")
+                deleted += n
+                remote_hashes = set()
+            else:
+                remote_hashes = list_remote_image_hashes(package, edit_id, token, lang, image_type)
             for path in files:
                 local_sha = hashlib.sha256(open(path, "rb").read()).hexdigest()
                 if local_sha in remote_hashes:
@@ -322,19 +361,22 @@ def sync_listing_images(package: str, edit_id: str, token: str, listings_dir: st
                 log(f"  上传 {lang}/{dir_name}/{os.path.basename(path)}")
                 upload_image(package, edit_id, token, lang, image_type, path)
                 uploaded += 1
-    return uploaded, skipped
+    return uploaded, skipped, deleted
 
 
-def sync_listing(package: str, listings_dir: str, token: str, with_text: bool) -> None:
-    edit_id = create_edit(package, token)
-    log(f"edit id: {edit_id}")
+def sync_listing(package: str, listings_dir: str, token: str, with_text: bool,
+                 prune_types=frozenset(), langs=frozenset()) -> None:
+    edit_id = ""
     try:
+        edit_id = create_edit(package, token)
+        log(f"edit id: {edit_id}")
         if with_text:
-            sync_listing_text(package, edit_id, token, listings_dir)
-        uploaded, skipped = sync_listing_images(package, edit_id, token, listings_dir)
+            sync_listing_text(package, edit_id, token, listings_dir, langs=langs)
+        uploaded, skipped, deleted = sync_listing_images(
+            package, edit_id, token, listings_dir, prune_types, langs=langs)
         commit_edit(package, edit_id, token)
         log(f"✅ listing 同步完成（{'文本+详情+' if with_text else ''}图像）: "
-            f"上传 {uploaded} 张，跳过未变更 {skipped} 张")
+            f"删除 {deleted} 张，上传 {uploaded} 张，跳过未变更 {skipped} 张")
     except Exception as e:
         log(f"❌ 失败: {e}")
         log("提示: 未 commit 的 edit 会自动过期，无需手工清理")
@@ -358,7 +400,15 @@ def main():
                         help="复用已有 edit（跳过创建；配合 --skip-upload 直接挂轨道+commit）")
     parser.add_argument("--skip-upload", action="store_true",
                         help="跳过上传（AAB 已在 edit 中，用于 commit 失败后的重试）")
+    parser.add_argument("--prune-types", default="",
+                        help="逗号分隔的 imageType（API 名，如 phoneScreenshots,featureGraphic）："
+                             "上传前先清空远端该类型图像再重传本地全集（槽位重排/删图用）")
+    parser.add_argument("--langs", default="",
+                        help="逗号分隔的 language（如 en-US,zh-CN）：只同步指定语言，"
+                             "配合 --listing 分语言逐 edit 提交，失败只回滚当前语言")
     args = parser.parse_args()
+    prune_types = frozenset(t.strip() for t in args.prune_types.split(",") if t.strip())
+    langs = frozenset(t.strip() for t in args.langs.split(",") if t.strip())
 
     sa_path = os.environ.get("POLANG_PLAY_SERVICE_ACCOUNT_JSON", "")
     if not sa_path and os.environ.get("ANDROID_PUBLISHER_CREDENTIALS"):
@@ -378,7 +428,12 @@ def main():
         log("获取 access token...")
         token = get_access_token(sa_path)
         log(f"同步 listing: {listings_dir}（{'文本+详情+图像' if args.listing else '仅图像'}）")
-        sync_listing(args.package, listings_dir, token, with_text=bool(args.listing))
+        if prune_types:
+            log(f"prune imageTypes: {', '.join(sorted(prune_types))}")
+        if langs:
+            log(f"仅同步语言: {', '.join(sorted(langs))}")
+        sync_listing(args.package, listings_dir, token, with_text=bool(args.listing),
+                     prune_types=prune_types, langs=langs)
         return
 
     if not args.skip_upload and (not args.aab or not os.path.isfile(args.aab)):

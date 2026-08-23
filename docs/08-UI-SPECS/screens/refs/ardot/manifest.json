@@ -1,6 +1,6 @@
 {
   "endpoint": "http://127.0.0.1:50501/api/v1/mcp",
-  "exportedAt": "2026-08-23T17:59:17+08:00",
+  "exportedAt": "2026-08-23T18:39:56+08:00",
   "file": {
     "id": "715061534788814",
     "name": "polang-ui-spec",
@@ -381,6 +381,16 @@
           "id": "185:41",
           "name": "06-chat-welcome/zh-TW",
           "png": "06-chat-welcome-zh-TW.png"
+        },
+        {
+          "id": "185:49",
+          "name": "05-person-groups/zh-CN",
+          "png": "05-person-groups-zh-CN.png"
+        },
+        {
+          "id": "185:57",
+          "name": "06-chat-welcome/zh-CN",
+          "png": "06-chat-welcome-zh-CN.png"
         }
       ],
       "id": "152:1",
@@ -404,5 +414,5 @@
     }
   ],
   "scale": 1,
-  "structureSha256": "bebc25d3d28d333f4f14f225d78eeab0eef5611e6e2a3e103125473bcb8b3a99"
+  "structureSha256": "867df5ba40ee9520744b482afab43e84d63c2cc6e482ab641e1395d5277fb9d9"
 }

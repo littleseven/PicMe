@@ -65,6 +65,7 @@ FROM_TRACK=""
 UPDATE_ROLLOUT=""
 DRY_RUN=false
 RESUMABLE=false
+PRUNE_TYPES=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -81,6 +82,7 @@ while [[ $# -gt 0 ]]; do
         --update-rollout)  UPDATE_ROLLOUT="$2"; shift 2 ;;
         --dry-run)         DRY_RUN=true; shift ;;
         --resumable)       RESUMABLE=true; shift ;;
+        --prune-types)     PRUNE_TYPES="$2"; shift 2 ;;
         *) log_error "未知参数: $1"; exit 1 ;;
     esac
 done
@@ -146,9 +148,9 @@ if $LISTING_ONLY; then
         PLAY_DIR="androidApp/src/main/play/listings"
         log_info "同步商店文案（Python 通道：文本+全局详情+图像增量）..."
         if $DRY_RUN; then
-            log_info "[dry-run] python3 scripts/play-upload-resumable.py --listing $PLAY_DIR"
+            log_info "[dry-run] python3 scripts/play-upload-resumable.py --listing $PLAY_DIR ${PRUNE_TYPES:+--prune-types $PRUNE_TYPES}"
         else
-            python3 scripts/play-upload-resumable.py --listing "$PLAY_DIR"
+            python3 scripts/play-upload-resumable.py --listing "$PLAY_DIR" ${PRUNE_TYPES:+--prune-types "$PRUNE_TYPES"}
         fi
         log_success "商店文案已同步（resumable 通道）"
         exit 0

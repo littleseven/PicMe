@@ -38583,7 +38583,7 @@
                     "y": 64
                   },
                   {
-                    "characters": "和相簿\n聊聊天",
+                    "characters": "越聊越懂\n一句話修圖",
                     "fills": [
                       {
                         "blendMode": "NORMAL",
@@ -38617,7 +38617,7 @@
                     "y": 123
                   },
                   {
-                    "characters": "對話式 AI 助理 · 看懂每一張照片",
+                    "characters": "對話式多輪檢索 · 聊天中直接修圖 · 端側完成",
                     "fills": [
                       {
                         "blendMode": "NORMAL",
@@ -38872,7 +38872,7 @@
                     "y": 64
                   },
                   {
-                    "characters": "人物自動分組，\n關係一目瞭然",
+                    "characters": "標註關係\n生成人物圖譜",
                     "fills": [
                       {
                         "blendMode": "NORMAL",
@@ -38906,7 +38906,7 @@
                     "y": 123
                   },
                   {
-                    "characters": "自動人臉分組 · 按關係搜尋 · 全程端側",
+                    "characters": "關係圖譜 · 按關係搜尋 · 端側完成",
                     "fills": [
                       {
                         "blendMode": "NORMAL",
@@ -39161,7 +39161,7 @@
                     "y": 64
                   },
                   {
-                    "characters": "AI 在本機跑，\n照片不出手機",
+                    "characters": "AI 在本機跑\n照片不出手機",
                     "fills": [
                       {
                         "blendMode": "NORMAL",
@@ -39727,7 +39727,7 @@
                         "y": 49
                       },
                       {
-                        "characters": "隐私优先 · 自然语言搜索 · 对话式修图",
+                        "characters": "隐私优先 · 语义搜索 · 对话式修图",
                         "fills": [
                           {
                             "blendMode": "NORMAL",
@@ -39795,7 +39795,7 @@
                               "temperature": 0,
                               "tint": 0
                             },
-                            "imageHash": "1eedce661c0124e1a0de897bb147035387dfffdd",
+                            "imageHash": "dda0dabc7bb0a421d5592cf803e6171f49d6ced5",
                             "imageTransform": [
                               [
                                 1,
@@ -40522,7 +40522,7 @@
                     "y": 64
                   },
                   {
-                    "characters": "和相册\n聊聊天",
+                    "characters": "越聊越懂\n一句话修图",
                     "fills": [
                       {
                         "blendMode": "NORMAL",
@@ -40556,7 +40556,7 @@
                     "y": 123
                   },
                   {
-                    "characters": "对话式 AI 助手 · 看懂每一张照片",
+                    "characters": "对话式多轮检索 · 聊天中直接修图 · 端侧完成",
                     "fills": [
                       {
                         "blendMode": "NORMAL",
@@ -40606,7 +40606,7 @@
                               "temperature": 0,
                               "tint": 0
                             },
-                            "imageHash": "54c25819a71ec315829275cc760d5ac3bfdb4a88",
+                            "imageHash": "86553fdeda54ced099fb3d841caf9698e4b61106",
                             "imageTransform": [
                               [
                                 1,
@@ -40845,7 +40845,7 @@
                     "y": 123
                   },
                   {
-                    "characters": "自然语言搜索 · 全程本地处理 · 照片绝不上传",
+                    "characters": "语义搜索 · 以图搜图 · 照片绝不上传",
                     "fills": [
                       {
                         "blendMode": "NORMAL",
@@ -40895,7 +40895,7 @@
                               "temperature": 0,
                               "tint": 0
                             },
-                            "imageHash": "3ae5199fd9929e8ea517dc3a87a203956b885882",
+                            "imageHash": "36ad468a95bca561546cf11fe8f1973af404712f",
                             "imageTransform": [
                               [
                                 1,
@@ -41100,7 +41100,7 @@
                     "y": 64
                   },
                   {
-                    "characters": "按人浏览\n自动分组",
+                    "characters": "标注关系\n生成人物图谱",
                     "fills": [
                       {
                         "blendMode": "NORMAL",
@@ -41134,7 +41134,7 @@
                     "y": 123
                   },
                   {
-                    "characters": "端侧人脸识别 · 自动聚类 · 本地完成",
+                    "characters": "关系图谱 · 按关系搜索 · 端侧完成",
                     "fills": [
                       {
                         "blendMode": "NORMAL",
@@ -41184,7 +41184,7 @@
                               "temperature": 0,
                               "tint": 0
                             },
-                            "imageHash": "05598cf5e8efcf1acb0412acba9e6a7063961f14",
+                            "imageHash": "e12112c7e548e62aa587e056bc5630a5f966e25e",
                             "imageTransform": [
                               [
                                 1,
@@ -41389,7 +41389,7 @@
                     "y": 64
                   },
                   {
-                    "characters": "AI 端侧运行\n照片本地留存",
+                    "characters": "AI 在本地跑\n照片不出手机",
                     "fills": [
                       {
                         "blendMode": "NORMAL",
@@ -41473,7 +41473,7 @@
                               "temperature": 0,
                               "tint": 0
                             },
-                            "imageHash": "bec25c295ade13e2d7c6298e80ed4e72b1e5fd9b",
+                            "imageHash": "5961acfa2dcb8fd69c092e54c1436c4d2d571cd4",
                             "imageTransform": [
                               [
                                 1,
@@ -41762,7 +41762,7 @@
                               "temperature": 0,
                               "tint": 0
                             },
-                            "imageHash": "a07791f0422ca3253d3defeeea5ff481644dfa84",
+                            "imageHash": "92cf80e7d22bf6827e48b36c1dab9d0cf2b614fc",
                             "imageTransform": [
                               [
                                 1,
@@ -42545,7 +42545,7 @@
                     "y": 64
                   },
                   {
-                    "characters": "Chat with\nyour gallery",
+                    "characters": "Ask. Refine.\nEdit in chat.",
                     "fills": [
                       {
                         "blendMode": "NORMAL",
@@ -42579,7 +42579,7 @@
                     "y": 120
                   },
                   {
-                    "characters": "Conversational AI that understands every photo",
+                    "characters": "Multi-turn retrieval · In-chat photo editing · On-device",
                     "fills": [
                       {
                         "blendMode": "NORMAL",
@@ -42834,7 +42834,7 @@
                     "y": 64
                   },
                   {
-                    "characters": "People grouped,\nrelations mapped",
+                    "characters": "People graph,\nbuilt from tags",
                     "fills": [
                       {
                         "blendMode": "NORMAL",
@@ -42868,7 +42868,7 @@
                     "y": 120
                   },
                   {
-                    "characters": "Auto face grouping · Search by relation · On-device",
+                    "characters": "Relation graph · Search by relation · On-device",
                     "fills": [
                       {
                         "blendMode": "NORMAL",
@@ -43701,7 +43701,7 @@
                     "y": 64
                   },
                   {
-                    "characters": "AI 相簿，\n井井有條",
+                    "characters": "AI 相簿\n井井有條",
                     "fills": [
                       {
                         "blendMode": "NORMAL",
@@ -44074,7 +44074,7 @@
                               "temperature": 0,
                               "tint": 0
                             },
-                            "imageHash": "1eedce661c0124e1a0de897bb147035387dfffdd",
+                            "imageHash": "dda0dabc7bb0a421d5592cf803e6171f49d6ced5",
                             "imageTransform": [
                               [
                                 1,
@@ -44279,7 +44279,7 @@
                     "y": 64
                   },
                   {
-                    "characters": "說句話，\n就能找到照片",
+                    "characters": "說句話\n就能找到照片",
                     "fills": [
                       {
                         "blendMode": "NORMAL",
@@ -44568,7 +44568,7 @@
                     "y": 64
                   },
                   {
-                    "characters": "Every person,\nall in one place",
+                    "characters": "Face clustering,\n100% on-device",
                     "fills": [
                       {
                         "blendMode": "NORMAL",
@@ -44602,7 +44602,7 @@
                     "y": 120
                   },
                   {
-                    "characters": "Auto-grouped by face · Fully on-device",
+                    "characters": "Local algorithms · Face vectors × tags · Never uploaded",
                     "fills": [
                       {
                         "blendMode": "NORMAL",
@@ -44857,7 +44857,7 @@
                     "y": 64
                   },
                   {
-                    "characters": "每個人，\n一個專屬相簿",
+                    "characters": "自動人臉聚類\n全程本機運行",
                     "fills": [
                       {
                         "blendMode": "NORMAL",
@@ -44891,7 +44891,7 @@
                     "y": 123
                   },
                   {
-                    "characters": "自動人臉聚類 · 全程端側",
+                    "characters": "本地演算法 · 向量 × 標籤 · 照片不上雲",
                     "fills": [
                       {
                         "blendMode": "NORMAL",
@@ -45146,7 +45146,7 @@
                     "y": 64
                   },
                   {
-                    "characters": "認識小浪，\n你的相簿 AI",
+                    "characters": "認識小浪\n你的相簿 AI",
                     "fills": [
                       {
                         "blendMode": "NORMAL",
@@ -45344,6 +45344,584 @@
                 "width": 1080,
                 "x": 5900,
                 "y": 4040
+              }
+            ]
+          }
+        },
+        "185:49": {
+          "name": "05-person-groups/zh-CN",
+          "tree": {
+            "nodes": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "clipsContent": true,
+                        "cornerRadius": 13,
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "color": {
+                              "b": 0.7764706015586853,
+                              "g": 0.8392156958580017,
+                              "r": 0.5607843399047852
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "gap": 0,
+                        "height": 26,
+                        "id": "185:54",
+                        "layout": "none",
+                        "name": "Brand Dot",
+                        "type": "FRAME",
+                        "width": 26,
+                        "x": 0,
+                        "y": 6.5
+                      },
+                      {
+                        "characters": "破浪相册 · PoLang",
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "color": {
+                              "b": 0.7764706015586853,
+                              "g": 0.8392156958580017,
+                              "r": 0.5607843399047852
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "fontName": {
+                          "family": "Sarasa Gothic SC",
+                          "style": "Regular"
+                        },
+                        "fontSize": 32,
+                        "height": "hug_contents",
+                        "id": "185:55",
+                        "lineHeight": {
+                          "unit": "AUTO"
+                        },
+                        "name": "Brand Name",
+                        "textAlignHorizontal": "LEFT",
+                        "textAlignVertical": "TOP",
+                        "type": "TEXT",
+                        "width": "hug_contents",
+                        "x": 44,
+                        "y": 0
+                      }
+                    ],
+                    "clipsContent": true,
+                    "gap": 18,
+                    "height": "hug_contents",
+                    "id": "185:50",
+                    "layout": "horizontal",
+                    "name": "Brand Row",
+                    "padding": {
+                      "bottom": 0,
+                      "left": 0,
+                      "right": 0,
+                      "top": 0
+                    },
+                    "type": "FRAME",
+                    "width": "hug_contents",
+                    "x": 371.5,
+                    "y": 64
+                  },
+                  {
+                    "characters": "自动人脸聚类\n全程本机运行",
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "color": {
+                          "b": 0.8901960849761963,
+                          "g": 0.9137254953384399,
+                          "r": 0.929411768913269
+                        },
+                        "opacity": 1,
+                        "type": "SOLID",
+                        "visible": true
+                      }
+                    ],
+                    "fontName": {
+                      "family": "Sarasa Gothic SC",
+                      "style": "Bold"
+                    },
+                    "fontSize": 56,
+                    "height": "hug_contents",
+                    "id": "185:51",
+                    "lineHeight": {
+                      "unit": "PERCENT",
+                      "value": 118
+                    },
+                    "name": "Headline",
+                    "textAlignHorizontal": "CENTER",
+                    "textAlignVertical": "TOP",
+                    "type": "TEXT",
+                    "width": "fill_container",
+                    "x": 72,
+                    "y": 123
+                  },
+                  {
+                    "characters": "本地算法 · 向量 × 标签 · 照片不上云",
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "color": {
+                          "b": 0.7490196228027344,
+                          "g": 0.7882353067398071,
+                          "r": 0.8117647171020508
+                        },
+                        "opacity": 1,
+                        "type": "SOLID",
+                        "visible": true
+                      }
+                    ],
+                    "fontName": {
+                      "family": "Sarasa Gothic SC",
+                      "style": "Regular"
+                    },
+                    "fontSize": 30,
+                    "height": "hug_contents",
+                    "id": "185:52",
+                    "lineHeight": {
+                      "unit": "AUTO"
+                    },
+                    "name": "Subline",
+                    "textAlignHorizontal": "CENTER",
+                    "textAlignVertical": "TOP",
+                    "type": "TEXT",
+                    "width": "fill_container",
+                    "x": 72,
+                    "y": 276
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "clipsContent": true,
+                        "cornerRadius": 40,
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "filters": {
+                              "contrast": 0,
+                              "exposure": 0,
+                              "highlights": 0,
+                              "saturation": 0,
+                              "shadows": 0,
+                              "temperature": 0,
+                              "tint": 0
+                            },
+                            "imageHash": "ef7df5af740ff9f6e1af3a4d80dee95cae40dbda",
+                            "imageTransform": [
+                              [
+                                1,
+                                0,
+                                0
+                              ],
+                              [
+                                0,
+                                1,
+                                0
+                              ]
+                            ],
+                            "opacity": 1,
+                            "rotation": 0,
+                            "scaleMode": "FILL",
+                            "scalingFactor": 1,
+                            "type": "IMAGE",
+                            "visible": true
+                          }
+                        ],
+                        "gap": 0,
+                        "height": "fill_container",
+                        "id": "185:56",
+                        "layout": "none",
+                        "name": "Screen",
+                        "type": "FRAME",
+                        "width": "fill_container",
+                        "x": 24,
+                        "y": 24
+                      }
+                    ],
+                    "clipsContent": true,
+                    "cornerRadius": 60,
+                    "effects": [
+                      {
+                        "blendMode": "NORMAL",
+                        "boundVariables": {},
+                        "color": {
+                          "a": 0.44999998807907104,
+                          "b": 0,
+                          "g": 0,
+                          "r": 0
+                        },
+                        "offset": {
+                          "x": 0,
+                          "y": 24
+                        },
+                        "radius": 64,
+                        "showShadowBehindNode": true,
+                        "spread": 0,
+                        "type": "DROP_SHADOW",
+                        "visible": true
+                      }
+                    ],
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "color": {
+                          "b": 0.16470588743686676,
+                          "g": 0.14901961386203766,
+                          "r": 0.14901961386203766
+                        },
+                        "opacity": 1,
+                        "type": "SOLID",
+                        "visible": true
+                      }
+                    ],
+                    "gap": 0,
+                    "height": 1498,
+                    "id": "185:53",
+                    "layout": "vertical",
+                    "name": "Screenshot",
+                    "padding": {
+                      "bottom": 24,
+                      "left": 24,
+                      "right": 24,
+                      "top": 24
+                    },
+                    "type": "FRAME",
+                    "width": 700,
+                    "x": 190,
+                    "y": 332
+                  }
+                ],
+                "clipsContent": true,
+                "fills": [
+                  {
+                    "blendMode": "NORMAL",
+                    "color": {
+                      "b": 0.07058823853731155,
+                      "g": 0.0784313753247261,
+                      "r": 0.09019608050584793
+                    },
+                    "opacity": 1,
+                    "type": "SOLID",
+                    "visible": true
+                  }
+                ],
+                "gap": 20,
+                "height": 1920,
+                "id": "185:49",
+                "layout": "vertical",
+                "name": "05-person-groups/zh-CN",
+                "padding": {
+                  "bottom": 48,
+                  "left": 72,
+                  "right": 72,
+                  "top": 64
+                },
+                "type": "FRAME",
+                "width": 1080,
+                "x": 4720,
+                "y": 0
+              }
+            ]
+          }
+        },
+        "185:57": {
+          "name": "06-chat-welcome/zh-CN",
+          "tree": {
+            "nodes": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "clipsContent": true,
+                        "cornerRadius": 13,
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "color": {
+                              "b": 0.7764706015586853,
+                              "g": 0.8392156958580017,
+                              "r": 0.5607843399047852
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "gap": 0,
+                        "height": 26,
+                        "id": "185:62",
+                        "layout": "none",
+                        "name": "Brand Dot",
+                        "type": "FRAME",
+                        "width": 26,
+                        "x": 0,
+                        "y": 6.5
+                      },
+                      {
+                        "characters": "破浪相册 · PoLang",
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "color": {
+                              "b": 0.7764706015586853,
+                              "g": 0.8392156958580017,
+                              "r": 0.5607843399047852
+                            },
+                            "opacity": 1,
+                            "type": "SOLID",
+                            "visible": true
+                          }
+                        ],
+                        "fontName": {
+                          "family": "Sarasa Gothic SC",
+                          "style": "Regular"
+                        },
+                        "fontSize": 32,
+                        "height": "hug_contents",
+                        "id": "185:63",
+                        "lineHeight": {
+                          "unit": "AUTO"
+                        },
+                        "name": "Brand Name",
+                        "textAlignHorizontal": "LEFT",
+                        "textAlignVertical": "TOP",
+                        "type": "TEXT",
+                        "width": "hug_contents",
+                        "x": 44,
+                        "y": 0
+                      }
+                    ],
+                    "clipsContent": true,
+                    "gap": 18,
+                    "height": "hug_contents",
+                    "id": "185:58",
+                    "layout": "horizontal",
+                    "name": "Brand Row",
+                    "padding": {
+                      "bottom": 0,
+                      "left": 0,
+                      "right": 0,
+                      "top": 0
+                    },
+                    "type": "FRAME",
+                    "width": "hug_contents",
+                    "x": 371.5,
+                    "y": 64
+                  },
+                  {
+                    "characters": "认识小浪\n你的相册 AI",
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "color": {
+                          "b": 0.8901960849761963,
+                          "g": 0.9137254953384399,
+                          "r": 0.929411768913269
+                        },
+                        "opacity": 1,
+                        "type": "SOLID",
+                        "visible": true
+                      }
+                    ],
+                    "fontName": {
+                      "family": "Sarasa Gothic SC",
+                      "style": "Bold"
+                    },
+                    "fontSize": 56,
+                    "height": "hug_contents",
+                    "id": "185:59",
+                    "lineHeight": {
+                      "unit": "PERCENT",
+                      "value": 118
+                    },
+                    "name": "Headline",
+                    "textAlignHorizontal": "CENTER",
+                    "textAlignVertical": "TOP",
+                    "type": "TEXT",
+                    "width": "fill_container",
+                    "x": 72,
+                    "y": 123
+                  },
+                  {
+                    "characters": "搜索 · 修图 · 美颜 · 什么都能问",
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "color": {
+                          "b": 0.7490196228027344,
+                          "g": 0.7882353067398071,
+                          "r": 0.8117647171020508
+                        },
+                        "opacity": 1,
+                        "type": "SOLID",
+                        "visible": true
+                      }
+                    ],
+                    "fontName": {
+                      "family": "Sarasa Gothic SC",
+                      "style": "Regular"
+                    },
+                    "fontSize": 30,
+                    "height": "hug_contents",
+                    "id": "185:60",
+                    "lineHeight": {
+                      "unit": "AUTO"
+                    },
+                    "name": "Subline",
+                    "textAlignHorizontal": "CENTER",
+                    "textAlignVertical": "TOP",
+                    "type": "TEXT",
+                    "width": "fill_container",
+                    "x": 72,
+                    "y": 276
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "clipsContent": true,
+                        "cornerRadius": 40,
+                        "fills": [
+                          {
+                            "blendMode": "NORMAL",
+                            "filters": {
+                              "contrast": 0,
+                              "exposure": 0,
+                              "highlights": 0,
+                              "saturation": 0,
+                              "shadows": 0,
+                              "temperature": 0,
+                              "tint": 0
+                            },
+                            "imageHash": "8d5b20c7500d711bdd87f3797f3e61861f5bce38",
+                            "imageTransform": [
+                              [
+                                1,
+                                0,
+                                0
+                              ],
+                              [
+                                0,
+                                1,
+                                0
+                              ]
+                            ],
+                            "opacity": 1,
+                            "rotation": 0,
+                            "scaleMode": "FILL",
+                            "scalingFactor": 1,
+                            "type": "IMAGE",
+                            "visible": true
+                          }
+                        ],
+                        "gap": 0,
+                        "height": "fill_container",
+                        "id": "185:64",
+                        "layout": "none",
+                        "name": "Screen",
+                        "type": "FRAME",
+                        "width": "fill_container",
+                        "x": 24,
+                        "y": 24
+                      }
+                    ],
+                    "clipsContent": true,
+                    "cornerRadius": 60,
+                    "effects": [
+                      {
+                        "blendMode": "NORMAL",
+                        "boundVariables": {},
+                        "color": {
+                          "a": 0.44999998807907104,
+                          "b": 0,
+                          "g": 0,
+                          "r": 0
+                        },
+                        "offset": {
+                          "x": 0,
+                          "y": 24
+                        },
+                        "radius": 64,
+                        "showShadowBehindNode": true,
+                        "spread": 0,
+                        "type": "DROP_SHADOW",
+                        "visible": true
+                      }
+                    ],
+                    "fills": [
+                      {
+                        "blendMode": "NORMAL",
+                        "color": {
+                          "b": 0.16470588743686676,
+                          "g": 0.14901961386203766,
+                          "r": 0.14901961386203766
+                        },
+                        "opacity": 1,
+                        "type": "SOLID",
+                        "visible": true
+                      }
+                    ],
+                    "gap": 0,
+                    "height": 1498,
+                    "id": "185:61",
+                    "layout": "vertical",
+                    "name": "Screenshot",
+                    "padding": {
+                      "bottom": 24,
+                      "left": 24,
+                      "right": 24,
+                      "top": 24
+                    },
+                    "type": "FRAME",
+                    "width": 700,
+                    "x": 190,
+                    "y": 332
+                  }
+                ],
+                "clipsContent": true,
+                "fills": [
+                  {
+                    "blendMode": "NORMAL",
+                    "color": {
+                      "b": 0.07058823853731155,
+                      "g": 0.0784313753247261,
+                      "r": 0.09019608050584793
+                    },
+                    "opacity": 1,
+                    "type": "SOLID",
+                    "visible": true
+                  }
+                ],
+                "gap": 20,
+                "height": 1920,
+                "id": "185:57",
+                "layout": "vertical",
+                "name": "06-chat-welcome/zh-CN",
+                "padding": {
+                  "bottom": 48,
+                  "left": 72,
+                  "right": 72,
+                  "top": 64
+                },
+                "type": "FRAME",
+                "width": 1080,
+                "x": 5900,
+                "y": 0
               }
             ]
           }
@@ -48853,8 +49431,8 @@
                                 },
                                 "type": "FRAME",
                                 "width": "hug_contents",
-                                "x": 0,
-                                "y": 36
+                                "x": 281,
+                                "y": 0
                               },
                               {
                                 "children": [
@@ -48901,8 +49479,8 @@
                                 },
                                 "type": "FRAME",
                                 "width": "hug_contents",
-                                "x": 75,
-                                "y": 36
+                                "x": 356,
+                                "y": 0
                               }
                             ],
                             "clipsContent": true,
@@ -48944,7 +49522,7 @@
                             "type": "TEXT",
                             "width": "hug_contents",
                             "x": 16,
-                            "y": 142
+                            "y": 106
                           },
                           {
                             "children": [
@@ -49156,7 +49734,7 @@
                             "type": "FRAME",
                             "width": "fill_container",
                             "x": 16,
-                            "y": 166
+                            "y": 130
                           },
                           {
                             "children": [
@@ -49228,7 +49806,7 @@
                             "type": "FRAME",
                             "width": "fill_container",
                             "x": 16,
-                            "y": 204
+                            "y": 168
                           }
                         ],
                         "clipsContent": true,
@@ -49546,7 +50124,7 @@
                         "type": "FRAME",
                         "width": "fill_container",
                         "x": 16,
-                        "y": 572
+                        "y": 536
                       }
                     ],
                     "clipsContent": true,
