@@ -15,6 +15,8 @@ class DedupClusteringTest {
 
     @Test
     fun `visual clustering groups hashes within threshold`() {
+        // c/d 必须用 -1L 而非 0L：hamming(0b1111, 0) = 4 ≤ threshold 5，
+        // 并查集会把 a/b 与 c/d 传递合并成单簇；-1L 与 0b1111 距离 60，两簇才真正隔离。
         val items = listOf(
             hashed("a", 0b1111L), hashed("b", 0b1110L),
             hashed("c", -1L), hashed("d", -1L),
