@@ -76,4 +76,19 @@ class KeepPolicyEngineTest {
             assertTrue(sorted.first().uri.isNotEmpty())
         }
     }
+
+    @Test
+    fun `classify does not mark COMPRESSED at exactly half pixelArea and size`() {
+        val big = member("a", sizeBytes = 2_000_000, pixelArea = 12_000_000)
+        val half = member("b", sizeBytes = 1_000_000, pixelArea = 6_000_000)
+        val out = KeepPolicyEngine.classify(listOf(big, half))
+        assertEquals(VersionRole.ORIGINAL, out.first { m -> m.uri == "b" }.role)
+    }
+
+    @Test
+    fun `classify does not mark EDITED at exactly six hours after capture`() {
+        val m = member("a", modifiedAt = 1_000L + 6 * 3600_000L)
+        val out = KeepPolicyEngine.classify(listOf(m))
+        assertEquals(VersionRole.ORIGINAL, out.first().role)
+    }
 }

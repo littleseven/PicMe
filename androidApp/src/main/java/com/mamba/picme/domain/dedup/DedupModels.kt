@@ -26,6 +26,12 @@ data class DedupGroup(
     val keepUri: String,
     val userOverride: Boolean = false,
 ) {
+    init {
+        require(members.isEmpty() || members.any { member -> member.uri == keepUri }) {
+            "keepUri must be one of members' uris"
+        }
+    }
+
     val deleteUris: List<String> get() = members.map { member -> member.uri }.filter { uri -> uri != keepUri }
     val reclaimBytes: Long get() = members.filter { member -> member.uri != keepUri }.sumOf { member -> member.sizeBytes }
 
