@@ -380,9 +380,10 @@
     <string name="dedup_pause">Pause</string>
     <string name="dedup_resume">Resume</string>
     <string name="dedup_run_background">Run in background</string>
-    <string name="dedup_results_summary">%1$d groups · %2$s reclaimable</string>
+    <string name="dedup_hero_reclaim">Free up %1$s</string>
+    <string name="dedup_hero_groups">%1$d duplicate groups</string>
     <string name="dedup_smart_select_all">Smart select</string>
-    <!-- 结果页级别 tab 短标签（等宽三分布局，必须短；Config 页尺度卡片用 dedup_scale_* 长文案） -->
+    <!-- 结果页级别 tab 短标签（下划线 TabRow 按内容宽度排布，必须短；Config 页尺度卡片用 dedup_scale_* 长文案） -->
     <string name="dedup_level_exact">Exact</string>
     <string name="dedup_level_visual">Visual</string>
     <string name="dedup_level_scene">Scene</string>

@@ -39,15 +39,17 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -606,13 +608,14 @@ private fun DedupResultsContent(
     onSelectTab: (DedupLevel) -> Unit,
     onOpenGroupDetail: (String) -> Unit,
 ) {
-    // summary 与底部 CTA 同口径（spec §4/§10.5）：SCENE 组与未预选组不参与批量操作，不计入「可释放」
+    // Hero 数字与底部 CTA 同口径（spec §4/§10.5）：SCENE 组与未预选组不参与批量操作，不计入「可释放」
     val batchGroups = state.groups.filter { group -> group.batchEligible }
     val totalReclaim = batchGroups.sumOf { group -> group.reclaimBytes }
     val filteredGroups = state.groups.filter { group -> group.level == state.selectedTab }
+    val selectedTabIndex = DedupLevel.entries.indexOf(state.selectedTab)
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // summary 行：文本占满剩余宽度、最多 2 行折行；右侧「智能全选」chip 单行不折
+        // Hero 统计区：左侧大字「可释放 X」+ 副文「N 组重复照片」；右侧「智能全选」chip 单行不折
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -620,17 +623,29 @@ private fun DedupResultsContent(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = stringResource(
-                    R.string.dedup_results_summary,
-                    batchGroups.size,
-                    formatBytes(totalReclaim)
-                ),
+            Column(
                 modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = stringResource(
+                        R.string.dedup_hero_reclaim,
+                        formatBytes(totalReclaim)
+                    ),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = stringResource(R.string.dedup_hero_groups, batchGroups.size),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
             FilterChip(
                 selected = false,
                 onClick = onSmartSelectAll,
@@ -644,47 +659,40 @@ private fun DedupResultsContent(
             )
         }
 
-        // tabs 行：三个级别 chip 等宽三分，内部竖排两行（级别标签 + 计数）
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        // 级别 tab：下划线式 ScrollableTabRow，按内容宽度排布，多语言超长时横向滚动
+        PrimaryScrollableTabRow(
+            selectedTabIndex = selectedTabIndex,
+            modifier = Modifier.fillMaxWidth(),
+            containerColor = Color.Transparent,
+            edgePadding = 16.dp,
+            // 覆盖默认 90.dp 最小宽，让 tab 贴合内容；48.dp 保住最小触控宽度
+            minTabWidth = 48.dp,
+            divider = {},
+            indicator = {
+                Box(
+                    modifier = Modifier
+                        .tabIndicatorOffset(selectedTabIndex = selectedTabIndex)
+                        .height(3.dp)
+                        .clip(RoundedCornerShape(1.5.dp))
+                        .background(MaterialTheme.colorScheme.primary)
+                )
+            }
         ) {
             DedupLevel.entries.forEach { level ->
-                val selected = state.selectedTab == level
-                val count = state.groups.count { group -> group.level == level }
-                FilterChip(
-                    selected = selected,
-                    onClick = { onSelectTab(level) },
-                    modifier = Modifier.weight(1f),
-                    label = {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = stringResource(dedupLevelLabelRes(level)),
-                                style = MaterialTheme.typography.labelLarge,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = "$count",
-                                style = MaterialTheme.typography.labelMedium,
-                                // 未选中 tab 的计数用次要色，选中态跟随 chip 内容色（稍弱）
-                                color = if (selected) {
-                                    LocalContentColor.current.copy(alpha = 0.8f)
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                                maxLines = 1
-                            )
-                        }
-                    }
+                DedupLevelTab(
+                    level = level,
+                    count = state.groups.count { group -> group.level == level },
+                    selected = state.selectedTab == level,
+                    onSelect = onSelectTab
                 )
             }
         }
+
+        // TabRow 与组列表之间的细分隔线
+        HorizontalDivider(
+            thickness = 0.5.dp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+        )
 
         if (filteredGroups.isEmpty()) {
             Box(
@@ -716,6 +724,55 @@ private fun DedupResultsContent(
             }
         }
     }
+}
+
+/** 级别 tab：label 14sp + count 11sp 横排；选中态 primary 强调，未选中 onSurfaceVariant（count 再弱一档）。 */
+@Composable
+private fun DedupLevelTab(
+    level: DedupLevel,
+    count: Int,
+    selected: Boolean,
+    onSelect: (DedupLevel) -> Unit,
+) {
+    Tab(
+        selected = selected,
+        onClick = { onSelect(level) },
+        text = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = stringResource(dedupLevelLabelRes(level)),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    maxLines = 1,
+                    softWrap = false
+                )
+                Text(
+                    text = "$count",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    },
+                    maxLines = 1
+                )
+            }
+        },
+        // 文字色显式指定；此处只为让涟漪/语义色跟随选中态
+        selectedContentColor = if (selected) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        }
+    )
 }
 
 @Composable

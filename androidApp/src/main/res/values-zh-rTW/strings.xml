@@ -364,9 +364,10 @@
     <string name="dedup_pause">暫停</string>
     <string name="dedup_resume">繼續</string>
     <string name="dedup_run_background">轉背景執行</string>
-    <string name="dedup_results_summary">%1$d 組 · 可釋放 %2$s</string>
+    <string name="dedup_hero_reclaim">可釋放 %1$s</string>
+    <string name="dedup_hero_groups">%1$d 組重複照片</string>
     <string name="dedup_smart_select_all">智慧全選</string>
-    <!-- 結果頁級別 tab 短標籤（等寬三分佈局；Config 頁尺度卡片用 dedup_scale_*） -->
+    <!-- 結果頁級別 tab 短標籤（下劃線 TabRow 按內容寬度排佈；Config 頁尺度卡片用 dedup_scale_*） -->
     <string name="dedup_level_exact">完全重複</string>
     <string name="dedup_level_visual">視覺重複</string>
     <string name="dedup_level_scene">場景相似</string>
