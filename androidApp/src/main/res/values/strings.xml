@@ -381,10 +381,7 @@
     <string name="dedup_resume">Resume</string>
     <string name="dedup_run_background">Run in background</string>
     <string name="dedup_results_summary">%1$d groups · %2$s reclaimable</string>
-    <string name="dedup_smart_select_all">Smart select all</string>
-    <string name="dedup_tab_exact">Exact %1$d</string>
-    <string name="dedup_tab_visual">Visual %1$d</string>
-    <string name="dedup_tab_scene">Scene %1$d</string>
+    <string name="dedup_smart_select_all">Smart select</string>
     <string name="dedup_group_meta">%1$d photos · %2$s reclaimable</string>
     <string name="dedup_keep_badge">Keep</string>
     <string name="dedup_role_original">Original</string>

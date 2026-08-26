@@ -366,9 +366,6 @@
     <string name="dedup_run_background">转后台运行</string>
     <string name="dedup_results_summary">%1$d 组 · 可释放 %2$s</string>
     <string name="dedup_smart_select_all">智能全选</string>
-    <string name="dedup_tab_exact">完全重复 %1$d</string>
-    <string name="dedup_tab_visual">视觉重复 %1$d</string>
-    <string name="dedup_tab_scene">场景相似 %1$d</string>
     <string name="dedup_group_meta">%1$d 张 · 可省 %2$s</string>
     <string name="dedup_keep_badge">保留</string>
     <string name="dedup_role_original">原图</string>

@@ -42,6 +42,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -64,6 +65,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mamba.picme.R
 import com.mamba.picme.domain.dedup.DedupGroup
@@ -609,11 +611,13 @@ private fun DedupResultsContent(
     val filteredGroups = state.groups.filter { group -> group.level == state.selectedTab }
 
     Column(modifier = Modifier.fillMaxSize()) {
+        // summary 行：文本占满剩余宽度、最多 2 行折行；右侧「智能全选」chip 单行不折
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = stringResource(
@@ -621,16 +625,25 @@ private fun DedupResultsContent(
                     state.groups.size,
                     formatBytes(totalReclaim)
                 ),
-                style = MaterialTheme.typography.titleSmall
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.weight(1f))
             FilterChip(
                 selected = false,
                 onClick = onSmartSelectAll,
-                label = { Text(stringResource(R.string.dedup_smart_select_all)) }
+                label = {
+                    Text(
+                        text = stringResource(R.string.dedup_smart_select_all),
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
             )
         }
 
+        // tabs 行：三个级别 chip 等宽三分，内部竖排两行（级别标签 + 计数）
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -638,11 +651,36 @@ private fun DedupResultsContent(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             DedupLevel.entries.forEach { level ->
+                val selected = state.selectedTab == level
                 val count = state.groups.count { group -> group.level == level }
                 FilterChip(
-                    selected = state.selectedTab == level,
+                    selected = selected,
                     onClick = { onSelectTab(level) },
-                    label = { Text(stringResource(dedupTabLabelRes(level), count)) }
+                    modifier = Modifier.weight(1f),
+                    label = {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = stringResource(dedupLevelLabelRes(level)),
+                                style = MaterialTheme.typography.labelLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "$count",
+                                style = MaterialTheme.typography.labelMedium,
+                                // 未选中 tab 的计数用次要色，选中态跟随 chip 内容色（稍弱）
+                                color = if (selected) {
+                                    LocalContentColor.current.copy(alpha = 0.8f)
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                                maxLines = 1
+                            )
+                        }
+                    }
                 )
             }
         }
@@ -849,10 +887,4 @@ private fun dedupLevelDescRes(level: DedupLevel): Int = when (level) {
     DedupLevel.EXACT -> R.string.dedup_scale_exact_desc
     DedupLevel.VISUAL -> R.string.dedup_scale_visual_desc
     DedupLevel.SCENE -> R.string.dedup_scale_scene_desc
-}
-
-private fun dedupTabLabelRes(level: DedupLevel): Int = when (level) {
-    DedupLevel.EXACT -> R.string.dedup_tab_exact
-    DedupLevel.VISUAL -> R.string.dedup_tab_visual
-    DedupLevel.SCENE -> R.string.dedup_tab_scene
 }
