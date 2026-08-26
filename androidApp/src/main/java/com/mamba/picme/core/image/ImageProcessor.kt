@@ -212,6 +212,8 @@ class ImageProcessorImpl(
     ) {
         Logger.d(TAG, "takePhoto called with filter=$filter, beauty=$beauty, lensFacing=$lensFacing, cachedFaces=${cachedFaces.size}, beautyStrategy=$beautyStrategy, source=$source")
 
+        // ⚠️ 命名格式被 MediaDao.getLatestMediaCapturedAfter 的 GLOB 精确匹配依赖（头像拍摄兜底
+        // 轮询）：改动格式（含加扩展名）必须同步修改该查询，否则头像封面兜底静默失效
         val name = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(System.currentTimeMillis())
 
         imageCapture.takePicture(
