@@ -47,7 +47,7 @@ internal class AppConfigTest(private val case: ParsePricesCase) {
             arrayOf(
                 ParsePricesCase("missing-fields-skipped", """{"deepseek-chat":{"in":1.0}}""") { p ->
                     // in 缺 out → 整条跳过，仍为默认值
-                    assertEquals(8.0, p["deepseek-chat"]!!.outPerMillion, 0.0)
+                    assertEquals(8.87, p["deepseek-chat"]!!.outPerMillion, 0.0)
                 },
             ),
         )

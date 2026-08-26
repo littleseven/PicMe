@@ -1,7 +1,9 @@
 package com.mamba.picme.server.analytics
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TokenUsageTest {
@@ -89,5 +91,24 @@ class TokenUsageTest {
     @Test
     fun `null usage yields zero cost`() {
         assertEquals(0.0, costCny(null, "m", mapOf("m" to Price(2.0, 8.0))), 0.0)
+    }
+
+    // ── defaultPrices：路由在役的 DeepSeek 模型必须计得上价 ──
+
+    @Test
+    fun `default prices cover routed deepseek upstream models`() {
+        val prices = defaultPrices()
+        // 各渠道 model_map 映射后的上游名（LlmProxy 按 upstreamModel 计费）
+        val routedUpstreamModels = listOf(
+            "deepseek/deepseek-chat", // Cloudflare
+            "deepseek-v4-flash", "deepseek-v4-pro", // DeepSeek 直连
+            "deepseek-v4-flash-202605", "deepseek-v4-pro-202606", // TokenHub 快照名
+        )
+        routedUpstreamModels.forEach { model ->
+            assertNotNull("defaultPrices 缺 $model，成本会静默记 0", prices[model])
+        }
+        prices.values.forEach { price ->
+            assertTrue("单价应为正数: $price", price.inPerMillion > 0 && price.outPerMillion > 0)
+        }
     }
 }

@@ -85,12 +85,23 @@ fun formatCostCny(d: Double): String = when {
 /**
  * 内置默认单价（¥ / 1M tokens）。**估算用**，实际随上游调价漂移，
  * 生产可用环境变量 LLM_PRICES_JSON 覆盖（见 AppConfig）。
+ *
+ * DeepSeek 2026-08-26 调价同步（官方 pricing 页，现役 V4 家族）：
+ * 取**峰时**单价（UTC 周一~五 01:00-04:00 / 06:00-10:00 ≈ 北京时间工作日
+ * 09:00-12:00 / 14:00-18:00；谷时一律半价），输入按 cache-miss 计
+ * （usage 未拆分 cache 命中），USD→CNY 按 6.72 折算：
+ * - deepseek-v4-flash: $0.44/$1.32 → ¥2.96/¥8.87
+ * - deepseek-v4-pro:   $1.32/$3.96 → ¥8.87/¥26.61
+ * `deepseek-chat`/`deepseek/deepseek-chat`（Cloudflare 网关上游名）现由
+ * V4-Flash 档承载，按 flash 单价计。
  */
 fun defaultPrices(): Map<String, Price> = mapOf(
-    "deepseek/deepseek-chat" to Price(2.0, 8.0),
-    "deepseek-chat" to Price(2.0, 8.0),
-    "deepseek-v4-flash" to Price(0.5, 1.0),
-    "deepseek-v4-flash-202605" to Price(0.5, 1.0),
+    "deepseek/deepseek-chat" to Price(2.96, 8.87),
+    "deepseek-chat" to Price(2.96, 8.87),
+    "deepseek-v4-flash" to Price(2.96, 8.87),
+    "deepseek-v4-flash-202605" to Price(2.96, 8.87),
+    "deepseek-v4-pro" to Price(8.87, 26.61),
+    "deepseek-v4-pro-202606" to Price(8.87, 26.61),
     "kimi-k2.6" to Price(4.0, 12.0),
     "kimi-k2.7-code" to Price(4.0, 12.0),
 )
