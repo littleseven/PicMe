@@ -372,6 +372,8 @@
     <string name="dedup_level_visual">視覺重複</string>
     <string name="dedup_level_scene">場景相似</string>
     <string name="dedup_group_meta">%1$d 張 · 可省 %2$s</string>
+    <!-- 未預選組的 meta：按推薦保留項派生的預計可釋放量，避免顯示「0 B」誤導 -->
+    <string name="dedup_group_meta_estimated">%1$d 張 · 預計可省 %2$s</string>
     <string name="dedup_keep_badge">保留</string>
     <string name="dedup_role_original">原圖</string>
     <string name="dedup_role_edited">已編輯</string>
@@ -391,6 +393,8 @@
     <string name="dedup_keep_this">保留這張</string>
     <string name="dedup_hint_edited">該組含編輯版本，已按規則保留「已編輯版」</string>
     <string name="dedup_confirm_keep">保留所選 · 刪除其餘 %1$d 張</string>
+    <!-- 未預選組詳情確認按鈕：無待刪項時不顯示「刪除其餘 0 張」，改中性確認文案 -->
+    <string name="dedup_confirm_selection">確認本組選擇</string>
     <string name="dedup_rules_note">規則只決定每組的預設勾選，隨時可以逐組手動改選</string>
     <string name="dedup_apply">套用</string>
     <string name="dedup_rules_title">保留規則</string>

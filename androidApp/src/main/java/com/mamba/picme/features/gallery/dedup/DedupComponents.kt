@@ -240,11 +240,7 @@ fun DedupGroupCard(
                 LevelBadge(level = group.level)
                 ContentTypeBadge(contentType = group.contentType)
                 Text(
-                    text = stringResource(
-                        R.string.dedup_group_meta,
-                        group.members.size,
-                        formatBytes(group.reclaimBytes)
-                    ),
+                    text = dedupGroupMetaText(group),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -307,7 +303,23 @@ private fun dedupGroupFooterText(group: DedupGroup, policy: KeepPolicy): String 
 }
 
 /** 组当前是否呈现预选勾选状态（未预选且未改选 = 无保留/删除标记）。 */
-private fun showPreselection(group: DedupGroup): Boolean = group.autoPreselected || group.userOverride
+internal fun showPreselection(group: DedupGroup): Boolean = group.autoPreselected || group.userOverride
+
+/**
+ * 组 meta 文案：预选组显示实际可释放量；未预选且未改选组 reclaimBytes 恒 0，
+ * 改显示按当前 keepUri 派生的预计可释放量（「预计」措辞），避免「0 B」误导。
+ */
+@Composable
+internal fun dedupGroupMetaText(group: DedupGroup): String =
+    if (showPreselection(group)) {
+        stringResource(R.string.dedup_group_meta, group.members.size, formatBytes(group.reclaimBytes))
+    } else {
+        stringResource(
+            R.string.dedup_group_meta_estimated,
+            group.members.size,
+            formatBytes(group.potentialReclaimBytes)
+        )
+    }
 
 internal fun formatBytes(bytes: Long): String {
     val kb = 1024.0

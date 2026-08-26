@@ -101,11 +101,7 @@ private fun DedupGroupDetailContent(
         ) {
             LevelBadge(level = group.level)
             Text(
-                text = stringResource(
-                    R.string.dedup_group_meta,
-                    group.members.size,
-                    formatBytes(group.reclaimBytes)
-                ),
+                text = dedupGroupMetaText(group),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -150,7 +146,15 @@ private fun DedupGroupDetailContent(
                     .fillMaxWidth()
                     .padding(bottom = 8.dp)
             ) {
-                Text(stringResource(R.string.dedup_confirm_keep, group.deleteUris.size))
+                // 未预选且未改选组 deleteUris 为空：按钮不显示「删除其余 0 张」，
+                // 改为「确认本组选择」中性文案（spec §10.4 逐组确认语义）
+                Text(
+                    if (group.deleteUris.isEmpty()) {
+                        stringResource(R.string.dedup_confirm_selection)
+                    } else {
+                        stringResource(R.string.dedup_confirm_keep, group.deleteUris.size)
+                    }
+                )
             }
         } else {
             Spacer(modifier = Modifier.height(8.dp))

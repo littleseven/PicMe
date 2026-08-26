@@ -119,7 +119,7 @@ Gallery 设置入口（现有行，升级文案）
 
 | 类型 | 识别依据 | 可靠性 |
 |------|----------|--------|
-| `SCREENSHOT` 截图 | MediaStore `RELATIVE_PATH` 含 Screenshots 目录 | ≈100%（系统约定） |
+| `SCREENSHOT` 截图 | MediaStore `RELATIVE_PATH` 含 Screenshots 目录（API 29+；API 24-28 无该列，以 `DATA` 列路径兜底，退化基本消除） | ≈100%（系统约定） |
 | `PORTRAIT` 人像 | `media_assets.hasFace = 1` 或 `faceQualityScore` 非空（TAG Pass 1 人脸检测已产出） | 高，依赖 Pass 1 覆盖 |
 | `DOCUMENT` 文档/证件 | `ocrText` 文字密度超阈值（字符数 / 图面积），或 `labels` 含 document/text/receipt 类标签 | 中，依赖 TAG Pass 3 覆盖 |
 | `GENERAL` 普通 | 以上皆非（含 TAG 未覆盖的存量照片） | 兜底 |
@@ -155,7 +155,7 @@ Gallery 设置入口（现有行，升级文案）
 - `DedupMember` 增加 `contentType: ContentType`；`KeepPolicyEngine.recommend` 在人像组按 §10.3 调整排序键。
 - `DedupScanner`：VISUAL 聚类按 `contentType` 分桶后再按阈值成组（截图桶用收紧阈值）；跨桶不成组。
 - `DedupGroup` 增加 `autoPreselected: Boolean`（false 时结果页不勾选、不进批量 CTA）；`batchDeleteUris` 口径追加 `&& group.autoPreselected` 过滤。
-- 识别数据源已在 `media_assets`（hasFace/faceQualityScore/ocrText/labels）与 MediaStore（RELATIVE_PATH），无 schema 变更。
+- 识别数据源已在 `media_assets`（hasFace/faceQualityScore/ocrText/labels）与 MediaStore（RELATIVE_PATH，API<29 走 DATA 兜底；WIDTH/HEIGHT 供 OCR 密度归一），无 schema 变更。
 
 ### 10.6 验收标准（追加）
 

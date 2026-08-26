@@ -27,23 +27,38 @@ import org.robolectric.annotation.Config
  * 与 MediaStore `_ID` 不相等；按 id join 会全部 miss（扫描 0 项秒完）。
  */
 @RunWith(RobolectricTestRunner::class)
-// RELATIVE_PATH 需 API 29+：钉到 33 使截图目录识别分支生效（默认 SDK 低于 29）
+// RELATIVE_PATH/WIDTH/HEIGHT 需 API 29+：类级钉 33 使完整列路径生效（Robolectric 默认 SDK 低于 29）；
+// API<29 的 DATA 兜底路径由单独的 @Config(sdk = [28]) 用例覆盖。
 @Config(sdk = [33])
 class MediaStoreDedupMediaSourceTest {
 
     private val context: Context = ApplicationProvider.getApplicationContext()
 
-    private fun fakeResolver(rows: List<Array<Any>>): ContentResolver {
+    /** API 29+ 完整列（row 序）：_ID, SIZE, DATE_MODIFIED, MIME_TYPE, RELATIVE_PATH, DATA, WIDTH, HEIGHT */
+    private val qColumns = arrayOf(
+        MediaStore.MediaColumns._ID,
+        MediaStore.MediaColumns.SIZE,
+        MediaStore.MediaColumns.DATE_MODIFIED,
+        MediaStore.MediaColumns.MIME_TYPE,
+        MediaStore.MediaColumns.RELATIVE_PATH,
+        MediaStore.MediaColumns.DATA,
+        MediaStore.MediaColumns.WIDTH,
+        MediaStore.MediaColumns.HEIGHT,
+    )
+
+    /** API<29 列（row 序）：_ID, SIZE, DATE_MODIFIED, MIME_TYPE, DATA（无 RELATIVE_PATH/WIDTH/HEIGHT） */
+    private val legacyColumns = arrayOf(
+        MediaStore.MediaColumns._ID,
+        MediaStore.MediaColumns.SIZE,
+        MediaStore.MediaColumns.DATE_MODIFIED,
+        MediaStore.MediaColumns.MIME_TYPE,
+        MediaStore.MediaColumns.DATA,
+    )
+
+    private fun fakeResolver(columns: Array<String>, rows: List<Array<Any>>): ContentResolver {
         val resolver = mockk<ContentResolver>()
-        every { resolver.query(any(), any(), null, null, null) } returns MatrixCursor(
-            arrayOf(
-                MediaStore.MediaColumns._ID,
-                MediaStore.MediaColumns.SIZE,
-                MediaStore.MediaColumns.DATE_MODIFIED,
-                MediaStore.MediaColumns.MIME_TYPE,
-                MediaStore.MediaColumns.RELATIVE_PATH,
-            ),
-        ).apply { rows.forEach { row -> addRow(row) } }
+        every { resolver.query(any(), any(), null, null, null) } returns MatrixCursor(columns)
+            .apply { rows.forEach { row -> addRow(row) } }
         return resolver
     }
 
@@ -53,16 +68,26 @@ class MediaStoreDedupMediaSourceTest {
         return mockContext
     }
 
+    private fun sourceWith(
+        resolver: ContentResolver,
+        photos: List<MediaAsset>,
+    ): MediaStoreDedupMediaSource {
+        val repository = mockk<AndroidMediaRepository>()
+        every { repository.allMedia } returns flowOf(photos)
+        return MediaStoreDedupMediaSource(mockContextWith(resolver), repository)
+    }
+
     @Test
     fun `photoScanItems joins MediaStore meta by content uri, not synthetic asset id`() = runTest {
         val contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
         val uriA = ContentUris.withAppendedId(contentUri, 101L).toString()
         val uriB = ContentUris.withAppendedId(contentUri, 202L).toString()
         val resolver = fakeResolver(
+            qColumns,
             listOf(
-                arrayOf(101L, 2_000L, 1_700_000L, "image/jpeg", "DCIM/Camera/"),
-                arrayOf(202L, 3_000L, 1_700_001L, "image/png", "DCIM/Camera/"),
-            )
+                arrayOf(101L, 2_000L, 1_700_000L, "image/jpeg", "DCIM/Camera/", "/sdcard/DCIM/Camera/a.jpg", 4000L, 3000L),
+                arrayOf(202L, 3_000L, 1_700_001L, "image/png", "DCIM/Camera/", "/sdcard/DCIM/Camera/b.png", 4000L, 3000L),
+            ),
         )
         val photos = listOf(
             // syntheticMediaId 负值编码：与 MediaStore _ID 101/202 不相等
@@ -70,10 +95,8 @@ class MediaStoreDedupMediaSourceTest {
             MediaAsset(id = -2021L, uri = uriB, type = MediaType.PHOTO, captureDate = 2L, fileName = "b.png"),
             MediaAsset(id = -9L, uri = "content://media/external/video/media/9", type = MediaType.VIDEO, captureDate = 3L, fileName = "v.mp4"),
         )
-        val repository = mockk<AndroidMediaRepository>()
-        every { repository.allMedia } returns flowOf(photos)
 
-        val items = MediaStoreDedupMediaSource(mockContextWith(resolver), repository).photoScanItems()
+        val items = sourceWith(resolver, photos).photoScanItems()
 
         assertEquals(2, items.size) // 修复前为 0：id join 全 miss
         val byUri = items.associateBy { item -> item.uri }
@@ -90,12 +113,14 @@ class MediaStoreDedupMediaSourceTest {
         val uriPortrait = ContentUris.withAppendedId(contentUri, 303L).toString()
         val uriGeneral = ContentUris.withAppendedId(contentUri, 304L).toString()
         val resolver = fakeResolver(
+            qColumns,
             listOf(
-                arrayOf(301L, 2_000L, 1_700_000L, "image/png", "DCIM/Screenshots/"),
-                arrayOf(302L, 2_000L, 1_700_000L, "image/jpeg", "DCIM/Camera/"),
-                arrayOf(303L, 2_000L, 1_700_000L, "image/jpeg", "DCIM/Camera/"),
-                arrayOf(304L, 2_000L, 1_700_000L, "image/jpeg", "DCIM/Camera/"),
-            )
+                arrayOf(301L, 2_000L, 1_700_000L, "image/png", "DCIM/Screenshots/", "/sdcard/DCIM/Screenshots/s.png", 1080L, 2400L),
+                // 尺寸列为 0：pixelArea=null，OCR 判定退回绝对字符数兜底
+                arrayOf(302L, 2_000L, 1_700_000L, "image/jpeg", "DCIM/Camera/", "/sdcard/DCIM/Camera/d.jpg", 0L, 0L),
+                arrayOf(303L, 2_000L, 1_700_000L, "image/jpeg", "DCIM/Camera/", "/sdcard/DCIM/Camera/p.jpg", 4000L, 3000L),
+                arrayOf(304L, 2_000L, 1_700_000L, "image/jpeg", "DCIM/Camera/", "/sdcard/DCIM/Camera/g.jpg", 4000L, 3000L),
+            ),
         )
         val photos = listOf(
             MediaAsset(id = -301L, uri = uriShot, type = MediaType.PHOTO, captureDate = 1L, fileName = "s.png"),
@@ -109,16 +134,78 @@ class MediaStoreDedupMediaSourceTest {
             ),
             MediaAsset(id = -304L, uri = uriGeneral, type = MediaType.PHOTO, captureDate = 4L, fileName = "g.jpg"),
         )
-        val repository = mockk<AndroidMediaRepository>()
-        every { repository.allMedia } returns flowOf(photos)
 
-        val items = MediaStoreDedupMediaSource(mockContextWith(resolver), repository).photoScanItems()
+        val items = sourceWith(resolver, photos).photoScanItems()
 
         val byUri = items.associateBy { item -> item.uri }
         assertEquals(DedupContentType.SCREENSHOT, byUri.getValue(uriShot).contentType)
         assertEquals(DedupContentType.DOCUMENT, byUri.getValue(uriDoc).contentType)
         assertEquals(DedupContentType.PORTRAIT, byUri.getValue(uriPortrait).contentType)
         assertEquals(0.8f, byUri.getValue(uriPortrait).faceQualityScore)
+        assertEquals(DedupContentType.GENERAL, byUri.getValue(uriGeneral).contentType)
+    }
+
+    @Test
+    fun `photoScanItems normalizes ocr density by pixel area`() = runTest {
+        // spec §10.2 面积归一：同为 250 字符，大图（48MP 海报）密度低判 GENERAL，小图密度高判 DOCUMENT
+        val contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        val uriPoster = ContentUris.withAppendedId(contentUri, 401L).toString()
+        val uriDoc = ContentUris.withAppendedId(contentUri, 402L).toString()
+        val resolver = fakeResolver(
+            qColumns,
+            listOf(
+                arrayOf(401L, 2_000L, 1_700_000L, "image/jpeg", "DCIM/Camera/", "/sdcard/DCIM/Camera/poster.jpg", 8000L, 6000L),
+                arrayOf(402L, 2_000L, 1_700_000L, "image/jpeg", "DCIM/Camera/", "/sdcard/DCIM/Camera/doc.jpg", 640L, 480L),
+            ),
+        )
+        val photos = listOf(
+            MediaAsset(id = -401L, uri = uriPoster, type = MediaType.PHOTO, captureDate = 1L, fileName = "poster.jpg", ocrText = "字".repeat(250)),
+            MediaAsset(id = -402L, uri = uriDoc, type = MediaType.PHOTO, captureDate = 2L, fileName = "doc.jpg", ocrText = "字".repeat(250)),
+        )
+
+        val items = sourceWith(resolver, photos).photoScanItems()
+
+        val byUri = items.associateBy { item -> item.uri }
+        assertEquals(DedupContentType.GENERAL, byUri.getValue(uriPoster).contentType)
+        assertEquals(DedupContentType.DOCUMENT, byUri.getValue(uriDoc).contentType)
+    }
+
+    @Test
+    @Config(sdk = [28])
+    fun `API 28 falls back to DATA column for screenshot detection`() = runTest {
+        // API 24-28 无 RELATIVE_PATH/WIDTH/HEIGHT 列：截图识别走 DATA 兜底，
+        // OCR 判定退回绝对字符数，contentType 判定不崩溃且走剩余信号
+        val contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        val uriShot = ContentUris.withAppendedId(contentUri, 501L).toString()
+        val uriDoc = ContentUris.withAppendedId(contentUri, 502L).toString()
+        val uriPortrait = ContentUris.withAppendedId(contentUri, 503L).toString()
+        val uriGeneral = ContentUris.withAppendedId(contentUri, 504L).toString()
+        val resolver = fakeResolver(
+            legacyColumns,
+            listOf(
+                arrayOf(501L, 2_000L, 1_700_000L, "image/png", "/storage/emulated/0/DCIM/Screenshots/s.png"),
+                arrayOf(502L, 2_000L, 1_700_000L, "image/jpeg", "/storage/emulated/0/DCIM/Camera/d.jpg"),
+                arrayOf(503L, 2_000L, 1_700_000L, "image/jpeg", "/storage/emulated/0/DCIM/Camera/p.jpg"),
+                arrayOf(504L, 2_000L, 1_700_000L, "image/jpeg", "/storage/emulated/0/DCIM/Camera/g.jpg"),
+            ),
+        )
+        val photos = listOf(
+            MediaAsset(id = -501L, uri = uriShot, type = MediaType.PHOTO, captureDate = 1L, fileName = "s.png"),
+            MediaAsset(
+                id = -502L, uri = uriDoc, type = MediaType.PHOTO, captureDate = 2L, fileName = "d.jpg",
+                ocrText = "字".repeat(DOCUMENT_OCR_CHAR_THRESHOLD + 1),
+            ),
+            MediaAsset(id = -503L, uri = uriPortrait, type = MediaType.PHOTO, captureDate = 3L, fileName = "p.jpg", hasFace = true),
+            MediaAsset(id = -504L, uri = uriGeneral, type = MediaType.PHOTO, captureDate = 4L, fileName = "g.jpg"),
+        )
+
+        val items = sourceWith(resolver, photos).photoScanItems()
+
+        assertEquals(4, items.size)
+        val byUri = items.associateBy { item -> item.uri }
+        assertEquals(DedupContentType.SCREENSHOT, byUri.getValue(uriShot).contentType)
+        assertEquals(DedupContentType.DOCUMENT, byUri.getValue(uriDoc).contentType)
+        assertEquals(DedupContentType.PORTRAIT, byUri.getValue(uriPortrait).contentType)
         assertEquals(DedupContentType.GENERAL, byUri.getValue(uriGeneral).contentType)
     }
 

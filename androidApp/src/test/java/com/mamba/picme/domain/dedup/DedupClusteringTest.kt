@@ -134,4 +134,37 @@ class DedupClusteringTest {
         )
         assertTrue(generalGroups.single().autoPreselected)
     }
+
+    @Test
+    fun `all-GENERAL input is equivalent to v1_0 single-bucket clustering`() {
+        // AC-6 锁定：TAG 未覆盖（全 GENERAL）时 clusterVisualByContentType 与
+        // v1.0 阈值-5 单桶聚类完全等价（组数、成员集合、keepUri、autoPreselected）
+        val items = listOf(
+            hashed("a", 0b1111L, captureDate = 1L),
+            hashed("b", 0b1110L, captureDate = 2L),
+            hashed("c", -1L, captureDate = 3L),
+            hashed("d", -2L, captureDate = 4L),
+            // 0xF0 与两簇的 hamming 距离均 > 5：孤立项，不成组
+            hashed("e", 0xF0L, captureDate = 5L),
+        )
+        val legacy = clusterVisual(items, threshold = 5, timeWindowMs = null, level = DedupLevel.VISUAL)
+        val bucketed = clusterVisualByContentType(
+            hashed = items,
+            visualThreshold = 5,
+            screenshotVisualThreshold = 3,
+        )
+        assertEquals(2, legacy.size) // 前置断言：fixture 本身应产出两簇
+        assertEquals(legacy.size, bucketed.size)
+        val legacyById = legacy.associateBy { group -> group.id }
+        bucketed.forEach { group ->
+            val legacyGroup = legacyById.getValue(group.id)
+            assertEquals(
+                legacyGroup.members.map { member -> member.uri }.toSet(),
+                group.members.map { member -> member.uri }.toSet(),
+            )
+            assertEquals(legacyGroup.keepUri, group.keepUri)
+        }
+        assertTrue(bucketed.all { group -> group.contentType == DedupContentType.GENERAL })
+        assertTrue(bucketed.all { group -> group.autoPreselected })
+    }
 }

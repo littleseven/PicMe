@@ -61,6 +61,13 @@ data class DedupGroup(
             members.filter { member -> member.uri != keepUri }.sumOf { member -> member.sizeBytes }
         }
 
+    /**
+     * 按当前 keepUri 派生的潜在可释放量（不受预选状态影响）：
+     * 未预选组 deleteUris/reclaimBytes 为空时，UI 以此展示「预计可省」，避免「0 B」误导。
+     */
+    val potentialReclaimBytes: Long
+        get() = members.filter { member -> member.uri != keepUri }.sumOf { member -> member.sizeBytes }
+
     /** 批量操作参与口径：SCENE 逐组确认不参与；未预选组仅在用户改选后参与。 */
     val batchEligible: Boolean
         get() = level != DedupLevel.SCENE && (autoPreselected || userOverride)

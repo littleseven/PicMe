@@ -388,6 +388,8 @@
     <string name="dedup_level_visual">Visual</string>
     <string name="dedup_level_scene">Scene</string>
     <string name="dedup_group_meta">%1$d photos · %2$s reclaimable</string>
+    <!-- 未预选组的 meta：按推荐保留项派生的预计可释放量，避免显示「0 B」误导 -->
+    <string name="dedup_group_meta_estimated">%1$d photos · est. %2$s reclaimable</string>
     <string name="dedup_keep_badge">Keep</string>
     <string name="dedup_role_original">Original</string>
     <string name="dedup_role_edited">Edited</string>
@@ -406,6 +408,8 @@
     <string name="dedup_detail_title">Choose what to keep</string>
     <string name="dedup_keep_this">Keep this one</string>
     <string name="dedup_hint_edited">Edited version detected; kept by rule</string>
+    <!-- 未预选组详情确认按钮：无待删项时不显示「删除其余 0 张」，改中性确认文案 -->
+    <string name="dedup_confirm_selection">Confirm selection</string>
     <string name="dedup_confirm_keep">Keep selected · delete other %1$d</string>
     <string name="dedup_rules_note">The rule only sets the default pick; you can change any group manually</string>
     <string name="dedup_apply">Apply</string>

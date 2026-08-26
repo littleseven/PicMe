@@ -68,6 +68,8 @@ class DedupModelsTest {
         assertEquals(emptyList<String>(), g.deleteUris)
         assertEquals(0L, g.reclaimBytes)
         assertFalse(g.batchEligible)
+        // UI「预计可省」仍可按 keepUri 派生潜在可释放量
+        assertEquals(3_000_000L, g.potentialReclaimBytes)
     }
 
     @Test

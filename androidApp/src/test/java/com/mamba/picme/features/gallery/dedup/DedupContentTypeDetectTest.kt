@@ -11,29 +11,44 @@ import org.junit.Test
 class DedupContentTypeDetectTest {
 
     private fun detect(
-        relativePath: String? = null,
+        path: String? = null,
         ocrText: String? = null,
+        pixelArea: Long? = null,
         labels: String? = null,
         hasFace: Boolean = false,
         faceQualityScore: Float? = null,
     ) = detectContentType(
-        relativePath = relativePath,
+        path = path,
         ocrText = ocrText,
+        pixelArea = pixelArea,
         labels = labels,
         hasFace = hasFace,
         faceQualityScore = faceQualityScore,
     )
 
     @Test
-    fun `screenshots dir in relative path detects SCREENSHOT case-insensitively`() {
-        assertEquals(DedupContentType.SCREENSHOT, detect(relativePath = "DCIM/Screenshots/"))
-        assertEquals(DedupContentType.SCREENSHOT, detect(relativePath = "Pictures/screenshots/"))
-        assertEquals(DedupContentType.SCREENSHOT, detect(relativePath = "Pictures/SCREENSHOTS/"))
-        assertEquals(DedupContentType.GENERAL, detect(relativePath = "DCIM/Camera/"))
+    fun `screenshots dir in path detects SCREENSHOT case-insensitively`() {
+        assertEquals(DedupContentType.SCREENSHOT, detect(path = "DCIM/Screenshots/"))
+        assertEquals(DedupContentType.SCREENSHOT, detect(path = "Pictures/screenshots/"))
+        // API<29 走 DATA 列绝对路径兜底，同一 contains 判定
+        assertEquals(DedupContentType.SCREENSHOT, detect(path = "/storage/emulated/0/Pictures/Screenshots/a.png"))
+        assertEquals(DedupContentType.GENERAL, detect(path = "DCIM/Camera/"))
     }
 
     @Test
-    fun `long ocr text over threshold detects DOCUMENT`() {
+    fun `ocr text density over threshold detects DOCUMENT`() {
+        // 密度判定：字符数/像素面积 > 20 字符/MP
+        // 201 字符在 12MP 照片上密度 ~16.8/MP，归一后不再误判
+        assertEquals(
+            DedupContentType.GENERAL,
+            detect(ocrText = "字".repeat(201), pixelArea = 12_000_000L),
+        )
+        // 同字符数在 0.5MP 小图上密度 402/MP，密集文字仍判文档
+        assertEquals(
+            DedupContentType.DOCUMENT,
+            detect(ocrText = "字".repeat(201), pixelArea = 500_000L),
+        )
+        // 尺寸未知（API<29 或列缺失）退回绝对字符数兜底
         val dense = "字".repeat(DOCUMENT_OCR_CHAR_THRESHOLD + 1)
         assertEquals(DedupContentType.DOCUMENT, detect(ocrText = dense))
         val sparse = "字".repeat(DOCUMENT_OCR_CHAR_THRESHOLD)
@@ -45,7 +60,18 @@ class DedupContentTypeDetectTest {
         assertEquals(DedupContentType.DOCUMENT, detect(labels = "室内,document,纸张"))
         assertEquals(DedupContentType.DOCUMENT, detect(labels = "receipt photo"))
         assertEquals(DedupContentType.DOCUMENT, detect(labels = "证件照"))
+        assertEquals(DedupContentType.DOCUMENT, detect(labels = "截图文字"))
         assertEquals(DedupContentType.GENERAL, detect(labels = "风景,山脉"))
+    }
+
+    @Test
+    fun `english label keywords match whole tokens only`() {
+        // context/texture/textile 不得被裸子串 "text" 误伤
+        assertEquals(DedupContentType.GENERAL, detect(labels = "context"))
+        assertEquals(DedupContentType.GENERAL, detect(labels = "texture,textile"))
+        // 整词命中仍生效（含大小写不敏感与混合分隔）
+        assertEquals(DedupContentType.DOCUMENT, detect(labels = "text"))
+        assertEquals(DedupContentType.DOCUMENT, detect(labels = "Screenshot_Text,室内"))
     }
 
     @Test
@@ -60,7 +86,7 @@ class DedupContentTypeDetectTest {
         assertEquals(
             DedupContentType.SCREENSHOT,
             detect(
-                relativePath = "DCIM/Screenshots/",
+                path = "DCIM/Screenshots/",
                 ocrText = "x".repeat(DOCUMENT_OCR_CHAR_THRESHOLD + 1),
                 hasFace = true,
             ),
@@ -76,6 +102,6 @@ class DedupContentTypeDetectTest {
     fun `TAG-uncovered photos fall back to GENERAL`() {
         // 退化原则：信号全空（含 TAG 未覆盖存量照片）一律 GENERAL，行为与 v1.0 一致
         assertEquals(DedupContentType.GENERAL, detect())
-        assertEquals(DedupContentType.GENERAL, detect(relativePath = null, ocrText = "", labels = ""))
+        assertEquals(DedupContentType.GENERAL, detect(path = null, ocrText = "", labels = ""))
     }
 }

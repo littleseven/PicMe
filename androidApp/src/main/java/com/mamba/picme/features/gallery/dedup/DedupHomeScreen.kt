@@ -546,11 +546,7 @@ private fun DedupScanningGroupRow(
             Column(modifier = Modifier.weight(1f)) {
                 LevelBadge(level = group.level)
                 Text(
-                    text = stringResource(
-                        R.string.dedup_group_meta,
-                        group.members.size,
-                        formatBytes(group.reclaimBytes)
-                    ),
+                    text = dedupGroupMetaText(group),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
