@@ -411,6 +411,9 @@
     <string name="dedup_no_groups">No duplicates found</string>
     <string name="dedup_progress_percent">%1$d%%</string>
     <string name="dedup_more_count">+%1$d</string>
+    <string name="dedup_partial_trash_notice">Some items were not deleted and remain in the list</string>
+    <string name="dedup_thumb_kept_cd">Photo, kept</string>
+    <string name="dedup_thumb_delete_cd">Photo, marked for deletion</string>
 
     <!-- Media Pager -->
     <string name="media_source">Source: %1$s</string>

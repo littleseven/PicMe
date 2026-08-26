@@ -157,7 +157,15 @@ class DedupScanner(
                 .associateBy { entity -> entity.uri }
             val now = System.currentTimeMillis()
             val toUpsert = mutableListOf<DedupHashEntity>()
+            var sincePauseCheck = 0
             for (item in batch) {
+                // 批内 500 张顺序 I/O 期间的取消/暂停检查点：取消每张都查（开销可忽略），
+                // 暂停每 PAUSE_CHECKPOINT_ITEMS 张查一次（awaitIfPaused 是 suspend 轮询）
+                currentCoroutineContext().ensureActive()
+                if (++sincePauseCheck >= PAUSE_CHECKPOINT_ITEMS) {
+                    sincePauseCheck = 0
+                    awaitIfPaused()
+                }
                 val cached = cachedByUri[item.uri]
                     ?.takeIf { entity ->
                         entity.modifiedAt == item.modifiedAt && entity.sizeBytes == item.sizeBytes
@@ -365,5 +373,8 @@ class DedupScanner(
         /** 哈希分批大小：必须 < 999（SQLite IN 参数上限，getByUris 走 `uri IN (:uris)` 查询）。 */
         const val HASH_BATCH_SIZE = 500
         const val PAUSE_POLL_MS = 200L
+
+        /** 批内暂停检查间隔（张）：awaitIfPaused 为 suspend 轮询，不宜每张调用。 */
+        const val PAUSE_CHECKPOINT_ITEMS = 50
     }
 }

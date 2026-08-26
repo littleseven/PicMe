@@ -395,6 +395,9 @@
     <string name="dedup_no_groups">没有发现重复照片</string>
     <string name="dedup_progress_percent">%1$d%%</string>
     <string name="dedup_more_count">+%1$d</string>
+    <string name="dedup_partial_trash_notice">部分照片未删除，已保留在列表中</string>
+    <string name="dedup_thumb_kept_cd">照片，保留</string>
+    <string name="dedup_thumb_delete_cd">照片，待删除</string>
 
     <string name="screenshot">截图</string>
     <string name="screenshot_saved">截图已保存至 %1$s</string>

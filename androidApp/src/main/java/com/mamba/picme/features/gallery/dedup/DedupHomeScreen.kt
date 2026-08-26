@@ -45,6 +45,8 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -81,9 +83,20 @@ fun DedupHomeRoute(
     val uiState by viewModel.uiState.collectAsState()
     val pendingTrash by viewModel.pendingTrash.collectAsState()
     val pendingRestore by viewModel.pendingRestore.collectAsState()
+    val partialTrashNotice by viewModel.partialTrashNotice.collectAsState()
     val policy by viewModel.policy.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
     var showKeepRules by remember { mutableStateOf(false) }
     var detailGroupId by remember { mutableStateOf<String?>(null) }
+
+    // 部分拒绝一次性提示（B5）：VM 置位 → 消费 → 弹 snackbar
+    val partialTrashMessage = stringResource(R.string.dedup_partial_trash_notice)
+    LaunchedEffect(partialTrashNotice) {
+        if (partialTrashNotice) {
+            viewModel.consumePartialTrashNotice()
+            snackbarHostState.showSnackbar(partialTrashMessage)
+        }
+    }
 
     val trashLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
@@ -108,6 +121,7 @@ fun DedupHomeRoute(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             DedupTopBar(
                 state = uiState,
@@ -125,10 +139,15 @@ fun DedupHomeRoute(
                     },
                     onRunBackground = onNavigateBack,
                 )
-                is DedupUiState.Results -> DedupResultsBottomBar(
-                    groups = state.groups,
-                    onDelete = { viewModel.deleteSelected() },
-                )
+                is DedupUiState.Results -> {
+                    // 底部 CTA 与 VM 删除流同一口径：SCENE 组不参与批量删除（spec §4）
+                    val batchUris = viewModel.batchDeleteUris(state.groups)
+                    DedupResultsBottomBar(
+                        deleteCount = batchUris.size,
+                        deleteBytes = viewModel.batchReclaimBytes(state.groups, batchUris),
+                        onDelete = { viewModel.deleteSelected() },
+                    )
+                }
                 is DedupUiState.Cleaned -> DedupCleanedBottomBar(
                     onDone = { viewModel.resetToConfig() },
                 )
@@ -662,16 +681,10 @@ private fun DedupResultsContent(
 
 @Composable
 private fun DedupResultsBottomBar(
-    groups: List<DedupGroup>,
+    deleteCount: Int,
+    deleteBytes: Long,
     onDelete: () -> Unit,
 ) {
-    val deleteUris = groups.flatMap { group -> group.deleteUris }.distinct()
-    val deleteBytes = groups
-        .flatMap { group -> group.members }
-        .filter { member -> member.uri in deleteUris }
-        .distinctBy { member -> member.uri }
-        .sumOf { member -> member.sizeBytes }
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -682,7 +695,7 @@ private fun DedupResultsBottomBar(
         Button(
             onClick = onDelete,
             modifier = Modifier.fillMaxWidth(),
-            enabled = deleteUris.isNotEmpty(),
+            enabled = deleteCount > 0,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.error
             )
@@ -690,7 +703,7 @@ private fun DedupResultsBottomBar(
             Text(
                 text = stringResource(
                     R.string.dedup_delete_cta,
-                    deleteUris.size,
+                    deleteCount,
                     formatBytes(deleteBytes)
                 )
             )

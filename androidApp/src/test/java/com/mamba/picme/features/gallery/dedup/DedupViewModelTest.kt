@@ -141,7 +141,8 @@ class DedupViewModelTest {
 
     @Test
     fun `setKeep marks userOverride and changes deleteUris`() = runTest {
-        val g = group("g1", DedupLevel.EXACT, listOf(member("a"), member("b", sizeBytes = 2_000L)))
+        // a 文件更大：Done 按 BEST_QUALITY 重算后仍保留 a（排序恒等）
+        val g = group("g1", DedupLevel.EXACT, listOf(member("a", sizeBytes = 3_000L), member("b", sizeBytes = 2_000L)))
         val scanner = FakeScanner(events = listOf(DedupScanEvent.Done(listOf(g))))
         val vm = viewModel(scanner, scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
 
@@ -157,7 +158,7 @@ class DedupViewModelTest {
         assertEquals("b", updated.keepUri)
         assertTrue(updated.userOverride)
         assertEquals(listOf("a"), updated.deleteUris)
-        assertEquals(1_000L, updated.reclaimBytes)
+        assertEquals(3_000L, updated.reclaimBytes)
     }
 
     @Test
@@ -265,7 +266,8 @@ class DedupViewModelTest {
     @Test
     fun `deleteSelected on API30 path emits PendingTrash and refusal returns to Results with groups intact`() =
         runTest {
-            val g = group("g1", DedupLevel.EXACT, listOf(member("a"), member("b", sizeBytes = 2_000L)))
+            // a 文件更大：Done 按 BEST_QUALITY 重算后排序恒等，deleteUris 仍为 [b]
+            val g = group("g1", DedupLevel.EXACT, listOf(member("a", sizeBytes = 3_000L), member("b", sizeBytes = 2_000L)))
             val scanner = FakeScanner(events = listOf(DedupScanEvent.Done(listOf(g))))
             val trash = fakeTrashManager(supported = true)
             val vm = viewModel(scanner, trash, scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
@@ -274,6 +276,7 @@ class DedupViewModelTest {
             settle()
 
             vm.deleteSelected()
+            settle() // buildTrashIntent 已移入 ioDispatcher 异步构建
             val pending = vm.pendingTrash.value
             assertNotNull(pending)
             assertEquals(listOf("b"), pending?.uris)
@@ -289,7 +292,8 @@ class DedupViewModelTest {
 
     @Test
     fun `deleteSelected confirmed moves to Cleaned with reclaimed bytes`() = runTest {
-        val g = group("g1", DedupLevel.EXACT, listOf(member("a"), member("b", sizeBytes = 2_000L)))
+        // a 文件更大：Done 按 BEST_QUALITY 重算后仍保留 a，b 进回收站
+        val g = group("g1", DedupLevel.EXACT, listOf(member("a", sizeBytes = 3_000L), member("b", sizeBytes = 2_000L)))
         val scanner = FakeScanner(events = listOf(DedupScanEvent.Done(listOf(g))))
         val trash = fakeTrashManager(supported = true)
         val vm = viewModel(scanner, trash, scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
@@ -297,6 +301,7 @@ class DedupViewModelTest {
         vm.startScan(DedupScanConfig())
         settle()
         vm.deleteSelected()
+        settle()
         vm.onTrashResult(ok = true)
         settle()
 
@@ -353,8 +358,9 @@ class DedupViewModelTest {
     }
 
     @Test
-    fun `partial trash refusal keeps Results with groups intact`() = runTest {
-        val g = group("g1", DedupLevel.EXACT, listOf(member("a"), member("b", sizeBytes = 2_000L)))
+    fun `partial trash refusal keeps Results with groups intact and raises notice`() = runTest {
+        // a 文件更大：Done 按 BEST_QUALITY 重算后排序恒等
+        val g = group("g1", DedupLevel.EXACT, listOf(member("a", sizeBytes = 3_000L), member("b", sizeBytes = 2_000L)))
         val scanner = FakeScanner(events = listOf(DedupScanEvent.Done(listOf(g))))
         val trash = mockk<DedupTrashManager> {
             every { isSupported } returns true
@@ -367,11 +373,96 @@ class DedupViewModelTest {
         vm.startScan(DedupScanConfig())
         settle()
         vm.deleteSelected()
+        settle()
         vm.onTrashResult(ok = true)
         settle()
 
         assertNull(vm.pendingTrash.value)
         val state = vm.uiState.value as DedupUiState.Results
         assertEquals(listOf(g), state.groups)
+        // 一次性 UI 提示置位，消费后复位
+        assertTrue(vm.partialTrashNotice.value)
+        vm.consumePartialTrashNotice()
+        assertFalse(vm.partialTrashNotice.value)
+    }
+
+    @Test
+    fun `batch delete excludes SCENE groups from uris and reclaim bytes`() = runTest {
+        // 每组首张文件更大：Done 按 BEST_QUALITY 重算后排序恒等，deleteUris 为各组第二张
+        val exact = group(
+            "g1", DedupLevel.EXACT,
+            listOf(member("a", sizeBytes = 3_000L), member("b", sizeBytes = 2_000L)),
+        )
+        val visual = group(
+            "g2", DedupLevel.VISUAL,
+            listOf(member("c", sizeBytes = 4_000L), member("d", sizeBytes = 3_000L)),
+        )
+        val scene = group(
+            "g3", DedupLevel.SCENE,
+            listOf(member("e", sizeBytes = 6_000L), member("f", sizeBytes = 5_000L)),
+        )
+        val scanner = FakeScanner(events = listOf(DedupScanEvent.Done(listOf(exact, visual, scene))))
+        val trash = fakeTrashManager(supported = true)
+        val vm = viewModel(scanner, trash, scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
+
+        vm.startScan(DedupScanConfig())
+        settle()
+        val groups = (vm.uiState.value as DedupUiState.Results).groups
+
+        // 派生值：仅 EXACT/VISUAL 组的 deleteUris（各 1 张非保留项）
+        val batchUris = vm.batchDeleteUris(groups)
+        assertEquals(listOf("b", "d"), batchUris.sorted())
+        assertEquals(2_000L + 3_000L, vm.batchReclaimBytes(groups, batchUris))
+
+        vm.deleteSelected()
+        settle()
+
+        // 删除流同样只带 EXACT/VISUAL 的 uris，SCENE 组不参与
+        assertEquals(listOf("b", "d"), vm.pendingTrash.value?.uris?.sorted())
+        assertTrue(vm.uiState.value is DedupUiState.Results)
+    }
+
+    @Test
+    fun `scan Done recomputes default keep by current policy`() = runTest {
+        // 扫描器按 BEST_QUALITY 建组（pixelArea 大者在前），Config 已选「保留最新」
+        val g = group(
+            "g1", DedupLevel.EXACT,
+            listOf(
+                member("old-big", modifiedAt = 100L, pixelArea = 2_000),
+                member("new-small", modifiedAt = 200L, pixelArea = 1_000),
+            ),
+        )
+        val scanner = FakeScanner(events = listOf(DedupScanEvent.Done(listOf(g))))
+        val vm = viewModel(scanner, scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
+
+        vm.applyPolicy(KeepPolicy.LATEST) // Config 态改策略
+        vm.startScan(DedupScanConfig())
+        settle()
+
+        val state = vm.uiState.value as DedupUiState.Results
+        assertEquals(KeepPolicy.LATEST, state.policy)
+        val result = state.groups.single()
+        // Done 分支按当前 policy 重算：keepUri 为 modifiedAt 最新者
+        assertEquals("new-small", result.keepUri)
+        assertEquals(listOf("new-small", "old-big"), result.members.map { m -> m.uri })
+    }
+
+    @Test
+    fun `buildTrashIntent failure keeps Results and emits no PendingTrash`() = runTest {
+        val g = group("g1", DedupLevel.EXACT, listOf(member("a"), member("b")))
+        val scanner = FakeScanner(events = listOf(DedupScanEvent.Done(listOf(g))))
+        val trash = mockk<DedupTrashManager> {
+            every { isSupported } returns true
+            every { buildTrashIntent(any()) } throws RuntimeException("ipc boom")
+        }
+        val vm = viewModel(scanner, trash, scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
+
+        vm.startScan(DedupScanConfig())
+        settle()
+        vm.deleteSelected()
+        settle()
+
+        assertNull(vm.pendingTrash.value)
+        assertTrue(vm.uiState.value is DedupUiState.Results)
     }
 }

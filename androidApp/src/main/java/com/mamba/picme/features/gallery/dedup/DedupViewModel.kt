@@ -84,6 +84,14 @@ class DedupViewModel(
     private val _pendingRestore = MutableStateFlow<PendingTrash?>(null)
     val pendingRestore: StateFlow<PendingTrash?> = _pendingRestore.asStateFlow()
 
+    /** 一次性 UI 事件槽位（PendingTrash 同款模式）：回收站部分拒绝时置位，UI 弹 snackbar 后调 [consumePartialTrashNotice]。 */
+    private val _partialTrashNotice = MutableStateFlow(false)
+    val partialTrashNotice: StateFlow<Boolean> = _partialTrashNotice.asStateFlow()
+
+    fun consumePartialTrashNotice() {
+        _partialTrashNotice.value = false
+    }
+
     private var scanJob: Job? = null
 
     // ---------- 扫描生命周期 ----------
@@ -138,7 +146,9 @@ class DedupViewModel(
                 state.copy(phase = event.phase, phaseIndex = event.phaseIndex, phaseCount = event.phaseCount)
             }
             is DedupScanEvent.Done -> {
-                val groups = event.groups
+                // 扫描器按 BEST_QUALITY 建组；Done 时按当前保留规则重算默认勾选
+                //（resortGroup 天然跳过 userOverride，扫描态不会产生 override）
+                val groups = event.groups.map { group -> resortGroup(group, _policy.value) }
                 val firstTab = DedupLevel.entries.firstOrNull { level ->
                     groups.any { group -> group.level == level }
                 } ?: DedupLevel.EXACT
@@ -214,17 +224,46 @@ class DedupViewModel(
     // ---------- 删除 / 撤销 ----------
 
     /**
-     * 聚合 Results 全部组的 deleteUris。API 30+ 发回收站授权（[pendingTrash]，UI 启动
-     * IntentSender 后回调 [onTrashResult]）；API < 30 走 [legacyDeleter] 旧删除流，
-     * 状态保持 Results 由旧流自行管理。
+     * 批量删除候选聚合（spec §4 安全约束）：SCENE 相似场景组不参与批量删除，
+     * 需逐组人工确认。VM 删除流与结果页底部 CTA 共用此口径，消除重复聚合。
+     */
+    fun batchDeleteUris(groups: List<DedupGroup>): List<String> =
+        groups
+            .filter { group -> group.level != DedupLevel.SCENE }
+            .flatMap { group -> group.deleteUris }
+            .distinct()
+
+    /** [batchDeleteUris] 对应的可释放字节数（同一 uri 跨组只计一次）。 */
+    fun batchReclaimBytes(groups: List<DedupGroup>, uris: List<String>): Long =
+        groups
+            .filter { group -> group.level != DedupLevel.SCENE }
+            .flatMap { group -> group.members }
+            .filter { member -> member.uri in uris }
+            .distinctBy { member -> member.uri }
+            .sumOf { member -> member.sizeBytes }
+
+    /**
+     * 聚合批量删除候选 uri（SCENE 组除外，见 [batchDeleteUris]）。API 30+ 发回收站
+     * 授权（[pendingTrash]，UI 启动 IntentSender 后回调 [onTrashResult]）；API < 30
+     * 走 [legacyDeleter] 旧删除流，状态保持 Results 由旧流自行管理。
      */
     fun deleteSelected() {
         val state = _uiState.value as? DedupUiState.Results ?: return
-        val uris = state.groups.flatMap { group -> group.deleteUris }.distinct()
+        val uris = batchDeleteUris(state.groups)
         if (uris.isEmpty()) return
         Logger.d(TAG, "deleteSelected: ${uris.size} uris")
         if (trashManager.isSupported) {
-            _pendingTrash.value = PendingTrash(uris, trashManager.buildTrashIntent(uris))
+            // buildTrashIntent 是 MediaStore IPC：移出主线程并兜底异常，失败保持 Results 态
+            scope.launch {
+                val sender = withContext(ioDispatcher) {
+                    runCatching { trashManager.buildTrashIntent(uris) }
+                        .onFailure { error -> Logger.w(TAG, "buildTrashIntent failed", error) }
+                        .getOrNull()
+                }
+                if (sender != null && _uiState.value is DedupUiState.Results) {
+                    _pendingTrash.value = PendingTrash(uris, sender)
+                }
+            }
         } else {
             legacyDeleter?.invoke(uris)
         }
@@ -232,7 +271,7 @@ class DedupViewModel(
 
     /**
      * 回收站授权结果。拒绝 → 整批留在 Results 不动；确认 → 复查仍存在的 uri（部分拒绝
-     * V1 简化：有残留则整批不动），全部消失才统计进 Cleaned。
+     * V1 简化：有残留则整批不动，并置位 [partialTrashNotice] 提示用户），全部消失才统计进 Cleaned。
      */
     fun onTrashResult(ok: Boolean) {
         val pending = _pendingTrash.value ?: return
@@ -243,17 +282,13 @@ class DedupViewModel(
             val remaining = withContext(ioDispatcher) { trashManager.queryExisting(pending.uris) }
             if (remaining.isNotEmpty()) {
                 Logger.d(TAG, "trash partially confirmed, ${remaining.size} uris remain, keep Results intact")
+                _partialTrashNotice.value = true
                 return@launch
             }
             val deleted = pending.uris.toSet()
-            val bytes = state.groups
-                .flatMap { group -> group.members }
-                .filter { member -> member.uri in deleted }
-                .distinctBy { member -> member.uri } // 同一 uri 跨组只计一次
-                .sumOf { member -> member.sizeBytes }
             _uiState.value = DedupUiState.Cleaned(
                 deletedCount = deleted.size,
-                reclaimedBytes = bytes,
+                reclaimedBytes = batchReclaimBytes(state.groups, pending.uris),
                 trashedUris = pending.uris,
             )
         }

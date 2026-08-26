@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -38,15 +39,15 @@ import com.mamba.picme.domain.dedup.DedupGroup
 import com.mamba.picme.domain.dedup.DedupMember
 import com.mamba.picme.domain.dedup.KeepPolicy
 import com.mamba.picme.domain.dedup.VersionRole
-import java.text.SimpleDateFormat
+import java.text.DateFormat
 import java.util.Date
-import java.util.Locale
 
 private val HintOrange = Color(0xFFFF9800)
 
 /**
  * 组详情弹层：标题 + 组 meta + 成员两列对比（缩略图 + 大小/时间 + 「保留这张」radio）
  * + EDITED 提示条 + 确认按钮。组数据经 uiState 重组实时取，setKeep 后立即刷新。
+ * Scanning 态为只读预览（setKeep 仅 Results 生效）：隐藏 radio 与底部 CTA，不假装可交互。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,6 +58,7 @@ fun DedupGroupDetailSheet(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val group = remember(uiState) { viewModel.getGroup(groupId) }
+    val editable = uiState is DedupUiState.Results
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         if (group == null) {
@@ -65,6 +67,7 @@ fun DedupGroupDetailSheet(
         } else {
             DedupGroupDetailContent(
                 group = group,
+                editable = editable,
                 onKeep = { uri -> viewModel.setKeep(groupId, uri) },
                 onConfirm = onDismiss,
             )
@@ -75,6 +78,7 @@ fun DedupGroupDetailSheet(
 @Composable
 private fun DedupGroupDetailContent(
     group: DedupGroup,
+    editable: Boolean,
     onKeep: (String) -> Unit,
     onConfirm: () -> Unit,
 ) {
@@ -129,6 +133,7 @@ private fun DedupGroupDetailContent(
                     DedupMemberColumn(
                         member = member,
                         isKept = member.uri == group.keepUri,
+                        editable = editable,
                         onKeep = onKeep,
                         modifier = Modifier.weight(1f)
                     )
@@ -137,29 +142,36 @@ private fun DedupGroupDetailContent(
             }
         }
 
-        Button(
-            onClick = onConfirm,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp)
-        ) {
-            Text(stringResource(R.string.dedup_confirm_keep, group.deleteUris.size))
+        // Scanning 态只读：不展示「确认删除」CTA
+        if (editable) {
+            Button(
+                onClick = onConfirm,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp)
+            ) {
+                Text(stringResource(R.string.dedup_confirm_keep, group.deleteUris.size))
+            }
+        } else {
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
 
-/** 成员对比列：大图 + 大小/时间行 + 「保留这张」radio；点击任意处即改选保留项。 */
+/** 成员对比列：大图 + 大小/时间行 + 「保留这张」radio；点击任意处即改选保留项。只读态无 radio、不可点击。 */
 @Composable
 private fun DedupMemberColumn(
     member: DedupMember,
     isKept: Boolean,
+    editable: Boolean,
     onKeep: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val dateFormat = remember { DateFormat.getDateInstance(DateFormat.MEDIUM) }
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .clickable { onKeep(member.uri) },
+            .then(if (editable) Modifier.clickable { onKeep(member.uri) } else Modifier),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         DedupThumb(
@@ -170,25 +182,27 @@ private fun DedupMemberColumn(
                 .fillMaxWidth()
                 .aspectRatio(1f)
         )
-        // DedupMember 无分辨率字段（仅 pixelArea）：统一显示大小 + 日期
+        // DedupMember 无分辨率字段（仅 pixelArea）：统一显示大小 + 本地化日期
         Text(
             text = stringResource(
                 R.string.dedup_member_meta,
                 formatBytes(member.sizeBytes),
-                SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(member.captureDate))
+                dateFormat.format(Date(member.captureDate))
             ),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            RadioButton(selected = isKept, onClick = { onKeep(member.uri) })
-            Text(
-                text = stringResource(R.string.dedup_keep_this),
-                style = MaterialTheme.typography.bodyMedium
-            )
+        if (editable) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                RadioButton(selected = isKept, onClick = { onKeep(member.uri) })
+                Text(
+                    text = stringResource(R.string.dedup_keep_this),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
     }
 }

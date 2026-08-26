@@ -126,7 +126,9 @@ fun DedupThumb(
                 // 导致 "Canvas: trying to use a recycled bitmap" 崩溃
                 .crossfade(false)
                 .build(),
-            contentDescription = null,
+            contentDescription = stringResource(
+                if (isKept) R.string.dedup_thumb_kept_cd else R.string.dedup_thumb_delete_cd
+            ),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
             placeholder = dedupThumbPlaceholderPainter(),
