@@ -607,7 +607,9 @@ private fun DedupResultsContent(
     onOpenGroupDetail: (String) -> Unit,
 ) {
     val policyLabel = stringResource(keepPolicyLabelRes(state.policy))
-    val totalReclaim = state.groups.sumOf { group -> group.reclaimBytes }
+    // summary 与底部 CTA 同口径（spec §4）：SCENE 组不参与批量操作，不计入「可释放」
+    val batchGroups = state.groups.filter { group -> group.level != DedupLevel.SCENE }
+    val totalReclaim = batchGroups.sumOf { group -> group.reclaimBytes }
     val filteredGroups = state.groups.filter { group -> group.level == state.selectedTab }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -622,7 +624,7 @@ private fun DedupResultsContent(
             Text(
                 text = stringResource(
                     R.string.dedup_results_summary,
-                    state.groups.size,
+                    batchGroups.size,
                     formatBytes(totalReclaim)
                 ),
                 modifier = Modifier.weight(1f),
@@ -878,9 +880,9 @@ private fun dedupLevelIcon(level: DedupLevel): ImageVector = when (level) {
 }
 
 private fun dedupLevelLabelRes(level: DedupLevel): Int = when (level) {
-    DedupLevel.EXACT -> R.string.dedup_scale_exact
-    DedupLevel.VISUAL -> R.string.dedup_scale_visual
-    DedupLevel.SCENE -> R.string.dedup_scale_scene
+    DedupLevel.EXACT -> R.string.dedup_level_exact
+    DedupLevel.VISUAL -> R.string.dedup_level_visual
+    DedupLevel.SCENE -> R.string.dedup_level_scene
 }
 
 private fun dedupLevelDescRes(level: DedupLevel): Int = when (level) {

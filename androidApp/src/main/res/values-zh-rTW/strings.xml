@@ -366,6 +366,10 @@
     <string name="dedup_run_background">轉背景執行</string>
     <string name="dedup_results_summary">%1$d 組 · 可釋放 %2$s</string>
     <string name="dedup_smart_select_all">智慧全選</string>
+    <!-- 結果頁級別 tab 短標籤（等寬三分佈局；Config 頁尺度卡片用 dedup_scale_*） -->
+    <string name="dedup_level_exact">完全重複</string>
+    <string name="dedup_level_visual">視覺重複</string>
+    <string name="dedup_level_scene">場景相似</string>
     <string name="dedup_group_meta">%1$d 張 · 可省 %2$s</string>
     <string name="dedup_keep_badge">保留</string>
     <string name="dedup_role_original">原圖</string>

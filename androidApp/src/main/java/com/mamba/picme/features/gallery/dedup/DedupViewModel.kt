@@ -260,7 +260,15 @@ class DedupViewModel(
                         .onFailure { error -> Logger.w(TAG, "buildTrashIntent failed", error) }
                         .getOrNull()
                 }
-                if (sender != null && _uiState.value is DedupUiState.Results) {
+                // IPC 窗口内选择集可能已变（setKeep 改选/双击）：复查仍为 Results、
+                // 无在途授权且选择集一致才发授权，避免弹窗覆盖 stale uris
+                val current = _uiState.value as? DedupUiState.Results
+                if (
+                    sender != null &&
+                    current != null &&
+                    _pendingTrash.value == null &&
+                    batchDeleteUris(current.groups) == uris
+                ) {
                     _pendingTrash.value = PendingTrash(uris, sender)
                 }
             }
