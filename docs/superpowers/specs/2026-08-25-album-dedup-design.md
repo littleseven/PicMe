@@ -168,18 +168,20 @@ Gallery 设置入口（现有行，升级文案）
 
 ### 11.1 相册整理入口
 
-- **设置主菜单**：Gallery 行更名「相册扫描」（`gallery_settings`：Gallery Scan / 相册扫描 / 相簿掃描；该 key 同时是 TagControl 页标题，同步生效为期望行为）；其下方新增「相册整理」行（`gallery_cleanup`：Gallery Cleanup / 相册整理 / 相簿整理，`Icons.Rounded.BurstMode`），导航 `Screen.DedupHome`。
-- **悬浮底部 Tab**：GalleryScreen 悬浮 Tab 第一项由相机改为相册整理（`Icons.Outlined.BurstMode`，与同行 Outlined 图标风格一致）；相机为 Pager 页 0，右滑即达，入口不丢。
-- **TagControl 头部**：`GallerySettingsHeader` 移除「管理重复照片」行；`manage_duplicates` key 保留（仅剩休眠的 GALLERY 二级页死代码引用）。
-- **相册页左滑手势**：未实现。相册是主页面 Pager 页 1/4（非最后一页），左滑已被外层 HorizontalPager 用于切到 Chat 页，页内手势会与 pager 抢事件；代码留 TODO（`GalleryScreen.kt` 悬浮 Tab 处），替代交互待产品确认。
+- **Pager 页 1（2026-08-26 二轮升级）**：相册整理从 NavHost 路由升级为主页面 Pager 正式页，页序改为 **相册(0) / 相册整理(1) / 聊天(2) / 人物(3)**（`MAIN_PAGE_*` 常量，`MainPagerHost.kt`）；相机页从 Pager 移除（路由化，见 §11.2）。`Screen.DedupHome` NavHost 路由随之删除，避免双宿主。相册页**左滑**进入相册整理由外层 HorizontalPager 原生承载（原「页内手势与 pager 抢事件」TODO 删除）。
+- **设置主菜单**：Gallery 行更名「相册扫描」（`gallery_settings`：Gallery Scan / 相册扫描 / 相簿掃描；该 key 同时是 TagControl 页标题，同步生效为期望行为）；其下方新增「相册整理」行（`gallery_cleanup`：Gallery Cleanup / 相册整理 / 相簿整理，`Icons.Rounded.BurstMode`），经 `switchMainPage(MAIN_PAGE_DEDUP)` 弹回 Main 并切页。
+- **悬浮底部 Tab**：GalleryScreen 悬浮 Tab 第一项由相机改为相册整理（`Icons.Outlined.BurstMode`，与同行 Outlined 图标风格一致），点击 `onSwitchPage(MAIN_PAGE_DEDUP)` 瞬时切相邻页（与底部 Tab 瞬时切页风格一致）；相机已路由化，不再有常驻入口。
+- **TagControl 头部**：`GallerySettingsHeader` 移除「管理重复照片」行；`manage_duplicates` key 保留（仅剩休眠 GALLERY 二级页死代码引用）。
+- **返回行为**：相册整理页顶栏返回与系统返回键均切回相册页（Pager 页 0），不弹栈——系统返回键由 `MainPagerHost` 的「非相册页回相册」BackHandler 统一消费；内部 Config→Scanning→Results→Cleaned 四态流程不变，`DedupViewModel` 为 Activity 级，Pager 托管安全。
 
 ### 11.2 头像拍摄链路（V1）
 
 - **入口**：人物编辑页 `AvatarHeader` 相机角标（头像本体点击仍开封面选择 Sheet）；设置账号 Hero 卡头像新增相机角标。
-- **会话控制**：`features/common/avatar/AvatarCaptureController`（进程内单例 StateFlow，与 `RemotePhotoTracker` 同风格）登记 `PendingAvatarCapture(target=Person(personId)|Self, origin=PEOPLE_PAGE|GALLERY_PAGE|SETTINGS_PAGE)`；调用方 `begin()` 后切到相机页（Pager 页 0）。
-- **相机头像态**（`CameraScreen/CameraContent`）：检测 pending → 记忆水合后默认切前置（`FEATURE_CAMERA_FRONT` 缺失静默保持后置）→ 顶部胶囊提示（`avatar_capture_hint`：Take a selfie for avatar / 拍摄头像 / 拍攝頭像）；滑离相机页视为取消（清 pending + 恢复进入前镜头）。
+- **相机路由化（2026-08-26 二轮）**：相机从主页面 Pager 页 0 移出，改为 NavHost 全屏路由 `Screen.Camera`（MainActivity 注册 destination），**唯一用户入口为头像拍摄**；Agent 指令 `navigate_to(camera)` 链路保留，`NavigationCapability` 对 CAMERA 改为 navigate 相机路由（不登记 avatar pending）。相机会话门控由 Pager `isActivePage` 改为路由生命周期驱动（`backStackEntry.lifecycle.currentStateFlow ≥ RESUMED` 激活，弹栈/退后台即解绑释放，语义等价）；相机权限申请 UI 内聚在 `CameraScreen` 内，路由进入同样触发。
+- **会话控制**：`features/common/avatar/AvatarCaptureController`（进程内单例 StateFlow，与 `RemotePhotoTracker` 同风格）登记 `PendingAvatarCapture(target=Person(personId)|Self, origin=PEOPLE_PAGE|GALLERY_PAGE|SETTINGS_PAGE)`；调用方 `begin()` 后 `navigate(Screen.Camera)`。
+- **相机头像态**（`CameraScreen/CameraContent`）：检测 pending → 记忆水合后默认切前置（`FEATURE_CAMERA_FRONT` 缺失静默保持后置）→ 顶部胶囊提示（`avatar_capture_hint`：Take a selfie for avatar / 拍摄头像 / 拍攝頭像）；离开相机路由视为取消（`DisposableEffect` onDispose 清 pending + 恢复进入前镜头）。
 - **落库设封面**：`handleCaptureClick` 新增 `onPhotoCompleted` 钩子 → `AvatarCaptureFinisher` 以快门时间戳为下界轮询 Room 最新媒体（兜底策略：拍照回调不透出 mediaId 且 `insertMedia` 异步入库，注释已写明取舍）→ 复用 `PersonRepository.updateCover`；Self 目标经 `getSelfPerson()` 解析，未标记「我」则跳过（记日志）。
-- **返回**：完成/失败后清 pending 并切回来源页（PEOPLE/GALLERY 切 Pager 页；SETTINGS 重新 navigate Settings，原栈已被 switchMainPage 弹掉）。
+- **返回**：完成/失败后清 pending 并 `popBackStack` 回来源页（来源页均在返回栈上——Settings 为 NavHost 页，人物编辑为 Pager 内 People/Gallery 页且 pagerState 提升在 Activity 层，弹栈后自然落回；origin 仅作诊断记录，不再驱动返回导航）。
 
 ### 11.3 三语 key 清单
 

@@ -1,7 +1,7 @@
 package com.mamba.picme.navigation
 
 sealed class Screen(val route: String) {
-    /** 主页面容器：内部以 HorizontalPager 承载 相机/相册/聊天/人物 4 页 */
+    /** 主页面容器：内部以 HorizontalPager 承载 相册/相册整理/聊天/人物 4 页 */
     data object Main : Screen("main")
     data object Chat : Screen("chat")
     data object Camera : Screen("camera")
@@ -44,8 +44,6 @@ sealed class Screen(val route: String) {
     data object SentencePieceTest : Screen("sentencepiece_test")
     data object TagViewer : Screen("tag_viewer")
 
-    // Dedup 2.0 去重主页（旧 DuplicateManager 已随 Task 11 下线）
-    data object DedupHome : Screen("dedup_home")
     data object ModelCenter : Screen("model_center/{categoryTag}") {
         fun createRoute(categoryTag: String): String {
             return if (categoryTag.isNotBlank()) {

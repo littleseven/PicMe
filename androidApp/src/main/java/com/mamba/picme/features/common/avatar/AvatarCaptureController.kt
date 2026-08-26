@@ -15,13 +15,13 @@ sealed interface AvatarCaptureTarget {
 }
 
 /**
- * 头像拍摄来源页：拍摄完成后切回该页。
+ * 头像拍摄来源页：拍摄完成后 popBackStack 自然落回该页（仅作诊断记录，不再驱动返回导航）。
  */
 enum class AvatarCaptureOrigin {
     /** 人物页（Pager 页 3）内的人物信息编辑 */
     PEOPLE_PAGE,
 
-    /** 相册页（Pager 页 1）人物分组标题唤起的人物信息编辑 overlay */
+    /** 相册页（Pager 页 0）人物分组标题唤起的人物信息编辑 overlay */
     GALLERY_PAGE,
 
     /** 设置页账号 Hero 卡头像 */
@@ -42,13 +42,15 @@ data class PendingAvatarCapture(
 /**
  * 头像拍摄会话控制器（全局单例 state holder，与 `RemotePhotoTracker`/`SceneManager` 同风格）。
  *
- * 相机没有独立路由（主页面 Pager 页 0），人物编辑页 / 设置 Hero 卡 / 相机页之间无法靠
- * NavController 传参，故用一个进程内单例传递「待拍头像」意图：
- * `begin()` 登记目标与来源 → 调用方切到相机页 → `CameraScreen` 观察 [pending]
- * 进入头像拍摄态（默认前置 + 提示文案）→ 拍照落库后由 `AvatarCaptureFinisher`
- * 把新照片设为目标封面并 `clear()`。
+ * 相机为 NavHost 全屏路由（`Screen.Camera`，2026-08-26 路由化，此前是主页面 Pager 页 0），
+ * 人物编辑页 / 设置 Hero 卡与相机页之间无法靠 NavController 传参，故用一个进程内单例传递
+ * 「待拍头像」意图：`begin()` 登记目标与来源 → 调用方 `navigate(Screen.Camera)` →
+ * `CameraScreen` 观察 [pending] 进入头像拍摄态（默认前置 + 提示文案）→ 拍照落库后由
+ * `AvatarCaptureFinisher` 把新照片设为目标封面并 `clear()`。
  *
- * 取消语义：相机页被滑走（isActivePage=false）且 pending 未被消费时由 CameraScreen 清除。
+ * 返回与取消语义：完成/失败后 `popBackStack` 回来源页（origin 仅作诊断记录，返回栈自然落回
+ * 来源页，不再按 origin 分别切页）；离开相机路由（返回键/返回箭头弹栈）且 pending 未被消费时
+ * 由 CameraScreen 清除。
  */
 object AvatarCaptureController {
 

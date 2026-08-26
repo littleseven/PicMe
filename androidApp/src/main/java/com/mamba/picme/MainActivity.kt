@@ -29,6 +29,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -53,7 +54,7 @@ import com.mamba.picme.features.idphoto.IDPhotoViewModel
 import com.mamba.picme.features.search.SearchTestScreen
 import com.mamba.picme.features.gallery.MediaViewModel
 import com.mamba.picme.features.gallery.components.TagGenerationControlScreen
-import com.mamba.picme.features.gallery.dedup.DedupHomeRoute
+import com.mamba.picme.features.camera.CameraScreen
 import com.mamba.picme.features.gallery.dedup.DedupViewModel
 import com.mamba.picme.features.translation.SentencePieceTestScreen
 import com.mamba.picme.features.tagviewer.TagViewerTestScreen
@@ -62,8 +63,8 @@ import com.mamba.picme.features.settings.GallerySettingsHeader
 import com.mamba.picme.features.settings.AddRemoteProviderScreen
 import com.mamba.picme.features.settings.ProviderConfigScreen
 import com.mamba.picme.features.settings.MemoryFactsScreen
-import com.mamba.picme.features.main.MAIN_PAGE_CAMERA
 import com.mamba.picme.features.main.MAIN_PAGE_COUNT
+import com.mamba.picme.features.main.MAIN_PAGE_DEDUP
 import com.mamba.picme.features.main.MAIN_PAGE_GALLERY
 import com.mamba.picme.features.main.MAIN_PAGE_PEOPLE
 import com.mamba.picme.features.main.MainPagerHost
@@ -191,11 +192,11 @@ class MainActivity : ComponentActivity() {
                     // Navigation/System Capability：依赖 NavController/Context，在 Activity 期创建并
                     // 注册到全局 CapabilityRegistry（唯一注册表，2026-07-29 单轨收敛——Compose
                     // CapabilityHost 已退役，不再有第二注册容器）。
-                    // 主页面（相机/相册）已收敛进 HorizontalPager，经 mainPageSwitcher 切页
+                    // 主页面（相册等）已收敛进 HorizontalPager，经 mainPageSwitcher 切页；
+                    // 相机为 NavHost 路由，由 Capability 内部直接 navigate
                     val navigationCapability = remember {
                         NavigationCapability(navController) { destination ->
                             when (destination) {
-                                NavigationCapability.Destination.CAMERA -> switchMainPage(MAIN_PAGE_CAMERA)
                                 NavigationCapability.Destination.GALLERY -> switchMainPage(MAIN_PAGE_GALLERY)
                                 else -> Unit
                             }
@@ -262,6 +263,7 @@ class MainActivity : ComponentActivity() {
                                     mediaViewModel = mediaViewModel,
                                     settingsViewModel = settingsViewModel,
                                     personViewModel = personViewModel,
+                                    dedupViewModel = dedupViewModel,
                                     navController = navController,
                                     onSwitchPage = switchMainPage,
                                     gallerySearchRequest = gallerySearchRequest,
@@ -270,6 +272,20 @@ class MainActivity : ComponentActivity() {
                                         gallerySearchRequest = query to personId
                                         switchMainPage(MAIN_PAGE_GALLERY)
                                     }
+                                )
+                            }
+                            // 相机：2026-08-26 起为 NavHost 全屏路由（原 Pager 页 0 席位由相册整理接替），
+                            // 入口为头像拍摄（AvatarCaptureController 登记 pending 后 navigate）与 Agent navigate_to(camera)
+                            composable(Screen.Camera.route) { backStackEntry ->
+                                // 按路由生命周期门控相机会话（替代原 Pager isActivePage）：
+                                // 进入 RESUMED 绑定相机，弹栈/退后台即释放
+                                val routeLifecycleState by backStackEntry.lifecycle.currentStateFlow.collectAsState()
+                                CameraScreen(
+                                    onNavigateToGallery = { switchMainPage(MAIN_PAGE_GALLERY) },
+                                    onNavigateBack = { navController.popBackStack() },
+                                    viewModel = mediaViewModel,
+                                    settingsViewModel = settingsViewModel,
+                                    isActivePage = routeLifecycleState.isAtLeast(Lifecycle.State.RESUMED)
                                 )
                             }
                             composable(
@@ -355,13 +371,6 @@ class MainActivity : ComponentActivity() {
                             composable(Screen.TagViewer.route) {
                                 TagViewerTestScreen(onNavigateBack = { navController.popBackStack() })
                             }
-                            // 去重 2.0 主页（旧 DuplicateManager 页已随 Task 11 下线）
-                            composable(Screen.DedupHome.route) {
-                                DedupHomeRoute(
-                                    viewModel = dedupViewModel,
-                                    onNavigateBack = { navController.popBackStack() }
-                                )
-                            }
                             composable(Screen.Settings.route) {
                                 // 场景管理：进入 Settings 主页面
                                 DisposableEffect(Unit) {
@@ -412,18 +421,19 @@ class MainActivity : ComponentActivity() {
                                         switchMainPage(MAIN_PAGE_PEOPLE)
                                     },
                                     onNavigateToDedupHome = {
-                                        navController.navigate(Screen.DedupHome.route, navOptions { launchSingleTop = true })
+                                        // 相册整理已是主页面 Pager 页 1：切页并弹回 Main
+                                        switchMainPage(MAIN_PAGE_DEDUP)
                                     },
                                     onNavigateToAddProvider = {
                                         navController.navigate(Screen.AddRemoteProvider.route, navOptions { launchSingleTop = true })
                                     },
                                     onCaptureSelfAvatar = {
-                                        // 账号 Hero 卡相机角标：登记 pending 后切到相机页（Pager 页 0）拍「我」的头像
+                                        // 账号 Hero 卡相机角标：登记 pending 后导航到相机路由拍「我」的头像
                                         AvatarCaptureController.begin(
                                             AvatarCaptureTarget.Self,
                                             AvatarCaptureOrigin.SETTINGS_PAGE
                                         )
-                                        switchMainPage(MAIN_PAGE_CAMERA)
+                                        navController.navigate(Screen.Camera.route, navOptions { launchSingleTop = true })
                                     }
                                 )
                             }
@@ -491,18 +501,19 @@ class MainActivity : ComponentActivity() {
                                         switchMainPage(MAIN_PAGE_PEOPLE)
                                     },
                                     onNavigateToDedupHome = {
-                                        navController.navigate(Screen.DedupHome.route, navOptions { launchSingleTop = true })
+                                        // 相册整理已是主页面 Pager 页 1：切页并弹回 Main
+                                        switchMainPage(MAIN_PAGE_DEDUP)
                                     },
                                     onNavigateToAddProvider = {
                                         navController.navigate(Screen.AddRemoteProvider.route, navOptions { launchSingleTop = true })
                                     },
                                     onCaptureSelfAvatar = {
-                                        // 账号 Hero 卡相机角标：登记 pending 后切到相机页（Pager 页 0）拍「我」的头像
+                                        // 账号 Hero 卡相机角标：登记 pending 后导航到相机路由拍「我」的头像
                                         AvatarCaptureController.begin(
                                             AvatarCaptureTarget.Self,
                                             AvatarCaptureOrigin.SETTINGS_PAGE
                                         )
-                                        switchMainPage(MAIN_PAGE_CAMERA)
+                                        navController.navigate(Screen.Camera.route, navOptions { launchSingleTop = true })
                                     }
                                 )
                             }

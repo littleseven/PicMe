@@ -15,30 +15,31 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.navOptions
 import com.mamba.picme.agent.core.runtime.state.SceneManager
-import com.mamba.picme.features.camera.CameraScreen
 import com.mamba.picme.features.chat.ChatScreen
 import com.mamba.picme.features.chat.ChatViewModel
-import com.mamba.picme.features.common.avatar.AvatarCaptureOrigin
 import com.mamba.picme.features.gallery.GalleryScreen
 import com.mamba.picme.features.gallery.MediaViewModel
+import com.mamba.picme.features.gallery.dedup.DedupHomeRoute
+import com.mamba.picme.features.gallery.dedup.DedupViewModel
 import com.mamba.picme.features.person.PersonScreen
 import com.mamba.picme.features.person.PersonViewModel
 import com.mamba.picme.features.settings.SettingsViewModel
 import com.mamba.picme.navigation.Screen
 
 /** 主页面 Pager 页索引（线性，无循环回绕） */
-const val MAIN_PAGE_CAMERA = 0
-const val MAIN_PAGE_GALLERY = 1
+const val MAIN_PAGE_GALLERY = 0
+const val MAIN_PAGE_DEDUP = 1
 const val MAIN_PAGE_CHAT = 2
 const val MAIN_PAGE_PEOPLE = 3
 const val MAIN_PAGE_COUNT = 4
 
 /**
- * 主页面容器：以 HorizontalPager 承载 相机/相册/聊天/人物 4 页。
+ * 主页面容器：以 HorizontalPager 承载 相册/相册整理/聊天/人物 4 页。
  *
- * - 拖动跟手：横滑实时跟随手指，松手物理吸附；替代原 MainPageSwipeWrapper 的离散跳转
+ * - 拖动跟手：横滑实时跟随手指，松手物理吸附；相册页左滑即达相册整理（页 1）
  * - 页面常驻：beyondViewportPageCount = 3，4 页全部常驻组合，相册滚动/搜索状态滑走不丢
- * - 相机门控：仅当前页为相机页时绑定相机/加载语音与本地模型（isActivePage）
+ * - 相机不在 Pager：2026-08-26 起相机改为 NavHost 全屏路由（Screen.Camera），
+ *   仅头像拍摄与 Agent 指令进入，相机会话按路由生命周期门控
  * - 横滑使能：相册（详情/多选）与聊天（全屏预览）通过回调上报，局部禁用外层滑动
  */
 @Suppress("LongParameterList")
@@ -50,6 +51,7 @@ fun MainPagerHost(
     mediaViewModel: MediaViewModel,
     settingsViewModel: SettingsViewModel,
     personViewModel: PersonViewModel,
+    dedupViewModel: DedupViewModel,
     navController: NavHostController,
     onSwitchPage: (Int) -> Unit,
     gallerySearchRequest: Pair<String, Long>?,
@@ -59,18 +61,17 @@ fun MainPagerHost(
     var gallerySwipeEnabled by remember { mutableStateOf(true) }
     var chatSwipeEnabled by remember { mutableStateOf(true) }
 
-    // 场景管理：跟随 Pager 稳定页切换（人物页无独立场景，沿用进入前的场景）
+    // 场景管理：跟随 Pager 稳定页切换（相册整理沿用相册场景，人物页无独立场景沿用进入前的场景）
     LaunchedEffect(pagerState.settledPage) {
         val scene = when (pagerState.settledPage) {
-            MAIN_PAGE_CAMERA -> SceneManager.Scene.CAMERA
-            MAIN_PAGE_GALLERY -> SceneManager.Scene.GALLERY
+            MAIN_PAGE_GALLERY, MAIN_PAGE_DEDUP -> SceneManager.Scene.GALLERY
             MAIN_PAGE_CHAT -> SceneManager.Scene.CHAT
             else -> null
         }
-        scene?.let { SceneManager.getInstance().transitionTo(it) }
+        scene?.let { targetScene -> SceneManager.getInstance().transitionTo(targetScene) }
     }
 
-    // 返回键：非相册页回到相册页（对齐原 popUpTo(Gallery) 语义）。
+    // 返回键：非相册页回到相册页（对齐原 popUpTo(Gallery) 语义，含相册整理页）。
     // 各 page 内部 BackHandler（预览/多选/顶栏返回）均以 isActivePage 守卫，
     // 仅激活页消费返回键，避免 HorizontalPager 全 page 组合下的跨页 LIFO 抢占。
     BackHandler(enabled = pagerState.currentPage != MAIN_PAGE_GALLERY) {
@@ -90,31 +91,15 @@ fun MainPagerHost(
         modifier = Modifier.fillMaxSize()
     ) { page ->
         when (page) {
-            MAIN_PAGE_CAMERA -> CameraScreen(
-                onNavigateToGallery = { onSwitchPage(MAIN_PAGE_GALLERY) },
-                onNavigateBack = { onSwitchPage(MAIN_PAGE_GALLERY) },
-                viewModel = mediaViewModel,
-                settingsViewModel = settingsViewModel,
-                // 头像拍摄完成/失败后切回来源页（设置页来源重新 navigate，原栈已被 switchMainPage 弹掉）
-                onAvatarCaptureReturn = { origin ->
-                    when (origin) {
-                        AvatarCaptureOrigin.PEOPLE_PAGE -> onSwitchPage(MAIN_PAGE_PEOPLE)
-                        AvatarCaptureOrigin.GALLERY_PAGE -> onSwitchPage(MAIN_PAGE_GALLERY)
-                        AvatarCaptureOrigin.SETTINGS_PAGE -> navController.navigate(
-                            Screen.Settings.route,
-                            navOptions { launchSingleTop = true }
-                        )
-                    }
-                },
-                isActivePage = pagerState.currentPage == MAIN_PAGE_CAMERA
-            )
-
             MAIN_PAGE_GALLERY -> GalleryScreen(
                 navController = navController,
                 viewModel = mediaViewModel,
                 settingsViewModel = settingsViewModel,
                 onNavigateToChat = { onSwitchPage(MAIN_PAGE_CHAT) },
-                onNavigateToCamera = { onSwitchPage(MAIN_PAGE_CAMERA) },
+                // 相机已是 NavHost 路由：头像拍摄登记 pending 后全屏进入
+                onNavigateToCamera = {
+                    navController.navigate(Screen.Camera.route, navOptions { launchSingleTop = true })
+                },
                 onNavigateToSettings = {
                     navController.navigate(Screen.Settings.route, navOptions { launchSingleTop = true })
                 },
@@ -127,14 +112,20 @@ fun MainPagerHost(
                 onNavigateToTagControl = {
                     navController.navigate(Screen.TagControl.route, navOptions { launchSingleTop = true })
                 },
-                onNavigateToDedupHome = {
-                    navController.navigate(Screen.DedupHome.route, navOptions { launchSingleTop = true })
-                },
+                // 相册整理是相邻 Pager 页：切页而非导航（与底部 Tab 瞬时切页风格一致）
+                onNavigateToDedupHome = { onSwitchPage(MAIN_PAGE_DEDUP) },
                 onNavigateToPeople = { onSwitchPage(MAIN_PAGE_PEOPLE) },
                 searchRequest = gallerySearchRequest,
                 onSearchRequestConsumed = onGallerySearchRequestConsumed,
-                onHorizontalSwipeEnabledChange = { gallerySwipeEnabled = it },
+                onHorizontalSwipeEnabledChange = { enabled -> gallerySwipeEnabled = enabled },
                 isActivePage = pagerState.currentPage == MAIN_PAGE_GALLERY
+            )
+
+            // 相册整理（去重 2.0）Pager 托管：内部 Config→Scanning→Results→Cleaned 四态不变；
+            // 返回（顶栏/系统返回键由外层 BackHandler 兜底）切回相册页，不弹栈
+            MAIN_PAGE_DEDUP -> DedupHomeRoute(
+                viewModel = dedupViewModel,
+                onNavigateBack = { onSwitchPage(MAIN_PAGE_GALLERY) }
             )
 
             MAIN_PAGE_CHAT -> ChatScreen(
@@ -158,7 +149,7 @@ fun MainPagerHost(
                         navOptions { launchSingleTop = true }
                     )
                 },
-                onHorizontalSwipeEnabledChange = { chatSwipeEnabled = it },
+                onHorizontalSwipeEnabledChange = { enabled -> chatSwipeEnabled = enabled },
                 isActivePage = pagerState.currentPage == MAIN_PAGE_CHAT
             )
 
@@ -166,7 +157,9 @@ fun MainPagerHost(
                 viewModel = personViewModel,
                 onNavigateBack = { onSwitchPage(MAIN_PAGE_GALLERY) },
                 onNavigateToGallery = { personId -> onRequestGallerySearch("", personId) },
-                onNavigateToCamera = { onSwitchPage(MAIN_PAGE_CAMERA) },
+                onNavigateToCamera = {
+                    navController.navigate(Screen.Camera.route, navOptions { launchSingleTop = true })
+                },
                 isActivePage = pagerState.currentPage == MAIN_PAGE_PEOPLE
             )
         }

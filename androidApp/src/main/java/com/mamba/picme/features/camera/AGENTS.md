@@ -28,6 +28,8 @@
 
 ### 2.1 CameraX 配置要求
 
+> **页面托管（2026-08-26 路由化）**：相机页不再是主页面 Pager 页 0（席位由相册整理接替），改为 NavHost 全屏路由 `Screen.Camera`（`MainActivity` 注册 destination）——唯一用户入口为头像拍摄（`AvatarCaptureController` 登记 pending 后 navigate），Agent `navigate_to(camera)` 由 `NavigationCapability` 直接 navigate 该路由。`isActivePage` 门控改由路由生命周期驱动（`backStackEntry.lifecycle.currentStateFlow ≥ RESUMED` 激活，弹栈/退后台即走解绑分支释放相机，语义与 Pager 时代等价）；权限申请 UI 内聚在 `CameraScreen`，路由进入同样触发。
+
 - **ImageCapture**：必须使用 `CAPTURE_MODE_MINIMIZE_LATENCY` 模式，JPEG 质量设为 85（平衡画质与体积）
 - **Preview**：锁定目标帧率 30fps，避免帧率波动导致卡顿
 - **闪光灯**：默认使用自动模式（FLASH_MODE_AUTO）

@@ -120,7 +120,6 @@ import com.mamba.picme.features.camera.voice.createDefaultAsrEngine
 import com.mamba.picme.features.common.chat.AgentMessage
 import com.mamba.picme.features.common.avatar.AvatarCaptureController
 import com.mamba.picme.features.common.avatar.AvatarCaptureFinisher
-import com.mamba.picme.features.common.avatar.AvatarCaptureOrigin
 import com.mamba.picme.features.gallery.MediaViewModel
 import com.mamba.picme.features.settings.SettingsViewModel
 import com.mamba.picme.PoLangApplication
@@ -332,9 +331,7 @@ fun CameraScreen(
     onNavigateBack: () -> Unit = {},
     viewModel: MediaViewModel,
     settingsViewModel: SettingsViewModel? = null,
-    /** 头像拍摄完成/失败后切回来源页（见 AvatarCaptureController） */
-    onAvatarCaptureReturn: (AvatarCaptureOrigin) -> Unit = {},
-    /** 是否为主页面 Pager 中的当前活跃页：非活跃时门控相机绑定/沉浸式/语音与模型加载 */
+    /** 路由/页面可见性门控：Pager 时代为当前活跃页；路由化后由路由生命周期（≥RESUMED）驱动，非活跃时门控相机绑定/沉浸式/语音与模型加载 */
     isActivePage: Boolean = true
 ) {
     // RD 沉浸式模式：隐藏系统栏（仅活跃页生效，避免 Pager 常驻组合时全局隐藏系统栏）
@@ -384,7 +381,6 @@ fun CameraScreen(
                 onNavigateToGallery = onNavigateToGallery,
                 onNavigateBack = onNavigateBack,
                 settingsViewModel = settingsViewModel,
-                onAvatarCaptureReturn = onAvatarCaptureReturn,
                 isActivePage = isActivePage
             )
         }
@@ -441,9 +437,7 @@ fun CameraContent(
     onNavigateToGallery: () -> Unit,
     onNavigateBack: () -> Unit = {},
     settingsViewModel: SettingsViewModel? = null,
-    /** 头像拍摄完成/失败后切回来源页（见 AvatarCaptureController） */
-    onAvatarCaptureReturn: (AvatarCaptureOrigin) -> Unit = {},
-    /** 是否为主页面 Pager 中的当前活跃页：非活跃时解绑相机并暂停语音/模型加载 */
+    /** 路由/页面可见性门控：非活跃时解绑相机并暂停语音/模型加载（路由化后由路由生命周期 ≥RESUMED 驱动） */
     isActivePage: Boolean = true
 ) {
     val context = LocalContext.current
@@ -1054,7 +1048,16 @@ voiceCoordinator.stopPushToTalk()
         }
     }
 
-    // 退出头像拍摄态：拍照完成/失败由快门回调 clear()；用户直接滑离相机页视为取消
+    // 退出头像拍摄态：拍照完成/失败由快门回调 clear()；离开相机路由（返回/弹栈）视为取消。
+    // 路由 dispose 时 LaunchedEffect 可能来不及看到 isActivePage=false，故用 DisposableEffect 兜底
+    DisposableEffect(Unit) {
+        onDispose {
+            if (AvatarCaptureController.pending.value != null) {
+                Logger.i(TAG, "Avatar capture cancelled by leaving camera route")
+                AvatarCaptureController.clear()
+            }
+        }
+    }
     LaunchedEffect(isActivePage, pendingAvatarCapture != null) {
         if (!isActivePage && pendingAvatarCapture != null) {
             Logger.i(TAG, "Avatar capture cancelled by leaving camera page")
@@ -1790,14 +1793,14 @@ CameraPreviewContent(
                 coroutineScope = coroutineScope,
                 cameraStateManager = cameraStateManager,
                 onPhotoCompleted = { success ->
-                    // 头像拍摄完成：新照片设为目标封面 → 清 pending → 切回来源页
+                    // 头像拍摄完成：新照片设为目标封面 → 清 pending → popBackStack 回来源页
                     val pendingCapture = AvatarCaptureController.pending.value
                     if (pendingCapture != null) {
                         val shutterMs = avatarShutterMs
                         coroutineScope.launch {
                             avatarCaptureFinisher.finish(pendingCapture.target, success, shutterMs)
                             AvatarCaptureController.clear()
-                            onAvatarCaptureReturn(pendingCapture.origin)
+                            onNavigateBack()
                         }
                     }
                 }

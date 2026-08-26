@@ -843,11 +843,8 @@ fun GalleryScreen(
             val rect by remember { derivedStateOf { activeMedia?.let { thumbnailPositions[it.id] } } }
 
             // 悬浮底部 Tab — 相册整理 / 聊天 / 打标 / 人物（纯图标）
-            // 2026-08-26：相机 tab 移除（相机为 Pager 页 0，右滑即达），第一项改为相册整理（去重 2.0）
-            //
-            // TODO(入口交互待定): 「相册页左滑进入相册整理」未实现——相册是主页面 Pager 页 1（共 4 页，
-            // 非最后一页），左滑已被外层 HorizontalPager 用于切到 Chat 页，页内手势会与 pager 抢事件。
-            // 按设计决议不加手势，待产品确认替代交互（候选：把相册挪为最后一页后做 overscroll 触发）。
+            // 2026-08-26：相机 tab 移除（相机已路由化，仅头像拍摄进入）；第一项为相册整理——
+            // 相册整理是相邻 Pager 页（页 1），相册页左滑即达，手势由外层 HorizontalPager 原生承载
             if (selectedMediaIndex == null) {
                 val tabItems = listOf(
                     FloatingBottomTabItem(
@@ -985,7 +982,7 @@ fun GalleryScreen(
                 }
             },
             onNavigateBack = { infoPersonId = null },
-            // 相机角标：登记 pending 头像拍摄后切到相机页（Pager 页 0）
+            // 相机角标：登记 pending 头像拍摄后导航到相机路由
             onCaptureAvatar = {
                 AvatarCaptureController.begin(
                     AvatarCaptureTarget.Person(infoSnap.person.personId),
