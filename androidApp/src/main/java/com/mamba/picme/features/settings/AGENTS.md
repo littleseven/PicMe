@@ -139,10 +139,10 @@
 **入口位置**：设置页「相册功能」卡片（`SettingsScreen` 中非 Debug 区域）
 
 **当前功能**：
-- **管理重复照片**：点击后导航到独立的 `DuplicateManagerRoute`
-  - 使用共享的 `MediaViewModel`（与 `GalleryScreen` 同一实例）
-  - 进入时自动调用 `startDuplicateScan()` 扫描重复/相似照片
-  - 顶部栏提供「返回」和「删除全部重复」操作
+- **管理重复照片**：点击后导航到去重 2.0 主页 `DedupHomeRoute`（`Screen.DedupHome`，route `dedup_home`）
+  - 使用独立的 `DedupViewModel`（不再共享 `MediaViewModel`）
+  - 进入后为 Config 页：勾选三级尺度（精确/视觉/相似场景）与保留规则后手动启动扫描，渐进式流出结果
+  - 清理走系统回收站（API 30+ `createTrashRequest`，可撤销恢复；低版本兜底旧删除授权流）
   - 通过系统返回键或顶部返回按钮退出，返回到 Settings 页
 - **TAG 生成控制**：点击后导航到 `TagGenerationControlScreen`
   - 支持按类别 / 时间范围重新生成 TAG

@@ -49,7 +49,6 @@ import com.mamba.picme.features.idphoto.IDPhotoScreen
 import com.mamba.picme.features.idphoto.IDPhotoViewModel
 import com.mamba.picme.features.search.SearchTestScreen
 import com.mamba.picme.features.gallery.MediaViewModel
-import com.mamba.picme.features.gallery.components.DuplicateManagerRoute
 import com.mamba.picme.features.gallery.components.TagGenerationControlScreen
 import com.mamba.picme.features.gallery.dedup.DedupHomeRoute
 import com.mamba.picme.features.gallery.dedup.DedupViewModel
@@ -344,7 +343,7 @@ class MainActivity : ComponentActivity() {
                                     header = {
                                         val useOpencl by settingsViewModel.tagGenerationUseOpencl.collectAsState()
                                         GallerySettingsHeader(
-                                            onNavigateToDuplicateManager = {
+                                            onNavigateToDedupHome = {
                                                 navController.navigate(
                                                     Screen.DedupHome.route,
                                                     navOptions { launchSingleTop = true }
@@ -359,13 +358,7 @@ class MainActivity : ComponentActivity() {
                             composable(Screen.TagViewer.route) {
                                 TagViewerTestScreen(onNavigateBack = { navController.popBackStack() })
                             }
-                            composable(Screen.DuplicateManager.route) {
-                                DuplicateManagerRoute(
-                                    viewModel = mediaViewModel,
-                                    onNavigateBack = { navController.popBackStack() }
-                                )
-                            }
-                            // 去重 2.0 主页（旧 DuplicateManager 路由保留，Task 11 定稿后再删）
+                            // 去重 2.0 主页（旧 DuplicateManager 页已随 Task 11 下线）
                             composable(Screen.DedupHome.route) {
                                 DedupHomeRoute(
                                     viewModel = dedupViewModel,
@@ -421,7 +414,7 @@ class MainActivity : ComponentActivity() {
                                         // 人物页已是主页面 Pager 一页：切页并弹回 Main
                                         switchMainPage(MAIN_PAGE_PEOPLE)
                                     },
-                                    onNavigateToDuplicateManager = {
+                                    onNavigateToDedupHome = {
                                         navController.navigate(Screen.DedupHome.route, navOptions { launchSingleTop = true })
                                     },
                                     onNavigateToAddProvider = {
@@ -492,7 +485,7 @@ class MainActivity : ComponentActivity() {
                                         // 人物页已是主页面 Pager 一页：切页并弹回 Main
                                         switchMainPage(MAIN_PAGE_PEOPLE)
                                     },
-                                    onNavigateToDuplicateManager = {
+                                    onNavigateToDedupHome = {
                                         navController.navigate(Screen.DedupHome.route, navOptions { launchSingleTop = true })
                                     },
                                     onNavigateToAddProvider = {

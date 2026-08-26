@@ -346,20 +346,9 @@
     <string name="person_set_cover_hint">Tap to set cover</string>
     <string name="people_empty">No people found</string>
 
-    <!-- Duplicate Management -->
+    <!-- Duplicate Management（设置入口文案；清理页 UI 键见 Dedup 2.0 区块） -->
     <string name="manage_duplicates">Manage Duplicates</string>
     <string name="duplicate_manager_desc">Find and remove duplicate or similar photos to free up space.</string>
-    <string name="delete_all_duplicates">Delete All Duplicates</string>
-    <string name="no_duplicates_found">No duplicate images found</string>
-    <string name="duplicate_groups_found">Found %1$d duplicate groups</string>
-    <string name="exact_duplicate">Exact Duplicate</string>
-    <string name="similar_image">Similar Image</string>
-    <string name="count_files">%1$d files</string>
-    <string name="preview_all">Preview All</string>
-    <string name="keep_first_delete_others">Keep First, Delete Others</string>
-    <string name="duplicate_preview">Duplicate Preview</string>
-    <string name="will_keep_first_file">Will keep the first file and delete the rest:</string>
-    <string name="confirm_delete">Confirm Delete</string>
 
     <!-- Dedup 2.0 -->
     <string name="dedup_title">Duplicate cleanup</string>

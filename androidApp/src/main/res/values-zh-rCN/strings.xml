@@ -333,17 +333,6 @@
     <string name="people_empty">未找到人物</string>
     <string name="manage_duplicates">管理重复照片</string>
     <string name="duplicate_manager_desc">查找并删除重复或相似照片，释放存储空间。</string>
-    <string name="delete_all_duplicates">删除全部重复</string>
-    <string name="no_duplicates_found">未找到重复图片</string>
-    <string name="duplicate_groups_found">找到 %1$d 组重复图片</string>
-    <string name="exact_duplicate">完全重复</string>
-    <string name="similar_image">相似图片</string>
-    <string name="count_files">%1$d 张</string>
-    <string name="preview_all">预览全部</string>
-    <string name="keep_first_delete_others">保留首张，删除其余</string>
-    <string name="duplicate_preview">重复预览</string>
-    <string name="will_keep_first_file">将保留第一张图片，删除其余：</string>
-    <string name="confirm_delete">确认删除</string>
 
     <!-- Dedup 2.0 -->
     <string name="dedup_title">重复照片清理</string>

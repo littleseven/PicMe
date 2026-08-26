@@ -63,7 +63,6 @@ import com.mamba.picme.domain.agent.capability.ImageEditCapability
 import com.mamba.picme.domain.usecase.AiOptimizeUseCase
 import com.mamba.picme.domain.usecase.ChatEditProcessor
 import com.mamba.picme.domain.usecase.SaveChatEditResultUseCase
-import com.mamba.picme.domain.usecase.FindDuplicateMediaUseCase
 import com.mamba.picme.domain.usecase.GetGallerySummaryUseCase
 import com.mamba.picme.domain.usecase.GetGroupedMediaUseCase
 import com.mamba.picme.domain.usecase.QueryGalleryMediaUseCase
@@ -105,7 +104,6 @@ import kotlinx.coroutines.asCoroutineDispatcher
 data class MediaViewModelDependencies(
     val repository: AndroidMediaRepository,
     val getGroupedMediaUseCase: GetGroupedMediaUseCase,
-    val findDuplicateMediaUseCase: FindDuplicateMediaUseCase,
     val ocrUseCase: OcrProcessor,
     val photoProcessor: PhotoProcessor,
     val faceDetector: FaceDetector,
@@ -123,7 +121,6 @@ class MediaViewModelFactory(
             return MediaViewModel(
                 repository = dependencies.repository,
                 getGroupedMediaUseCase = dependencies.getGroupedMediaUseCase,
-                findDuplicateMediaUseCase = dependencies.findDuplicateMediaUseCase,
                 ocrUseCase = dependencies.ocrUseCase,
                 photoProcessor = dependencies.photoProcessor,
                 faceDetector = dependencies.faceDetector,
@@ -643,7 +640,6 @@ class AppContainerImpl(
         MediaViewModelDependencies(
             repository = repository,
             getGroupedMediaUseCase = GetGroupedMediaUseCase(),
-            findDuplicateMediaUseCase = FindDuplicateMediaUseCase(repository, context),
             ocrUseCase = ocrProcessor,
             photoProcessor = photoProcessor,
             faceDetector = faceDetector,

@@ -55,7 +55,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | `AddRemoteProvider` | `settings/add_remote_provider` | 添加远程模型 — 供应商列表页（精确路由，优先于 `settings/{category}` 占位匹配；2026-08-21 替代原 AddProviderModelDialog 弹窗） |
 | `ProviderConfig` | `settings/provider_config/{providerId}` | 供应商配置页 — API Key + 模型单选 + 自定义模型 ID；`providerId=custom` 为自定义供应商形态（含 Base URL）；保存后确定性弹回远程模型列表 |
 | `ModelCenter` | `model_center/{categoryTag}` | 模型中心 — 按服务功能分类管理本地模型 |
-| `DuplicateManager` | `duplicate_manager` | 相册功能子页 — 重复/相似照片扫描与删除，从 Settings「相册功能」卡片进入 |
+| `DedupHome` | `dedup_home` | 去重 2.0 主页 — 三级尺度（EXACT/VISUAL/SCENE）重复/相似照片扫描、保留规则与回收站清理，从 Settings「相册功能」卡片进入 |
 | `TagControl` | `tag_control` | TAG 生成控制 — 3-Pass 进度、按类别/时间范围重新生成 |
 | `TagViewer` | `tag_viewer` | 标签查看页 |
 | `MemoryFacts` | `memory_facts` | 设置子页 — AI 记忆（人物关系区 + 事实记忆区的查看/编辑/删除/清空），从 Settings「AI 助手」卡片进入 |
@@ -118,8 +118,9 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 
 | 子包 | 内容 | 说明 |
 |------|------|------|
-| `usecase/` | `AiAgentUseCase`, `FindDuplicateMediaUseCase`, `GetGroupedMediaUseCase`, `OcrUseCase`, `ChatEditProcessor` | 业务用例：Agent Facade、去重、分组、OCR、对话式图片编辑渲染与保存 |
+| `usecase/` | `AiAgentUseCase`, `GetGroupedMediaUseCase`, `OcrUseCase`, `ChatEditProcessor` | 业务用例：Agent Facade、分组、OCR、对话式图片编辑渲染与保存 |
 | `repository/` | `MediaRepository`, `UserPreferencesRepository`, `UserSettingsRepository` 等接口 | 仓储抽象 |
+| `dedup/` | `DedupModels`（DedupLevel/DedupGroup/DedupScanConfig）, `DedupScanner`, `DedupScanEvent`, `DedupScanController`, `KeepPolicyEngine`, `DedupTrashManager` | 去重 2.0 领域层：三级尺度流式扫描（dedup_hash 缓存）、保留规则引擎、系统回收站删除/恢复 |
 | `model/` | `AiAgentCommand`, `MediaAsset`, `UserPreferences`, `ChatEditRecipeBuilder` 等 | 领域数据模型；`ChatEditRecipeBuilder` 将 LLM 编辑意图转换为 `EditRecipe`（delta 相对调整带单次步进上限保护：美颜 ±10、slim_face ±5、亮度/曝光 ±15、对比度/饱和度 ±15、色温 ±500K、tint ±15；绝对值视为显式数值请求不限幅） |
 | `matting/` | `MattingEngine`, `MaskPostProcessor`, `StrokeLayer`, `EdgeParams`, `IDPhotoComposer`, `BackgroundComposer` 等 | 抠图与证件照合成：融合管线不再固定 sharpen（边缘锐化已迁移参数层，`EdgeParams.DEFAULT_CONTRAST=2.5` 复现旧行为，MIN/MAX 常量供 UI 钳制）；`MaskPostProcessor` 参数层 `erode/dilate/adjustEdges`（对比度→收缩扩张→羽化，各环节默认值自然短路）；`StrokeLayer` 矢量描边层（RESTORE/ERASE、undo/redo，撤销=移除尾条重放；`snapshot` + companion `replay` 纯函数保证跨线程安全） |
 | `search/` | `MediaSearchEngine`, `ExplicitFirstSearchPipeline`, `QuerySegmenter`, `QueryParser`, `SegmentedQuery`, `ExplicitFilter`, `ContentFilter` | 自然语言图片搜索：显式约束优先分段检索 + 规则/LLM/语义混合排序；Chat 场景由 `SearchIntent` 直接驱动 `MediaSearchEngine.search(filter)` |
@@ -146,7 +147,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | 子包 | 内容 | 说明 |
 |------|------|------|
 | `di/` | `AppContainer`、`AppContainerImpl` | 手动 DI（无 Hilt/Dagger） |
-| `core/common/` | `Logger`、`DuplicateImageDetector` | 共享工具 |
+| `core/common/` | `Logger`、`PerceptualHash` | 共享工具（`PerceptualHash` 为 MD5/pHash 纯算法，供去重 2.0 `DedupScanner` 复用） |
 | `core/designsystem/` | `Color`、`Theme`、`Typography` | Compose 设计系统 |
 | `core/image/` | `CoilConfig`、`GpuBeautyProcessor`、`ImageProcessor` | 图片加载与处理 |
 | `service/chat/` | `FloatingChatBubbleService` | 悬浮聊天气泡 |
