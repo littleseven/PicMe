@@ -161,3 +161,30 @@ Gallery 设置入口（现有行，升级文案）
 
 - AC-6：截图 VISUAL 组默认不预选且不计入批量 CTA；人像组默认保留项为人脸质量分最高者；TAG 未覆盖照片全部归入 GENERAL 且行为与 v1.0 一致。
 - AC-7：内容类型 badge 与策略文案三语同步；类型识别不产生额外扫描耗时（取数阶段顺带判定）。
+
+## §11 入口与导航（2026-08-26）
+
+去重 2.0（相册整理）从设置二级入口升级为一级入口，并打通头像拍摄链路。
+
+### 11.1 相册整理入口
+
+- **设置主菜单**：Gallery 行更名「相册扫描」（`gallery_settings`：Gallery Scan / 相册扫描 / 相簿掃描；该 key 同时是 TagControl 页标题，同步生效为期望行为）；其下方新增「相册整理」行（`gallery_cleanup`：Gallery Cleanup / 相册整理 / 相簿整理，`Icons.Rounded.BurstMode`），导航 `Screen.DedupHome`。
+- **悬浮底部 Tab**：GalleryScreen 悬浮 Tab 第一项由相机改为相册整理（`Icons.Outlined.BurstMode`，与同行 Outlined 图标风格一致）；相机为 Pager 页 0，右滑即达，入口不丢。
+- **TagControl 头部**：`GallerySettingsHeader` 移除「管理重复照片」行；`manage_duplicates` key 保留（仅剩休眠的 GALLERY 二级页死代码引用）。
+- **相册页左滑手势**：未实现。相册是主页面 Pager 页 1/4（非最后一页），左滑已被外层 HorizontalPager 用于切到 Chat 页，页内手势会与 pager 抢事件；代码留 TODO（`GalleryScreen.kt` 悬浮 Tab 处），替代交互待产品确认。
+
+### 11.2 头像拍摄链路（V1）
+
+- **入口**：人物编辑页 `AvatarHeader` 相机角标（头像本体点击仍开封面选择 Sheet）；设置账号 Hero 卡头像新增相机角标。
+- **会话控制**：`features/common/avatar/AvatarCaptureController`（进程内单例 StateFlow，与 `RemotePhotoTracker` 同风格）登记 `PendingAvatarCapture(target=Person(personId)|Self, origin=PEOPLE_PAGE|GALLERY_PAGE|SETTINGS_PAGE)`；调用方 `begin()` 后切到相机页（Pager 页 0）。
+- **相机头像态**（`CameraScreen/CameraContent`）：检测 pending → 记忆水合后默认切前置（`FEATURE_CAMERA_FRONT` 缺失静默保持后置）→ 顶部胶囊提示（`avatar_capture_hint`：Take a selfie for avatar / 拍摄头像 / 拍攝頭像）；滑离相机页视为取消（清 pending + 恢复进入前镜头）。
+- **落库设封面**：`handleCaptureClick` 新增 `onPhotoCompleted` 钩子 → `AvatarCaptureFinisher` 以快门时间戳为下界轮询 Room 最新媒体（兜底策略：拍照回调不透出 mediaId 且 `insertMedia` 异步入库，注释已写明取舍）→ 复用 `PersonRepository.updateCover`；Self 目标经 `getSelfPerson()` 解析，未标记「我」则跳过（记日志）。
+- **返回**：完成/失败后清 pending 并切回来源页（PEOPLE/GALLERY 切 Pager 页；SETTINGS 重新 navigate Settings，原栈已被 switchMainPage 弹掉）。
+
+### 11.3 三语 key 清单
+
+| key | EN | zh-CN | zh-TW |
+|---|---|---|---|
+| `gallery_settings`（更名） | Gallery Scan | 相册扫描 | 相簿掃描 |
+| `gallery_cleanup`（新增） | Gallery Cleanup | 相册整理 | 相簿整理 |
+| `avatar_capture_hint`（新增） | Take a selfie for avatar | 拍摄头像 | 拍攝頭像 |

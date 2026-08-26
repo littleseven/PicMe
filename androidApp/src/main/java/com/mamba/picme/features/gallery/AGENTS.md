@@ -12,7 +12,7 @@
 > **最后更新**: 2026-08-26  
 > **维护者**: 项目开发者
 
-**模块定位**: 应用默认首页，提供智能聚类相册浏览、媒体查看器、批量操作功能；支持端侧自然语言搜索；右下角 plus 菜单聚合 Chat / Camera / Settings / Model Center 四个二级页入口，语音 Agent 面板提供自然语言交互入口。重复照片管理入口已迁移至设置页「相册功能」卡片。
+**模块定位**: 应用默认首页，提供智能聚类相册浏览、媒体查看器、批量操作功能；支持端侧自然语言搜索；右下角 plus 菜单聚合 Chat / Camera / Settings / Model Center 四个二级页入口，语音 Agent 面板提供自然语言交互入口。「相册整理」（去重 2.0）入口为悬浮底部 Tab 第一项 + 设置主菜单一级入口（2026-08-26 升级）。
 
 **主要维护者**: 项目开发者
 
@@ -136,7 +136,7 @@ private fun shareMediaAssets(context: Context, assets: List<MediaAsset>) {
 > 旧实现（`DuplicateManager` 页 / `FindDuplicateMediaUseCase` / `DuplicateImageDetector`）已于 2026-08-26 Task 11 整体下线删除；`core/common/PerceptualHash.kt`（MD5/pHash 纯算法，零 Android 依赖、可 JVM 单测）保留，由新扫描器复用。
 
 **技术规范**:
-- **入口**: 设置页「相册功能」卡片「管理重复照片」→ `Screen.DedupHome`（route `dedup_home`）→ `DedupHomeRoute`（`features/gallery/dedup/DedupHomeScreen.kt`），ViewModel 为独立的 `DedupViewModel`（不再共享 `MediaViewModel`）
+- **入口（2026-08-26 升级）**: 设置主菜单「相册整理」一级入口行 + 相册悬浮底部 Tab 第一项（`Icons.Outlined.BurstMode`）→ `Screen.DedupHome`（route `dedup_home`）→ `DedupHomeRoute`（`features/gallery/dedup/DedupHomeScreen.kt`），ViewModel 为独立的 `DedupViewModel`（不再共享 `MediaViewModel`）；TagControl 头部「管理重复照片」行已移除。相册页「左滑进入相册整理」手势未实现（相册为 Pager 页 1/4 非末页，左滑归外层 HorizontalPager 切 Chat 页，`GalleryScreen` 悬浮 Tab 处留有 TODO）
 - **三级尺度（`DedupLevel`，`domain/dedup/DedupModels.kt`）**:
   - `EXACT` 精确重复：`(sizeBytes, mime)` 分桶 → 流式 MD5 相同成组
   - `VISUAL` 视觉重复：32×32 降采样 64-bit pHash，汉明距离 ≤ `visualThreshold`(=5) 并查集聚类；与 EXACT 组完全重合（全员同 MD5）的簇跳过
