@@ -1,10 +1,10 @@
 # 相册去重 2.0 产品与设计规范
 
-> **版本**：1.0（提案）
-> **日期**：2026-08-25
-> **状态**：待评审
-> **设计稿**：Ardot 文件 `Dedup` 页（6 屏流程稿）
-> **现状 SSOT**：`androidApp/.../features/gallery/AGENTS.md` §2.4、`DuplicateImageDetector.kt`、`DuplicateManager.kt`
+> **版本**：1.1（提案）
+> **日期**：2026-08-25（v1.1：2026-08-26 新增 §10 内容类型差异化策略）
+> **状态**：v1.0 已落地 Android V1；§10 待评审
+> **设计稿**：Ardot 文件 `Dedup` 页（6 屏流程稿 + 内容类型 badge 变体）
+> **现状 SSOT**：`androidApp/.../features/gallery/AGENTS.md` §2.4、`domain/dedup/`
 
 ---
 
@@ -106,3 +106,58 @@ Gallery 设置入口（现有行，升级文案）
 - AC-3：9,000 张相册扫描中每组发现 ≤ 1s 内上屏；可暂停/取消/后台；杀进程后结果仍在。
 - AC-4：删除进回收站，30 天可恢复；授权失败组保留在列表。
 - AC-5：iOS 端按本 spec 对等跟随（走 ios-follow 管线）。
+
+---
+
+## 10. 内容类型差异化策略（v1.1）
+
+### 10.1 动机
+
+「重复」的语义随内容类型而不同：截图的视觉相似误报率高（同一 App 界面、内容不同）；人像连拍的价值恰恰集中在 L3 场景相似级；证件/文档承载信息，删除须最保守。单一阈值与单一保留排序无法同时服务好这三类，需按内容类型细分策略。
+
+### 10.2 内容类型与识别依据（全部端侧、零额外推理）
+
+| 类型 | 识别依据 | 可靠性 |
+|------|----------|--------|
+| `SCREENSHOT` 截图 | MediaStore `RELATIVE_PATH` 含 Screenshots 目录（API 29+；API 24-28 无该列，以 `DATA` 列路径兜底，退化基本消除） | ≈100%（系统约定） |
+| `PORTRAIT` 人像 | `media_assets.hasFace = 1` 或 `faceQualityScore` 非空（TAG Pass 1 人脸检测已产出） | 高，依赖 Pass 1 覆盖 |
+| `DOCUMENT` 文档/证件 | `ocrText` 文字密度超阈值（字符数 / 图面积），或 `labels` 含 document/text/receipt 类标签 | 中，依赖 TAG Pass 3 覆盖 |
+| `GENERAL` 普通 | 以上皆非（含 TAG 未覆盖的存量照片） | 兜底 |
+
+- 识别在扫描取数阶段完成（`DedupMediaSource` 组装 `ScanItem` 时携带 `contentType`），不产生新的推理开销。
+- **退化原则**：TAG 未覆盖的照片一律归入 `GENERAL`，走现行默认策略——细分能力随打标覆盖率自然增强，不被覆盖率阻塞。
+- 一张照片命中多类时优先级：`SCREENSHOT` > `DOCUMENT` > `PORTRAIT` > `GENERAL`（截图语义最强，证件保守性优先于人像美观）。
+
+### 10.3 差异化策略矩阵
+
+| 策略维度 | 普通 | 人像 | 截图 | 文档/证件 |
+|----------|------|------|------|-----------|
+| L2 视觉阈值 | 默认（≤5） | 默认 | **收紧（≤3）** | 默认但结果不自动勾选 |
+| 组内保留排序 tiebreak | 画质（现行） | **人脸质量分 → 美学分 → 画质** | 画质（现行） | 画质（现行） |
+| 智能全选 / 默认预选 | L1/L2 参与 | L1/L2 参与 | **仅 L1 参与；L2 组不预选** | **仅 L1 参与；L2 组不预选** |
+| L3 场景相似 | 逐组确认（现行） | **推荐开启**（连拍价值最高，扫描页对人像多时提示） | 逐组确认 | 逐组确认 |
+
+- 「不预选」= 组出现在结果页但默认不勾选任何待删项，组卡片无保留框/删除标记，底部 CTA 不计入。
+- 阈值收紧仅作用于 `SCREENSHOT` 组内成员的相互比对；跨类型不成组（截图与普通照片不进同一 VISUAL 组）。
+
+### 10.4 UI 表达
+
+- **组卡片**：级别 badge 旁新增内容类型 badge（中性描边小胶囊，与彩色级别 badge 区分）：`截图` / `人像` / `文档`；`GENERAL` 不显示 badge（避免噪音）。
+- **footer 策略文案**按类型解释默认行为：
+  - 人像：`人像组 · 已优先保留人脸质量最佳，可改选`
+  - 截图：`截图相似易误判 · 本组未预选，请逐组确认`
+  - 文档：`文档仅完全重复可批量 · 相似版本请逐组确认`
+- **Config 页不加新入口**：类型识别与策略全自动，保持配置面简单（尺度三级 + 保留规则四选不变）。
+- 组详情弹层沿用现有交互；不预选组进入详情后选择保留项即视为逐组确认，勾选生效。
+
+### 10.5 技术要点
+
+- `DedupMember` 增加 `contentType: ContentType`；`KeepPolicyEngine.recommend` 在人像组按 §10.3 调整排序键。
+- `DedupScanner`：VISUAL 聚类按 `contentType` 分桶后再按阈值成组（截图桶用收紧阈值）；跨桶不成组。
+- `DedupGroup` 增加 `autoPreselected: Boolean`（false 时结果页不勾选、不进批量 CTA）；批量口径收口 `DedupGroup.batchEligible`——`batchDeleteUris`/`batchReclaimBytes` 统一 `filter batchEligible`（SCENE 组与未预选未改选组均不参与，详情改选 userOverride 后正常派生）。
+- 识别数据源已在 `media_assets`（hasFace/faceQualityScore/ocrText/labels）与 MediaStore（RELATIVE_PATH，API<29 走 DATA 兜底；WIDTH/HEIGHT 自 API 16 可用、全版本入 projection，供 OCR 密度归一），无 schema 变更。
+
+### 10.6 验收标准（追加）
+
+- AC-6：截图 VISUAL 组默认不预选且不计入批量 CTA；人像组默认保留项为人脸质量分最高者；TAG 未覆盖照片全部归入 GENERAL 且行为与 v1.0 一致。
+- AC-7：内容类型 badge 与策略文案三语同步；类型识别不产生额外扫描耗时（取数阶段顺带判定）。

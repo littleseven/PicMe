@@ -346,20 +346,88 @@
     <string name="person_set_cover_hint">Tap to set cover</string>
     <string name="people_empty">No people found</string>
 
-    <!-- Duplicate Management -->
+    <!-- Duplicate Management（设置入口文案；清理页 UI 键见 Dedup 2.0 区块） -->
     <string name="manage_duplicates">Manage Duplicates</string>
     <string name="duplicate_manager_desc">Find and remove duplicate or similar photos to free up space.</string>
-    <string name="delete_all_duplicates">Delete All Duplicates</string>
-    <string name="no_duplicates_found">No duplicate images found</string>
-    <string name="duplicate_groups_found">Found %1$d duplicate groups</string>
-    <string name="exact_duplicate">Exact Duplicate</string>
-    <string name="similar_image">Similar Image</string>
-    <string name="count_files">%1$d files</string>
-    <string name="preview_all">Preview All</string>
-    <string name="keep_first_delete_others">Keep First, Delete Others</string>
-    <string name="duplicate_preview">Duplicate Preview</string>
-    <string name="will_keep_first_file">Will keep the first file and delete the rest:</string>
-    <string name="confirm_delete">Confirm Delete</string>
+
+    <!-- Dedup 2.0 -->
+    <string name="dedup_title">Duplicate cleanup</string>
+    <string name="dedup_estimate_label">Estimated reclaimable</string>
+    <string name="dedup_last_scan">Last scan: %1$s · %2$d groups found</string>
+    <string name="dedup_never_scanned">Never scanned</string>
+    <string name="dedup_scale_section">Scan scope (levels of duplication)</string>
+    <string name="dedup_scale_exact">Exact duplicates</string>
+    <string name="dedup_scale_exact_desc">Byte-identical copies, safest</string>
+    <string name="dedup_scale_visual">Visual duplicates</string>
+    <string name="dedup_scale_visual_desc">Compressed, resized or edited versions of the same photo</string>
+    <string name="dedup_scale_scene">Similar scenes</string>
+    <string name="dedup_scale_scene_desc">Burst shots and same-scene photos, review per group</string>
+    <string name="dedup_keep_rule">Keep rule</string>
+    <string name="dedup_policy_quality">Keep best quality</string>
+    <string name="dedup_policy_quality_desc">Higher resolution and larger file first</string>
+    <string name="dedup_policy_original">Keep original</string>
+    <string name="dedup_policy_original_desc">Compressed or edited versions yield to the original</string>
+    <string name="dedup_policy_edited">Keep edited version</string>
+    <string name="dedup_policy_edited_desc">Versions you adjusted take priority</string>
+    <string name="dedup_policy_latest">Keep latest</string>
+    <string name="dedup_policy_latest_desc">Most recently saved first</string>
+    <string name="dedup_start_scan">Start scan</string>
+    <string name="dedup_privacy_caption">Scan runs entirely on-device; photos never leave it</string>
+    <string name="dedup_scanning_title">Scanning</string>
+    <string name="dedup_phase_format">Phase %1$d/%2$d · %3$s</string>
+    <string name="dedup_scan_progress">Scanned %1$d / %2$d</string>
+    <string name="dedup_live_found">Found %1$d groups so far</string>
+    <string name="dedup_pause">Pause</string>
+    <string name="dedup_resume">Resume</string>
+    <string name="dedup_run_background">Run in background</string>
+    <string name="dedup_hero_reclaim">Free up %1$s</string>
+    <string name="dedup_hero_groups">%1$d duplicate groups</string>
+    <string name="dedup_smart_select_all">Smart select</string>
+    <!-- 结果页级别 tab 短标签（下划线 TabRow 按内容宽度排布，必须短；Config 页尺度卡片用 dedup_scale_* 长文案） -->
+    <string name="dedup_level_exact">Exact</string>
+    <string name="dedup_level_visual">Visual</string>
+    <string name="dedup_level_scene">Scene</string>
+    <string name="dedup_group_meta">%1$d photos · %2$s reclaimable</string>
+    <!-- 未预选组的 meta：按推荐保留项派生的预计可释放量，避免显示「0 B」误导 -->
+    <string name="dedup_group_meta_estimated">%1$d photos · est. %2$s reclaimable</string>
+    <string name="dedup_keep_badge">Keep</string>
+    <string name="dedup_role_original">Original</string>
+    <string name="dedup_role_edited">Edited</string>
+    <string name="dedup_role_compressed">Compressed</string>
+    <string name="dedup_manual_mark">Manual pick</string>
+    <string name="dedup_rule_hint_default">Default by \"%1$s\" · tap group to change</string>
+    <!-- 内容类型 badge（spec §10.4，GENERAL 不显示）与类型差异化 footer 策略文案 -->
+    <string name="dedup_type_screenshot">Screenshot</string>
+    <string name="dedup_type_portrait">Portrait</string>
+    <string name="dedup_type_document">Document</string>
+    <string name="dedup_hint_portrait">Portrait group · kept the best face quality; tap to change</string>
+    <string name="dedup_hint_screenshot">Similar screenshots are easily misjudged · not pre-selected, confirm per group</string>
+    <string name="dedup_hint_document">Only exact duplicate documents are batched · review similar versions per group</string>
+    <string name="dedup_delete_cta">Delete %1$d · Free %2$s</string>
+    <string name="dedup_recycle_caption">Moved to trash · restorable within 30 days</string>
+    <string name="dedup_detail_title">Choose what to keep</string>
+    <string name="dedup_keep_this">Keep this one</string>
+    <string name="dedup_hint_edited">Edited version detected; kept by rule</string>
+    <!-- 未预选组详情确认按钮：无待删项时不显示「删除其余 0 张」，改中性确认文案 -->
+    <string name="dedup_confirm_selection">Confirm selection</string>
+    <string name="dedup_confirm_keep">Keep selected · delete other %1$d</string>
+    <string name="dedup_rules_note">The rule only sets the default pick; you can change any group manually</string>
+    <string name="dedup_apply">Apply</string>
+    <string name="dedup_rules_title">Keep rule</string>
+    <string name="dedup_member_meta">%1$s · %2$s</string>
+    <string name="dedup_cleaned_title">Cleaned %1$d photos</string>
+    <string name="dedup_cleaned_sub">Freed %1$s · photos moved to trash</string>
+    <string name="dedup_recycle_bin">Trash</string>
+    <string name="dedup_auto_clear">Auto-cleared after 30 days</string>
+    <string name="dedup_undo_all">Undo all</string>
+    <string name="dedup_view_recycle">View trash</string>
+    <string name="dedup_no_groups">No duplicates found</string>
+    <string name="dedup_progress_percent">%1$d%%</string>
+    <string name="dedup_more_count">+%1$d</string>
+    <string name="dedup_partial_trash_notice">Some items were not deleted and remain in the list</string>
+    <string name="dedup_thumb_kept_cd">Photo, kept</string>
+    <string name="dedup_thumb_delete_cd">Photo, marked for deletion</string>
+    <string name="dedup_thumb_neutral_cd">Photo, unselected</string>
 
     <!-- Media Pager -->
     <string name="media_source">Source: %1$s</string>

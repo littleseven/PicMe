@@ -14,13 +14,11 @@ import androidx.lifecycle.viewModelScope
 import com.mamba.picme.beauty.api.PhotoProcessor
 import com.mamba.picme.beauty.api.facedetect.DetectionPipelineConfig
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
-import com.mamba.picme.domain.model.DuplicateGroup
 import com.mamba.picme.domain.model.GroupedMedia
 import com.mamba.picme.domain.model.GroupingMode
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.domain.repository.AndroidMediaRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
-import com.mamba.picme.domain.usecase.FindDuplicateMediaUseCase
 import com.mamba.picme.domain.usecase.GenerateSummaryOnDemandUseCase
 import com.mamba.picme.domain.usecase.GetGroupedMediaUseCase
 import com.mamba.picme.domain.usecase.OcrProcessor
@@ -44,7 +42,6 @@ import kotlinx.coroutines.withContext
 class MediaViewModel(
     private val repository: AndroidMediaRepository,
     private val getGroupedMediaUseCase: GetGroupedMediaUseCase,
-    private val findDuplicateMediaUseCase: FindDuplicateMediaUseCase,
     private val ocrUseCase: OcrProcessor,
     private val photoProcessor: PhotoProcessor,
     private val faceDetector: FaceDetector,
@@ -58,9 +55,6 @@ class MediaViewModel(
 
     private val _groupingMode = MutableStateFlow(GroupingMode.DATE)
     val groupingMode = _groupingMode.asStateFlow()
-
-    private val _duplicateGroups = MutableStateFlow<List<DuplicateGroup>>(emptyList())
-    val duplicateGroups = _duplicateGroups.asStateFlow()
 
     private val _ocrState = MutableStateFlow<OcrResult?>(null)
     val ocrState: StateFlow<OcrResult?> = _ocrState.asStateFlow()
@@ -262,9 +256,6 @@ class MediaViewModel(
         }
     }
 
-    private val _isScanningDuplicates = MutableStateFlow(false)
-    val isScanningDuplicates = _isScanningDuplicates.asStateFlow()
-
     val groupedMedia: StateFlow<List<GroupedMedia>> = combine(
         repository.allMedia,
         _groupingMode
@@ -358,68 +349,6 @@ class MediaViewModel(
         viewModelScope.launch {
             Logger.d(TAG, "Executing pending deletes after user authorization")
             repository.executePendingDeletes()
-        }
-    }
-
-    fun startDuplicateScan() {
-        // 互斥：结果为空且当前未在扫描才启动；否则重扫/重回页面会并发起多个 scan，
-        // 在大量级相册下（实测近 9000 张）会重复解码拖垮性能。
-        if (_duplicateGroups.value.isEmpty() && !_isScanningDuplicates.value) {
-            scanForDuplicates()
-        }
-    }
-
-    private fun scanForDuplicates() {
-        viewModelScope.launch {
-            Logger.d(TAG, "Scanning for duplicates")
-            _isScanningDuplicates.value = true
-            try {
-                _duplicateGroups.value = findDuplicateMediaUseCase()
-                Logger.d(TAG, "Found ${_duplicateGroups.value.size} duplicate groups")
-            } catch (e: Exception) {
-                Logger.e(TAG, "Error scanning for duplicates", e)
-                _duplicateGroups.value = emptyList()
-            } finally {
-                _isScanningDuplicates.value = false
-            }
-        }
-    }
-
-    fun deleteDuplicateGroup(group: DuplicateGroup, keepIndex: Int = 0) {
-        viewModelScope.launch {
-            val urisToDelete = if (keepIndex == 0) {
-                group.getDeleteUris()
-            } else {
-                group.fileUris.filterIndexed { index, _ -> index != keepIndex }
-            }
-
-            val idsToDelete = allMedia.value
-                .filter { asset -> asset.uri in urisToDelete }
-                .map { asset -> asset.id }
-
-            if (idsToDelete.isNotEmpty()) {
-                deleteMediaByIds(idsToDelete)
-                _duplicateGroups.value = _duplicateGroups.value.filter { groupItem -> groupItem.id != group.id }
-            }
-        }
-    }
-
-    fun deleteAllDuplicatesExceptOne() {
-        viewModelScope.launch {
-            Logger.d(TAG, "Deleting all duplicates except one per group")
-            val allIdsToDelete = mutableListOf<Long>()
-
-            _duplicateGroups.value.forEach { group ->
-                val idsInGroup = allMedia.value
-                    .filter { asset -> asset.uri in group.getDeleteUris() }
-                    .map { asset -> asset.id }
-                allIdsToDelete.addAll(idsInGroup)
-            }
-
-            if (allIdsToDelete.isNotEmpty()) {
-                deleteMediaByIds(allIdsToDelete)
-                _duplicateGroups.value = emptyList()
-            }
         }
     }
 

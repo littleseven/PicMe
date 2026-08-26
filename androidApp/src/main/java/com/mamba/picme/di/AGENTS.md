@@ -116,7 +116,7 @@ object BeautyEngineRuntimeState {
 ### 2.3 UseCase 与 OCR 集成
 
 **技术规范**:
-- **UseCase 实例化**: 在 Container 中创建单例 UseCase（`GetGroupedMediaUseCase`、`FindDuplicateMediaUseCase`）
+- **UseCase 实例化**: 在 Container 中创建单例 UseCase（`GetGroupedMediaUseCase`）
 - **OCR 处理器**: `OcrUseCase` 作为单例注入 ViewModel，生命周期由 ViewModel 管理
 - **依赖封装**: 通过 `MediaViewModelDependencies` 数据结构聚合 ViewModel 所需依赖
 - **Factory 模式**: `MediaViewModelFactory` 负责创建 ViewModel 并注入依赖
@@ -126,7 +126,6 @@ object BeautyEngineRuntimeState {
 data class MediaViewModelDependencies(
     val repository: MediaRepository,
     val getGroupedMediaUseCase: GetGroupedMediaUseCase,
-    val findDuplicateMediaUseCase: FindDuplicateMediaUseCase,
     val ocrUseCase: OcrProcessor,
     val photoProcessor: PhotoProcessor,
     val faceDetector: FaceDetector
@@ -141,7 +140,6 @@ class MediaViewModelFactory(
             return MediaViewModel(
                 repository = dependencies.repository,
                 getGroupedMediaUseCase = dependencies.getGroupedMediaUseCase,
-                findDuplicateMediaUseCase = dependencies.findDuplicateMediaUseCase,
                 ocrUseCase = dependencies.ocrUseCase,
                 photoProcessor = dependencies.photoProcessor,
                 faceDetector = dependencies.faceDetector

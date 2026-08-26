@@ -53,9 +53,10 @@ import com.mamba.picme.data.model.MediaEntity
         PersonRelationEntity::class,
         MemoryFactEntity::class,
         ChatImageCacheEntity::class,
-        OptimizeFeedbackEntity::class
+        OptimizeFeedbackEntity::class,
+        DedupHashEntity::class
     ],
-    version = 20,
+    version = 21,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -74,6 +75,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun memoryFactDao(): MemoryFactDao
     abstract fun chatImageCacheDao(): ChatImageCacheDao
     abstract fun optimizeFeedbackDao(): OptimizeFeedbackDao
+    abstract fun dedupHashDao(): DedupHashDao
 
     companion object {
         @Volatile
@@ -92,7 +94,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
                         MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
                         MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
-                        MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20
+                        MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
+                        MIGRATION_20_21
                     )
                     .build()
                 INSTANCE = instance
@@ -438,6 +441,28 @@ abstract class AppDatabase : RoomDatabase() {
                         `selected_index` INTEGER NOT NULL,
                         `selection_source` TEXT NOT NULL,
                         `created_at` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
+        /**
+         * Migration 20 → 21：新增 dedup_hash 表（去重 2.0 MD5/pHash 缓存，支持增量扫描）
+         */
+        private val MIGRATION_20_21 = object : Migration(20, 21) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `dedup_hash` (
+                        `uri` TEXT NOT NULL PRIMARY KEY,
+                        `sizeBytes` INTEGER NOT NULL,
+                        `mime` TEXT NOT NULL,
+                        `modifiedAt` INTEGER NOT NULL,
+                        `md5` TEXT,
+                        `phash` INTEGER,
+                        `pixelArea` INTEGER NOT NULL,
+                        `hashedAt` INTEGER NOT NULL
                     )
                     """.trimIndent()
                 )

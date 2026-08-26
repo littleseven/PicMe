@@ -343,10 +343,6 @@
     <ID>MagicNumber:CoilConfig.kt$CoilConfig$1024</ID>
     <ID>MagicNumber:CoilConfig.kt$CoilConfig$250L</ID>
     <ID>MagicNumber:CoverSelector.kt$CoverSelector$9f</ID>
-    <ID>MagicNumber:DuplicateImageDetector.kt$DuplicateImageDetector$0.114</ID>
-    <ID>MagicNumber:DuplicateImageDetector.kt$DuplicateImageDetector$0.299</ID>
-    <ID>MagicNumber:DuplicateImageDetector.kt$DuplicateImageDetector$0.587</ID>
-    <ID>MagicNumber:DuplicateImageDetector.kt$DuplicateImageDetector$0xFF</ID>
     <ID>MagicNumber:EdiffiqaScorer.kt$EdiffiqaScorer$0xFF</ID>
     <ID>MagicNumber:EdiffiqaScorer.kt$EdiffiqaScorer$127.5f</ID>
     <ID>MagicNumber:FaceAwareAlignment.kt$6f</ID>
@@ -667,7 +663,6 @@
     <ID>SpacingBetweenPackageAndImports:MediaViewModel.kt$ </ID>
     <ID>SwallowedException:ChatViewModel.kt$ChatViewModel$e: Exception</ID>
     <ID>SwallowedException:FeishuChannelHandler.kt$FeishuChannelHandler$e: Exception</ID>
-    <ID>SwallowedException:FindDuplicateMediaUseCase.kt$FindDuplicateMediaUseCase$e: Exception</ID>
     <ID>SwallowedException:IdCardRecognizer.kt$IdCardRecognizer$e: Exception</ID>
     <ID>SwallowedException:ImageEditScreen.kt$e: Exception</ID>
     <ID>SwallowedException:ImageProcessor.kt$ImageProcessorImpl$e: IllegalStateException</ID>
@@ -694,11 +689,9 @@
     <ID>TooGenericExceptionCaught:ChatViewModel.kt$ChatViewModel$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ChineseQueryTranslator.kt$ChineseQueryTranslator$e: Exception</ID>
     <ID>TooGenericExceptionCaught:CodeFormerRestorer.kt$CodeFormerRestorer$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:DuplicateImageDetector.kt$DuplicateImageDetector$e: Exception</ID>
     <ID>TooGenericExceptionCaught:EdiffiqaScorer.kt$EdiffiqaScorer$e: Exception</ID>
     <ID>TooGenericExceptionCaught:FaceClusterEngine.kt$FaceClusterEngine$e: Exception</ID>
     <ID>TooGenericExceptionCaught:FeishuChannelHandler.kt$FeishuChannelHandler$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:FindDuplicateMediaUseCase.kt$FindDuplicateMediaUseCase$e: Exception</ID>
     <ID>TooGenericExceptionCaught:FloatingChatBubbleService.kt$FloatingChatBubbleService$e: Exception</ID>
     <ID>TooGenericExceptionCaught:GalleryCapability.kt$GalleryCapability$e: Exception</ID>
     <ID>TooGenericExceptionCaught:GlBeautyPreviewStrategy.kt$GlBeautyPreviewStrategy$error: Throwable</ID>

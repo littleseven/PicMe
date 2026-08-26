@@ -101,8 +101,8 @@ PoLang（破浪相册）是一个 **Agent 驱动的智能相册**实验场，核
    │                     │              │          │          │?recipe   │         │
    │ [0]Camera [1]Gallery│              │ DataPriv │TagControl│ &autoOpt │ Debug   │
    │      ▲    ▲  [2]Chat│              │MemFacts  │TagViewer │          │ JsBridge*│
-   │      │    │  [3]People│            │CommChan  │Duplicate │          │SearchTest*│
-   │      │    │     │    │             │People(切页)│Manager │          │LlmLog   │
+   │      │    │  [3]People│            │CommChan  │DedupHome │          │SearchTest*│
+   │      │    │     │    │             │People(切页)│        │          │LlmLog   │
    │      │    └────initialPage=1(相册) │          │          │          │Sent.Piece*│
    │      └──────────┘                  └──────────┴──────────┴──────────┴─────────┘
    │   FloatingBottomTab(相册首页底部，多选时隐藏)
@@ -131,7 +131,7 @@ PoLang（破浪相册）是一个 **Agent 驱动的智能相册**实验场，核
 | 相册/浏览 | 媒体信息浮层（日期/位置/美学评分/人脸/AI标签/OCR） | ✅ | iOS 缺口 | — | §2.1 |
 | 相册/浏览 | OCR 结果浮层 / 图像理解浮层 | ✅ | iOS 缺口 | — | §2.1 |
 | 相册/浏览 | 多选拖拽 + 批量删除/分享/全选 | ✅ | iOS 待对齐（拖拽缺） | — | §2.1 |
-| 相册/浏览 | 重复照片检测（端侧） | ✅ | iOS 缺口 | `DuplicateGroup` | §2.1 |
+| 相册/浏览 | 重复/相似照片清理（去重 2.0 三级尺度，端侧） | ✅ | iOS 缺口 | `DedupGroup`（androidApp `domain/dedup/`） | §2.1 |
 | 相册/浏览 | 备份与恢复（SAF JSON v5，18 段） | ✅ | iOS 缺口 | — | §2.1 / §2.9 |
 | 相册/浏览 | 自定义相册 / 时间线视图 / 年视图 / 收藏 | ❌ 未实现 | — | — | §2.1（漂移） |
 | **自然语言搜索** | 显式优先搜索管道（时间/地点显式交集短路） | ✅ | iOS 缺口（整链路在 androidApp） | `StructuredFilter`/`SearchIntent` | §2.2 |
@@ -220,7 +220,7 @@ PoLang（破浪相册）是一个 **Agent 驱动的智能相册**实验场，核
 | 图像理解浮层 | ✅ | `VisionResultOverlay`，Markdown 渲染 + 复制/分享。 |
 | **多选模式** | 🔄 | 长按进入；支持**拖拽选择**（滑过批量勾选/取消）。批量操作仅：**全选/反选**、**删除**、**分享**。**无** 收藏、移动至相册、批量美颜。 |
 | 自定义相册 | ❌ | 完全不存在（无相册表、无创建/命名/封面/增删/智能相册）。 |
-| **相似/重复照片检测** | ✅ | `DuplicateManagerRoute` 独立页，入口在设置页「相册功能」卡片。端侧 `DuplicateImageDetector`；按组展示，保留首张删其余/批量删/预览确认。仅照片，不含视频。 |
+| **重复/相似照片清理（去重 2.0）** | ✅ | `DedupHomeRoute` 独立页（route `dedup_home`），入口在设置页「相册功能」卡片「Manage Duplicates」。端侧三级尺度（完全重复/视觉相似/同一场景）流式扫描（边扫边出结果），保留规则四策略（首选项 KEEP_HIGHEST_QUALITY 与弹层 KEEP_USER_EDITED 分离），API 30+ 删入系统回收站（30 天兜底、可 undo）。仅照片，不含视频。旧 `DuplicateManagerRoute` 已随 Task 11 下线。 |
 | 存储管理（总数/空间/回收站/大文件） | ❌ | 除重复检测外均未实现；无 30 天恢复、无大文件扫描、无空间统计。 |
 | **备份与恢复** | ✅ | `BackupRestoreActivity`，SAF JSON 导出/导入。格式 **v5**，18 个数据段。 |
 
@@ -1148,7 +1148,7 @@ SettingsScreen (MAIN)
 | `data_privacy` | `DataPrivacyScreen` | 设置→数据隐私 | 否 | — | `MainActivity.kt:478` |
 | `memory_facts` | `MemoryFactsScreen` | 设置→记忆事实 | 否 | — | `MainActivity.kt:501` |
 | `communication_channel` | `CommunicationChannelScreen` | 设置→IM 通道 | 否 | — | `MainActivity.kt:481` |
-| `tag_viewer` / `duplicate_manager` | `TagViewerTestScreen` / `DuplicateManagerRoute` | 设置→标签查看/重复管理 | 否 | — | `MainActivity.kt:324,327` |
+| `tag_viewer` / `dedup_home` | `TagViewerTestScreen` / `DedupHomeRoute` | 设置→标签查看/重复清理 | 否 | — | `MainActivity.kt:358,362` |
 | `debug` / `jsbridge` / `search_test` / `sentencepiece_test` | Debug 类页 | 设置→Debug | 否 | — | `MainActivity.kt:513,527,532,537`（jsbridge/search_test/sentencepiece_test **仅 DEBUG**） |
 | `llm_log` | `LlmCallLogScreen` | 设置→LLM 调用日志 | 否 | — | `MainActivity.kt:544`（release 仅指标，无消息内容） |
 
@@ -1200,7 +1200,7 @@ SettingsScreen (MAIN)
 
 **DataStore 主要键**（`name = "user_preferences"`，分类摘要，全量见 `UserPreferencesRepository.kt:56-164`）：主题/语言（`theme_mode`/`app_language` 默认 SYSTEM）、AI Agent（`ai_agent_mode` 默认 REMOTE、`ai_agent_remote_model_configs_v2`、`ai_agent_selected_remote_model` 默认 `deepseek-v4-flash`、`auto_execute_plans` 默认 true）、语音（`voice_command_mode` 默认 DISABLED、`voice_entry_enabled` 默认 false、`ai_chat_entry_enabled` 默认 false）、TAG（`tag_generation_use_opencl` 默认 true、`tagger_model_key` 默认 AUTO、`auto_download_recommended_on_wifi` 默认 true）、相机记忆（`camera_memory_*` ~30 键）、Chat（`chat_input_mode`/`chat_current_session_id`）、远程通道（飞书/Telegram 凭据）、服务端认证（`server_auth_token`/`server_auth_email`）、引擎（`gl_engine_recovery_available_at_ms`、`beauty_strategy` 默认 BIG_BEAUTY）。
 
-**shared commonMain DTO（iOS 可直接消费的契约面）**：`MediaAsset` / `UserPreferences`（`ThemeMode`/`AppLanguage`/`AiAgentMode` 等）/ `RemoteChannelType` / `VoiceCommandMode` / `StructuredFilter` / `DuplicateGroup` / Agent 编排契约（`AgentContext`/`AgentAction`/`ExecutionPlan`/`AiAgentConfig`）/ `RemoteModelConfig`/`RemoteModelConfigs`（**iOS `ModelConfigStore.swift` 已直接消费**）/ `ChatStreamEvent`。iOS 契约面结论：`:shared` 编译为 XCFramework，commonMain 类型经 K/N 直接消费，互操作链路已验证畅通。
+**shared commonMain DTO（iOS 可直接消费的契约面）**：`MediaAsset` / `UserPreferences`（`ThemeMode`/`AppLanguage`/`AiAgentMode` 等）/ `RemoteChannelType` / `VoiceCommandMode` / `StructuredFilter` / Agent 编排契约（`AgentContext`/`AgentAction`/`ExecutionPlan`/`AiAgentConfig`）/ `RemoteModelConfig`/`RemoteModelConfigs`（**iOS `ModelConfigStore.swift` 已直接消费**）/ `ChatStreamEvent`。iOS 契约面结论：`:shared` 编译为 XCFramework，commonMain 类型经 K/N 直接消费，互操作链路已验证畅通。（旧 `DuplicateGroup` 已删除——去重 2.0 领域模型 `DedupGroup` 在 androidApp `domain/dedup/`，非 shared 契约面。）
 
 **模型文件清单**（不内置，运行时下载到 `filesDir/llm_models/<id>/`，全 ModelScope）：见 §2.9 / §2.7。共 16 模型，Tier 1 必须 7 个、Tier 2 推荐 6 个 + `qwen3_vl_2b`(1.4GB VLM 备选) + KWS(4MB)。
 

@@ -49,8 +49,9 @@ import com.mamba.picme.features.idphoto.IDPhotoScreen
 import com.mamba.picme.features.idphoto.IDPhotoViewModel
 import com.mamba.picme.features.search.SearchTestScreen
 import com.mamba.picme.features.gallery.MediaViewModel
-import com.mamba.picme.features.gallery.components.DuplicateManagerRoute
 import com.mamba.picme.features.gallery.components.TagGenerationControlScreen
+import com.mamba.picme.features.gallery.dedup.DedupHomeRoute
+import com.mamba.picme.features.gallery.dedup.DedupViewModel
 import com.mamba.picme.features.translation.SentencePieceTestScreen
 import com.mamba.picme.features.tagviewer.TagViewerTestScreen
 import com.mamba.picme.features.settings.DataPrivacyScreen
@@ -118,6 +119,16 @@ class MainActivity : ComponentActivity() {
             )
             val mediaViewModel: MediaViewModel = viewModel(
                 factory = app.container.createMediaViewModelFactory()
+            )
+            // 去重 2.0：Activity 级作用域（与 mediaViewModel 同款），转后台扫描不被取消；
+            // API < 30 无回收站授权接口，经旧删除通道兜底（uris → ids → deleteMediaByIds）。
+            val dedupViewModel: DedupViewModel = viewModel(
+                factory = app.container.createDedupViewModelFactory { uris ->
+                    val ids = mediaViewModel.allMedia.value
+                        .filter { asset -> asset.uri in uris }
+                        .map { asset -> asset.id }
+                    if (ids.isNotEmpty()) mediaViewModel.deleteMediaByIds(ids)
+                }
             )
             val settingsViewModel: SettingsViewModel = viewModel(
                 factory = SettingsViewModelFactory(
@@ -332,9 +343,9 @@ class MainActivity : ComponentActivity() {
                                     header = {
                                         val useOpencl by settingsViewModel.tagGenerationUseOpencl.collectAsState()
                                         GallerySettingsHeader(
-                                            onNavigateToDuplicateManager = {
+                                            onNavigateToDedupHome = {
                                                 navController.navigate(
-                                                    Screen.DuplicateManager.route,
+                                                    Screen.DedupHome.route,
                                                     navOptions { launchSingleTop = true }
                                                 )
                                             },
@@ -347,9 +358,10 @@ class MainActivity : ComponentActivity() {
                             composable(Screen.TagViewer.route) {
                                 TagViewerTestScreen(onNavigateBack = { navController.popBackStack() })
                             }
-                            composable(Screen.DuplicateManager.route) {
-                                DuplicateManagerRoute(
-                                    viewModel = mediaViewModel,
+                            // 去重 2.0 主页（旧 DuplicateManager 页已随 Task 11 下线）
+                            composable(Screen.DedupHome.route) {
+                                DedupHomeRoute(
+                                    viewModel = dedupViewModel,
                                     onNavigateBack = { navController.popBackStack() }
                                 )
                             }
@@ -402,8 +414,8 @@ class MainActivity : ComponentActivity() {
                                         // 人物页已是主页面 Pager 一页：切页并弹回 Main
                                         switchMainPage(MAIN_PAGE_PEOPLE)
                                     },
-                                    onNavigateToDuplicateManager = {
-                                        navController.navigate(Screen.DuplicateManager.route, navOptions { launchSingleTop = true })
+                                    onNavigateToDedupHome = {
+                                        navController.navigate(Screen.DedupHome.route, navOptions { launchSingleTop = true })
                                     },
                                     onNavigateToAddProvider = {
                                         navController.navigate(Screen.AddRemoteProvider.route, navOptions { launchSingleTop = true })
@@ -473,8 +485,8 @@ class MainActivity : ComponentActivity() {
                                         // 人物页已是主页面 Pager 一页：切页并弹回 Main
                                         switchMainPage(MAIN_PAGE_PEOPLE)
                                     },
-                                    onNavigateToDuplicateManager = {
-                                        navController.navigate(Screen.DuplicateManager.route, navOptions { launchSingleTop = true })
+                                    onNavigateToDedupHome = {
+                                        navController.navigate(Screen.DedupHome.route, navOptions { launchSingleTop = true })
                                     },
                                     onNavigateToAddProvider = {
                                         navController.navigate(Screen.AddRemoteProvider.route, navOptions { launchSingleTop = true })

@@ -171,7 +171,7 @@ fun SettingsScreen(
     onNavigateToModelCenter: (String) -> Unit = {},
     onNavigateToTagControl: () -> Unit = {},
     onNavigateToTagViewer: () -> Unit = {},
-    onNavigateToDuplicateManager: () -> Unit = {},
+    onNavigateToDedupHome: () -> Unit = {},
     onNavigateToDebug: () -> Unit = {},
     onNavigateToJsBridge: () -> Unit = {},
     onNavigateToSearchTest: () -> Unit = {},
@@ -349,7 +349,7 @@ fun SettingsScreen(
             onNavigateBack = onNavigateBack,
             onNavigateToTagControl = onNavigateToTagControl,
             onNavigateToTagViewer = onNavigateToTagViewer,
-            onNavigateToDuplicateManager = onNavigateToDuplicateManager,
+            onNavigateToDedupHome = onNavigateToDedupHome,
             onNavigateToDebug = onNavigateToDebug,
             onNavigateToJsBridge = onNavigateToJsBridge,
             onNavigateToSearchTest = onNavigateToSearchTest,
@@ -437,7 +437,7 @@ private fun SettingsContent(
     onNavigateBack: () -> Unit,
     onNavigateToTagControl: () -> Unit = {},
     onNavigateToTagViewer: () -> Unit = {},
-    onNavigateToDuplicateManager: () -> Unit = {},
+    onNavigateToDedupHome: () -> Unit = {},
     onNavigateToDebug: () -> Unit = {},
     onNavigateToJsBridge: () -> Unit = {},
     onNavigateToSearchTest: () -> Unit = {},
@@ -835,7 +835,7 @@ private fun SettingsContent(
                         title = stringResource(R.string.manage_duplicates),
                         subtitle = stringResource(R.string.duplicate_manager_desc),
                         leadingIcon = Icons.Rounded.PhotoLibrary,
-                        onClick = onNavigateToDuplicateManager
+                        onClick = onNavigateToDedupHome
                     )
                     // 打标模型选择（Florence-2/Qwen3-VL）已收口至「开发者选项」
                 }
@@ -1570,7 +1570,7 @@ private fun SettingsVersionFooter(onUnlock: () -> Unit) {
  */
 @Composable
 internal fun GallerySettingsHeader(
-    onNavigateToDuplicateManager: () -> Unit,
+    onNavigateToDedupHome: () -> Unit,
     useOpencl: Boolean,
     onUseOpenclChange: (Boolean) -> Unit
 ) {
@@ -1581,7 +1581,7 @@ internal fun GallerySettingsHeader(
             title = stringResource(R.string.manage_duplicates),
             subtitle = stringResource(R.string.duplicate_manager_desc),
             leadingIcon = Icons.Rounded.PhotoLibrary,
-            onClick = onNavigateToDuplicateManager
+            onClick = onNavigateToDedupHome
         )
         OpenClBackendSelection(
             useOpencl = useOpencl,

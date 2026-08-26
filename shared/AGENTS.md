@@ -49,7 +49,7 @@ Gradle target：`android`（KMP android library 插件）+ `jvm()` + `iosX64()` 
 | `remote/config/` | `RemoteModelFactory`/`RemoteModelConfig`/`KoogHttpClientFactoryProvider`（按 `RemoteProtocol` 分流 OpenAI/Anthropic 客户端；DeepSeek 系 `thinking.type=disabled` 注入点，仅 tokenhub/kimi/deepseek 保留） |
 | `tool/` | `CameraToolHelper`、`perception/UiObservationFormatter` |
 
-另有 `beauty/api/`（BeautySettings/FilterType/StyleFilter，供 beauty-api 经 `api(project(":shared"))` 透出）、`domain/`（UserPreferences/MediaRepository/StructuredFilter/DuplicateGroup/tag 聚类纯算法）。
+另有 `beauty/api/`（BeautySettings/FilterType/StyleFilter，供 beauty-api 经 `api(project(":shared"))` 透出）、`domain/`（UserPreferences/MediaRepository/StructuredFilter/tag 聚类纯算法；旧 `DuplicateGroup` 已随去重 2.0（androidApp `domain/dedup/`）于 2026-08-26 删除）。
 
 ## 3. 依赖方向
 

@@ -6,7 +6,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.outlined.CloudDownload
-import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
@@ -113,26 +112,6 @@ fun GalleryTopBar(
                 GroupingMenu(currentMode = groupingMode, onModeSelected = onGroupingModeSelected)
                 AppTopBarAction(Icons.Outlined.Settings, stringResource(R.string.settings), onNavigateToSettings)
             }
-        }
-    )
-}
-
-@Composable
-fun DuplicateManagerTopBar(
-    onNavigateBack: () -> Unit,
-    onDeleteAllDuplicates: () -> Unit
-) {
-    AppTopBar(
-        title = { Text(stringResource(R.string.manage_duplicates)) },
-        navigationIcon = {
-            AppTopBarAction(
-                icon = Icons.Outlined.Close,
-                contentDescription = stringResource(R.string.close),
-                onClick = onNavigateBack
-            )
-        },
-        actions = {
-            AppTopBarAction(Icons.Outlined.Delete, stringResource(R.string.delete_all_duplicates), onDeleteAllDuplicates)
         }
     )
 }

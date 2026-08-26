@@ -7,9 +7,9 @@
 > - 相册自然语言搜索的完整链路以 `docs/03-TECHNICAL-SPECS/GALLERY_SEARCH.md` 为唯一事实来源（SSOT）。
 > - 禁止将模块级实现细节回填到顶层 `AGENTS.md`；跨模块或专项技术内容应下沉到对应模块文档或 `docs/*_TECH_SPEC.md`。
 
-> **版本**: 1.3  
+> **版本**: 1.4  
 > **状态**: 生效中  
-> **最后更新**: 2026-08-03  
+> **最后更新**: 2026-08-26  
 > **维护者**: 项目开发者
 
 **模块定位**: 应用默认首页，提供智能聚类相册浏览、媒体查看器、批量操作功能；支持端侧自然语言搜索；右下角 plus 菜单聚合 Chat / Camera / Settings / Model Center 四个二级页入口，语音 Agent 面板提供自然语言交互入口。重复照片管理入口已迁移至设置页「相册功能」卡片。
@@ -131,39 +131,33 @@ private fun shareMediaAssets(context: Context, assets: List<MediaAsset>) {
 }
 ```
 
-### 2.4 重复照片管理 (Duplicate Manager)
+### 2.4 重复照片清理（去重 2.0，Dedup 2.0）
+
+> 旧实现（`DuplicateManager` 页 / `FindDuplicateMediaUseCase` / `DuplicateImageDetector`）已于 2026-08-26 Task 11 整体下线删除；`core/common/PerceptualHash.kt`（MD5/pHash 纯算法，零 Android 依赖、可 JVM 单测）保留，由新扫描器复用。
 
 **技术规范**:
-- **触发时机**: 用户在设置页「相册功能」卡片点击「管理重复照片」后进入独立 `DuplicateManagerRoute` 时触发扫描
-- **扫描逻辑**: `FindDuplicateMediaUseCase` 取全部照片（v1 仅 `MediaType.PHOTO`），通过 `ContentResolver` 流式取 size/mime 组装 `DuplicateImageDetector.DedupItem`，在 `Dispatchers.IO` 调端侧 `DuplicateImageDetector.findDuplicates(context, items)`。媒体字节 100% 本地处理，零上传（[PRIVACY]）。
-- **判定规则（分层检测；纯算法见 `core/common/PerceptualHash.kt`，零 Android 依赖、可 JVM 单测）**:
-  - 精确重复: `(fileSize, mime)` 分桶 → 仅 ≥2 的桶内流式 MD5（`DigestInputStream`，不解码、毫秒级）→ MD5 相同成组（`isExactDuplicate = true`）
-  - 高度相似: 全部图降采样到 32×32 → 64-bit pHash（2D DCT，阈值取 **AC 系数中位数、排除 DC**）→ 汉明距离 ≤ `SIMILAR_HAMMING_THRESHOLD`(=5) 用并查集聚类 → 含 ≥2 个不同 MD5 的聚类为相似组（`isExactDuplicate = false`；与精确组完全重合的聚类跳过）
-- **择优排序**: 组内按「像素最多（width×height）→ `aestheticScore` 最高 → `captureDate` 最新」排序，index 0 为默认保留项；精确组无像素信号，按「评分 → 日期」。UI 可改选保留项。
-- **UI 展示**: 每组重复照片展示缩略图网格，用户可选择保留哪一张
-- **删除策略**: 
-  - 默认保留第一张，删除其余
-  - 支持用户自定义选择保留项
-  - 批量删除所有重复组中非首项
+- **入口**: 设置页「相册功能」卡片「管理重复照片」→ `Screen.DedupHome`（route `dedup_home`）→ `DedupHomeRoute`（`features/gallery/dedup/DedupHomeScreen.kt`），ViewModel 为独立的 `DedupViewModel`（不再共享 `MediaViewModel`）
+- **三级尺度（`DedupLevel`，`domain/dedup/DedupModels.kt`）**:
+  - `EXACT` 精确重复：`(sizeBytes, mime)` 分桶 → 流式 MD5 相同成组
+  - `VISUAL` 视觉重复：32×32 降采样 64-bit pHash，汉明距离 ≤ `visualThreshold`(=5) 并查集聚类；与 EXACT 组完全重合（全员同 MD5）的簇跳过
+  - `SCENE` 相似场景（连拍）：`sceneThreshold`(=8) 聚类 + `sceneTimeWindowMs`(=10s) 拍摄时间窗切桶，仅保留 ≥2 张的桶
+  - `DedupScanConfig.levels` 默认 `{EXACT, VISUAL}`，SCENE 由用户在 Config 页勾选
+- **扫描器（`domain/dedup/DedupScanner.kt`）**: cold Flow 流式扫描，逐批/逐组流出 `DedupScanEvent`（Progress/PhaseChanged/GroupFound/Done/Cancelled）；哈希分批 500（SQLite IN 参数上限），MD5/pHash/pixelArea 缓存进 Room `dedup_hash` 表（`modifiedAt + sizeBytes` 一致则复用）；暂停/恢复经 `DedupScanController.pauseRequested` 轮询（200ms；哈希批内每 50 张一个检查点，每张均 `ensureActive` 响应取消），协程取消经 `onCompletion` 补发 `Cancelled`。媒体字节 100% 端侧处理，零上传（[PRIVACY]）
+- **保留规则（`KeepPolicyEngine` 四规则）**: `BEST_QUALITY`（像素面积→文件大小→美学分→拍摄日期 降序）/ `ORIGINAL` / `EDITED` / `LATEST`；`classify` 先行标注 `VersionRole`（像素或大小 < 组内最大值 0.5 → `COMPRESSED`；`modifiedAt - captureDate > 6h` → `EDITED`；否则 `ORIGINAL`），keepUri = 排序后首张，UI 可改选（`userOverride`）
+- **内容类型差异化（spec §10，`DedupContentType`）**: 取数阶段零额外推理识别 SCREENSHOT（MediaStore `RELATIVE_PATH` 含 Screenshots，API 29+；API 24-28 无该列，以 `DATA` 列路径兜底，截图识别退化基本消除）/ DOCUMENT（ocrText 文字密度 = 字符数/像素面积 > 20 字符/MP，WIDTH/HEIGHT 自 API 16 可用、全版本入 projection，列缺失/脏值退回 >200 字符绝对兜底；或 labels 命中 document/receipt/text 类关键词——英文整词匹配（容忍复数后缀）避免 context/texture 误伤，中文子串，`detectContentType` 纯函数）/ PORTRAIT（hasFace 或 faceQualityScore 非空）/ GENERAL 兜底，优先级 SCREENSHOT > DOCUMENT > PORTRAIT > GENERAL；VISUAL 聚类按 contentType 分桶（跨桶不成组），截图桶用收紧阈值 `screenshotVisualThreshold`(=3)；人像组保留排序前置 faceQualityScore（null 排最后）；`DedupGroup.autoPreselected`（EXACT→true、VISUAL 截图/文档→false、SCENE→false）为 false 时 deleteUris/reclaimBytes 为空、不进批量 CTA（口径收口 `DedupGroup.batchEligible`），详情改选（userOverride）后正常派生参与删除；组卡片有中性描边内容类型 badge（GENERAL 不显示）与类型差异化 footer 文案；未预选未改选组 UI 不显示「0 张/0 B」——meta 行改显示按 keepUri 派生的预计可释放量（`potentialReclaimBytes`，「预计」措辞），详情确认按钮改「确认本组选择」中性文案
+- **状态机（`DedupViewModel`，Agent First sealed 枚举）**: `Config` → `Scanning`（渐进 `GroupFound`，含 paused）→ `Results`（按 DedupLevel 分 tab + policy 切换）→（系统授权）→ `Cleaned`（可 undo/done 回 Config）；保留策略 `_policy` 为 VM 级 StateFlow，Config 规则行与 Results 共用；扫描 `Done` 时按当前 policy 对全部组 `resortGroup` 重算默认勾选（扫描器固定按 BEST_QUALITY 建组）。**SCENE 组不参与批量删除**（spec §4 安全约束）：`batchDeleteUris`/`batchReclaimBytes` 派生值统一 `filter batchEligible`（SCENE 组与未预选未改选组均不参与），VM 删除流与结果页底部 CTA 同一口径
+- **回收站（`DedupTrashManager`）**: API 30+ 走 `MediaStore.createTrashRequest` 移入系统回收站（Cleaned 态可 undo 恢复）；`buildTrashIntent` 经 ioDispatcher + runCatching 保护，失败记日志保持 Results 态；部分拒绝（授权后仍有残留 uri）置位 `partialTrashNotice` 一次性事件槽位，UI 弹 snackbar 提示；API < 30 无回收站授权接口，由 UI 层注入 `legacyDeleter` 回调兜底走 `MediaViewModel.deleteMediaByIds` 旧删除授权流。**已知限制：API ≤ 29 删除授权链路当前为降级路径（legacyDeleter），API 29 上授权弹窗可能无人拉起，待修**
+- **UI 组件清单（`features/gallery/dedup/`）**: `DedupHomeScreen`（页面 + Route）、`DedupSheets`（规则/组详情弹层）、`DedupComponents`（组卡片/缩略图等）、`DedupMediaSource`（扫描输入供数，`MediaType.PHOTO` 元数据 + modifiedAt）
 
 **代码示例**:
 ```kotlin
-fun deleteDuplicateGroup(group: DuplicateGroup, keepIndex: Int = 0) {
-    viewModelScope.launch {
-        val urisToDelete = if (keepIndex == 0) {
-            group.getDeleteUris()
-        } else {
-            group.fileUris.filterIndexed { index, _ -> index != keepIndex }
-        }
-        
-        val idsToDelete = allMedia.value
-            .filter { asset -> asset.uri in urisToDelete }
-            .map { asset -> asset.id }
-        
-        if (idsToDelete.isNotEmpty()) {
-            deleteMediaByIds(idsToDelete)
-            _duplicateGroups.value = _duplicateGroups.value.filter { it.id != group.id }
-        }
+// DedupViewModel：收集扫描事件流，渐进式推进状态机
+scanner.scan(items, config).flowOn(ioDispatcher).collect { event ->
+    when (event) {
+        is DedupScanEvent.GroupFound -> /* 追加到 Scanning.foundGroups */
+        is DedupScanEvent.Done -> _uiState.value = DedupUiState.Results(event.groups, ...)
+        is DedupScanEvent.Cancelled -> _uiState.value = DedupUiState.Config(config)
+        // Progress / PhaseChanged → 更新 Scanning 进度
     }
 }
 ```
