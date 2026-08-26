@@ -27,6 +27,10 @@ interface MediaDao {
     @Query("SELECT * FROM media_assets WHERE id = :id")
     suspend fun getMediaById(id: Long): MediaEntity?
 
+    /** 头像拍摄兜底：查 captureDate 不早于 notBeforeMs 的最新一行（拍照异步入库后轮询用） */
+    @Query("SELECT * FROM media_assets WHERE captureDate >= :notBeforeMs ORDER BY id DESC LIMIT 1")
+    suspend fun getLatestMediaCapturedAfter(notBeforeMs: Long): MediaEntity?
+
     @Query("SELECT * FROM media_assets WHERE id IN (:ids)")
     suspend fun getMediaByIds(ids: List<Long>): List<MediaEntity>
 

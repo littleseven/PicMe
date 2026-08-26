@@ -39,6 +39,9 @@ import androidx.navigation.navOptions
 import com.mamba.picme.core.designsystem.PoLangTheme
 import com.mamba.picme.data.preferences.UserPreferencesRepository
 import com.mamba.picme.domain.model.AppLanguage
+import com.mamba.picme.features.common.avatar.AvatarCaptureController
+import com.mamba.picme.features.common.avatar.AvatarCaptureOrigin
+import com.mamba.picme.features.common.avatar.AvatarCaptureTarget
 import com.mamba.picme.features.chat.ChatViewModel
 import com.mamba.picme.features.debug.DebugScreen
 import com.mamba.picme.features.debug.JsBridgeScreen
@@ -343,12 +346,6 @@ class MainActivity : ComponentActivity() {
                                     header = {
                                         val useOpencl by settingsViewModel.tagGenerationUseOpencl.collectAsState()
                                         GallerySettingsHeader(
-                                            onNavigateToDedupHome = {
-                                                navController.navigate(
-                                                    Screen.DedupHome.route,
-                                                    navOptions { launchSingleTop = true }
-                                                )
-                                            },
                                             useOpencl = useOpencl,
                                             onUseOpenclChange = { settingsViewModel.setTagGenerationUseOpencl(it) }
                                         )
@@ -419,6 +416,14 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onNavigateToAddProvider = {
                                         navController.navigate(Screen.AddRemoteProvider.route, navOptions { launchSingleTop = true })
+                                    },
+                                    onCaptureSelfAvatar = {
+                                        // 账号 Hero 卡相机角标：登记 pending 后切到相机页（Pager 页 0）拍「我」的头像
+                                        AvatarCaptureController.begin(
+                                            AvatarCaptureTarget.Self,
+                                            AvatarCaptureOrigin.SETTINGS_PAGE
+                                        )
+                                        switchMainPage(MAIN_PAGE_CAMERA)
                                     }
                                 )
                             }
@@ -490,6 +495,14 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onNavigateToAddProvider = {
                                         navController.navigate(Screen.AddRemoteProvider.route, navOptions { launchSingleTop = true })
+                                    },
+                                    onCaptureSelfAvatar = {
+                                        // 账号 Hero 卡相机角标：登记 pending 后切到相机页（Pager 页 0）拍「我」的头像
+                                        AvatarCaptureController.begin(
+                                            AvatarCaptureTarget.Self,
+                                            AvatarCaptureOrigin.SETTINGS_PAGE
+                                        )
+                                        switchMainPage(MAIN_PAGE_CAMERA)
                                     }
                                 )
                             }

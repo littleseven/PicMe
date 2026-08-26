@@ -300,7 +300,9 @@
 
     <!-- Duplicate Management -->
     <string name="gallery_features">相簿打標</string>
-    <string name="gallery_settings">相簿</string>
+    <string name="gallery_settings">相簿掃描</string>
+    <string name="gallery_cleanup">相簿整理</string>
+    <string name="avatar_capture_hint">拍攝頭像</string>
     <string name="gallery_settings_desc">打標掃描、人臉聚類、標籤與重複圖管理。</string>
     <string name="gallery_features_desc">打標掃描、人臉聚類與模型下載管理。</string>
     <string name="people_title">人物</string>

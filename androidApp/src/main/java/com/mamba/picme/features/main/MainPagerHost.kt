@@ -18,6 +18,7 @@ import com.mamba.picme.agent.core.runtime.state.SceneManager
 import com.mamba.picme.features.camera.CameraScreen
 import com.mamba.picme.features.chat.ChatScreen
 import com.mamba.picme.features.chat.ChatViewModel
+import com.mamba.picme.features.common.avatar.AvatarCaptureOrigin
 import com.mamba.picme.features.gallery.GalleryScreen
 import com.mamba.picme.features.gallery.MediaViewModel
 import com.mamba.picme.features.person.PersonScreen
@@ -94,6 +95,17 @@ fun MainPagerHost(
                 onNavigateBack = { onSwitchPage(MAIN_PAGE_GALLERY) },
                 viewModel = mediaViewModel,
                 settingsViewModel = settingsViewModel,
+                // 头像拍摄完成/失败后切回来源页（设置页来源重新 navigate，原栈已被 switchMainPage 弹掉）
+                onAvatarCaptureReturn = { origin ->
+                    when (origin) {
+                        AvatarCaptureOrigin.PEOPLE_PAGE -> onSwitchPage(MAIN_PAGE_PEOPLE)
+                        AvatarCaptureOrigin.GALLERY_PAGE -> onSwitchPage(MAIN_PAGE_GALLERY)
+                        AvatarCaptureOrigin.SETTINGS_PAGE -> navController.navigate(
+                            Screen.Settings.route,
+                            navOptions { launchSingleTop = true }
+                        )
+                    }
+                },
                 isActivePage = pagerState.currentPage == MAIN_PAGE_CAMERA
             )
 
@@ -114,6 +126,9 @@ fun MainPagerHost(
                 },
                 onNavigateToTagControl = {
                     navController.navigate(Screen.TagControl.route, navOptions { launchSingleTop = true })
+                },
+                onNavigateToDedupHome = {
+                    navController.navigate(Screen.DedupHome.route, navOptions { launchSingleTop = true })
                 },
                 onNavigateToPeople = { onSwitchPage(MAIN_PAGE_PEOPLE) },
                 searchRequest = gallerySearchRequest,
@@ -151,6 +166,7 @@ fun MainPagerHost(
                 viewModel = personViewModel,
                 onNavigateBack = { onSwitchPage(MAIN_PAGE_GALLERY) },
                 onNavigateToGallery = { personId -> onRequestGallerySearch("", personId) },
+                onNavigateToCamera = { onSwitchPage(MAIN_PAGE_CAMERA) },
                 isActivePage = pagerState.currentPage == MAIN_PAGE_PEOPLE
             )
         }

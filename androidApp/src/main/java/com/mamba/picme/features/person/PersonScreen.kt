@@ -42,6 +42,9 @@ import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
 import com.mamba.picme.data.local.entity.PersonEntity
 import com.mamba.picme.data.model.MediaEntity
+import com.mamba.picme.features.common.avatar.AvatarCaptureController
+import com.mamba.picme.features.common.avatar.AvatarCaptureOrigin
+import com.mamba.picme.features.common.avatar.AvatarCaptureTarget
 import com.mamba.picme.features.common.topbar.AppTopBar
 import com.mamba.picme.features.common.topbar.AppTopBarAction
 import com.mamba.picme.features.common.topbar.AppTopBarNavBack
@@ -59,6 +62,8 @@ fun PersonScreen(
     viewModel: PersonViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToGallery: (Long) -> Unit,
+    /** 人物编辑页相机角标：登记 pending 头像拍摄后切到相机页（Pager 页 0） */
+    onNavigateToCamera: () -> Unit = {},
     /** 是否为当前激活的主页面 page（非激活时禁用顶栏 BackHandler，避免跨页抢占系统返回键） */
     isActivePage: Boolean = true
 ) {
@@ -240,6 +245,13 @@ fun PersonScreen(
                 viewModel.updatePersonInfo(person.personId, relation, customLabel, isSelf)
             },
             onNavigateBack = { infoTarget = null },
+            onCaptureAvatar = {
+                AvatarCaptureController.begin(
+                    AvatarCaptureTarget.Person(person.personId),
+                    AvatarCaptureOrigin.PEOPLE_PAGE
+                )
+                onNavigateToCamera()
+            },
             onUpdateCover = { photo ->
                 viewModel.updateCover(person.personId, photo.id)
             },

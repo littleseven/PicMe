@@ -67,6 +67,9 @@ import android.app.Activity
 import com.mamba.picme.features.gallery.capability.GalleryCapability
 import com.mamba.picme.features.common.SearchField
 import com.mamba.picme.features.common.PersonRelationPicker
+import com.mamba.picme.features.common.avatar.AvatarCaptureController
+import com.mamba.picme.features.common.avatar.AvatarCaptureOrigin
+import com.mamba.picme.features.common.avatar.AvatarCaptureTarget
 import com.mamba.picme.features.person.PersonCover
 import com.mamba.picme.features.person.components.PersonInfoScreen
 import androidx.compose.ui.unit.dp
@@ -103,8 +106,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.BurstMode
 import androidx.compose.material.icons.outlined.ChatBubble
-import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.Sell
 
 private const val TAG = "Gallery"
@@ -124,6 +127,8 @@ fun GalleryScreen(
     onNavigateToDebug: () -> Unit,
     onNavigateToTagControl: () -> Unit = {},
     onNavigateToPeople: () -> Unit = {},
+    /** 相册整理（去重 2.0）入口：悬浮底部 Tab 第一项 */
+    onNavigateToDedupHome: () -> Unit = {},
     /** 外部搜索/人物过滤请求：(query, personId)，来自 Chat 搜索结果跳转或人物页跳转 */
     searchRequest: Pair<String, Long>? = null,
     onSearchRequestConsumed: () -> Unit = {},
@@ -837,13 +842,18 @@ fun GalleryScreen(
             val activeMedia = selectedMediaIndex?.let { previewMediaList.getOrNull(it) }
             val rect by remember { derivedStateOf { activeMedia?.let { thumbnailPositions[it.id] } } }
 
-            // 悬浮底部 Tab — 相机 / 聊天 / 打标 / 人物（纯图标）
+            // 悬浮底部 Tab — 相册整理 / 聊天 / 打标 / 人物（纯图标）
+            // 2026-08-26：相机 tab 移除（相机为 Pager 页 0，右滑即达），第一项改为相册整理（去重 2.0）
+            //
+            // TODO(入口交互待定): 「相册页左滑进入相册整理」未实现——相册是主页面 Pager 页 1（共 4 页，
+            // 非最后一页），左滑已被外层 HorizontalPager 用于切到 Chat 页，页内手势会与 pager 抢事件。
+            // 按设计决议不加手势，待产品确认替代交互（候选：把相册挪为最后一页后做 overscroll 触发）。
             if (selectedMediaIndex == null) {
                 val tabItems = listOf(
                     FloatingBottomTabItem(
-                        icon = Icons.Outlined.PhotoCamera,
-                        contentDescription = stringResource(R.string.camera),
-                        onClick = onNavigateToCamera
+                        icon = Icons.Outlined.BurstMode,
+                        contentDescription = stringResource(R.string.gallery_cleanup),
+                        onClick = onNavigateToDedupHome
                     ),
                     FloatingBottomTabItem(
                         icon = Icons.Outlined.ChatBubble,
@@ -975,6 +985,14 @@ fun GalleryScreen(
                 }
             },
             onNavigateBack = { infoPersonId = null },
+            // 相机角标：登记 pending 头像拍摄后切到相机页（Pager 页 0）
+            onCaptureAvatar = {
+                AvatarCaptureController.begin(
+                    AvatarCaptureTarget.Person(infoSnap.person.personId),
+                    AvatarCaptureOrigin.GALLERY_PAGE
+                )
+                onNavigateToCamera()
+            },
             onUpdateCover = { photo ->
                 kotlinx.coroutines.MainScope().launch {
                     runCatching {

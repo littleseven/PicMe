@@ -311,7 +311,9 @@
 
     <!-- Gallery Features -->
     <string name="gallery_features">Gallery Tagging</string>
-    <string name="gallery_settings">Gallery</string>
+    <string name="gallery_settings">Gallery Scan</string>
+    <string name="gallery_cleanup">Gallery Cleanup</string>
+    <string name="avatar_capture_hint">Take a selfie for avatar</string>
     <string name="gallery_settings_desc">Tagging scan, people clustering, tags &amp; duplicates.</string>
     <string name="gallery_features_desc">Tag scanning, face clustering, and model download management.</string>
     <string name="people_title">People</string>
