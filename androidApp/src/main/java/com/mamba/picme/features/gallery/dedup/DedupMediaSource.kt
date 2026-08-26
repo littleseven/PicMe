@@ -23,7 +23,7 @@ fun interface DedupMediaSource {
     suspend fun photoScanItems(): List<DedupScanner.ScanItem>
 }
 
-/** 尺寸未知（API<29 无 WIDTH/HEIGHT 列或列缺失）时 OCR 判文档的绝对字符数兜底阈值。 */
+/** 尺寸未知（WIDTH/HEIGHT 列缺失或脏值 ≤0）时 OCR 判文档的绝对字符数兜底阈值。 */
 internal const val DOCUMENT_OCR_CHAR_THRESHOLD = 200
 
 /**
@@ -38,9 +38,10 @@ private const val SCREENSHOT_DIR_KEYWORD = "screenshots"
 
 /**
  * DOCUMENT 标签关键词启发式：labels 为 TAG Pass 3 产出的自由文本（中英混合）。
- * 英文按整词（token）匹配，避免 `context`/`texture`/`textile` 被子串 "text" 误伤；
+ * 英文按整词（token）匹配并容忍可选复数后缀（documents/receipts/texts），
+ * 避免 `context`/`texture`/`textile` 被子串 "text" 误伤；
  * 中文无词边界，按子串匹配（"截图文字" 等复合词由 "文字" 覆盖，不单独列死条目）。
- * 误伤代价仅是 VISUAL 组不预选。
+ * 误伤代价仅是 VISUAL 组不预选；漏检更危险（DOCUMENT 误归 GENERAL 会被自动预选）。
  */
 private val DOCUMENT_LABEL_KEYWORDS_EN = listOf("document", "receipt", "text", "screenshot_text")
 private val DOCUMENT_LABEL_KEYWORDS_ZH = listOf("文档", "证件", "票据", "文字")
@@ -52,12 +53,14 @@ private fun labelsIndicateDocument(labels: String): Boolean {
     val lower = labels.lowercase()
     if (DOCUMENT_LABEL_KEYWORDS_ZH.any { keyword -> lower.contains(keyword) }) return true
     val tokens = LABEL_TOKEN_REGEX.findAll(lower).map { match -> match.value }.toHashSet()
-    return DOCUMENT_LABEL_KEYWORDS_EN.any { keyword -> keyword in tokens }
+    return DOCUMENT_LABEL_KEYWORDS_EN.any { keyword ->
+        tokens.any { token -> token == keyword || token == keyword + "s" }
+    }
 }
 
 /**
  * OCR 文字密度判定（spec §10.2 面积归一）：[pixelArea] 可用时按字符数/图面积，
- * 否则（API<29 或尺寸列缺失）退回绝对字符数兜底。
+ * 否则（尺寸列缺失或脏值）退回绝对字符数兜底。
  */
 private fun isDocumentText(ocrText: String?, pixelArea: Long?): Boolean {
     val chars = ocrText?.length ?: 0
@@ -138,7 +141,7 @@ class MediaStoreDedupMediaSource(
         val mime: String,
         /** 截图目录判定路径：RELATIVE_PATH（API 29+），缺失时 DATA 列兜底（全版本可查）。 */
         val path: String?,
-        /** 像素面积（WIDTH×HEIGHT，API 29+；低版本或列缺失为 null，OCR 判定退回绝对阈值）。 */
+        /** 像素面积（WIDTH×HEIGHT，API 16+ 即有该列；列缺失或脏值 ≤0 为 null，OCR 判定退回绝对阈值）。 */
         val pixelArea: Long?,
     )
 
@@ -147,17 +150,19 @@ class MediaStoreDedupMediaSource(
     private fun queryImageMeta(resolver: ContentResolver): Map<String, ImageMeta> {
         val contentUri = MediaStore.Images.Media.getContentUri("external")
         val hasQColumns = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+        // WIDTH/HEIGHT 自 API 16 可用（非 Q-only），全版本入 projection 让 API 24-28 也享受密度归一；
+        // RELATIVE_PATH 才是 Q-only 列，低版本入 projection 会抛 IllegalArgumentException
         val projection = mutableListOf(
             MediaStore.MediaColumns._ID,
             MediaStore.MediaColumns.SIZE,
             MediaStore.MediaColumns.DATE_MODIFIED,
             MediaStore.MediaColumns.MIME_TYPE,
             MediaStore.MediaColumns.DATA,
+            MediaStore.MediaColumns.WIDTH,
+            MediaStore.MediaColumns.HEIGHT,
         ).apply {
             if (hasQColumns) {
                 add(MediaStore.MediaColumns.RELATIVE_PATH)
-                add(MediaStore.MediaColumns.WIDTH)
-                add(MediaStore.MediaColumns.HEIGHT)
             }
         }.toTypedArray()
         val result = HashMap<String, ImageMeta>()
@@ -180,8 +185,8 @@ class MediaStoreDedupMediaSource(
                 } else {
                     -1
                 }
-                val widthCol = if (hasQColumns) cursor.getColumnIndex(MediaStore.MediaColumns.WIDTH) else -1
-                val heightCol = if (hasQColumns) cursor.getColumnIndex(MediaStore.MediaColumns.HEIGHT) else -1
+                val widthCol = cursor.getColumnIndex(MediaStore.MediaColumns.WIDTH)
+                val heightCol = cursor.getColumnIndex(MediaStore.MediaColumns.HEIGHT)
                 while (cursor.moveToNext()) {
                     val size = cursor.getLong(sizeCol)
                     if (size <= 0) continue
@@ -194,6 +199,7 @@ class MediaStoreDedupMediaSource(
                         sizeBytes = size,
                         modifiedAtMs = cursor.getLong(modifiedCol) * 1_000L,
                         mime = cursor.getString(mimeCol) ?: "image/*",
+                        // DATA 仅作 API<29 兜底（29+ 正常走 RELATIVE_PATH，个别行缺失才回退 DATA）
                         path = relativePath ?: dataPath,
                         pixelArea = if (width > 0 && height > 0) width * height else null,
                     )

@@ -154,8 +154,8 @@ Gallery 设置入口（现有行，升级文案）
 
 - `DedupMember` 增加 `contentType: ContentType`；`KeepPolicyEngine.recommend` 在人像组按 §10.3 调整排序键。
 - `DedupScanner`：VISUAL 聚类按 `contentType` 分桶后再按阈值成组（截图桶用收紧阈值）；跨桶不成组。
-- `DedupGroup` 增加 `autoPreselected: Boolean`（false 时结果页不勾选、不进批量 CTA）；`batchDeleteUris` 口径追加 `&& group.autoPreselected` 过滤。
-- 识别数据源已在 `media_assets`（hasFace/faceQualityScore/ocrText/labels）与 MediaStore（RELATIVE_PATH，API<29 走 DATA 兜底；WIDTH/HEIGHT 供 OCR 密度归一），无 schema 变更。
+- `DedupGroup` 增加 `autoPreselected: Boolean`（false 时结果页不勾选、不进批量 CTA）；批量口径收口 `DedupGroup.batchEligible`——`batchDeleteUris`/`batchReclaimBytes` 统一 `filter batchEligible`（SCENE 组与未预选未改选组均不参与，详情改选 userOverride 后正常派生）。
+- 识别数据源已在 `media_assets`（hasFace/faceQualityScore/ocrText/labels）与 MediaStore（RELATIVE_PATH，API<29 走 DATA 兜底；WIDTH/HEIGHT 自 API 16 可用、全版本入 projection，供 OCR 密度归一），无 schema 变更。
 
 ### 10.6 验收标准（追加）
 

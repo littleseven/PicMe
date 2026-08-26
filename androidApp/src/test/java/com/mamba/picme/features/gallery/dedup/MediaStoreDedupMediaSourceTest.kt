@@ -10,11 +10,15 @@ import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.domain.dedup.DedupContentType
 import com.mamba.picme.domain.repository.AndroidMediaRepository
+import io.mockk.CapturingSlot
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -27,8 +31,8 @@ import org.robolectric.annotation.Config
  * 与 MediaStore `_ID` 不相等；按 id join 会全部 miss（扫描 0 项秒完）。
  */
 @RunWith(RobolectricTestRunner::class)
-// RELATIVE_PATH/WIDTH/HEIGHT 需 API 29+：类级钉 33 使完整列路径生效（Robolectric 默认 SDK 低于 29）；
-// API<29 的 DATA 兜底路径由单独的 @Config(sdk = [28]) 用例覆盖。
+// RELATIVE_PATH 需 API 29+（Q-only 列）：类级钉 33 使完整列路径生效（Robolectric 默认 SDK 低于 29）；
+// WIDTH/HEIGHT 自 API 16 可用、全版本入 projection；API<29 的 DATA 兜底路径由单独的 @Config(sdk = [28]) 用例覆盖。
 @Config(sdk = [33])
 class MediaStoreDedupMediaSourceTest {
 
@@ -46,19 +50,29 @@ class MediaStoreDedupMediaSourceTest {
         MediaStore.MediaColumns.HEIGHT,
     )
 
-    /** API<29 列（row 序）：_ID, SIZE, DATE_MODIFIED, MIME_TYPE, DATA（无 RELATIVE_PATH/WIDTH/HEIGHT） */
+    /** API<29 列（row 序）：_ID, SIZE, DATE_MODIFIED, MIME_TYPE, DATA, WIDTH, HEIGHT（无 RELATIVE_PATH） */
     private val legacyColumns = arrayOf(
         MediaStore.MediaColumns._ID,
         MediaStore.MediaColumns.SIZE,
         MediaStore.MediaColumns.DATE_MODIFIED,
         MediaStore.MediaColumns.MIME_TYPE,
         MediaStore.MediaColumns.DATA,
+        MediaStore.MediaColumns.WIDTH,
+        MediaStore.MediaColumns.HEIGHT,
     )
 
-    private fun fakeResolver(columns: Array<String>, rows: List<Array<Any>>): ContentResolver {
+    private fun fakeResolver(
+        columns: Array<String>,
+        rows: List<Array<Any>>,
+        projectionSlot: CapturingSlot<Array<String>>? = null,
+    ): ContentResolver {
         val resolver = mockk<ContentResolver>()
-        every { resolver.query(any(), any(), null, null, null) } returns MatrixCursor(columns)
-            .apply { rows.forEach { row -> addRow(row) } }
+        val cursor = MatrixCursor(columns).apply { rows.forEach { row -> addRow(row) } }
+        if (projectionSlot != null) {
+            every { resolver.query(any(), capture(projectionSlot), null, null, null) } returns cursor
+        } else {
+            every { resolver.query(any(), any(), null, null, null) } returns cursor
+        }
         return resolver
     }
 
@@ -82,12 +96,14 @@ class MediaStoreDedupMediaSourceTest {
         val contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
         val uriA = ContentUris.withAppendedId(contentUri, 101L).toString()
         val uriB = ContentUris.withAppendedId(contentUri, 202L).toString()
+        val projectionSlot = slot<Array<String>>()
         val resolver = fakeResolver(
             qColumns,
             listOf(
                 arrayOf(101L, 2_000L, 1_700_000L, "image/jpeg", "DCIM/Camera/", "/sdcard/DCIM/Camera/a.jpg", 4000L, 3000L),
                 arrayOf(202L, 3_000L, 1_700_001L, "image/png", "DCIM/Camera/", "/sdcard/DCIM/Camera/b.png", 4000L, 3000L),
             ),
+            projectionSlot,
         )
         val photos = listOf(
             // syntheticMediaId 负值编码：与 MediaStore _ID 101/202 不相等
@@ -103,6 +119,10 @@ class MediaStoreDedupMediaSourceTest {
         assertEquals(2_000L, byUri.getValue(uriA).sizeBytes)
         assertEquals(1_700_000_000L, byUri.getValue(uriA).modifiedAt)
         assertEquals("image/png", byUri.getValue(uriB).mime)
+        // projection 锁死：API 29+ 含 RELATIVE_PATH 与全版本 WIDTH/HEIGHT
+        assertTrue(MediaStore.MediaColumns.RELATIVE_PATH in projectionSlot.captured)
+        assertTrue(MediaStore.MediaColumns.WIDTH in projectionSlot.captured)
+        assertTrue(MediaStore.MediaColumns.HEIGHT in projectionSlot.captured)
     }
 
     @Test
@@ -173,21 +193,24 @@ class MediaStoreDedupMediaSourceTest {
     @Test
     @Config(sdk = [28])
     fun `API 28 falls back to DATA column for screenshot detection`() = runTest {
-        // API 24-28 无 RELATIVE_PATH/WIDTH/HEIGHT 列：截图识别走 DATA 兜底，
-        // OCR 判定退回绝对字符数，contentType 判定不崩溃且走剩余信号
+        // API 24-28 无 RELATIVE_PATH 列：截图识别走 DATA 兜底；WIDTH/HEIGHT 全版本可查，
+        // OCR 判定仍走密度归一，contentType 判定不崩溃且走剩余信号
         val contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
         val uriShot = ContentUris.withAppendedId(contentUri, 501L).toString()
         val uriDoc = ContentUris.withAppendedId(contentUri, 502L).toString()
         val uriPortrait = ContentUris.withAppendedId(contentUri, 503L).toString()
         val uriGeneral = ContentUris.withAppendedId(contentUri, 504L).toString()
+        val projectionSlot = slot<Array<String>>()
         val resolver = fakeResolver(
             legacyColumns,
             listOf(
-                arrayOf(501L, 2_000L, 1_700_000L, "image/png", "/storage/emulated/0/DCIM/Screenshots/s.png"),
-                arrayOf(502L, 2_000L, 1_700_000L, "image/jpeg", "/storage/emulated/0/DCIM/Camera/d.jpg"),
-                arrayOf(503L, 2_000L, 1_700_000L, "image/jpeg", "/storage/emulated/0/DCIM/Camera/p.jpg"),
-                arrayOf(504L, 2_000L, 1_700_000L, "image/jpeg", "/storage/emulated/0/DCIM/Camera/g.jpg"),
+                arrayOf(501L, 2_000L, 1_700_000L, "image/png", "/storage/emulated/0/DCIM/Screenshots/s.png", 1080L, 2400L),
+                // 小图密集文字：201 字符 / 0.3MP ≈ 654 字符/MP，密度归一命中 DOCUMENT
+                arrayOf(502L, 2_000L, 1_700_000L, "image/jpeg", "/storage/emulated/0/DCIM/Camera/d.jpg", 640L, 480L),
+                arrayOf(503L, 2_000L, 1_700_000L, "image/jpeg", "/storage/emulated/0/DCIM/Camera/p.jpg", 4000L, 3000L),
+                arrayOf(504L, 2_000L, 1_700_000L, "image/jpeg", "/storage/emulated/0/DCIM/Camera/g.jpg", 4000L, 3000L),
             ),
+            projectionSlot,
         )
         val photos = listOf(
             MediaAsset(id = -501L, uri = uriShot, type = MediaType.PHOTO, captureDate = 1L, fileName = "s.png"),
@@ -207,6 +230,11 @@ class MediaStoreDedupMediaSourceTest {
         assertEquals(DedupContentType.DOCUMENT, byUri.getValue(uriDoc).contentType)
         assertEquals(DedupContentType.PORTRAIT, byUri.getValue(uriPortrait).contentType)
         assertEquals(DedupContentType.GENERAL, byUri.getValue(uriGeneral).contentType)
+        // projection 锁死：API<29 不含 Q-only 的 RELATIVE_PATH（防低版本查询抛 IllegalArgumentException），
+        // WIDTH/HEIGHT 自 API 16 可用，全版本保留
+        assertFalse(MediaStore.MediaColumns.RELATIVE_PATH in projectionSlot.captured)
+        assertTrue(MediaStore.MediaColumns.WIDTH in projectionSlot.captured)
+        assertTrue(MediaStore.MediaColumns.HEIGHT in projectionSlot.captured)
     }
 
     @Test

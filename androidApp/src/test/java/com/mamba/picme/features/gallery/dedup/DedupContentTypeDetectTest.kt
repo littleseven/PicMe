@@ -48,7 +48,7 @@ class DedupContentTypeDetectTest {
             DedupContentType.DOCUMENT,
             detect(ocrText = "字".repeat(201), pixelArea = 500_000L),
         )
-        // 尺寸未知（API<29 或列缺失）退回绝对字符数兜底
+        // 尺寸未知（列缺失或脏值）退回绝对字符数兜底
         val dense = "字".repeat(DOCUMENT_OCR_CHAR_THRESHOLD + 1)
         assertEquals(DedupContentType.DOCUMENT, detect(ocrText = dense))
         val sparse = "字".repeat(DOCUMENT_OCR_CHAR_THRESHOLD)
@@ -72,6 +72,16 @@ class DedupContentTypeDetectTest {
         // 整词命中仍生效（含大小写不敏感与混合分隔）
         assertEquals(DedupContentType.DOCUMENT, detect(labels = "text"))
         assertEquals(DedupContentType.DOCUMENT, detect(labels = "Screenshot_Text,室内"))
+    }
+
+    @Test
+    fun `english label keywords tolerate plural forms`() {
+        // 复数漏检会把 DOCUMENT 误归 GENERAL → VISUAL 组自动预选进批量删除，方向不保守
+        assertEquals(DedupContentType.DOCUMENT, detect(labels = "documents, desk"))
+        assertEquals(DedupContentType.DOCUMENT, detect(labels = "receipts"))
+        assertEquals(DedupContentType.DOCUMENT, detect(labels = "texts"))
+        // 含关键词子串的非复数词仍不命中
+        assertEquals(DedupContentType.GENERAL, detect(labels = "contexts"))
     }
 
     @Test
