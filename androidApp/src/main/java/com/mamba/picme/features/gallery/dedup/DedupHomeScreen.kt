@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -135,6 +136,9 @@ fun DedupHomeRoute(
             )
         },
         bottomBar = {
+            // 底部栏自行吞导航栏 inset（M3 Scaffold 约定 topBar/bottomBar 各管各的）：
+            // 外层 MainActivity 全局 0 insets，不加则 CTA 被三键虚拟导航遮挡
+            Box(modifier = Modifier.navigationBarsPadding()) {
             when (val state = uiState) {
                 is DedupUiState.Scanning -> DedupScanningBottomBar(
                     paused = state.paused,
@@ -156,6 +160,7 @@ fun DedupHomeRoute(
                     onDone = { viewModel.resetToConfig() },
                 )
                 is DedupUiState.Config -> Unit
+            }
             }
         }
     ) { padding ->
