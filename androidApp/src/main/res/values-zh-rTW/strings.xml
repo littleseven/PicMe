@@ -402,6 +402,8 @@
     <string name="dedup_undo_all">全部復原</string>
     <string name="dedup_view_recycle">查看回收站</string>
     <string name="dedup_no_groups">沒有發現重複照片</string>
+    <string name="dedup_progress_percent">%1$d%%</string>
+    <string name="dedup_more_count">+%1$d</string>
 
     <string name="screenshot">截圖</string>
     <string name="screenshot_saved">截圖已儲存至 %1$s</string>

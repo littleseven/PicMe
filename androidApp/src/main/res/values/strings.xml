@@ -418,6 +418,8 @@
     <string name="dedup_undo_all">Undo all</string>
     <string name="dedup_view_recycle">View trash</string>
     <string name="dedup_no_groups">No duplicates found</string>
+    <string name="dedup_progress_percent">%1$d%%</string>
+    <string name="dedup_more_count">+%1$d</string>
 
     <!-- Media Pager -->
     <string name="media_source">Source: %1$s</string>
