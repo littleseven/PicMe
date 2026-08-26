@@ -10,11 +10,14 @@ class KeepPolicyEngineTest {
         uri: String, sizeBytes: Long = 1_000_000, pixelArea: Int = 12_000_000,
         captureDate: Long = 1_000L, modifiedAt: Long = captureDate,
         aestheticScore: Float? = null,
+        contentType: DedupContentType = DedupContentType.GENERAL,
+        faceQualityScore: Float? = null,
     ) = DedupMember(
         uri = uri, sizeBytes = sizeBytes, mime = "image/jpeg",
         captureDate = captureDate, modifiedAt = modifiedAt,
         pixelArea = pixelArea, aestheticScore = aestheticScore,
         role = VersionRole.UNKNOWN, md5 = null, phash = null,
+        contentType = contentType, faceQualityScore = faceQualityScore,
     )
 
     @Test
@@ -90,5 +93,58 @@ class KeepPolicyEngineTest {
         val m = member("a", modifiedAt = 1_000L + 6 * 3600_000L)
         val out = KeepPolicyEngine.classify(listOf(m))
         assertEquals(VersionRole.ORIGINAL, out.first().role)
+    }
+
+    @Test
+    fun `PORTRAIT group keeps best faceQualityScore ahead of pixelArea`() {
+        // spec §10.3：人像组排序键前置人脸质量分——画质（pixelArea）更高但人脸质量低者让位
+        val bigBlurryFace = member(
+            "a", sizeBytes = 4_000_000, pixelArea = 12_000_000,
+            contentType = DedupContentType.PORTRAIT, faceQualityScore = 0.2f,
+        )
+        val smallSharpFace = member(
+            "b", sizeBytes = 2_000_000, pixelArea = 6_000_000,
+            contentType = DedupContentType.PORTRAIT, faceQualityScore = 0.9f,
+        )
+        val sorted = KeepPolicyEngine.recommend(
+            KeepPolicy.BEST_QUALITY,
+            KeepPolicyEngine.classify(listOf(bigBlurryFace, smallSharpFace)),
+        )
+        assertEquals("b", sorted.first().uri)
+    }
+
+    @Test
+    fun `PORTRAIT group sorts null faceQualityScore last`() {
+        val scored = member(
+            "a", pixelArea = 2_000_000,
+            contentType = DedupContentType.PORTRAIT, faceQualityScore = 0.5f,
+        )
+        val unscored = member(
+            "b", pixelArea = 12_000_000,
+            contentType = DedupContentType.PORTRAIT, faceQualityScore = null,
+        )
+        val sorted = KeepPolicyEngine.recommend(
+            KeepPolicy.BEST_QUALITY,
+            KeepPolicyEngine.classify(listOf(unscored, scored)),
+        )
+        assertEquals("a", sorted.first().uri)
+    }
+
+    @Test
+    fun `GENERAL group ordering unchanged by faceQualityScore`() {
+        // 非人像组不启用人脸质量分 tiebreak：仍按画质优先
+        val big = member(
+            "a", pixelArea = 12_000_000,
+            contentType = DedupContentType.GENERAL, faceQualityScore = 0.1f,
+        )
+        val small = member(
+            "b", pixelArea = 6_000_000,
+            contentType = DedupContentType.GENERAL, faceQualityScore = 0.9f,
+        )
+        val sorted = KeepPolicyEngine.recommend(
+            KeepPolicy.BEST_QUALITY,
+            KeepPolicyEngine.classify(listOf(small, big)),
+        )
+        assertEquals("a", sorted.first().uri)
     }
 }

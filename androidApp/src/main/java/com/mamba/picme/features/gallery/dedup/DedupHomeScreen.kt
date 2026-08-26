@@ -606,9 +606,8 @@ private fun DedupResultsContent(
     onSelectTab: (DedupLevel) -> Unit,
     onOpenGroupDetail: (String) -> Unit,
 ) {
-    val policyLabel = stringResource(keepPolicyLabelRes(state.policy))
-    // summary 与底部 CTA 同口径（spec §4）：SCENE 组不参与批量操作，不计入「可释放」
-    val batchGroups = state.groups.filter { group -> group.level != DedupLevel.SCENE }
+    // summary 与底部 CTA 同口径（spec §4/§10.5）：SCENE 组与未预选组不参与批量操作，不计入「可释放」
+    val batchGroups = state.groups.filter { group -> group.batchEligible }
     val totalReclaim = batchGroups.sumOf { group -> group.reclaimBytes }
     val filteredGroups = state.groups.filter { group -> group.level == state.selectedTab }
 
@@ -710,7 +709,7 @@ private fun DedupResultsContent(
                 ) { group ->
                     DedupGroupCard(
                         group = group,
-                        policyLabel = policyLabel,
+                        policy = state.policy,
                         onOpenDetail = { onOpenGroupDetail(group.id) }
                     )
                 }

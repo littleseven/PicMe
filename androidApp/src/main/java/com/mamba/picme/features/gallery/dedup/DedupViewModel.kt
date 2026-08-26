@@ -190,12 +190,15 @@ class DedupViewModel(
         )
     }
 
-    /** 仅 EXACT/VISUAL 组清 userOverride 并按当前 policy 重算；SCENE 组保留用户手动选择。 */
+    /**
+     * 仅 autoPreselected 的 EXACT/VISUAL 组清 userOverride 并按当前 policy 重算；
+     * SCENE 组与未预选组（spec §10.3：VISUAL 截图/文档）保留原状不勾选。
+     */
     fun smartSelectAll() {
         val state = _uiState.value as? DedupUiState.Results ?: return
         _uiState.value = state.copy(
             groups = state.groups.map { group ->
-                if (group.level == DedupLevel.SCENE) {
+                if (!group.autoPreselected) {
                     group
                 } else {
                     resortGroup(group.copy(userOverride = false), state.policy)
@@ -224,19 +227,20 @@ class DedupViewModel(
     // ---------- 删除 / 撤销 ----------
 
     /**
-     * 批量删除候选聚合（spec §4 安全约束）：SCENE 相似场景组不参与批量删除，
-     * 需逐组人工确认。VM 删除流与结果页底部 CTA 共用此口径，消除重复聚合。
+     * 批量删除候选聚合（spec §4/§10.5 安全约束）：SCENE 相似场景组不参与批量删除，
+     * 需逐组人工确认；未预选组（VISUAL 截图/文档）仅在用户改选（userOverride）后参与。
+     * 统一口径收口在 [DedupGroup.batchEligible]，VM 删除流与结果页底部 CTA 共用。
      */
     fun batchDeleteUris(groups: List<DedupGroup>): List<String> =
         groups
-            .filter { group -> group.level != DedupLevel.SCENE }
+            .filter { group -> group.batchEligible }
             .flatMap { group -> group.deleteUris }
             .distinct()
 
     /** [batchDeleteUris] 对应的可释放字节数（同一 uri 跨组只计一次）。 */
     fun batchReclaimBytes(groups: List<DedupGroup>, uris: List<String>): Long =
         groups
-            .filter { group -> group.level != DedupLevel.SCENE }
+            .filter { group -> group.batchEligible }
             .flatMap { group -> group.members }
             .filter { member -> member.uri in uris }
             .distinctBy { member -> member.uri }

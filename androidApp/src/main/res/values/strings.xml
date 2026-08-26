@@ -393,6 +393,13 @@
     <string name="dedup_role_compressed">Compressed</string>
     <string name="dedup_manual_mark">Manual pick</string>
     <string name="dedup_rule_hint_default">Default by \"%1$s\" · tap group to change</string>
+    <!-- 内容类型 badge（spec §10.4，GENERAL 不显示）与类型差异化 footer 策略文案 -->
+    <string name="dedup_type_screenshot">Screenshot</string>
+    <string name="dedup_type_portrait">Portrait</string>
+    <string name="dedup_type_document">Document</string>
+    <string name="dedup_hint_portrait">Portrait group · kept the best face quality; tap to change</string>
+    <string name="dedup_hint_screenshot">Similar screenshots are easily misjudged · not pre-selected, confirm per group</string>
+    <string name="dedup_hint_document">Only exact duplicate documents are batched · review similar versions per group</string>
     <string name="dedup_delete_cta">Delete %1$d · Free %2$s</string>
     <string name="dedup_recycle_caption">Moved to trash · restorable within 30 days</string>
     <string name="dedup_detail_title">Choose what to keep</string>
@@ -415,6 +422,7 @@
     <string name="dedup_partial_trash_notice">Some items were not deleted and remain in the list</string>
     <string name="dedup_thumb_kept_cd">Photo, kept</string>
     <string name="dedup_thumb_delete_cd">Photo, marked for deletion</string>
+    <string name="dedup_thumb_neutral_cd">Photo, unselected</string>
 
     <!-- Media Pager -->
     <string name="media_source">Source: %1$s</string>

@@ -22,11 +22,16 @@ object KeepPolicyEngine {
 
     fun recommend(policy: KeepPolicy, members: List<DedupMember>): List<DedupMember> {
         require(members.isNotEmpty()) { "members must not be empty" }
-        val quality: Comparator<DedupMember> =
+        var quality: Comparator<DedupMember> =
             compareByDescending<DedupMember> { member -> member.pixelArea }
                 .thenByDescending { member -> member.sizeBytes }
                 .thenByDescending { member -> member.aestheticScore ?: -1f }
                 .thenByDescending { member -> member.captureDate }
+        // spec §10.3：人像组排序键前置 faceQualityScore（null 排最后），保留人脸质量最佳者
+        if (members.any { member -> member.contentType == DedupContentType.PORTRAIT }) {
+            quality = compareByDescending<DedupMember> { member -> member.faceQualityScore ?: -1f }
+                .then(quality)
+        }
         return when (policy) {
             KeepPolicy.BEST_QUALITY -> members.sortedWith(quality)
             KeepPolicy.LATEST -> members.sortedWith(

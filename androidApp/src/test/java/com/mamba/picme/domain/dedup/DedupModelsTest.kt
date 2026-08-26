@@ -1,7 +1,9 @@
 package com.mamba.picme.domain.dedup
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DedupModelsTest {
@@ -52,5 +54,47 @@ class DedupModelsTest {
         assertThrows(IllegalArgumentException::class.java) {
             group(listOf("a", "b"), keepUri = "x")
         }
+    }
+
+    @Test
+    fun `non-preselected group without override exposes no deleteUris or reclaimBytes`() {
+        val g = DedupGroup(
+            id = "g1", level = DedupLevel.VISUAL,
+            members = listOf(member("a", sizeBytes = 2_000_000), member("b", sizeBytes = 3_000_000)),
+            keepUri = "a",
+            contentType = DedupContentType.SCREENSHOT,
+            autoPreselected = false,
+        )
+        assertEquals(emptyList<String>(), g.deleteUris)
+        assertEquals(0L, g.reclaimBytes)
+        assertFalse(g.batchEligible)
+    }
+
+    @Test
+    fun `non-preselected group derives deleteUris after userOverride`() {
+        val g = DedupGroup(
+            id = "g1", level = DedupLevel.VISUAL,
+            members = listOf(member("a", sizeBytes = 2_000_000), member("b", sizeBytes = 3_000_000)),
+            keepUri = "a",
+            contentType = DedupContentType.SCREENSHOT,
+            autoPreselected = false,
+        )
+        val confirmed = g.copy(userOverride = true)
+        assertEquals(listOf("b"), confirmed.deleteUris)
+        assertEquals(3_000_000L, confirmed.reclaimBytes)
+        assertTrue(confirmed.batchEligible)
+    }
+
+    @Test
+    fun `SCENE group is never batch eligible even after userOverride`() {
+        val g = DedupGroup(
+            id = "g1", level = DedupLevel.SCENE,
+            members = listOf(member("a"), member("b")),
+            keepUri = "a",
+            autoPreselected = false,
+            userOverride = true,
+        )
+        assertEquals(listOf("b"), g.deleteUris) // 逐组确认后详情计数正常
+        assertFalse(g.batchEligible) // 但仍不进批量 CTA（spec §4）
     }
 }

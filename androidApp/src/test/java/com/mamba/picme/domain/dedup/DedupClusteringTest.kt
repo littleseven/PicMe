@@ -1,6 +1,7 @@
 package com.mamba.picme.domain.dedup
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -12,6 +13,12 @@ class DedupClusteringTest {
         pixelArea = 12_000_000, aestheticScore = null,
         role = VersionRole.UNKNOWN, md5 = null, phash = phash,
     )
+
+    private fun typed(
+        uri: String,
+        phash: Long,
+        contentType: DedupContentType,
+    ) = hashed(uri, phash).copy(contentType = contentType)
 
     @Test
     fun `visual clustering groups hashes within threshold`() {
@@ -51,5 +58,80 @@ class DedupClusteringTest {
     fun `single element clusters produce no groups`() {
         val items = listOf(hashed("a", 0L), hashed("b", -1L))
         assertTrue(clusterVisual(items, threshold = 5, timeWindowMs = null, level = DedupLevel.VISUAL).isEmpty())
+    }
+
+    @Test
+    fun `visual bucketing applies tightened threshold to SCREENSHOT bucket only`() {
+        // 0b1111 与 0 的 hamming 距离为 4：截图桶阈值 3 不成组，普通桶阈值 5 成组
+        val items = listOf(
+            typed("s1", 0b1111L, DedupContentType.SCREENSHOT),
+            typed("s2", 0L, DedupContentType.SCREENSHOT),
+            typed("p1", 0b1111L, DedupContentType.GENERAL),
+            typed("p2", 0L, DedupContentType.GENERAL),
+        )
+        val groups = clusterVisualByContentType(
+            hashed = items,
+            visualThreshold = 5,
+            screenshotVisualThreshold = 3,
+        )
+        // 截图对 hamming=4 > 3 不成组；普通对 hamming=4 ≤ 5 成组
+        assertEquals(1, groups.size)
+        assertEquals(DedupContentType.GENERAL, groups.single().contentType)
+        assertEquals(setOf("p1", "p2"), groups.single().members.map { member -> member.uri }.toSet())
+    }
+
+    @Test
+    fun `visual bucketing never mixes content types in one group`() {
+        // 截图与普通照片 pHash 完全相同（hamming=0）也不进同一组（spec §10.5 跨桶不成组）
+        val items = listOf(
+            typed("s1", 0b1111L, DedupContentType.SCREENSHOT),
+            typed("s2", 0b1111L, DedupContentType.SCREENSHOT),
+            typed("p1", 0b1111L, DedupContentType.GENERAL),
+            typed("p2", 0b1111L, DedupContentType.GENERAL),
+        )
+        val groups = clusterVisualByContentType(
+            hashed = items,
+            visualThreshold = 5,
+            screenshotVisualThreshold = 3,
+        )
+        assertEquals(2, groups.size)
+        val byType = groups.associateBy { group -> group.contentType }
+        assertEquals(setOf("s1", "s2"), byType.getValue(DedupContentType.SCREENSHOT).members.map { m -> m.uri }.toSet())
+        assertEquals(setOf("p1", "p2"), byType.getValue(DedupContentType.GENERAL).members.map { m -> m.uri }.toSet())
+    }
+
+    @Test
+    fun `autoPreselectedFor follows spec matrix`() {
+        assertTrue(autoPreselectedFor(DedupLevel.EXACT, DedupContentType.SCREENSHOT))
+        assertTrue(autoPreselectedFor(DedupLevel.EXACT, DedupContentType.DOCUMENT))
+        assertTrue(autoPreselectedFor(DedupLevel.VISUAL, DedupContentType.GENERAL))
+        assertTrue(autoPreselectedFor(DedupLevel.VISUAL, DedupContentType.PORTRAIT))
+        assertFalse(autoPreselectedFor(DedupLevel.VISUAL, DedupContentType.SCREENSHOT))
+        assertFalse(autoPreselectedFor(DedupLevel.VISUAL, DedupContentType.DOCUMENT))
+        DedupContentType.entries.forEach { type ->
+            assertFalse(autoPreselectedFor(DedupLevel.SCENE, type))
+        }
+    }
+
+    @Test
+    fun `built groups carry contentType and autoPreselected`() {
+        val screenshotGroups = clusterVisualByContentType(
+            hashed = listOf(
+                typed("s1", 0b1111L, DedupContentType.SCREENSHOT),
+                typed("s2", 0b1110L, DedupContentType.SCREENSHOT),
+            ),
+            visualThreshold = 5,
+            screenshotVisualThreshold = 3,
+        )
+        assertEquals(1, screenshotGroups.size)
+        assertEquals(DedupContentType.SCREENSHOT, screenshotGroups.single().contentType)
+        assertFalse(screenshotGroups.single().autoPreselected)
+
+        val generalGroups = clusterVisualByContentType(
+            hashed = listOf(hashed("p1", 0b1111L), hashed("p2", 0b1110L)),
+            visualThreshold = 5,
+            screenshotVisualThreshold = 3,
+        )
+        assertTrue(generalGroups.single().autoPreselected)
     }
 }

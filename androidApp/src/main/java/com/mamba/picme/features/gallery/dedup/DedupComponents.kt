@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.mamba.picme.R
+import com.mamba.picme.domain.dedup.DedupContentType
 import com.mamba.picme.domain.dedup.DedupGroup
 import com.mamba.picme.domain.dedup.DedupLevel
 import com.mamba.picme.domain.dedup.KeepPolicy
@@ -72,6 +73,26 @@ fun LevelBadge(level: DedupLevel, modifier: Modifier = Modifier) {
     )
 }
 
+/** 内容类型 badge（spec §10.4）：中性描边小胶囊，与彩色级别 badge 区分；GENERAL 不渲染（避免噪音） */
+@Composable
+fun ContentTypeBadge(contentType: DedupContentType, modifier: Modifier = Modifier) {
+    val labelRes = when (contentType) {
+        DedupContentType.SCREENSHOT -> R.string.dedup_type_screenshot
+        DedupContentType.PORTRAIT -> R.string.dedup_type_portrait
+        DedupContentType.DOCUMENT -> R.string.dedup_type_document
+        DedupContentType.GENERAL -> return
+    }
+    Text(
+        text = stringResource(labelRes),
+        modifier = modifier
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 2.dp),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Medium
+    )
+}
+
 /** 版本角色 badge：半透明黑底白字小标；UNKNOWN 不渲染 */
 @Composable
 fun RoleBadge(role: VersionRole, modifier: Modifier = Modifier) {
@@ -97,6 +118,7 @@ fun RoleBadge(role: VersionRole, modifier: Modifier = Modifier) {
  * - 保留项：绿色 2.5dp 描边 + 左上角绿色实心「保留」小标
  * - 待删项：右上角半透明黑圆 + 白色 ×
  * - 左下角叠加 [RoleBadge]
+ * - [showMarks]=false（未预选组的卡片预览，spec §10.3）时保留框/✕ 均不渲染
  */
 @Composable
 fun DedupThumb(
@@ -104,15 +126,17 @@ fun DedupThumb(
     isKept: Boolean,
     role: VersionRole,
     modifier: Modifier = Modifier,
+    showMarks: Boolean = true,
     onClick: (() -> Unit)? = null
 ) {
     val shape = RoundedCornerShape(10.dp)
+    val markedKept = showMarks && isKept
     Box(
         modifier = modifier
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface)
             .then(
-                if (isKept) Modifier.border(2.5.dp, KeepGreen, shape) else Modifier
+                if (markedKept) Modifier.border(2.5.dp, KeepGreen, shape) else Modifier
             )
             .then(
                 if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
@@ -127,7 +151,11 @@ fun DedupThumb(
                 .crossfade(false)
                 .build(),
             contentDescription = stringResource(
-                if (isKept) R.string.dedup_thumb_kept_cd else R.string.dedup_thumb_delete_cd
+                when {
+                    !showMarks -> R.string.dedup_thumb_neutral_cd
+                    isKept -> R.string.dedup_thumb_kept_cd
+                    else -> R.string.dedup_thumb_delete_cd
+                }
             ),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
@@ -135,35 +163,37 @@ fun DedupThumb(
             error = dedupThumbPlaceholderPainter()
         )
 
-        if (isKept) {
-            Text(
-                text = stringResource(R.string.dedup_keep_badge),
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .background(
-                        KeepGreen,
-                        RoundedCornerShape(topStart = 10.dp, bottomEnd = 6.dp)
-                    )
-                    .padding(horizontal = 6.dp, vertical = 2.dp),
-                color = Color.White,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold
-            )
-        } else {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(4.dp)
-                    .size(20.dp)
-                    .background(Color.Black.copy(alpha = 0.55f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Rounded.Close,
-                    contentDescription = null,
-                    modifier = Modifier.size(12.dp),
-                    tint = Color.White
+        if (showMarks) {
+            if (isKept) {
+                Text(
+                    text = stringResource(R.string.dedup_keep_badge),
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .background(
+                            KeepGreen,
+                            RoundedCornerShape(topStart = 10.dp, bottomEnd = 6.dp)
+                        )
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                    color = Color.White,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
                 )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(4.dp)
+                        .size(20.dp)
+                        .background(Color.Black.copy(alpha = 0.55f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Rounded.Close,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = Color.White
+                    )
+                }
             }
         }
 
@@ -176,15 +206,20 @@ fun DedupThumb(
     }
 }
 
-/** 去重分组卡片：header（级别 + 元信息 + 手动标记 + chevron）+ 最多 3 张缩略图 + footer（保留策略提示） */
+/**
+ * 去重分组卡片：header（级别 + 内容类型 badge + 元信息 + 手动标记 + chevron）+ 最多 3 张缩略图
+ * + footer（保留策略提示，spec §10.4 按内容类型差异化）。
+ * 未预选组（autoPreselected=false 且未改选）缩略图不显示保留框/✕ 删除标记。
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DedupGroupCard(
     group: DedupGroup,
-    policyLabel: String,
+    policy: KeepPolicy,
     onOpenDetail: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val showMarks = showPreselection(group)
     Card(
         onClick = onOpenDetail,
         modifier = modifier.fillMaxWidth(),
@@ -203,6 +238,7 @@ fun DedupGroupCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 LevelBadge(level = group.level)
+                ContentTypeBadge(contentType = group.contentType)
                 Text(
                     text = stringResource(
                         R.string.dedup_group_meta,
@@ -237,6 +273,7 @@ fun DedupGroupCard(
                         uri = member.uri,
                         isKept = member.uri == group.keepUri,
                         role = member.role,
+                        showMarks = showMarks,
                         modifier = Modifier
                             .weight(1f)
                             .aspectRatio(1f)
@@ -245,13 +282,32 @@ fun DedupGroupCard(
             }
 
             Text(
-                text = stringResource(R.string.dedup_rule_hint_default, policyLabel),
+                text = dedupGroupFooterText(group = group, policy = policy),
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
+
+/**
+ * 组卡片 footer 文案（spec §10.4）：截图/文档未预选组与人像默认规则组用类型专属策略文案，
+ * 其余（含用户已改选、EXACT 截图/文档组）沿用现行默认文案。
+ */
+@Composable
+private fun dedupGroupFooterText(group: DedupGroup, policy: KeepPolicy): String = when {
+    !showPreselection(group) && group.contentType == DedupContentType.SCREENSHOT ->
+        stringResource(R.string.dedup_hint_screenshot)
+    !showPreselection(group) && group.contentType == DedupContentType.DOCUMENT ->
+        stringResource(R.string.dedup_hint_document)
+    group.contentType == DedupContentType.PORTRAIT &&
+        policy == KeepPolicy.BEST_QUALITY && !group.userOverride ->
+        stringResource(R.string.dedup_hint_portrait)
+    else -> stringResource(R.string.dedup_rule_hint_default, stringResource(keepPolicyLabelRes(policy)))
+}
+
+/** 组当前是否呈现预选勾选状态（未预选且未改选 = 无保留/删除标记）。 */
+private fun showPreselection(group: DedupGroup): Boolean = group.autoPreselected || group.userOverride
 
 internal fun formatBytes(bytes: Long): String {
     val kb = 1024.0

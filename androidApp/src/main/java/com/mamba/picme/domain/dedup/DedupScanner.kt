@@ -85,13 +85,46 @@ private fun splitByTimeWindow(
 private fun buildGroup(level: DedupLevel, raw: List<DedupMember>): DedupGroup {
     val classified = KeepPolicyEngine.classify(raw)
     val sorted = KeepPolicyEngine.recommend(KeepPolicy.BEST_QUALITY, classified)
+    // 组内容类型取成员众数（VISUAL 已按 contentType 分桶，成员同质；EXACT 跨路径拷贝可能混合）
+    val contentType = sorted.groupBy { member -> member.contentType }
+        .maxByOrNull { entry -> entry.value.size }
+        ?.key ?: DedupContentType.GENERAL
     return DedupGroup(
         id = DedupGroup.stableId(level, sorted.map { member -> member.uri }),
         level = level,
         members = sorted,
         keepUri = sorted.first().uri,
+        contentType = contentType,
+        autoPreselected = autoPreselectedFor(level, contentType),
     )
 }
+
+/** spec §10.3 默认预选口径：EXACT→预选；VISUAL 仅 SCREENSHOT/DOCUMENT 不预选；SCENE 一律逐组确认。 */
+internal fun autoPreselectedFor(level: DedupLevel, contentType: DedupContentType): Boolean =
+    when (level) {
+        DedupLevel.EXACT -> true
+        DedupLevel.VISUAL ->
+            contentType != DedupContentType.SCREENSHOT && contentType != DedupContentType.DOCUMENT
+        DedupLevel.SCENE -> false
+    }
+
+/**
+ * VISUAL 聚类按 contentType 分桶（spec §10.5：跨桶不成组），SCREENSHOT 桶用收紧阈值
+ * [screenshotVisualThreshold]，其余桶用 [visualThreshold]。可 JVM 单测。
+ */
+internal fun clusterVisualByContentType(
+    hashed: List<DedupMember>,
+    visualThreshold: Int,
+    screenshotVisualThreshold: Int,
+): List<DedupGroup> =
+    hashed.groupBy { member -> member.contentType }.flatMap { entry ->
+        val threshold = if (entry.key == DedupContentType.SCREENSHOT) {
+            screenshotVisualThreshold
+        } else {
+            visualThreshold
+        }
+        clusterVisual(entry.value, threshold, timeWindowMs = null, level = DedupLevel.VISUAL)
+    }
 
 /**
  * 流式去重扫描器：哈希（MD5 / pHash）分批准备 + Room 缓存复用，随后按
@@ -108,7 +141,7 @@ class DedupScanner(
     private val hashDao: DedupHashDao,
 ) : DedupScanController {
 
-    /** 扫描输入：媒体元数据 + modifiedAt（缓存失效判定依据）。 */
+    /** 扫描输入：媒体元数据 + modifiedAt（缓存失效判定依据）+ 内容类型信号（取数阶段顺带判定）。 */
     data class ScanItem(
         val uri: String,
         val sizeBytes: Long,
@@ -116,6 +149,8 @@ class DedupScanner(
         val captureDate: Long,
         val modifiedAt: Long,
         val aestheticScore: Float? = null,
+        val contentType: DedupContentType = DedupContentType.GENERAL,
+        val faceQualityScore: Float? = null,
     )
 
     @Volatile
@@ -209,6 +244,8 @@ class DedupScanner(
                     role = VersionRole.UNKNOWN,
                     md5 = md5,
                     phash = phash,
+                    contentType = item.contentType,
+                    faceQualityScore = item.faceQualityScore,
                 )
             }
             if (toUpsert.isNotEmpty()) {
@@ -232,14 +269,21 @@ class DedupScanner(
                         emit(DedupScanEvent.GroupFound(group))
                     }
                 }
-                DedupLevel.VISUAL -> streamVisualGroups(
-                    hashed = members.filter { member -> member.phash != null },
-                    threshold = config.visualThreshold,
-                    timeWindowMs = null,
-                    level = DedupLevel.VISUAL,
-                    skipExactOverlap = true,
-                    allGroups = allGroups,
-                )
+                DedupLevel.VISUAL -> {
+                    // spec §10.5：按 contentType 分桶聚类（跨桶不成组），截图桶用收紧阈值；
+                    // 逐组流出，每组处理前检查取消
+                    val hashedMembers = members.filter { member -> member.phash != null }
+                    for (group in clusterVisualByContentType(
+                        hashed = hashedMembers,
+                        visualThreshold = config.visualThreshold,
+                        screenshotVisualThreshold = config.screenshotVisualThreshold,
+                    )) {
+                        currentCoroutineContext().ensureActive()
+                        if (allSameMd5(group)) continue // 与 EXACT 组完全重复
+                        allGroups += group
+                        emit(DedupScanEvent.GroupFound(group))
+                    }
+                }
                 DedupLevel.SCENE -> streamVisualGroups(
                     hashed = members.filter { member -> member.phash != null },
                     threshold = config.sceneThreshold,
@@ -254,7 +298,7 @@ class DedupScanner(
         emit(DedupScanEvent.Done(allGroups))
     }
 
-    /** 按簇分片成组并逐组流出：每簇处理前检查取消，emit 本身即挂起让出点。 */
+    /** SCENE 阶段按簇分片成组并逐组流出：每簇处理前检查取消，emit 本身即挂起让出点。 */
     private suspend fun FlowCollector<DedupScanEvent>.streamVisualGroups(
         hashed: List<DedupMember>,
         threshold: Int,

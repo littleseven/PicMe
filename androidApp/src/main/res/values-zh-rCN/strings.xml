@@ -377,6 +377,13 @@
     <string name="dedup_role_compressed">已压缩</string>
     <string name="dedup_manual_mark">已手动选择</string>
     <string name="dedup_rule_hint_default">按「%1$s」默认勾选 · 点组可改选</string>
+    <!-- 内容类型 badge（spec §10.4，GENERAL 不显示）与类型差异化 footer 策略文案 -->
+    <string name="dedup_type_screenshot">截图</string>
+    <string name="dedup_type_portrait">人像</string>
+    <string name="dedup_type_document">文档</string>
+    <string name="dedup_hint_portrait">人像组 · 已优先保留人脸质量最佳，可改选</string>
+    <string name="dedup_hint_screenshot">截图相似易误判 · 本组未预选，请逐组确认</string>
+    <string name="dedup_hint_document">文档仅完全重复可批量 · 相似版本请逐组确认</string>
     <string name="dedup_delete_cta">删除 %1$d 张 · 释放 %2$s</string>
     <string name="dedup_recycle_caption">移入回收站 · 30 天内可恢复</string>
     <string name="dedup_detail_title">选择保留</string>
@@ -399,6 +406,7 @@
     <string name="dedup_partial_trash_notice">部分照片未删除，已保留在列表中</string>
     <string name="dedup_thumb_kept_cd">照片，保留</string>
     <string name="dedup_thumb_delete_cd">照片，待删除</string>
+    <string name="dedup_thumb_neutral_cd">照片，未预选</string>
 
     <string name="screenshot">截图</string>
     <string name="screenshot_saved">截图已保存至 %1$s</string>

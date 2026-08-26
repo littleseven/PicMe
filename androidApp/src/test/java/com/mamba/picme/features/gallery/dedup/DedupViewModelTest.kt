@@ -1,6 +1,7 @@
 package com.mamba.picme.features.gallery.dedup
 
 import android.content.IntentSender
+import com.mamba.picme.domain.dedup.DedupContentType
 import com.mamba.picme.domain.dedup.DedupGroup
 import com.mamba.picme.domain.dedup.DedupLevel
 import com.mamba.picme.domain.dedup.DedupMember
@@ -40,6 +41,7 @@ class DedupViewModelTest {
         captureDate: Long = 0L,
         modifiedAt: Long = 0L,
         pixelArea: Int = 100,
+        contentType: DedupContentType = DedupContentType.GENERAL,
     ) = DedupMember(
         uri = uri,
         sizeBytes = sizeBytes,
@@ -51,10 +53,22 @@ class DedupViewModelTest {
         role = VersionRole.ORIGINAL,
         md5 = null,
         phash = null,
+        contentType = contentType,
     )
 
-    private fun group(id: String, level: DedupLevel, members: List<DedupMember>) =
-        DedupGroup(id = id, level = level, members = members, keepUri = members.first().uri)
+    private fun group(
+        id: String,
+        level: DedupLevel,
+        members: List<DedupMember>,
+        // 与生产建组口径一致：SCENE 默认不预选（autoPreselectedFor）
+        autoPreselected: Boolean = level != DedupLevel.SCENE,
+    ) = DedupGroup(
+        id = id,
+        level = level,
+        members = members,
+        keepUri = members.first().uri,
+        autoPreselected = autoPreselected,
+    )
 
     /** 假扫描器：按脚本流出事件，可选挂起（模拟扫描进行中）。 */
     private class FakeScanner(
@@ -464,5 +478,76 @@ class DedupViewModelTest {
 
         assertNull(vm.pendingTrash.value)
         assertTrue(vm.uiState.value is DedupUiState.Results)
+    }
+
+    @Test
+    fun `non-preselected screenshot VISUAL group stays out of batch until user picks keep`() = runTest {
+        // spec AC-6：截图 VISUAL 组默认不预选、不进批量 CTA；详情改选（userOverride）后参与删除
+        val screenshotVisual = group(
+            "g1", DedupLevel.VISUAL,
+            listOf(
+                member("s1", sizeBytes = 3_000L, contentType = DedupContentType.SCREENSHOT),
+                member("s2", sizeBytes = 2_000L, contentType = DedupContentType.SCREENSHOT),
+            ),
+            autoPreselected = false,
+        )
+        val exact = group(
+            "g2", DedupLevel.EXACT,
+            listOf(member("a", sizeBytes = 5_000L), member("b", sizeBytes = 4_000L)),
+        )
+        val scanner = FakeScanner(events = listOf(DedupScanEvent.Done(listOf(screenshotVisual, exact))))
+        val trash = fakeTrashManager(supported = true)
+        val vm = viewModel(scanner, trash, scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
+
+        vm.startScan(DedupScanConfig())
+        settle()
+        var groups = (vm.uiState.value as DedupUiState.Results).groups
+
+        // 未预选组 deleteUris 为空，批量口径只含 EXACT 组的 b
+        assertTrue(groups.first { grp -> grp.id == "g1" }.deleteUris.isEmpty())
+        assertEquals(listOf("b"), vm.batchDeleteUris(groups))
+        assertEquals(4_000L, vm.batchReclaimBytes(groups, vm.batchDeleteUris(groups)))
+
+        // 组详情改选保留项 = 逐组确认：deleteUris 正常派生并进批量
+        vm.setKeep("g1", "s1")
+        groups = (vm.uiState.value as DedupUiState.Results).groups
+        val confirmed = groups.first { grp -> grp.id == "g1" }
+        assertTrue(confirmed.userOverride)
+        assertEquals(listOf("s2"), confirmed.deleteUris)
+        assertEquals(listOf("b", "s2"), vm.batchDeleteUris(groups).sorted())
+        assertEquals(2_000L + 4_000L, vm.batchReclaimBytes(groups, vm.batchDeleteUris(groups)))
+    }
+
+    @Test
+    fun `smartSelectAll skips non-preselected groups`() = runTest {
+        // spec §10.3：智能全选不勾选未预选组（截图/文档 VISUAL、SCENE），连 override 也不动
+        val screenshotVisual = group(
+            "g1", DedupLevel.VISUAL,
+            listOf(
+                member("s1", captureDate = 1L, contentType = DedupContentType.SCREENSHOT),
+                member("s2", captureDate = 2L, contentType = DedupContentType.SCREENSHOT),
+            ),
+            autoPreselected = false,
+        )
+        val exact = group(
+            "g2", DedupLevel.EXACT,
+            listOf(member("a", captureDate = 3L), member("b", captureDate = 4L)),
+        )
+        val scanner = FakeScanner(events = listOf(DedupScanEvent.Done(listOf(screenshotVisual, exact))))
+        val vm = viewModel(scanner, scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
+
+        vm.startScan(DedupScanConfig())
+        settle()
+        vm.setKeep("g1", "s2") // 用户在详情逐组确认过
+        vm.smartSelectAll()
+
+        val state = vm.uiState.value as DedupUiState.Results
+        val untouched = state.groups.first { grp -> grp.id == "g1" }
+        // 未预选组原样保留：用户确认不被智能全选覆盖，也不被重算勾选
+        assertTrue(untouched.userOverride)
+        assertEquals("s2", untouched.keepUri)
+        val resorted = state.groups.first { grp -> grp.id == "g2" }
+        assertFalse(resorted.userOverride)
+        assertEquals("b", resorted.keepUri)
     }
 }
