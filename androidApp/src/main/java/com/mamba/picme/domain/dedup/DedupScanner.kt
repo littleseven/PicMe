@@ -147,6 +147,8 @@ class DedupScanner(
         val needPhash = DedupLevel.VISUAL in phases || DedupLevel.SCENE in phases
 
         // 1. 哈希准备：分批，命中缓存（modifiedAt + sizeBytes 一致且所需字段齐备）则复用
+        // 首帧进度：让 UI 立即拿到总数，避免首批（500 张/批）完成前显示 0/0
+        emit(DedupScanEvent.Progress(currentPhase, 0, items.size))
         val members = ArrayList<DedupMember>(items.size)
         var scanned = 0
         for (batch in items.chunked(HASH_BATCH_SIZE)) {
