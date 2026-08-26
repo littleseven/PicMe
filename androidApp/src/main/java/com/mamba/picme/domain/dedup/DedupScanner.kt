@@ -106,7 +106,7 @@ private fun buildGroup(level: DedupLevel, raw: List<DedupMember>): DedupGroup {
 class DedupScanner(
     private val context: Context,
     private val hashDao: DedupHashDao,
-) {
+) : DedupScanController {
 
     /** 扫描输入：媒体元数据 + modifiedAt（缓存失效判定依据）。 */
     data class ScanItem(
@@ -119,13 +119,13 @@ class DedupScanner(
     )
 
     @Volatile
-    var pauseRequested: Boolean = false
+    override var pauseRequested: Boolean = false
 
-    fun resume() {
+    override fun resume() {
         pauseRequested = false
     }
 
-    fun scan(items: List<ScanItem>, config: DedupScanConfig): Flow<DedupScanEvent> = flow {
+    override fun scan(items: List<ScanItem>, config: DedupScanConfig): Flow<DedupScanEvent> = flow {
         runScan(items, config)
     }.onCompletion { cause ->
         if (cause is CancellationException) {
