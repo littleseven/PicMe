@@ -1,6 +1,7 @@
 package com.mamba.picme.features.gallery.dedup
 
 import android.content.ContentResolver
+import android.content.ContentUris
 import android.content.Context
 import android.provider.MediaStore
 import com.mamba.picme.agent.core.model.context.MediaType
@@ -24,6 +25,9 @@ fun interface DedupMediaSource {
  * 生产取数：相册库照片（[AndroidMediaRepository.allMedia]，仅元数据，[LAZY_LOAD]）
  * + MediaStore 一次性批量查询补 sizeBytes/mime/modifiedAt（DATE_MODIFIED 秒→毫秒）。
  * 元数据缺失（如文件已不可读）的照片跳过，不参与去重。
+ *
+ * 注意 join key 必须用 content uri：`MediaAsset.id` 是 [MediaRepositoryImpl] 的
+ * syntheticMediaId 负值编码（区分系统/DB 来源），与 MediaStore `_ID` 不相等。
  */
 class MediaStoreDedupMediaSource(
     private val context: Context,
@@ -34,9 +38,9 @@ class MediaStoreDedupMediaSource(
         val photos = repository.allMedia.firstOrNull().orEmpty()
             .filter { asset -> asset.type == MediaType.PHOTO }
         if (photos.isEmpty()) return@withContext emptyList()
-        val metaById = queryImageMeta(context.contentResolver)
+        val metaByUri = queryImageMeta(context.contentResolver)
         photos.mapNotNull { asset ->
-            val meta = metaById[asset.id] ?: return@mapNotNull null
+            val meta = metaByUri[asset.uri] ?: return@mapNotNull null
             DedupScanner.ScanItem(
                 uri = asset.uri,
                 sizeBytes = meta.sizeBytes,
@@ -50,17 +54,19 @@ class MediaStoreDedupMediaSource(
 
     private data class ImageMeta(val sizeBytes: Long, val modifiedAtMs: Long, val mime: String)
 
-    private fun queryImageMeta(resolver: ContentResolver): Map<Long, ImageMeta> {
+    /** key = content uri 字符串（与 `MediaAsset.uri` 同源：withAppendedId(EXTERNAL_CONTENT_URI, _ID)） */
+    private fun queryImageMeta(resolver: ContentResolver): Map<String, ImageMeta> {
+        val contentUri = MediaStore.Images.Media.getContentUri("external")
         val projection = arrayOf(
             MediaStore.MediaColumns._ID,
             MediaStore.MediaColumns.SIZE,
             MediaStore.MediaColumns.DATE_MODIFIED,
             MediaStore.MediaColumns.MIME_TYPE,
         )
-        val result = HashMap<Long, ImageMeta>()
+        val result = HashMap<String, ImageMeta>()
         runCatching {
             resolver.query(
-                MediaStore.Images.Media.getContentUri("external"),
+                contentUri,
                 projection,
                 null,
                 null,
@@ -73,7 +79,8 @@ class MediaStoreDedupMediaSource(
                 while (cursor.moveToNext()) {
                     val size = cursor.getLong(sizeCol)
                     if (size <= 0) continue
-                    result[cursor.getLong(idCol)] = ImageMeta(
+                    val uri = ContentUris.withAppendedId(contentUri, cursor.getLong(idCol)).toString()
+                    result[uri] = ImageMeta(
                         sizeBytes = size,
                         modifiedAtMs = cursor.getLong(modifiedCol) * 1_000L,
                         mime = cursor.getString(mimeCol) ?: "image/*",
