@@ -45,6 +45,8 @@ sealed class Screen(val route: String) {
     data object TagViewer : Screen("tag_viewer")
 
     data object DuplicateManager : Screen("duplicate_manager")
+    // Dedup 2.0（去重 2.0 主页，Task 11 定稿后取代 DuplicateManager 旧页）
+    data object DedupHome : Screen("dedup_home")
     data object ModelCenter : Screen("model_center/{categoryTag}") {
         fun createRoute(categoryTag: String): String {
             return if (categoryTag.isNotBlank()) {

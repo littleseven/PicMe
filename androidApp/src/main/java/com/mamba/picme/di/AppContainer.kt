@@ -12,6 +12,7 @@ import com.mamba.picme.core.image.ImageProcessorImpl
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.core.image.ThumbnailCache
 import com.mamba.picme.data.local.AppDatabase
+import com.mamba.picme.data.local.DedupHashDao
 import com.mamba.picme.data.local.dao.PersonDao
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.beauty.api.facedetect.FaceDetectorFactory
@@ -46,6 +47,9 @@ import com.mamba.picme.data.download.ModelPathConfig
 import com.mamba.picme.domain.backup.BackupTagDataUseCase
 import com.mamba.picme.domain.backup.RestoreTagDataUseCase
 import com.mamba.picme.domain.backup.TagDataBackupRepository
+import com.mamba.picme.domain.dedup.DedupScanController
+import com.mamba.picme.domain.dedup.DedupScanner
+import com.mamba.picme.domain.dedup.DedupTrashManager
 import com.mamba.picme.domain.agent.capability.optimize.analyzer.HeuristicSceneAnalyzer
 import com.mamba.picme.domain.agent.capability.optimize.gacha.CandidateRenderer
 import com.mamba.picme.domain.agent.capability.optimize.gacha.CandidateSampler
@@ -85,6 +89,9 @@ import com.mamba.picme.features.editor.PhotoEditorViewModelFactory
 import com.mamba.picme.features.editor.RecipeApplier
 import com.mamba.picme.features.idphoto.IDPhotoViewModelFactory
 import com.mamba.picme.features.gallery.MediaViewModel
+import com.mamba.picme.features.gallery.dedup.DedupMediaSource
+import com.mamba.picme.features.gallery.dedup.DedupViewModel
+import com.mamba.picme.features.gallery.dedup.MediaStoreDedupMediaSource
 import androidx.lifecycle.ViewModel
 import com.mamba.picme.domain.tag.FaceClusterEngine
 import com.mamba.picme.domain.tag.TagGenerationScheduler
@@ -122,6 +129,28 @@ class MediaViewModelFactory(
                 faceDetector = dependencies.faceDetector,
                 generateSummaryOnDemandUseCase = dependencies.generateSummaryOnDemandUseCase,
                 userSettingsRepository = dependencies.userSettingsRepository
+            ) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
+class DedupViewModelFactory(
+    private val mediaSource: DedupMediaSource,
+    private val scanner: DedupScanController,
+    private val trashManager: DedupTrashManager,
+    /** API < 30 无回收站授权接口，由调用方（MainActivity）注入旧删除流回调兜底。 */
+    private val legacyDeleter: ((List<String>) -> Unit)?,
+) : ViewModelProvider.Factory {
+
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(DedupViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return DedupViewModel(
+                mediaSource = mediaSource,
+                scanner = scanner,
+                trashManager = trashManager,
+                legacyDeleter = legacyDeleter,
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
@@ -202,11 +231,23 @@ interface AppContainer {
     /** 服务端账号客户端（内含独立 OkHttpClient，进程级单例；设置页账号区与 chat 依赖共用） */
     val picMeAuthClient: PoLangAuthClient
 
+    /** 去重 2.0：MD5/pHash 缓存 DAO（增量扫描） */
+    val dedupHashDao: DedupHashDao
+    /** 去重 2.0：分层扫描器（暂停/恢复/取消控制） */
+    val dedupScanner: DedupScanner
+    /** 去重 2.0：回收站删除/恢复授权管理 */
+    val dedupTrashManager: DedupTrashManager
+
     fun createMediaViewModelFactory(): ViewModelProvider.Factory
     fun createChatViewModelFactory(): ViewModelProvider.Factory
     fun createPhotoEditorViewModelFactory(): ViewModelProvider.Factory
 
     fun createIDPhotoViewModelFactory(): ViewModelProvider.Factory
+
+    /** 去重 2.0 主页 ViewModel 工厂；legacyDeleter 由持有 MediaViewModel 的调用方注入（API < 30 兜底） */
+    fun createDedupViewModelFactory(
+        legacyDeleter: ((List<String>) -> Unit)? = null
+    ): ViewModelProvider.Factory
 
     /** 创建 MediaStoreObserver（需要 ContentResolver，按需创建） */
     fun createMediaStoreObserver(onChange: (List<MediaChangeEvent>) -> Unit): MediaStoreObserver
@@ -615,6 +656,23 @@ class AppContainerImpl(
         MediaViewModelFactory(mediaViewModelDependencies)
     }
 
+    // ---------- 去重 2.0 ----------
+
+    override val dedupHashDao: DedupHashDao
+        get() = database.dedupHashDao()
+
+    override val dedupScanner: DedupScanner by lazy {
+        DedupScanner(context, dedupHashDao)
+    }
+
+    override val dedupTrashManager: DedupTrashManager by lazy {
+        DedupTrashManager(context)
+    }
+
+    private val dedupMediaSource: DedupMediaSource by lazy {
+        MediaStoreDedupMediaSource(context, repository)
+    }
+
     private val photoEditorViewModelFactory: ViewModelProvider.Factory by lazy {
         PhotoEditorViewModelFactory(
             appContext = context,
@@ -700,6 +758,17 @@ class AppContainerImpl(
 
     override fun createMediaViewModelFactory(): ViewModelProvider.Factory {
         return mediaViewModelFactory
+    }
+
+    override fun createDedupViewModelFactory(
+        legacyDeleter: ((List<String>) -> Unit)?
+    ): ViewModelProvider.Factory {
+        return DedupViewModelFactory(
+            mediaSource = dedupMediaSource,
+            scanner = dedupScanner,
+            trashManager = dedupTrashManager,
+            legacyDeleter = legacyDeleter,
+        )
     }
 
     override fun createPhotoEditorViewModelFactory(): ViewModelProvider.Factory {
