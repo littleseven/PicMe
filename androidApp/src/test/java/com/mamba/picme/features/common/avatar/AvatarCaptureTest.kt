@@ -40,6 +40,32 @@ class AvatarCaptureControllerTest {
         assertEquals(AvatarCaptureTarget.Self, pending?.target)
         assertEquals(AvatarCaptureOrigin.SETTINGS_PAGE, pending?.origin)
     }
+
+    @Test
+    fun markActivatedSetsFlagOnlyWithPending() {
+        // 无 pending 时置位为 no-op
+        AvatarCaptureController.markActivated()
+        assertFalse(AvatarCaptureController.activated.value)
+
+        AvatarCaptureController.begin(AvatarCaptureTarget.Self, AvatarCaptureOrigin.SETTINGS_PAGE)
+        assertFalse(AvatarCaptureController.activated.value)
+
+        AvatarCaptureController.markActivated()
+        assertTrue(AvatarCaptureController.activated.value)
+
+        AvatarCaptureController.clear()
+        assertFalse(AvatarCaptureController.activated.value)
+    }
+
+    @Test
+    fun beginResetsActivatedFlag() {
+        AvatarCaptureController.begin(AvatarCaptureTarget.Person(1L), AvatarCaptureOrigin.PEOPLE_PAGE)
+        AvatarCaptureController.markActivated()
+        assertTrue(AvatarCaptureController.activated.value)
+
+        AvatarCaptureController.begin(AvatarCaptureTarget.Self, AvatarCaptureOrigin.SETTINGS_PAGE)
+        assertFalse(AvatarCaptureController.activated.value)
+    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -135,5 +161,42 @@ class AvatarCaptureFinisherTest {
         assertTrue(result)
         assertEquals(3, queryCount)
         assertEquals(listOf(7L to 42L), updateCoverCalls)
+    }
+
+    @Test
+    fun updateCoverFailureReturnsFalseWithoutCrash() = runTest {
+        val finisher = AvatarCaptureFinisher(
+            ioDispatcher = UnconfinedTestDispatcher(),
+            findLatestCapturedMediaId = { 42L },
+            getSelfPersonId = { null },
+            updateCover = { _, _ -> throw IllegalStateException("db write failed") },
+            pollIntervalMs = 0L,
+            delayMs = { }
+        )
+
+        val result = finisher.finish(AvatarCaptureTarget.Person(7L), success = true, captureStartMs = 1000L)
+
+        assertFalse(result)
+    }
+
+    @Test
+    fun pollingExhaustionQueriesExactlyDefaultAttempts() = runTest {
+        var queryCount = 0
+        val finisher = AvatarCaptureFinisher(
+            ioDispatcher = UnconfinedTestDispatcher(),
+            findLatestCapturedMediaId = {
+                queryCount += 1
+                null
+            },
+            getSelfPersonId = { null },
+            updateCover = { _, _ -> },
+            pollIntervalMs = 0L,
+            delayMs = { }
+        )
+
+        val result = finisher.finish(AvatarCaptureTarget.Person(7L), success = true, captureStartMs = 1000L)
+
+        assertFalse(result)
+        assertEquals(10, queryCount)
     }
 }

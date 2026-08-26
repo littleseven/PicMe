@@ -371,6 +371,18 @@ fun CameraScreen(
         }
     )
 
+    // 离开相机路由（返回键/弹栈）且头像拍摄 pending 未被消费时视为取消。
+    // 挂在 CameraScreen 层而非 CameraContent：权限未授予时 CameraContent 不组合，
+    // 若清理由内层挂载，此分支下 pending 会永久残留，下次进相机误入头像拍摄态
+    DisposableEffect(Unit) {
+        onDispose {
+            if (AvatarCaptureController.pending.value != null) {
+                Logger.i(TAG, "Avatar capture cancelled by leaving camera route")
+                AvatarCaptureController.clear()
+            }
+        }
+    }
+
     if (permissionsState.allPermissionsGranted) {
         android.util.Log.i("CameraDebug", "CameraScreen: permissions granted, calling CameraContent")
         // 相机为天然深色场景（预览 + 深色面板 UI），强制深色 scheme，
@@ -1017,6 +1029,7 @@ voiceCoordinator.stopPushToTalk()
 
     // ── 头像拍摄态（AvatarCaptureController 登记 pending 后由外部切到本页）──
     val pendingAvatarCapture by AvatarCaptureController.pending.collectAsState()
+    val avatarCaptureActivated by AvatarCaptureController.activated.collectAsState()
     var avatarRestoreLensFacing by remember { mutableStateOf<Int?>(null) }
     var avatarShutterMs by remember { mutableStateOf(0L) }
     val avatarCaptureFinisher = remember {
@@ -1033,6 +1046,23 @@ voiceCoordinator.stopPushToTalk()
         )
     }
 
+    // 头像拍摄收尾（UI 快门与 Agent/语音/IM 拍照共用）：轮询新照片落库设封面 → 清 pending →
+    // popBackStack 回来源页。轮询期间用户可能已离开相机路由（onDispose 清 pending），
+    // 故导航前校验 pending 未被取消/替换，避免把来源页也多 pop 一层
+    val onAvatarPhotoCompleted: (Boolean) -> Unit = { success ->
+        val pendingCapture = AvatarCaptureController.pending.value
+        if (pendingCapture != null) {
+            val shutterMs = avatarShutterMs
+            coroutineScope.launch {
+                avatarCaptureFinisher.finish(pendingCapture.target, success, shutterMs)
+                if (AvatarCaptureController.pending.value === pendingCapture) {
+                    AvatarCaptureController.clear()
+                    onNavigateBack()
+                }
+            }
+        }
+    }
+
     // 进入头像拍摄态：默认前置摄像头（无前置硬件静默保持后置）；
     // 待记忆水合完成后再切，避免被水合值覆盖
     LaunchedEffect(pendingAvatarCapture != null, isCameraMemoryHydrated, isActivePage) {
@@ -1040,6 +1070,7 @@ voiceCoordinator.stopPushToTalk()
             isCameraMemoryHydrated && avatarRestoreLensFacing == null
         ) {
             avatarRestoreLensFacing = lensFacing
+            AvatarCaptureController.markActivated()
             val hasFrontCamera = context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_FRONT)
             Logger.i(TAG, "Avatar capture mode entered, switch to front camera: $hasFrontCamera")
             if (hasFrontCamera) {
@@ -1048,18 +1079,12 @@ voiceCoordinator.stopPushToTalk()
         }
     }
 
-    // 退出头像拍摄态：拍照完成/失败由快门回调 clear()；离开相机路由（返回/弹栈）视为取消。
-    // 路由 dispose 时 LaunchedEffect 可能来不及看到 isActivePage=false，故用 DisposableEffect 兜底
-    DisposableEffect(Unit) {
-        onDispose {
-            if (AvatarCaptureController.pending.value != null) {
-                Logger.i(TAG, "Avatar capture cancelled by leaving camera route")
-                AvatarCaptureController.clear()
-            }
-        }
-    }
+    // 退出头像拍摄态：拍照完成/失败由快门回调 clear()；离开相机路由（返回/弹栈）由
+    // CameraScreen 层 onDispose 清 pending（覆盖权限未授予分支）。此处仅处理「路由仍存活
+    // 但掉出 RESUMED」（退后台/被上层路由覆盖）且头像拍摄态已激活过的情形——未激活前
+    // （路由进入过渡、记忆水合等待）不因失活误清 pending
     LaunchedEffect(isActivePage, pendingAvatarCapture != null) {
-        if (!isActivePage && pendingAvatarCapture != null) {
+        if (!isActivePage && pendingAvatarCapture != null && avatarCaptureActivated) {
             Logger.i(TAG, "Avatar capture cancelled by leaving camera page")
             AvatarCaptureController.clear()
         }
@@ -1206,6 +1231,13 @@ voiceCoordinator.stopPushToTalk()
     agentCommandHandler.onZoomRatioChanged = { zoomRatio = it }
     agentCommandHandler.onAspectRatioChanged = { aspectRatio = it }
     agentCommandHandler.onCurrentSceneChanged = { currentScene = it }
+    // 头像拍摄闭环透传到 Agent/语音/IM 拍照路径：快门时间戳下界 + 完成后设封面并返回来源页
+    agentCommandHandler.onCaptureTriggered = {
+        if (AvatarCaptureController.pending.value != null) {
+            avatarShutterMs = System.currentTimeMillis()
+        }
+    }
+    agentCommandHandler.onPhotoCompleted = onAvatarPhotoCompleted
 
     // 绑定 CameraCapability 状态变更到本地状态
     DisposableEffect(cameraCapability) {
@@ -1792,18 +1824,7 @@ CameraPreviewContent(
                 onIsRecordingChanged = { recordingFlag -> isRecording = recordingFlag },
                 coroutineScope = coroutineScope,
                 cameraStateManager = cameraStateManager,
-                onPhotoCompleted = { success ->
-                    // 头像拍摄完成：新照片设为目标封面 → 清 pending → popBackStack 回来源页
-                    val pendingCapture = AvatarCaptureController.pending.value
-                    if (pendingCapture != null) {
-                        val shutterMs = avatarShutterMs
-                        coroutineScope.launch {
-                            avatarCaptureFinisher.finish(pendingCapture.target, success, shutterMs)
-                            AvatarCaptureController.clear()
-                            onNavigateBack()
-                        }
-                    }
-                }
+                onPhotoCompleted = onAvatarPhotoCompleted
             )
         },
         onCaptureModeChanged = { mode -> captureMode = mode },

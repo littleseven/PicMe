@@ -27,8 +27,17 @@ interface MediaDao {
     @Query("SELECT * FROM media_assets WHERE id = :id")
     suspend fun getMediaById(id: Long): MediaEntity?
 
-    /** 头像拍摄兜底：查 captureDate 不早于 notBeforeMs 的最新一行（拍照异步入库后轮询用） */
-    @Query("SELECT * FROM media_assets WHERE captureDate >= :notBeforeMs ORDER BY id DESC LIMIT 1")
+    /**
+     * 头像拍摄兜底：查 captureDate 不早于 notBeforeMs 的最新一张本机拍照（拍照异步入库后轮询用）。
+     * 限 type=PHOTO + 相机文件名（yyyyMMdd-HHmmss，见 ImageProcessor.takePhoto），排除
+     * MediaIndexingWorker 对系统相册新文件写入的兜底行（captureDate=now 会误命中）。
+     * 不能用 source IS NULL：索引行 source 同为 null，且远程拍照 source 非 null 会被误排除
+     */
+    @Query(
+        "SELECT * FROM media_assets WHERE captureDate >= :notBeforeMs AND type = 'PHOTO'" +
+            " AND fileName GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]'" +
+            " ORDER BY id DESC LIMIT 1"
+    )
     suspend fun getLatestMediaCapturedAfter(notBeforeMs: Long): MediaEntity?
 
     @Query("SELECT * FROM media_assets WHERE id IN (:ids)")

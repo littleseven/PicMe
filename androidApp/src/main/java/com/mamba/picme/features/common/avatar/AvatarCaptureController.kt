@@ -59,17 +59,35 @@ object AvatarCaptureController {
     /** 当前待处理的头像拍摄请求；null = 非头像拍摄态 */
     val pending: StateFlow<PendingAvatarCapture?> = _pending
 
+    private val _activated = MutableStateFlow(false)
+
+    /**
+     * 头像拍摄态是否已在相机页实际激活（前置切换与提示文案已生效）。
+     * 作为「页面失活即取消」的前置条件：登记 pending 后到激活前的窗口内
+     * （路由进入过渡 / 记忆水合等待），页面失活不得误清 pending。
+     */
+    val activated: StateFlow<Boolean> = _activated
+
     /** 登记一次头像拍摄请求；重复调用覆盖旧请求（以最后一次点击为准）。 */
     fun begin(
         target: AvatarCaptureTarget,
         origin: AvatarCaptureOrigin,
         beginMs: Long = System.currentTimeMillis()
     ) {
+        _activated.value = false
         _pending.value = PendingAvatarCapture(target, origin, beginMs)
+    }
+
+    /** 相机页实际进入头像拍摄态时置位；无 pending 时为 no-op。 */
+    fun markActivated() {
+        if (_pending.value != null) {
+            _activated.value = true
+        }
     }
 
     /** 结束头像拍摄态（完成或取消）。幂等。 */
     fun clear() {
         _pending.value = null
+        _activated.value = false
     }
 }

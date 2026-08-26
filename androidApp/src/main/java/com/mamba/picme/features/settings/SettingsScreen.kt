@@ -1270,7 +1270,7 @@ private fun SettingsMainMenu(
             SettingsListRow(
                 title = stringResource(R.string.gallery_cleanup),
                 icon = Icons.Rounded.BurstMode,
-                iconBlockColor = AppColors.vibrantPink,
+                iconBlockColor = AppColors.vibrantPurple,
                 onClick = onNavigateToDedupHome
             )
             SettingsListDivider()
