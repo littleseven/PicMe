@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * 去重 2.0 页面状态机（Agent First：sealed 枚举全部合法状态，无布尔组合）。
@@ -153,14 +154,11 @@ class DedupViewModel(
 
     // ---------- 结果操作 ----------
 
+    /** 仅 Results 态生效（扫描屏只展示不改选，Scanning 态调用忽略，避免 Done 覆盖丢失 override）。 */
     fun setKeep(groupId: String, uri: String) {
-        when (val state = _uiState.value) {
-            is DedupUiState.Results -> _uiState.value =
-                state.copy(groups = state.groups.map { group -> withKeep(group, groupId, uri) })
-            is DedupUiState.Scanning -> _uiState.value =
-                state.copy(foundGroups = state.foundGroups.map { group -> withKeep(group, groupId, uri) })
-            else -> Unit
-        }
+        val state = _uiState.value as? DedupUiState.Results ?: return
+        _uiState.value =
+            state.copy(groups = state.groups.map { group -> withKeep(group, groupId, uri) })
     }
 
     private fun withKeep(group: DedupGroup, groupId: String, uri: String): DedupGroup {
@@ -235,8 +233,8 @@ class DedupViewModel(
         _pendingTrash.value = null
         if (!ok) return
         val state = _uiState.value as? DedupUiState.Results ?: return
-        scope.launch(ioDispatcher) {
-            val remaining = trashManager.queryExisting(pending.uris)
+        scope.launch {
+            val remaining = withContext(ioDispatcher) { trashManager.queryExisting(pending.uris) }
             if (remaining.isNotEmpty()) {
                 Logger.d(TAG, "trash partially confirmed, ${remaining.size} uris remain, keep Results intact")
                 return@launch
@@ -245,6 +243,7 @@ class DedupViewModel(
             val bytes = state.groups
                 .flatMap { group -> group.members }
                 .filter { member -> member.uri in deleted }
+                .distinctBy { member -> member.uri } // 同一 uri 跨组只计一次
                 .sumOf { member -> member.sizeBytes }
             _uiState.value = DedupUiState.Cleaned(
                 deletedCount = deleted.size,
@@ -278,6 +277,6 @@ class DedupViewModel(
     }
 
     private companion object {
-        const val TAG = "Dedup"
+        const val TAG = "PoLang:Dedup"
     }
 }

@@ -335,4 +335,43 @@ class DedupViewModelTest {
         // 第二次启动被忽略：scanner 只见过第一份配置
         assertEquals(5, scanner.lastConfig?.visualThreshold)
     }
+
+    @Test
+    fun `setKeep during Scanning is ignored`() = runTest {
+        val g = group("g1", DedupLevel.EXACT, listOf(member("a"), member("b")))
+        val scanner = FakeScanner(events = listOf(DedupScanEvent.GroupFound(g)), hang = true)
+        val vm = viewModel(scanner, scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
+
+        vm.startScan(DedupScanConfig())
+        settle()
+        vm.setKeep("g1", "b")
+
+        val state = vm.uiState.value as DedupUiState.Scanning
+        // 扫描屏只展示不改选：keep 与 override 均不变
+        assertEquals("a", state.foundGroups.single().keepUri)
+        assertFalse(state.foundGroups.single().userOverride)
+    }
+
+    @Test
+    fun `partial trash refusal keeps Results with groups intact`() = runTest {
+        val g = group("g1", DedupLevel.EXACT, listOf(member("a"), member("b", sizeBytes = 2_000L)))
+        val scanner = FakeScanner(events = listOf(DedupScanEvent.Done(listOf(g))))
+        val trash = mockk<DedupTrashManager> {
+            every { isSupported } returns true
+            every { buildTrashIntent(any()) } returns mockk<IntentSender>()
+            // 部分拒绝：uri 仍存在
+            every { queryExisting(any()) } answers { firstArg() }
+        }
+        val vm = viewModel(scanner, trash, scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
+
+        vm.startScan(DedupScanConfig())
+        settle()
+        vm.deleteSelected()
+        vm.onTrashResult(ok = true)
+        settle()
+
+        assertNull(vm.pendingTrash.value)
+        val state = vm.uiState.value as DedupUiState.Results
+        assertEquals(listOf(g), state.groups)
+    }
 }

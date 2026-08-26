@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import android.content.Context
 import android.provider.MediaStore
 import com.mamba.picme.agent.core.model.context.MediaType
+import com.mamba.picme.core.common.Logger
 import com.mamba.picme.domain.dedup.DedupScanner
 import com.mamba.picme.domain.repository.AndroidMediaRepository
 import kotlinx.coroutines.Dispatchers
@@ -79,7 +80,11 @@ class MediaStoreDedupMediaSource(
                     )
                 }
             }
-        }
+        }.onFailure { error -> Logger.w(TAG, "query image meta failed", error) }
         return result
+    }
+
+    private companion object {
+        const val TAG = "PoLang:Dedup"
     }
 }
