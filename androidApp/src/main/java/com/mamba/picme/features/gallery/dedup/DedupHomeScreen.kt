@@ -72,17 +72,18 @@ import com.mamba.picme.domain.dedup.VersionRole
 
 private val KeepGreen = Color(0xFF4CAF50)
 
-/** 去重 2.0 主页：单路由内 Config → Scanning → Results → Cleaned 四态切换。 */
+/** 去重 2.0 主页：单路由内 Config → Scanning → Results → Cleaned 四态切换；组详情与保留规则为内部弹层。 */
 @Composable
 fun DedupHomeRoute(
     viewModel: DedupViewModel,
     onNavigateBack: () -> Unit,
-    onOpenKeepRules: () -> Unit,
-    onOpenGroupDetail: (String) -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val pendingTrash by viewModel.pendingTrash.collectAsState()
     val pendingRestore by viewModel.pendingRestore.collectAsState()
+    val policy by viewModel.policy.collectAsState()
+    var showKeepRules by remember { mutableStateOf(false) }
+    var detailGroupId by remember { mutableStateOf<String?>(null) }
 
     val trashLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
@@ -112,7 +113,7 @@ fun DedupHomeRoute(
                 state = uiState,
                 onNavigateBack = onNavigateBack,
                 onCancelScan = { viewModel.cancelScan() },
-                onOpenKeepRules = onOpenKeepRules,
+                onOpenKeepRules = { showKeepRules = true },
             )
         },
         bottomBar = {
@@ -143,18 +144,19 @@ fun DedupHomeRoute(
             when (val state = uiState) {
                 is DedupUiState.Config -> DedupConfigContent(
                     config = state.config,
+                    policy = policy,
                     onStartScan = { config -> viewModel.startScan(config) },
-                    onOpenKeepRules = onOpenKeepRules,
+                    onOpenKeepRules = { showKeepRules = true },
                 )
                 is DedupUiState.Scanning -> DedupScanningContent(
                     state = state,
-                    onOpenGroupDetail = onOpenGroupDetail,
+                    onOpenGroupDetail = { groupId -> detailGroupId = groupId },
                 )
                 is DedupUiState.Results -> DedupResultsContent(
                     state = state,
                     onSmartSelectAll = { viewModel.smartSelectAll() },
                     onSelectTab = { level -> viewModel.selectTab(level) },
-                    onOpenGroupDetail = onOpenGroupDetail,
+                    onOpenGroupDetail = { groupId -> detailGroupId = groupId },
                 )
                 is DedupUiState.Cleaned -> DedupCleanedContent(
                     state = state,
@@ -162,6 +164,20 @@ fun DedupHomeRoute(
                 )
             }
         }
+    }
+
+    if (showKeepRules) {
+        KeepRulesSheet(
+            viewModel = viewModel,
+            onDismiss = { showKeepRules = false },
+        )
+    }
+    detailGroupId?.let { groupId ->
+        DedupGroupDetailSheet(
+            groupId = groupId,
+            viewModel = viewModel,
+            onDismiss = { detailGroupId = null },
+        )
     }
 }
 
@@ -213,6 +229,7 @@ private fun DedupTopBar(
 @Composable
 private fun DedupConfigContent(
     config: DedupScanConfig,
+    policy: KeepPolicy,
     onStartScan: (DedupScanConfig) -> Unit,
     onOpenKeepRules: () -> Unit,
 ) {
@@ -270,7 +287,7 @@ private fun DedupConfigContent(
             )
         }
 
-        // 保留规则行（Task 8 接规则弹层）
+        // 保留规则行（Task 8：打开规则弹层，当前值为 VM 级 policy）
         Card(
             onClick = onOpenKeepRules,
             modifier = Modifier.fillMaxWidth(),
@@ -291,7 +308,7 @@ private fun DedupConfigContent(
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
-                    text = stringResource(keepPolicyLabelRes(KeepPolicy.BEST_QUALITY)),
+                    text = stringResource(keepPolicyLabelRes(policy)),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -825,11 +842,4 @@ private fun dedupTabLabelRes(level: DedupLevel): Int = when (level) {
     DedupLevel.EXACT -> R.string.dedup_tab_exact
     DedupLevel.VISUAL -> R.string.dedup_tab_visual
     DedupLevel.SCENE -> R.string.dedup_tab_scene
-}
-
-private fun keepPolicyLabelRes(policy: KeepPolicy): Int = when (policy) {
-    KeepPolicy.BEST_QUALITY -> R.string.dedup_policy_quality
-    KeepPolicy.ORIGINAL -> R.string.dedup_policy_original
-    KeepPolicy.EDITED -> R.string.dedup_policy_edited
-    KeepPolicy.LATEST -> R.string.dedup_policy_latest
 }

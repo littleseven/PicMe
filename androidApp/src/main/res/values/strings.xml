@@ -411,6 +411,8 @@
     <string name="dedup_confirm_keep">Keep selected · delete other %1$d</string>
     <string name="dedup_rules_note">The rule only sets the default pick; you can change any group manually</string>
     <string name="dedup_apply">Apply</string>
+    <string name="dedup_rules_title">Keep rule</string>
+    <string name="dedup_member_meta">%1$s · %2$s</string>
     <string name="dedup_cleaned_title">Cleaned %1$d photos</string>
     <string name="dedup_cleaned_sub">Freed %1$s · photos moved to trash</string>
     <string name="dedup_recycle_bin">Trash</string>

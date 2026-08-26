@@ -42,6 +42,7 @@ import coil.request.ImageRequest
 import com.mamba.picme.R
 import com.mamba.picme.domain.dedup.DedupGroup
 import com.mamba.picme.domain.dedup.DedupLevel
+import com.mamba.picme.domain.dedup.KeepPolicy
 import com.mamba.picme.domain.dedup.VersionRole
 
 private val KeepGreen = Color(0xFF4CAF50)
@@ -260,4 +261,18 @@ internal fun formatBytes(bytes: Long): String {
         bytes >= kb -> "%.1f KB".format(bytes / kb)
         else -> "$bytes B"
     }
+}
+
+internal fun keepPolicyLabelRes(policy: KeepPolicy): Int = when (policy) {
+    KeepPolicy.BEST_QUALITY -> R.string.dedup_policy_quality
+    KeepPolicy.ORIGINAL -> R.string.dedup_policy_original
+    KeepPolicy.EDITED -> R.string.dedup_policy_edited
+    KeepPolicy.LATEST -> R.string.dedup_policy_latest
+}
+
+internal fun keepPolicyDescRes(policy: KeepPolicy): Int = when (policy) {
+    KeepPolicy.BEST_QUALITY -> R.string.dedup_policy_quality_desc
+    KeepPolicy.ORIGINAL -> R.string.dedup_policy_original_desc
+    KeepPolicy.EDITED -> R.string.dedup_policy_edited_desc
+    KeepPolicy.LATEST -> R.string.dedup_policy_latest_desc
 }

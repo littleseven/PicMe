@@ -395,6 +395,8 @@
     <string name="dedup_confirm_keep">保留所選 · 刪除其餘 %1$d 張</string>
     <string name="dedup_rules_note">規則只決定每組的預設勾選，隨時可以逐組手動改選</string>
     <string name="dedup_apply">套用</string>
+    <string name="dedup_rules_title">保留規則</string>
+    <string name="dedup_member_meta">%1$s · %2$s</string>
     <string name="dedup_cleaned_title">已清理 %1$d 張</string>
     <string name="dedup_cleaned_sub">釋放 %1$s · 照片已移入回收站</string>
     <string name="dedup_recycle_bin">回收站</string>

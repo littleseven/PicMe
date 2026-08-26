@@ -74,6 +74,10 @@ class DedupViewModel(
     private val _uiState = MutableStateFlow<DedupUiState>(DedupUiState.Config())
     val uiState: StateFlow<DedupUiState> = _uiState.asStateFlow()
 
+    /** VM 级保留策略（Config/Results 共用）：Config 规则行与规则弹层改它；进入 Results 时带入 state.policy。 */
+    private val _policy = MutableStateFlow(KeepPolicy.BEST_QUALITY)
+    val policy: StateFlow<KeepPolicy> = _policy.asStateFlow()
+
     private val _pendingTrash = MutableStateFlow<PendingTrash?>(null)
     val pendingTrash: StateFlow<PendingTrash?> = _pendingTrash.asStateFlow()
 
@@ -141,7 +145,7 @@ class DedupViewModel(
                 _uiState.value = DedupUiState.Results(
                     groups = groups,
                     selectedTab = firstTab,
-                    policy = KeepPolicy.BEST_QUALITY,
+                    policy = _policy.value,
                 )
             }
             DedupScanEvent.Cancelled -> _uiState.value = DedupUiState.Config()
@@ -166,7 +170,9 @@ class DedupViewModel(
         return group.copy(keepUri = uri, userOverride = true)
     }
 
+    /** Config/Results 均生效：先更新 VM 级策略；Results 态同时对 !userOverride 组重算默认保留。 */
     fun applyPolicy(policy: KeepPolicy) {
+        _policy.value = policy
         val state = _uiState.value as? DedupUiState.Results ?: return
         _uiState.value = state.copy(
             policy = policy,
