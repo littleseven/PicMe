@@ -198,11 +198,12 @@ fun DedupHomeRoute(
         )
     }
     detailGroupId?.let { groupId ->
-        DedupGroupDetailSheet(
+        DedupGroupDetailPage(
             groupId = groupId,
             viewModel = viewModel,
             onDismiss = { detailGroupId = null },
             onPreview = { index -> previewIndex = index },
+            onOpenKeepRules = { showKeepRules = true },
         )
     }
     // 全屏对比预览覆盖层：晚于半屏组合置顶；组经 getGroup 随 uiState 重组实时取，

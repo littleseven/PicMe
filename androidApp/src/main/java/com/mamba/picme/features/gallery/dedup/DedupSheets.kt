@@ -1,5 +1,6 @@
 package com.mamba.picme.features.gallery.dedup
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -7,19 +8,27 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -45,35 +54,81 @@ import java.util.Date
 private val HintOrange = Color(0xFFFF9800)
 
 /**
- * 组详情弹层：标题 + 组 meta + 成员两列对比（缩略图 + 大小/时间 + 「保留这张」radio）
- * + EDITED 提示条 + 确认按钮。组数据经 uiState 重组实时取，setKeep 后立即刷新。
- * Scanning 态为只读预览（setKeep 仅 Results 生效）：隐藏 radio 与底部 CTA，不假装可交互。
- * 点缩略图经 [onPreview]（成员下标）进全屏对比预览，比较后再改选。
+ * 组详情全屏页（2026-08-27 由底部半屏弹层改全屏，对齐 Ardot dedup/group_detail 整屏帧）：
+ * 顶栏（返回 + 标题 + 保留规则入口）+ 组 meta + 成员两列对比（缩略图 + 大小/时间 +
+ * 「保留这张」radio）+ EDITED 提示条 + 底部固定确认按钮。组数据经 uiState 重组实时取，
+ * setKeep 后立即刷新。Scanning 态为只读（setKeep 仅 Results 生效）：隐藏 radio 与 CTA，
+ * 不假装可交互。点缩略图经 [onPreview]（成员下标）进全屏对比预览，比较后再改选。
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DedupGroupDetailSheet(
+fun DedupGroupDetailPage(
     groupId: String,
     viewModel: DedupViewModel,
     onDismiss: () -> Unit,
     onPreview: (Int) -> Unit = {},
+    onOpenKeepRules: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val group = remember(uiState) { viewModel.getGroup(groupId) }
     val editable = uiState is DedupUiState.Results
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    // 全屏页自身消费一次返回键；对比预览层组合在其后，预览打开时预览的 BackHandler 优先
+    BackHandler(onBack = onDismiss)
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
         if (group == null) {
             // 组已消失（状态机已离开 Results/Scanning）：直接收起
             LaunchedEffect(Unit) { onDismiss() }
         } else {
-            DedupGroupDetailContent(
-                group = group,
-                editable = editable,
-                onKeep = { uri -> viewModel.setKeep(groupId, uri) },
-                onPreview = onPreview,
-                onConfirm = onDismiss,
+            Column(modifier = Modifier.fillMaxSize()) {
+                DedupGroupDetailTopBar(
+                    onBack = onDismiss,
+                    onOpenKeepRules = onOpenKeepRules,
+                )
+                DedupGroupDetailContent(
+                    group = group,
+                    editable = editable,
+                    onKeep = { uri -> viewModel.setKeep(groupId, uri) },
+                    onPreview = onPreview,
+                    onConfirm = onDismiss,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DedupGroupDetailTopBar(
+    onBack: () -> Unit,
+    onOpenKeepRules: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = 4.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(
+                Icons.AutoMirrored.Rounded.ArrowBack,
+                contentDescription = stringResource(R.string.back),
             )
+        }
+        Text(
+            text = stringResource(R.string.dedup_detail_title),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 4.dp)
+        )
+        // 保留规则入口（对齐设计稿 group_detail 顶栏右动作；KeepRulesSheet 仍为底部弹层）
+        TextButton(onClick = onOpenKeepRules) {
+            Text(stringResource(R.string.dedup_keep_rule))
         }
     }
 }
@@ -86,20 +141,16 @@ private fun DedupGroupDetailContent(
     onPreview: (Int) -> Unit,
     onConfirm: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp)
-            .navigationBarsPadding(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(
-            text = stringResource(R.string.dedup_detail_title),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-        Row(
+    Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -143,26 +194,28 @@ private fun DedupGroupDetailContent(
             }
         }
 
-        // Scanning 态只读：不展示「确认删除」CTA
-        if (editable) {
-            Button(
-                onClick = onConfirm,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp)
-            ) {
-                // 未预选且未改选组 deleteUris 为空：按钮不显示「删除其余 0 张」，
-                // 改为「确认本组选择」中性文案（spec §10.4 逐组确认语义）
-                Text(
-                    if (group.deleteUris.isEmpty()) {
-                        stringResource(R.string.dedup_confirm_selection)
-                    } else {
-                        stringResource(R.string.dedup_confirm_keep, group.deleteUris.size)
-                    }
-                )
-            }
-        } else {
-            Spacer(modifier = Modifier.height(8.dp))
+        }
+        // 只读态（Scanning）无底部 CTA：留出导航栏边距即可
+        if (!editable) Spacer(modifier = Modifier.navigationBarsPadding().height(8.dp))
+    }
+    // 底部固定 CTA（不随内容滚动；对齐设计稿 group_detail 底部按钮位）
+    if (editable) {
+        Button(
+            onClick = onConfirm,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .navigationBarsPadding()
+        ) {
+            // 未预选且未改选组 deleteUris 为空：按钮不显示「删除其余 0 张」，
+            // 改为「确认本组选择」中性文案（spec §10.4 逐组确认语义）
+            Text(
+                if (group.deleteUris.isEmpty()) {
+                    stringResource(R.string.dedup_confirm_selection)
+                } else {
+                    stringResource(R.string.dedup_confirm_keep, group.deleteUris.size)
+                }
+            )
         }
     }
 }
