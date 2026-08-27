@@ -67,6 +67,9 @@ import android.app.Activity
 import com.mamba.picme.features.gallery.capability.GalleryCapability
 import com.mamba.picme.features.common.SearchField
 import com.mamba.picme.features.common.PersonRelationPicker
+import com.mamba.picme.features.common.avatar.AvatarCaptureController
+import com.mamba.picme.features.common.avatar.AvatarCaptureOrigin
+import com.mamba.picme.features.common.avatar.AvatarCaptureTarget
 import com.mamba.picme.features.person.PersonCover
 import com.mamba.picme.features.person.components.PersonInfoScreen
 import androidx.compose.ui.unit.dp
@@ -103,8 +106,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.BurstMode
 import androidx.compose.material.icons.outlined.ChatBubble
-import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.Sell
 
 private const val TAG = "Gallery"
@@ -124,6 +127,8 @@ fun GalleryScreen(
     onNavigateToDebug: () -> Unit,
     onNavigateToTagControl: () -> Unit = {},
     onNavigateToPeople: () -> Unit = {},
+    /** 相册整理（去重 2.0）入口：悬浮底部 Tab 第一项 */
+    onNavigateToDedupHome: () -> Unit = {},
     /** 外部搜索/人物过滤请求：(query, personId)，来自 Chat 搜索结果跳转或人物页跳转 */
     searchRequest: Pair<String, Long>? = null,
     onSearchRequestConsumed: () -> Unit = {},
@@ -837,13 +842,15 @@ fun GalleryScreen(
             val activeMedia = selectedMediaIndex?.let { previewMediaList.getOrNull(it) }
             val rect by remember { derivedStateOf { activeMedia?.let { thumbnailPositions[it.id] } } }
 
-            // 悬浮底部 Tab — 相机 / 聊天 / 打标 / 人物（纯图标）
+            // 悬浮底部 Tab — 相册整理 / 聊天 / 打标 / 人物（纯图标）
+            // 2026-08-26：相机 tab 移除（相机已路由化，仅头像拍摄进入）；第一项为相册整理——
+            // 相册整理是相邻 Pager 页（页 1），相册页左滑即达，手势由外层 HorizontalPager 原生承载
             if (selectedMediaIndex == null) {
                 val tabItems = listOf(
                     FloatingBottomTabItem(
-                        icon = Icons.Outlined.PhotoCamera,
-                        contentDescription = stringResource(R.string.camera),
-                        onClick = onNavigateToCamera
+                        icon = Icons.Outlined.BurstMode,
+                        contentDescription = stringResource(R.string.gallery_cleanup),
+                        onClick = onNavigateToDedupHome
                     ),
                     FloatingBottomTabItem(
                         icon = Icons.Outlined.ChatBubble,
@@ -975,6 +982,14 @@ fun GalleryScreen(
                 }
             },
             onNavigateBack = { infoPersonId = null },
+            // 相机角标：登记 pending 头像拍摄后导航到相机路由
+            onCaptureAvatar = {
+                AvatarCaptureController.begin(
+                    AvatarCaptureTarget.Person(infoSnap.person.personId),
+                    AvatarCaptureOrigin.GALLERY_PAGE
+                )
+                onNavigateToCamera()
+            },
             onUpdateCover = { photo ->
                 kotlinx.coroutines.MainScope().launch {
                     runCatching {

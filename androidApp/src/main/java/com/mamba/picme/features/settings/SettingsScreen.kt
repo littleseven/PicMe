@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.BurstMode
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Gradient
@@ -55,6 +57,7 @@ import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.PrivacyTip
 import androidx.compose.material.icons.rounded.Psychology
@@ -181,7 +184,9 @@ fun SettingsScreen(
     onNavigateToMemoryFacts: () -> Unit = {},
     onNavigateToCommunicationChannel: () -> Unit = {},
     onNavigateToPeople: () -> Unit = {},
-    onNavigateToAddProvider: () -> Unit = {}
+    onNavigateToAddProvider: () -> Unit = {},
+    /** 账号 Hero 卡相机角标：进相机拍摄「我」的头像 */
+    onCaptureSelfAvatar: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -359,7 +364,8 @@ fun SettingsScreen(
             onNavigateToCommunicationChannel = onNavigateToCommunicationChannel,
             onNavigateToPeople = onNavigateToPeople,
             onNavigateToAddProvider = onNavigateToAddProvider,
-            onResetCameraMemoryState = { viewModel.resetCameraMemoryState() }
+            onResetCameraMemoryState = { viewModel.resetCameraMemoryState() },
+            onCaptureSelfAvatar = onCaptureSelfAvatar
         )
     }
 }
@@ -447,7 +453,9 @@ private fun SettingsContent(
     onNavigateToCommunicationChannel: () -> Unit = {},
     onNavigateToPeople: () -> Unit = {},
     onNavigateToAddProvider: () -> Unit = {},
-    onResetCameraMemoryState: () -> Unit = {}
+    onResetCameraMemoryState: () -> Unit = {},
+    /** 账号 Hero 卡相机角标：进相机拍摄「我」的头像 */
+    onCaptureSelfAvatar: () -> Unit = {}
 ) {
     val titleRes = when (category) {
         SettingsCategory.MAIN -> R.string.settings
@@ -493,7 +501,9 @@ private fun SettingsContent(
                     onNavigateToCommunicationChannel = onNavigateToCommunicationChannel,
                     onNavigateToMemoryFacts = onNavigateToMemoryFacts,
                     onNavigateToPeople = onNavigateToPeople,
-                    onNavigateToTagControl = onNavigateToTagControl
+                    onNavigateToTagControl = onNavigateToTagControl,
+                    onNavigateToDedupHome = onNavigateToDedupHome,
+                    onCaptureSelfAvatar = onCaptureSelfAvatar
                 )
                 return@Column
             }
@@ -1197,7 +1207,9 @@ private fun SettingsMainMenu(
     onNavigateToCommunicationChannel: () -> Unit,
     onNavigateToMemoryFacts: () -> Unit,
     onNavigateToPeople: () -> Unit,
-    onNavigateToTagControl: () -> Unit
+    onNavigateToTagControl: () -> Unit,
+    onNavigateToDedupHome: () -> Unit,
+    onCaptureSelfAvatar: () -> Unit
 ) {
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
@@ -1207,7 +1219,10 @@ private fun SettingsMainMenu(
         verticalArrangement = Arrangement.spacedBy(SettingsTokens.listSectionSpacing)
     ) {
         // ── 账号（置顶行，反映登录态）──
-        SettingsAccountHeroCard(onClick = { onNavigateToCategory(SettingsCategory.ACCOUNT) })
+        SettingsAccountHeroCard(
+            onClick = { onNavigateToCategory(SettingsCategory.ACCOUNT) },
+            onCaptureAvatarClick = onCaptureSelfAvatar
+        )
 
         // ── 个性化：主题 / 语言（右值=当前选中，点击弹窗切换）──
         SettingsListSection {
@@ -1249,6 +1264,14 @@ private fun SettingsMainMenu(
                 icon = Icons.Rounded.PhotoLibrary,
                 iconBlockColor = AppColors.vibrantOrange,
                 onClick = onNavigateToTagControl
+            )
+            SettingsListDivider()
+            // 相册整理（去重 2.0）一级入口：原「管理重复照片」自 TagControl 头部升级为独立入口
+            SettingsListRow(
+                title = stringResource(R.string.gallery_cleanup),
+                icon = Icons.Rounded.BurstMode,
+                iconBlockColor = AppColors.vibrantPurple,
+                onClick = onNavigateToDedupHome
             )
             SettingsListDivider()
             SettingsListRow(
@@ -1411,7 +1434,11 @@ private fun <T> SettingsSingleChoiceDialog(
  * 头像跟随人物页的"我"标记：已标记且有封面时显示本人人脸（face-aware 裁剪），否则回退默认图标。
  */
 @Composable
-private fun SettingsAccountHeroCard(onClick: () -> Unit) {
+private fun SettingsAccountHeroCard(
+    onClick: () -> Unit,
+    /** 头像右下角相机角标：进相机拍摄「我」的头像 */
+    onCaptureAvatarClick: () -> Unit = {}
+) {
     val context = LocalContext.current
     val app = context.applicationContext as PoLangApplication
     val repo = app.container.userPreferencesRepository
@@ -1459,28 +1486,47 @@ private fun SettingsAccountHeroCard(onClick: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(SettingsTokens.rowElementGap),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(SettingsTokens.heroAvatarSize)
-            ) {
-                val avatar = selfAvatar
-                if (avatar != null) {
-                    AsyncImage(
-                        model = avatar.coverUri,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        alignment = faceAwareVerticalAlignment(avatar.faceFocusY)
-                    )
-                } else {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Rounded.Person,
+            Box {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.size(SettingsTokens.heroAvatarSize)
+                ) {
+                    val avatar = selfAvatar
+                    if (avatar != null) {
+                        AsyncImage(
+                            model = avatar.coverUri,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(26.dp)
+                            contentScale = ContentScale.Crop,
+                            alignment = faceAwareVerticalAlignment(avatar.faceFocusY)
                         )
+                    } else {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Rounded.Person,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(26.dp)
+                            )
+                        }
                     }
+                }
+                // 相机角标：拍「我」的头像（视觉对齐人物编辑页 AvatarHeader）
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(20.dp)
+                        .border(1.5.dp, MaterialTheme.colorScheme.background, CircleShape)
+                        .background(MaterialTheme.colorScheme.primary, CircleShape)
+                        .clickable(onClick = onCaptureAvatarClick),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.PhotoCamera,
+                        contentDescription = stringResource(R.string.avatar_capture_hint),
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(12.dp)
+                    )
                 }
             }
             Column(
@@ -1565,24 +1611,18 @@ private fun SettingsVersionFooter(onUnlock: () -> Unit) {
 }
 
 /**
- * 「相册设置」页头部（注入 TagGenerationControlScreen 顶部）：标签查看 / 重复图管理 / TAG 生成 OpenCL 加速。
+ * 「相册扫描」页头部（注入 TagGenerationControlScreen 顶部）：TAG 生成 OpenCL 加速。
  * 取消原 GALLERY 二级页 → TAG生成 的中间跳转，这些条目平铺到扫描控制台页顶部。
+ * 「管理重复照片」已于 2026-08-26 升级为设置主菜单「相册整理」一级入口，自本头部移除。
  */
 @Composable
 internal fun GallerySettingsHeader(
-    onNavigateToDedupHome: () -> Unit,
     useOpencl: Boolean,
     onUseOpenclChange: (Boolean) -> Unit
 ) {
     SettingsSection(
         title = stringResource(R.string.gallery_features)
     ) {
-        SettingsClickableRow(
-            title = stringResource(R.string.manage_duplicates),
-            subtitle = stringResource(R.string.duplicate_manager_desc),
-            leadingIcon = Icons.Rounded.PhotoLibrary,
-            onClick = onNavigateToDedupHome
-        )
         OpenClBackendSelection(
             useOpencl = useOpencl,
             onToggle = onUseOpenclChange,

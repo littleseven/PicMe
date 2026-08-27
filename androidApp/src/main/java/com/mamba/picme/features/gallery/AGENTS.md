@@ -12,7 +12,7 @@
 > **最后更新**: 2026-08-26  
 > **维护者**: 项目开发者
 
-**模块定位**: 应用默认首页，提供智能聚类相册浏览、媒体查看器、批量操作功能；支持端侧自然语言搜索；右下角 plus 菜单聚合 Chat / Camera / Settings / Model Center 四个二级页入口，语音 Agent 面板提供自然语言交互入口。重复照片管理入口已迁移至设置页「相册功能」卡片。
+**模块定位**: 应用默认首页，提供智能聚类相册浏览、媒体查看器、批量操作功能；支持端侧自然语言搜索；右下角 plus 菜单聚合 Chat / Camera / Settings / Model Center 四个二级页入口，语音 Agent 面板提供自然语言交互入口。「相册整理」（去重 2.0）为主页面 Pager 页 1（相册页左滑即达），另有悬浮底部 Tab 第一项 + 设置主菜单一级入口（2026-08-26 二轮升级）。
 
 **主要维护者**: 项目开发者
 
@@ -136,7 +136,7 @@ private fun shareMediaAssets(context: Context, assets: List<MediaAsset>) {
 > 旧实现（`DuplicateManager` 页 / `FindDuplicateMediaUseCase` / `DuplicateImageDetector`）已于 2026-08-26 Task 11 整体下线删除；`core/common/PerceptualHash.kt`（MD5/pHash 纯算法，零 Android 依赖、可 JVM 单测）保留，由新扫描器复用。
 
 **技术规范**:
-- **入口**: 设置页「相册功能」卡片「管理重复照片」→ `Screen.DedupHome`（route `dedup_home`）→ `DedupHomeRoute`（`features/gallery/dedup/DedupHomeScreen.kt`），ViewModel 为独立的 `DedupViewModel`（不再共享 `MediaViewModel`）
+- **入口（2026-08-26 二轮升级）**: 相册整理为**主页面 Pager 页 1**（页序 相册(0)/相册整理(1)/聊天(2)/人物(3)，见 `features/main/MainPagerHost.kt`；`DedupViewModel` 为 Activity 级独立 VM，Pager 托管安全）——相册页左滑经外层 HorizontalPager 原生手势进入，悬浮底部 Tab 第一项（`Icons.Outlined.BurstMode`）与设置主菜单「相册整理」一级入口均经 `switchMainPage(MAIN_PAGE_DEDUP)` 瞬时切页；原 `Screen.DedupHome`（route `dedup_home`）NavHost 路由已删除（避免双宿主）。返回（顶栏返回/系统返回键）切回相册页不弹栈；TagControl 头部「管理重复照片」行已移除
 - **三级尺度（`DedupLevel`，`domain/dedup/DedupModels.kt`）**:
   - `EXACT` 精确重复：`(sizeBytes, mime)` 分桶 → 流式 MD5 相同成组
   - `VISUAL` 视觉重复：32×32 降采样 64-bit pHash，汉明距离 ≤ `visualThreshold`(=5) 并查集聚类；与 EXACT 组完全重合（全员同 MD5）的簇跳过
@@ -219,7 +219,7 @@ SearchTopBar(
 **底部悬浮 Tab**:
 - 使用共享组件 `FloatingBottomTab`（`features/common/components/FloatingBottomTab.kt`）
 - 位置：底部居中，底部 padding 16.dp，悬浮于媒体网格之上
-- 入口项（从左到右）：Camera、Chat、Model Center
+- 入口项（从左到右）：相册整理（BurstMode，切到 Pager 页 1）、Chat、Tag 打标控制、人物（AccountCircle）
 - 每项仅显示图标，无文字标签
 - 点击直接导航到对应二级页
 

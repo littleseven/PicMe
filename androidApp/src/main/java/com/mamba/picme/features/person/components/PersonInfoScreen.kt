@@ -66,7 +66,7 @@ import com.mamba.picme.features.person.PersonCover
 /**
  * 人物信息编辑全屏页（Ardot People 页设计稿落地）。
  *
- * 结构：圆形头像（右下相机角标换封面）→ 姓名输入框 → 「这是我」胶囊 →
+ * 结构：圆形头像（右下相机角标进相机拍封面，点头像本体打开封面选择）→ 姓名输入框 → 「这是我」胶囊 →
  * Relationship 分组卡片（家庭/社会 chips + 自定义称呼）→ Photos 预览条。
  * 右上角提供「重新打分」「不设置」与「保存」。
  */
@@ -82,7 +82,9 @@ fun PersonInfoScreen(
     onUpdateCover: (MediaEntity) -> Unit,
     onUpdateName: (String) -> Unit,
     /** 仅给该人物聚类（重新）打美学/人脸画质分 + 刷新封面；null=不显示该入口。 */
-    onRescore: (suspend () -> Unit)? = null
+    onRescore: (suspend () -> Unit)? = null,
+    /** 相机角标：进相机拍摄该人物封面（2026-08-26 起角标不再打开封面选择 Sheet） */
+    onCaptureAvatar: (() -> Unit)? = null
 ) {
     val editState = remember(person.personId, person.name, person.isSelf, relation) {
         PersonEditState(
@@ -137,7 +139,8 @@ fun PersonInfoScreen(
             cover = cover,
             photos = photos,
             editState = editState,
-            onShowCoverPicker = { showCoverPicker = true }
+            onShowCoverPicker = { showCoverPicker = true },
+            onCaptureAvatar = onCaptureAvatar
         )
     }
 
@@ -225,7 +228,8 @@ private fun PersonInfoBody(
     cover: PersonCover?,
     photos: List<MediaEntity>,
     editState: PersonEditState,
-    onShowCoverPicker: () -> Unit
+    onShowCoverPicker: () -> Unit,
+    onCaptureAvatar: (() -> Unit)? = null
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -235,7 +239,7 @@ private fun PersonInfoBody(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
     ) {
-        // 头部：圆形头像 + 相机角标（点击换封面）
+        // 头部：圆形头像（本体点击=封面选择 Sheet）+ 相机角标（点击=进相机拍封面）
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
@@ -248,7 +252,8 @@ private fun PersonInfoBody(
                     R.string.people_default_name,
                     person.personId
                 ),
-                onClick = onShowCoverPicker
+                onClick = onShowCoverPicker,
+                onCaptureClick = onCaptureAvatar ?: onShowCoverPicker
             )
         }
 
@@ -288,12 +293,13 @@ private fun PersonInfoBody(
     }
 }
 
-/** 圆形头像 + 右下相机角标（人脸感知垂直对齐裁切） */
+/** 圆形头像 + 右下相机角标（人脸感知垂直对齐裁切）；角标=进相机拍封面，头像本体=封面选择 Sheet */
 @Composable
 private fun AvatarHeader(
     cover: PersonCover?,
     contentDescription: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onCaptureClick: () -> Unit
 ) {
     val alignment = remember(cover?.faceFocusY) {
         faceAwareVerticalAlignment(cover?.faceFocusY)
@@ -331,12 +337,12 @@ private fun AvatarHeader(
                 .size(32.dp)
                 .border(2.dp, MaterialTheme.colorScheme.background, CircleShape)
                 .background(MaterialTheme.colorScheme.primary, CircleShape)
-                .clickable(onClick = onClick),
+                .clickable(onClick = onCaptureClick),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Rounded.PhotoCamera,
-                contentDescription = stringResource(R.string.person_set_cover_hint),
+                contentDescription = stringResource(R.string.avatar_capture_hint),
                 tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(16.dp)
             )

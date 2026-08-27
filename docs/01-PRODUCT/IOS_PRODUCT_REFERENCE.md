@@ -220,7 +220,7 @@ PoLang（破浪相册）是一个 **Agent 驱动的智能相册**实验场，核
 | 图像理解浮层 | ✅ | `VisionResultOverlay`，Markdown 渲染 + 复制/分享。 |
 | **多选模式** | 🔄 | 长按进入；支持**拖拽选择**（滑过批量勾选/取消）。批量操作仅：**全选/反选**、**删除**、**分享**。**无** 收藏、移动至相册、批量美颜。 |
 | 自定义相册 | ❌ | 完全不存在（无相册表、无创建/命名/封面/增删/智能相册）。 |
-| **重复/相似照片清理（去重 2.0）** | ✅ | `DedupHomeRoute` 独立页（route `dedup_home`），入口在设置页「相册功能」卡片「Manage Duplicates」。端侧三级尺度（完全重复/视觉相似/同一场景）流式扫描（边扫边出结果），保留规则四策略（首选项 KEEP_HIGHEST_QUALITY 与弹层 KEEP_USER_EDITED 分离），API 30+ 删入系统回收站（30 天兜底、可 undo）。仅照片，不含视频。旧 `DuplicateManagerRoute` 已随 Task 11 下线。 |
+| **重复/相似照片清理（去重 2.0）** | ✅ | `DedupHomeRoute` 为**主页面 Pager 页 1**（2026-08-26 自 `dedup_home` 路由迁入 Pager，路由已删），入口：设置主菜单「相册整理」一级入口 / 相册页悬浮底部 Tab 首项 / 相册页左滑。端侧三级尺度（完全重复/视觉相似/同一场景）流式扫描（边扫边出结果），保留规则四策略（首选项 KEEP_HIGHEST_QUALITY 与弹层 KEEP_USER_EDITED 分离），API 30+ 删入系统回收站（30 天兜底、可 undo）。仅照片，不含视频。旧 `DuplicateManagerRoute` 已随 Task 11 下线。 |
 | 存储管理（总数/空间/回收站/大文件） | ❌ | 除重复检测外均未实现；无 30 天恢复、无大文件扫描、无空间统计。 |
 | **备份与恢复** | ✅ | `BackupRestoreActivity`，SAF JSON 导出/导入。格式 **v5**，18 个数据段。 |
 
@@ -1053,7 +1053,7 @@ Phase 5.4 已落地：AVFoundation + Metal 4-pass（yuv→smoothing→lut→beau
 
 设置主页网格（2 列 chunked，baseItems 10 项）：① AI 记忆 → ② 人物 → ③ 通信通道 → ④ 相册功能 → ⑤ 远程模型 → ⑥ 本地模型 → ⑦ 模型中心 → ⑧ 沙盒与权限 → ⑨ 数据与隐私 → ⑩ 相机；开发者选项为解锁后附加项（`developerOptionsUnlocked`）。顶部账号 Hero 卡 + 主题/语言快选卡。
 
-> **漂移**：**模型中心是独立网格卡**；相似/大文件去重入口在「相册功能」子页（`gallery_features` → `manage_duplicates`）；**无「关于」卡片**（无版本号展示，`BuildConfig` 仅 DEBUG 判定）；备份与恢复已并入「数据与隐私」页，非独立网格项；**无「AI 助手」网格项**（远程/本地模型配置已拆为一级入口）。
+> **漂移**：**模型中心是独立网格卡**；相似/大文件去重已升级为设置主菜单「相册整理」一级入口（同时是主页面 Pager 页 1，2026-08-26；原「相册功能」子页分类已不可达（dormant），其 `manage_duplicates` 行与 key 仍保留在休眠代码中待清理）；**无「关于」卡片**（无版本号展示，`BuildConfig` 仅 DEBUG 判定）；备份与恢复已并入「数据与隐私」页，非独立网格项；**无「AI 助手」网格项**（远程/本地模型配置已拆为一级入口）。
 
 ### 3. 功能项清单
 
@@ -1091,7 +1091,8 @@ SettingsScreen (MAIN)
     ├── AI 记忆 ──────────► MemoryFactsScreen (memory_facts CRUD)
     ├── 人物 ─────────────► People (人物/关系图谱)
     ├── 通信通道 ─────────► CommunicationChannelScreen (飞书/Telegram/NONE)
-    ├── 相册功能 ─────────► GALLERY (TAG 控制/查看器/去重/打标模型选择/GPU 加速)
+    ├── 相册功能 ─────────► GALLERY (TAG 控制/查看器/打标模型选择/GPU 加速；去重已升为下方一级入口)
+    ├── 相册整理 ─────────► Dedup（去重 2.0；主页面 Pager 页 1，2026-08-26 升级，非 NavHost 路由）
     ├── 远程模型 ─────────► REMOTE_MODEL (远程模型配置/Agent 模式)
     ├── 本地模型 ─────────► LOCAL_MODEL (人脸检测引擎等本地模型配置)
     ├── 模型中心 ─────────► ModelCenterScreen (Pager: must-have/recommended/photo-tagging/beauty-camera/chat)
@@ -1148,7 +1149,7 @@ SettingsScreen (MAIN)
 | `data_privacy` | `DataPrivacyScreen` | 设置→数据隐私 | 否 | — | `MainActivity.kt:478` |
 | `memory_facts` | `MemoryFactsScreen` | 设置→记忆事实 | 否 | — | `MainActivity.kt:501` |
 | `communication_channel` | `CommunicationChannelScreen` | 设置→IM 通道 | 否 | — | `MainActivity.kt:481` |
-| `tag_viewer` / `dedup_home` | `TagViewerTestScreen` / `DedupHomeRoute` | 设置→标签查看/重复清理 | 否 | — | `MainActivity.kt:358,362` |
+| `tag_viewer` | `TagViewerTestScreen` | 设置→标签查看 | 否 | — | `MainActivity.kt:358`（去重 `dedup_home` 路由 2026-08-26 已删，迁入主页面 Pager 页 1） |
 | `debug` / `jsbridge` / `search_test` / `sentencepiece_test` | Debug 类页 | 设置→Debug | 否 | — | `MainActivity.kt:513,527,532,537`（jsbridge/search_test/sentencepiece_test **仅 DEBUG**） |
 | `llm_log` | `LlmCallLogScreen` | 设置→LLM 调用日志 | 否 | — | `MainActivity.kt:544`（release 仅指标，无消息内容） |
 
@@ -1435,7 +1436,7 @@ SettingsScreen (MAIN)
 |---|----------|----------|--------|
 | SE1 | 主页含「关于」卡片 + 版本号 | 无「关于」卡片（`BuildConfig` 仅 DEBUG 判定） | 中 |
 | SE2 | 模型中心是「AI 助手卡片第一项」 | 独立网格卡 | 中 |
-| SE3 | 相似/大文件去重在主页网格独立卡 | 在「相册功能」子页 | 低 |
+| SE3 | 相似/大文件去重在主页网格独立卡 | 设置主菜单「相册整理」一级入口 + 主页面 Pager 页 1（2026-08-26 升级） | 低 |
 | SE4 | DataPrivacyScreen 含「隐私开关」/「云端 AI 优化开关」 | **纯说明页**，无开关；全代码库无 cloud_optimize 字符串 | 高 |
 | SE5 | `AiAgentMode.LOCAL` 在 UI 展示 | 仅 REMOTE 可选（端侧文本 LLM 已移除），枚举保留作离线兜底 | 低 |
 | SE6 | token 前缀 `picme_at_*` | 服务端约定，客户端代码无此前缀逻辑 | 低 |

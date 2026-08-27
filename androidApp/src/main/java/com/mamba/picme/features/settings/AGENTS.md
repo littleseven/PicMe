@@ -135,23 +135,25 @@
 - **隐私级别**：`STRICT` / `PERMISSIVE`；运行时输入分级为 `PUBLIC` / `SENSITIVE` / `RESTRICTED`
 - **助手性格（2026-08-22 新增）**：远程模型页「助手性格」单选（默认/温暖贴心/活泼幽默/简洁干练，`assistant_persona` DataStore 枚举），经 `AgentContext.persona` 注入 chat system prompt 尾段；DEFAULT 不注入
 
-### 2.7 相册功能入口（2026-06 新增）
-**入口位置**：设置页「相册功能」卡片（`SettingsScreen` 中非 Debug 区域）
+### 2.7 相册功能入口（2026-06 新增，2026-08-26 入口升级）
+
+**入口位置**：设置主菜单「功能」分组（`SettingsMainMenu`）
 
 **当前功能**：
-- **管理重复照片**：点击后导航到去重 2.0 主页 `DedupHomeRoute`（`Screen.DedupHome`，route `dedup_home`）
-  - 使用独立的 `DedupViewModel`（不再共享 `MediaViewModel`）
-  - 进入后为 Config 页：勾选三级尺度（精确/视觉/相似场景）与保留规则后手动启动扫描，渐进式流出结果
-  - 清理走系统回收站（API 30+ `createTrashRequest`，可撤销恢复；低版本兜底旧删除授权流）
-  - 通过系统返回键或顶部返回按钮退出，返回到 Settings 页
-- **TAG 生成控制**：点击后导航到 `TagGenerationControlScreen`
+- **相册扫描**：`gallery_settings`（Gallery Scan / 相册扫描 / 相簿掃描）→ 导航到 `TagGenerationControlScreen`（TAG 扫描控制台；该 key 同时是该页标题，同步生效）
   - 支持按类别 / 时间范围重新生成 TAG
   - 提供 3-Pass 打标进度控制
+- **相册整理**：`gallery_cleanup`（Gallery Cleanup / 相册整理 / 相簿整理，`Icons.Rounded.BurstMode`）→ 去重 2.0 主页 `DedupHomeRoute`（2026-08-26 二轮升级为主页面 Pager 页 1，经 `switchMainPage(MAIN_PAGE_DEDUP)` 弹回 Main 并切页；原 `Screen.DedupHome` 路由已删除）
+  - 使用独立的 `DedupViewModel`（Activity 级，不再共享 `MediaViewModel`）
+  - 进入后为 Config 页：勾选三级尺度（精确/视觉/相似场景）与保留规则后手动启动扫描，渐进式流出结果
+  - 清理走系统回收站（API 30+ `createTrashRequest`，可撤销恢复；低版本兜底旧删除授权流）
+  - 通过系统返回键或顶部返回按钮退出，切回相册页（Pager 页 0，不弹栈）
+- **TagControl 页头部**（`GallerySettingsHeader`）：仅保留 TAG 生成 OpenCL 加速开关；「管理重复照片」行已于 2026-08-26 升级为上述一级入口并自此移除（`manage_duplicates` key 保留，仅剩休眠 GALLERY 二级页引用）
 
 **实现约定**：
-- 相册功能卡片对所有构建类型可见（非 Debug 限定）
+- 相册功能入口对所有构建类型可见（非 Debug 限定）
 - Debug 构建额外显示「相册调试功能」区域（图片下载页、搜索测试、OpenCL 后端切换）
-- 图标统一使用 `SettingsClickableRow` 的 `leadingIcon` + 右侧箭头，保持可点击心智
+- 图标统一使用 `SettingsListRow` 的图标块 + 右侧箭头，保持可点击心智
 
 ### 2.7.1 AI 记忆（管理页，2026-07 新增）
 
@@ -171,7 +173,7 @@
 - `MAIN` — 设置主菜单：账号 Hero 卡 + 主题/语言快选卡 + 2 列分类卡片网格（baseItems 10 项）
 - `ACCOUNT` — 账号（邮箱验证登录 / 额度卡）
 
-> **账户头像跟随"我"标记（2026-08-18 新增）**：主菜单 Hero 卡头像（`SettingsAccountHeroCard`）与账号页头部头像（`SettingsServerAuth.AccountAvatar`）共用 `PersonRepository.observeSelfAvatar()` 数据源——人物页标记「这是我」后，头像实时切换为该人物封面人脸（`faceAwareVerticalAlignment` 裁剪防砍头）；未标记/无封面/封面媒体已删时回退默认 Person 图标。数据链路：`PersonDao.observeSelfPerson()`（Room Flow，is_self/封面变更自动重发）→ 封面 mediaId 解析 uri + faceFocusY。
+> **账户头像跟随"我"标记（2026-08-18 新增）**：主菜单 Hero 卡头像（`SettingsAccountHeroCard`）与账号页头部头像（`SettingsServerAuth.AccountAvatar`）共用 `PersonRepository.observeSelfAvatar()` 数据源——人物页标记「这是我」后，头像实时切换为该人物封面人脸（`faceAwareVerticalAlignment` 裁剪防砍头）；未标记/无封面/封面媒体已删时回退默认 Person 图标。数据链路：`PersonDao.observeSelfPerson()`（Room Flow，is_self/封面变更自动重发）→ 封面 mediaId 解析 uri + faceFocusY。**头像右下角相机角标（2026-08-26 新增）**：点击经 `AvatarCaptureController.begin(Self, SETTINGS_PAGE)` + `navigate(Screen.Camera)` 进相机路由拍「我」的头像，落库后由 `AvatarCaptureFinisher` 复用 `PersonRepository.updateCover` 链路设封面，完成/取消 `popBackStack` 回本页（详见 `docs/superpowers/specs/2026-08-25-album-dedup-design.md` §11.2）。
 - `GALLERY` — 相册功能：TAG 生成控制、标签查看、重复照片管理、打标模型选择、GPU 加速
 - `CAMERA` — 相机状态记忆与重置（重置入口 2026-08-16 自相机页迁入，带 AlertDialog 二次确认）
 - `SYSTEM` — 悬浮窗 AI 聊天气泡、电池优化与 MIUI 权限

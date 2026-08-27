@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -68,6 +69,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mamba.picme.R
@@ -137,6 +139,9 @@ fun DedupHomeRoute(
             )
         },
         bottomBar = {
+            // 底部栏自行吞导航栏 inset（M3 Scaffold 约定 topBar/bottomBar 各管各的）：
+            // 外层 MainActivity 全局 0 insets，不加则 CTA 被三键虚拟导航遮挡
+            Box(modifier = Modifier.navigationBarsPadding()) {
             when (val state = uiState) {
                 is DedupUiState.Scanning -> DedupScanningBottomBar(
                     paused = state.paused,
@@ -146,18 +151,24 @@ fun DedupHomeRoute(
                     onRunBackground = onNavigateBack,
                 )
                 is DedupUiState.Results -> {
-                    // 底部 CTA 与 VM 删除流同一口径：SCENE 组不参与批量删除（spec §4）
-                    val batchUris = viewModel.batchDeleteUris(state.groups)
+                    // 底部 CTA 与 VM 删除流同一口径（tabBatchUris，spec §12）：仅当前 Tab 的
+                    // batchEligible 组参与批量删除（SCENE 由底部提示代替 CTA）
+                    val batchUris = viewModel.tabBatchUris(state)
+                    val tabGroups = state.groups.filter { group -> group.level == state.selectedTab }
                     DedupResultsBottomBar(
+                        isSceneTab = state.selectedTab == DedupLevel.SCENE,
                         deleteCount = batchUris.size,
-                        deleteBytes = viewModel.batchReclaimBytes(state.groups, batchUris),
+                        deleteBytes = viewModel.batchReclaimBytes(tabGroups, batchUris),
                         onDelete = { viewModel.deleteSelected() },
                     )
                 }
                 is DedupUiState.Cleaned -> DedupCleanedBottomBar(
+                    remainingCount = state.remainingGroups.size,
+                    onContinue = { viewModel.continueWithRemaining() },
                     onDone = { viewModel.resetToConfig() },
                 )
                 is DedupUiState.Config -> Unit
+            }
             }
         }
     ) { padding ->
@@ -648,14 +659,15 @@ private fun DedupResultsContent(
     onSelectTab: (DedupLevel) -> Unit,
     onOpenGroupDetail: (String) -> Unit,
 ) {
-    // Hero 数字与底部 CTA 同口径（spec §4/§10.5）：SCENE 组与未预选组不参与批量操作，不计入「可释放」
+    // Hero 为全局口径：全部 batchEligible 组合计（SCENE/未预选组不计入「可释放」）；
+    // 底部 CTA 与全选 chip 为当前 Tab 口径（tabBatchUris，spec §12）
     val batchGroups = state.groups.filter { group -> group.batchEligible }
     val totalReclaim = batchGroups.sumOf { group -> group.reclaimBytes }
     val filteredGroups = state.groups.filter { group -> group.level == state.selectedTab }
     val selectedTabIndex = DedupLevel.entries.indexOf(state.selectedTab)
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Hero 统计区：左侧大字「可释放 X」+ 副文「N 组重复照片」；右侧「智能全选」chip 单行不折
+        // Hero 统计区：左侧大字「可释放 X」+ 副文「N 组重复照片」；右侧「全选本类」chip 单行不折
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -686,17 +698,20 @@ private fun DedupResultsContent(
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            FilterChip(
-                selected = false,
-                onClick = onSmartSelectAll,
-                label = {
-                    Text(
-                        text = stringResource(R.string.dedup_smart_select_all),
-                        maxLines = 1,
-                        softWrap = false
-                    )
-                }
-            )
+            // 「全选本类」chip 仅作用于当前 Tab；L3 场景相似不参与批量操作（spec §4），不展示
+            if (state.selectedTab != DedupLevel.SCENE) {
+                FilterChip(
+                    selected = false,
+                    onClick = onSmartSelectAll,
+                    label = {
+                        Text(
+                            text = stringResource(R.string.dedup_smart_select_tab),
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
+                )
+            }
         }
 
         // 级别 tab：下划线式 ScrollableTabRow，按内容宽度排布，多语言超长时横向滚动
@@ -819,10 +834,30 @@ private fun DedupLevelTab(
 
 @Composable
 private fun DedupResultsBottomBar(
+    isSceneTab: Boolean,
     deleteCount: Int,
     deleteBytes: Long,
     onDelete: () -> Unit,
 ) {
+    // L3 场景相似不参与任何批量操作（spec §4 安全约束）、当前 Tab 无 batchEligible
+    // 待删项（如全是未预选截图组）时：提示代替 CTA，不显示「删除本类 0 张」禁用按钮
+    val hintRes = when {
+        isSceneTab -> R.string.dedup_scene_batch_hint
+        deleteCount == 0 -> R.string.dedup_tab_batch_empty
+        else -> null
+    }
+    if (hintRes != null) {
+        Text(
+            text = stringResource(hintRes),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        )
+        return
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -840,7 +875,7 @@ private fun DedupResultsBottomBar(
         ) {
             Text(
                 text = stringResource(
-                    R.string.dedup_delete_cta,
+                    R.string.dedup_delete_cta_scoped,
                     deleteCount,
                     formatBytes(deleteBytes)
                 )
@@ -947,8 +982,40 @@ private fun DedupCleanedContent(
 
 @Composable
 private fun DedupCleanedBottomBar(
+    remainingCount: Int,
+    onContinue: () -> Unit,
     onDone: () -> Unit,
 ) {
+    if (remainingCount > 0) {
+        // 按类型细分删除后还有其他组：主操作是「继续整理」回 Results，「完成」降为次操作
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Button(
+                onClick = onContinue,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.dedup_continue_remaining, remainingCount))
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = onDone) {
+                    Text(stringResource(R.string.done))
+                }
+                // 查看回收站：V1 占位，后续接系统回收站入口
+                TextButton(onClick = { }) {
+                    Text(stringResource(R.string.dedup_view_recycle))
+                }
+            }
+        }
+        return
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()

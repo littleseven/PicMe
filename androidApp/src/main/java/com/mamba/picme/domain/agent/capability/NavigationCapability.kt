@@ -36,8 +36,9 @@ import kotlinx.coroutines.withContext
 class NavigationCapability(
     private val navController: NavController,
     /**
-     * 主页面（相机/相册等 HorizontalPager 内页面）切换器。
+     * 主页面（相册等 HorizontalPager 内页面）切换器。
      * 主页面已不再是 NavController destination，必须由外层通过 Pager 切换。
+     * 相机 2026-08-26 起改回 NavHost 全屏路由（Screen.Camera），不走此切换器。
      */
     private val mainPageSwitcher: ((Destination) -> Unit)? = null
 ) : BaseCapability() {
@@ -154,12 +155,13 @@ class NavigationCapability(
      * - 目标页在 back stack 中 → popUpTo 该页，复用已有实例
      * - 目标页不在栈中 → 正常 navigate
      *
-     * 这样保证相机页、相册页、设置页等核心页面全局最多只有 1 个实例，
+     * 这样保证相册页、设置页等核心页面全局最多只有 1 个实例，
      * 同时保留返回栈的合理层级关系。
      */
     private fun navigateTo(nav: NavController, destination: Destination) {
-        // 主页面（相机/相册）已收敛进 HorizontalPager，优先走 Pager 切换
-        if (destination == Destination.CAMERA || destination == Destination.GALLERY) {
+        // 主页面（相册/相册整理/聊天/人物）已收敛进 HorizontalPager，优先走 Pager 切换；
+        // 相机为 NavHost 全屏路由（Screen.Camera），走下方普通路由导航
+        if (destination == Destination.GALLERY) {
             val switcher = mainPageSwitcher
             if (switcher != null) {
                 Logger.d(tag, "Switching main page via pager: $destination")

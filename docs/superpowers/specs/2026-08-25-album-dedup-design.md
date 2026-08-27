@@ -35,7 +35,7 @@
 | L3 | 场景相似 | 连拍、同场景不同构图的多张 | pHash 宽松 + 拍摄时间窗口（≤ 10s 连拍优先成组）+（后续）embedding 聚类 | ⬜ 关 |
 
 - 尺度在扫描前由用户勾选（`dedup/overview` 屏），L3 默认关闭并标注「误报较多，需逐组确认」。
-- 三级结果在结果页分 Tab 展示，删除策略不同：L1 可放心批量，L2 默认批量但逐组可改，L3 必须逐组确认（无「智能全选」）。
+- 三级结果在结果页分 Tab 展示，删除策略不同：L1 可放心批量，L2 默认批量但逐组可改，L3 必须逐组确认（无「智能全选」）。批量操作自 2026-08-26 起按当前 Tab 细分（见 §12）。
 
 ### 压缩/微调版本的关联建模
 
@@ -83,7 +83,7 @@ L2 组内按「版本链」标注每张图的身份 badge：
 Gallery 设置入口（现有行，升级文案）
   └─ dedup/overview      尺度选择 + 保留规则入口 + 上次摘要 + 开始扫描
        └─ dedup/scanning   渐进扫描：进度 + 实时发现流 + 暂停/后台
-            └─ dedup/results  三 Tab 结果页 + 智能全选(L1/L2) + 底部 CTA
+            └─ dedup/results  三 Tab 结果页 + 全选本类(L1/L2 Tab) + 底部 CTA（跟随当前 Tab，§12）
                  ├─ dedup/group_detail  组内对比改选（版本链 badge + 单选保留）
                  ├─ dedup/keep_rules    保留规则底部弹层
                  └─ dedup/cleaned       完成页 + 回收站撤销
@@ -162,3 +162,50 @@ Gallery 设置入口（现有行，升级文案）
 
 - AC-6：截图 VISUAL 组默认不预选且不计入批量 CTA；人像组默认保留项为人脸质量分最高者；TAG 未覆盖照片全部归入 GENERAL 且行为与 v1.0 一致。
 - AC-7：内容类型 badge 与策略文案三语同步；类型识别不产生额外扫描耗时（取数阶段顺带判定）。
+
+## §11 入口与导航（2026-08-26）
+
+去重 2.0（相册整理）从设置二级入口升级为一级入口，并打通头像拍摄链路。
+
+### 11.1 相册整理入口
+
+- **Pager 页 1（2026-08-26 二轮升级）**：相册整理从 NavHost 路由升级为主页面 Pager 正式页，页序改为 **相册(0) / 相册整理(1) / 聊天(2) / 人物(3)**（`MAIN_PAGE_*` 常量，`MainPagerHost.kt`）；相机页从 Pager 移除（路由化，见 §11.2）。`Screen.DedupHome` NavHost 路由随之删除，避免双宿主。相册页**左滑**进入相册整理由外层 HorizontalPager 原生承载（原「页内手势与 pager 抢事件」TODO 删除）。
+- **设置主菜单**：Gallery 行更名「相册扫描」（`gallery_settings`：Gallery Scan / 相册扫描 / 相簿掃描；该 key 同时是 TagControl 页标题，同步生效为期望行为）；其下方新增「相册整理」行（`gallery_cleanup`：Gallery Cleanup / 相册整理 / 相簿整理，`Icons.Rounded.BurstMode`），经 `switchMainPage(MAIN_PAGE_DEDUP)` 弹回 Main 并切页。
+- **悬浮底部 Tab**：GalleryScreen 悬浮 Tab 第一项由相机改为相册整理（`Icons.Outlined.BurstMode`，与同行 Outlined 图标风格一致），点击 `onSwitchPage(MAIN_PAGE_DEDUP)` 瞬时切相邻页（与底部 Tab 瞬时切页风格一致）；相机已路由化，不再有常驻入口。
+- **TagControl 头部**：`GallerySettingsHeader` 移除「管理重复照片」行；`manage_duplicates` key 保留（仅剩休眠 GALLERY 二级页死代码引用）。
+- **返回行为**：相册整理页顶栏返回与系统返回键均切回相册页（Pager 页 0），不弹栈——系统返回键由 `MainPagerHost` 的「非相册页回相册」BackHandler 统一消费；内部 Config→Scanning→Results→Cleaned 四态流程不变，`DedupViewModel` 为 Activity 级，Pager 托管安全。
+
+### 11.2 头像拍摄链路（V1）
+
+- **入口**：人物编辑页 `AvatarHeader` 相机角标（头像本体点击仍开封面选择 Sheet）；设置账号 Hero 卡头像新增相机角标。
+- **相机路由化（2026-08-26 二轮）**：相机从主页面 Pager 页 0 移出，改为 NavHost 全屏路由 `Screen.Camera`（MainActivity 注册 destination），**唯一用户入口为头像拍摄**；Agent 指令 `navigate_to(camera)` 链路保留，`NavigationCapability` 对 CAMERA 改为 navigate 相机路由（不登记 avatar pending）。相机会话门控由 Pager `isActivePage` 改为路由生命周期驱动（`backStackEntry.lifecycle.currentStateFlow ≥ RESUMED` 激活，弹栈/退后台即解绑释放，语义等价）；相机权限申请 UI 内聚在 `CameraScreen` 内，路由进入同样触发。
+- **会话控制**：`features/common/avatar/AvatarCaptureController`（进程内单例 StateFlow，与 `RemotePhotoTracker` 同风格）登记 `PendingAvatarCapture(target=Person(personId)|Self, origin=PEOPLE_PAGE|GALLERY_PAGE|SETTINGS_PAGE)`；调用方 `begin()` 后 `navigate(Screen.Camera)`。
+- **相机头像态**（`CameraScreen/CameraContent`）：检测 pending → 记忆水合后默认切前置（`FEATURE_CAMERA_FRONT` 缺失静默保持后置）→ 顶部胶囊提示（`avatar_capture_hint`：Take a selfie for avatar / 拍摄头像 / 拍攝頭像）；离开相机路由视为取消（`DisposableEffect` onDispose 清 pending + 恢复进入前镜头）。
+- **落库设封面**：`handleCaptureClick` 新增 `onPhotoCompleted` 钩子 → `AvatarCaptureFinisher` 以快门时间戳为下界轮询 Room 最新媒体（兜底策略：拍照回调不透出 mediaId 且 `insertMedia` 异步入库，注释已写明取舍）→ 复用 `PersonRepository.updateCover`；Self 目标经 `getSelfPerson()` 解析，未标记「我」则跳过（记日志）。
+- **返回**：完成/失败后清 pending 并 `popBackStack` 回来源页（来源页均在返回栈上——Settings 为 NavHost 页，人物编辑为 Pager 内 People/Gallery 页且 pagerState 提升在 Activity 层，弹栈后自然落回；origin 仅作诊断记录，不再驱动返回导航）。
+
+### 11.3 三语 key 清单
+
+| key | EN | zh-CN | zh-TW |
+|---|---|---|---|
+| `gallery_settings`（更名） | Gallery Scan | 相册扫描 | 相簿掃描 |
+| `gallery_cleanup`（新增） | Gallery Cleanup | 相册整理 | 相簿整理 |
+| `avatar_capture_hint`（新增） | Take a selfie for avatar | 拍摄头像 | 拍攝頭像 |
+
+## §12 结果页按类型细分处理（2026-08-26）
+
+结果页批量操作从全局口径改为**当前 Tab 口径**，用户逐类型处理；不再只有全局删除。
+
+- **底部 CTA 跟随 Tab**：只删除当前 Tab 内 batchEligible 组的待删项，文案「删除本类 N 张 · 释放 X」（`dedup_delete_cta_scoped`）；当前 Tab 无可批量删除项（如全是未预选截图组）时 CTA 由提示代替（`dedup_tab_batch_empty`）；Hero 统计区保持全局口径（全部类型合计可释放）。
+- **全选 chip 跟随 Tab**：「智能全选」更名「全选本类」（`dedup_smart_select_tab`），只对当前 Tab 的 autoPreselected 组清 override 并重算默认勾选；L3 场景相似 Tab 不展示该 chip。
+- **L3 无批量入口（沿用 §4 安全约束）**：SCENE Tab 底部 CTA 由提示文案代替（`dedup_scene_batch_hint`：场景相似需逐组确认 · 不参与批量删除）。
+- **口径收口**：`DedupViewModel.tabBatchUris(state)` = `batchDeleteUris(groups.filter level == selectedTab)`，底部 CTA 计数、`deleteSelected()` 及其 IPC 窗口一致性复查共用；授权 IPC 窗口内切 Tab 会因选择集不一致安全放弃该次授权。
+- **删除后继续整理**：`DedupUiState.Cleaned` 增加 `remainingGroups`（本次未涉及的组：其他 Tab + 未预选组）。非空时完成页主操作为「继续整理 · 还剩 N 组」（`dedup_continue_remaining`，`continueWithRemaining()` → Results 剩余组并切到还有组的第一个 Tab），「完成」降为次操作；为空时维持原完成页布局。
+- **跨级重叠组防过度清空**：构建 `remainingGroups` 时逐组剔除已入回收站的成员——keepUri 被删的组按当前 policy 重算保留项（override 随改选对象消失而失效），存活成员不足 2 的组直接移出；杜绝快照回灌后把某组最后一张也送进回收站。
+- **已知限制**：「继续整理」回 Results 后，完成页的「全部撤销」入口随之关闭，本批已删项只能去系统回收站恢复（30 天内）。
+- **三语 key 变更**：删 `dedup_smart_select_all`、`dedup_delete_cta`；增 `dedup_smart_select_tab`、`dedup_delete_cta_scoped`、`dedup_scene_batch_hint`、`dedup_continue_remaining`。
+
+### 12.1 验收标准（追加）
+
+- AC-8：结果页底部 CTA 与全选 chip 仅作用于当前 Tab；切 Tab 后计数/文案随之变化；SCENE Tab 无批量入口（提示代替）。
+- AC-9：按类型删除授权完成后，若还有其他组，完成页可「继续整理」回到结果页且剩余组完整（含其他 Tab 的 userOverride 不丢失）。

@@ -61,7 +61,9 @@ internal fun handleCaptureClick(
     onRecordingChanged: (Recording?) -> Unit,
     onIsRecordingChanged: (Boolean) -> Unit,
     coroutineScope: CoroutineScope? = null,
-    cameraStateManager: CameraStateManager? = null
+    cameraStateManager: CameraStateManager? = null,
+    /** 拍照处理结束回调（仅照片路径）：供头像拍摄会话在落库后设置封面 */
+    onPhotoCompleted: (Boolean) -> Unit = {}
 ) {
     if (captureMode != MediaType.VIDEO) {
         cameraStateManager?.let { manager ->
@@ -129,6 +131,7 @@ internal fun handleCaptureClick(
             coroutineScope = coroutineScope,
             source = photoSource,
             onPhotoFinished = { success ->
+                onPhotoCompleted(success)
                 cameraStateManager?.let { manager ->
                     if (!success) {
                         Logger.w(TAG, "Photo processing failed, recovering to Previewing")

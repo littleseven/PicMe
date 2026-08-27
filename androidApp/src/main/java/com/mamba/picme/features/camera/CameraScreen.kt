@@ -8,6 +8,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -35,6 +36,7 @@ import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,6 +50,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -115,6 +118,8 @@ import com.mamba.picme.features.camera.voice.SystemAsrEngine
 import com.mamba.picme.features.camera.voice.VoiceCommandCoordinator
 import com.mamba.picme.features.camera.voice.createDefaultAsrEngine
 import com.mamba.picme.features.common.chat.AgentMessage
+import com.mamba.picme.features.common.avatar.AvatarCaptureController
+import com.mamba.picme.features.common.avatar.AvatarCaptureFinisher
 import com.mamba.picme.features.gallery.MediaViewModel
 import com.mamba.picme.features.settings.SettingsViewModel
 import com.mamba.picme.PoLangApplication
@@ -326,7 +331,7 @@ fun CameraScreen(
     onNavigateBack: () -> Unit = {},
     viewModel: MediaViewModel,
     settingsViewModel: SettingsViewModel? = null,
-    /** 是否为主页面 Pager 中的当前活跃页：非活跃时门控相机绑定/沉浸式/语音与模型加载 */
+    /** 路由/页面可见性门控：Pager 时代为当前活跃页；路由化后由路由生命周期（≥RESUMED）驱动，非活跃时门控相机绑定/沉浸式/语音与模型加载 */
     isActivePage: Boolean = true
 ) {
     // RD 沉浸式模式：隐藏系统栏（仅活跃页生效，避免 Pager 常驻组合时全局隐藏系统栏）
@@ -365,6 +370,18 @@ fun CameraScreen(
             }
         }
     )
+
+    // 离开相机路由（返回键/弹栈）且头像拍摄 pending 未被消费时视为取消。
+    // 挂在 CameraScreen 层而非 CameraContent：权限未授予时 CameraContent 不组合，
+    // 若清理由内层挂载，此分支下 pending 会永久残留，下次进相机误入头像拍摄态
+    DisposableEffect(Unit) {
+        onDispose {
+            if (AvatarCaptureController.pending.value != null) {
+                Logger.i(TAG, "Avatar capture cancelled by leaving camera route")
+                AvatarCaptureController.clear()
+            }
+        }
+    }
 
     if (permissionsState.allPermissionsGranted) {
         android.util.Log.i("CameraDebug", "CameraScreen: permissions granted, calling CameraContent")
@@ -432,7 +449,7 @@ fun CameraContent(
     onNavigateToGallery: () -> Unit,
     onNavigateBack: () -> Unit = {},
     settingsViewModel: SettingsViewModel? = null,
-    /** 是否为主页面 Pager 中的当前活跃页：非活跃时解绑相机并暂停语音/模型加载 */
+    /** 路由/页面可见性门控：非活跃时解绑相机并暂停语音/模型加载（路由化后由路由生命周期 ≥RESUMED 驱动） */
     isActivePage: Boolean = true
 ) {
     val context = LocalContext.current
@@ -1010,6 +1027,75 @@ voiceCoordinator.stopPushToTalk()
         )
     }
 
+    // ── 头像拍摄态（AvatarCaptureController 登记 pending 后由外部切到本页）──
+    val pendingAvatarCapture by AvatarCaptureController.pending.collectAsState()
+    val avatarCaptureActivated by AvatarCaptureController.activated.collectAsState()
+    var avatarRestoreLensFacing by remember { mutableStateOf<Int?>(null) }
+    var avatarShutterMs by remember { mutableStateOf(0L) }
+    val avatarCaptureFinisher = remember {
+        AvatarCaptureFinisher(
+            findLatestCapturedMediaId = { notBeforeMs ->
+                app.container.database.mediaDao().getLatestMediaCapturedAfter(notBeforeMs)?.id
+            },
+            getSelfPersonId = {
+                app.container.personRepository.getSelfPerson()?.personId
+            },
+            updateCover = { personId, mediaId ->
+                app.container.personRepository.updateCover(personId, mediaId)
+            }
+        )
+    }
+
+    // 头像拍摄收尾（UI 快门与 Agent/语音/IM 拍照共用）：轮询新照片落库设封面 → 清 pending →
+    // popBackStack 回来源页。轮询期间用户可能已离开相机路由（onDispose 清 pending），
+    // 故导航前校验 pending 未被取消/替换，避免把来源页也多 pop 一层
+    val onAvatarPhotoCompleted: (Boolean) -> Unit = { success ->
+        val pendingCapture = AvatarCaptureController.pending.value
+        if (pendingCapture != null) {
+            val shutterMs = avatarShutterMs
+            coroutineScope.launch {
+                avatarCaptureFinisher.finish(pendingCapture.target, success, shutterMs)
+                if (AvatarCaptureController.pending.value === pendingCapture) {
+                    AvatarCaptureController.clear()
+                    onNavigateBack()
+                }
+            }
+        }
+    }
+
+    // 进入头像拍摄态：默认前置摄像头（无前置硬件静默保持后置）；
+    // 待记忆水合完成后再切，避免被水合值覆盖
+    LaunchedEffect(pendingAvatarCapture != null, isCameraMemoryHydrated, isActivePage) {
+        if (pendingAvatarCapture != null && isActivePage &&
+            isCameraMemoryHydrated && avatarRestoreLensFacing == null
+        ) {
+            avatarRestoreLensFacing = lensFacing
+            AvatarCaptureController.markActivated()
+            val hasFrontCamera = context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_FRONT)
+            Logger.i(TAG, "Avatar capture mode entered, switch to front camera: $hasFrontCamera")
+            if (hasFrontCamera) {
+                lensFacing = CameraSelector.LENS_FACING_FRONT
+            }
+        }
+    }
+
+    // 退出头像拍摄态：拍照完成/失败由快门回调 clear()；离开相机路由（返回/弹栈）由
+    // CameraScreen 层 onDispose 清 pending（覆盖权限未授予分支）。此处仅处理「路由仍存活
+    // 但掉出 RESUMED」（退后台/被上层路由覆盖）且头像拍摄态已激活过的情形——未激活前
+    // （路由进入过渡、记忆水合等待）不因失活误清 pending
+    LaunchedEffect(isActivePage, pendingAvatarCapture != null) {
+        if (!isActivePage && pendingAvatarCapture != null && avatarCaptureActivated) {
+            Logger.i(TAG, "Avatar capture cancelled by leaving camera page")
+            AvatarCaptureController.clear()
+        }
+        if (pendingAvatarCapture == null) {
+            avatarRestoreLensFacing?.let { previousLensFacing ->
+                lensFacing = previousLensFacing
+            }
+            avatarRestoreLensFacing = null
+        }
+    }
+
     var isStable by remember { mutableStateOf(true) }
     val sensorManager = remember {
         context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -1145,6 +1231,13 @@ voiceCoordinator.stopPushToTalk()
     agentCommandHandler.onZoomRatioChanged = { zoomRatio = it }
     agentCommandHandler.onAspectRatioChanged = { aspectRatio = it }
     agentCommandHandler.onCurrentSceneChanged = { currentScene = it }
+    // 头像拍摄闭环透传到 Agent/语音/IM 拍照路径：快门时间戳下界 + 完成后设封面并返回来源页
+    agentCommandHandler.onCaptureTriggered = {
+        if (AvatarCaptureController.pending.value != null) {
+            avatarShutterMs = System.currentTimeMillis()
+        }
+    }
+    agentCommandHandler.onPhotoCompleted = onAvatarPhotoCompleted
 
     // 绑定 CameraCapability 状态变更到本地状态
     DisposableEffect(cameraCapability) {
@@ -1566,6 +1659,24 @@ CameraPreviewContent(
                         .background(Color.Black.copy(alpha = shutterFlashAlpha.value))
                 )
             }
+
+            // 头像拍摄态轻提示（顶部胶囊文案，避开顶部工具栏区域）
+            if (pendingAvatarCapture != null) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 120.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.avatar_capture_hint),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+            }
         }
     },
     uiState = buildCameraPreviewUiState(
@@ -1688,6 +1799,11 @@ CameraPreviewContent(
                 )
             }
 
+            // 头像拍摄态：记录快门时间戳（拍照落库后按此下界轮询新照片，见 AvatarCaptureFinisher 取舍说明）
+            if (AvatarCaptureController.pending.value != null) {
+                avatarShutterMs = System.currentTimeMillis()
+            }
+
             handleCaptureClick(
                 context = context,
                 captureMode = captureMode,
@@ -1707,7 +1823,8 @@ CameraPreviewContent(
                 onRecordingChanged = { updated -> recording = updated },
                 onIsRecordingChanged = { recordingFlag -> isRecording = recordingFlag },
                 coroutineScope = coroutineScope,
-                cameraStateManager = cameraStateManager
+                cameraStateManager = cameraStateManager,
+                onPhotoCompleted = onAvatarPhotoCompleted
             )
         },
         onCaptureModeChanged = { mode -> captureMode = mode },

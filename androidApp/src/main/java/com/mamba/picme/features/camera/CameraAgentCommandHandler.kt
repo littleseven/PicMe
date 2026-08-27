@@ -60,6 +60,10 @@ internal class CameraAgentCommandHandler(
     var onZoomRatioChanged: ((Float) -> Unit)? = null
     var onAspectRatioChanged: ((Int) -> Unit)? = null
     var onCurrentSceneChanged: ((ScenePreset) -> Unit)? = null
+    /** 拍照触发回调（收到拍照指令时）：头像拍摄态用它记录快门时间戳下界 */
+    var onCaptureTriggered: (() -> Unit)? = null
+    /** 拍照处理结束回调（仅照片路径）：透传头像拍摄闭环（设封面/清 pending/返回来源页） */
+    var onPhotoCompleted: ((Boolean) -> Unit)? = null
 
     fun handleCommand(cmd: AiAgentCommand) {
         Logger.i(TAG, "agentCommandHandler executing: ${cmd.javaClass.simpleName}")
@@ -185,6 +189,7 @@ internal class CameraAgentCommandHandler(
     }
 
     private fun executeCapture() {
+        onCaptureTriggered?.invoke()
         handleCaptureClick(
             context = context,
             captureMode = captureMode,
@@ -210,7 +215,8 @@ internal class CameraAgentCommandHandler(
                 onIsRecordingChanged?.invoke(recordingFlag)
             },
             coroutineScope = coroutineScope,
-            cameraStateManager = cameraStateManager
+            cameraStateManager = cameraStateManager,
+            onPhotoCompleted = { success -> onPhotoCompleted?.invoke(success) }
         )
     }
 }

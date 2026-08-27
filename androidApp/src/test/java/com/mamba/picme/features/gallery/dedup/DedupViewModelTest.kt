@@ -323,6 +323,8 @@ class DedupViewModelTest {
         assertEquals(1, cleaned.deletedCount)
         assertEquals(2_000L, cleaned.reclaimedBytes)
         assertEquals(listOf("b"), cleaned.trashedUris)
+        // 唯一的组已删干净：无剩余组，Cleaned 只提供「完成」
+        assertTrue(cleaned.remainingGroups.isEmpty())
         assertNull(vm.pendingTrash.value)
     }
 
@@ -401,7 +403,7 @@ class DedupViewModelTest {
     }
 
     @Test
-    fun `batch delete excludes SCENE groups from uris and reclaim bytes`() = runTest {
+    fun `batch delete excludes SCENE groups and deleteSelected only acts on current tab`() = runTest {
         // 每组首张文件更大：Done 按 BEST_QUALITY 重算后排序恒等，deleteUris 为各组第二张
         val exact = group(
             "g1", DedupLevel.EXACT,
@@ -421,19 +423,172 @@ class DedupViewModelTest {
 
         vm.startScan(DedupScanConfig())
         settle()
-        val groups = (vm.uiState.value as DedupUiState.Results).groups
+        val state = vm.uiState.value as DedupUiState.Results
+        val groups = state.groups
 
         // 派生值：仅 EXACT/VISUAL 组的 deleteUris（各 1 张非保留项）
         val batchUris = vm.batchDeleteUris(groups)
         assertEquals(listOf("b", "d"), batchUris.sorted())
         assertEquals(2_000L + 3_000L, vm.batchReclaimBytes(groups, batchUris))
 
+        // 按类型细分：默认落在 EXACT Tab，tab 域口径只含 g1 的 b
+        assertEquals(DedupLevel.EXACT, state.selectedTab)
+        assertEquals(listOf("b"), vm.tabBatchUris(state))
+
         vm.deleteSelected()
         settle()
 
-        // 删除流同样只带 EXACT/VISUAL 的 uris，SCENE 组不参与
-        assertEquals(listOf("b", "d"), vm.pendingTrash.value?.uris?.sorted())
+        // 删除流只带当前 Tab（EXACT）的 uris，VISUAL/SCENE 组不参与
+        assertEquals(listOf("b"), vm.pendingTrash.value?.uris)
         assertTrue(vm.uiState.value is DedupUiState.Results)
+    }
+
+    @Test
+    fun `deleteSelected confirmed on VISUAL tab keeps other groups for continueWithRemaining`() = runTest {
+        val exact = group(
+            "g1", DedupLevel.EXACT,
+            listOf(member("a", sizeBytes = 3_000L), member("b", sizeBytes = 2_000L)),
+        )
+        val visual = group(
+            "g2", DedupLevel.VISUAL,
+            listOf(member("c", sizeBytes = 4_000L), member("d", sizeBytes = 3_000L)),
+        )
+        val scanner = FakeScanner(events = listOf(DedupScanEvent.Done(listOf(exact, visual))))
+        val trash = fakeTrashManager(supported = true)
+        val vm = viewModel(scanner, trash, scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
+
+        vm.startScan(DedupScanConfig())
+        settle()
+        vm.selectTab(DedupLevel.VISUAL)
+        vm.deleteSelected()
+        settle()
+
+        // VISUAL Tab 只删 g2 的非保留项 d
+        assertEquals(listOf("d"), vm.pendingTrash.value?.uris)
+
+        vm.onTrashResult(ok = true)
+        settle()
+
+        val cleaned = vm.uiState.value as DedupUiState.Cleaned
+        assertEquals(1, cleaned.deletedCount)
+        assertEquals(3_000L, cleaned.reclaimedBytes)
+        // EXACT 组未被动过，留给「继续整理」
+        assertEquals(listOf("g1"), cleaned.remainingGroups.map { group -> group.id })
+
+        vm.continueWithRemaining()
+
+        val results = vm.uiState.value as DedupUiState.Results
+        assertEquals(listOf("g1"), results.groups.map { group -> group.id })
+        // 切到还有组的第一个 Tab
+        assertEquals(DedupLevel.EXACT, results.selectedTab)
+    }
+
+    @Test
+    fun `deleteSelected abandons authorization when tab switched during IPC window`() = runTest {
+        val exact = group(
+            "g1", DedupLevel.EXACT,
+            listOf(member("a", sizeBytes = 3_000L), member("b", sizeBytes = 2_000L)),
+        )
+        val visual = group(
+            "g2", DedupLevel.VISUAL,
+            listOf(member("c", sizeBytes = 4_000L), member("d", sizeBytes = 3_000L)),
+        )
+        val scanner = FakeScanner(events = listOf(DedupScanEvent.Done(listOf(exact, visual))))
+        val trash = fakeTrashManager(supported = true)
+        val vm = viewModel(scanner, trash, scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
+
+        vm.startScan(DedupScanConfig())
+        settle()
+        vm.deleteSelected()
+        // buildTrashIntent 的 IPC 窗口内切 Tab：当前 Tab 选择集与发起时已不一致
+        vm.selectTab(DedupLevel.VISUAL)
+        settle()
+
+        // 安全放弃：不发授权、不动任何照片，停留 Results
+        assertNull(vm.pendingTrash.value)
+        assertTrue(vm.uiState.value is DedupUiState.Results)
+    }
+
+    @Test
+    fun `remainingGroups drop trashed members and recompute keep when keepUri was trashed`() = runTest {
+        // 跨级重叠：b 同时属于 EXACT 组（非保留项，会被删）与 VISUAL 组（按画质是保留项）
+        val exact = group(
+            "g1", DedupLevel.EXACT,
+            listOf(member("a", sizeBytes = 3_000L), member("b", sizeBytes = 2_000L)),
+        )
+        val visual = group(
+            "g2", DedupLevel.VISUAL,
+            listOf(
+                member("b", sizeBytes = 2_000L),
+                member("c", sizeBytes = 1_500L),
+                member("d", sizeBytes = 1_200L),
+            ),
+        )
+        val scanner = FakeScanner(events = listOf(DedupScanEvent.Done(listOf(exact, visual))))
+        val trash = fakeTrashManager(supported = true)
+        val vm = viewModel(scanner, trash, scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
+
+        vm.startScan(DedupScanConfig())
+        settle()
+        // EXACT Tab 删除：b 入回收站
+        vm.deleteSelected()
+        settle()
+        vm.onTrashResult(ok = true)
+        settle()
+
+        val cleaned = vm.uiState.value as DedupUiState.Cleaned
+        assertEquals(listOf("b"), cleaned.trashedUris)
+        // g1 删干净移出；g2 剔除幽灵成员 b 后存活，keepUri 被删 → 按 policy 重算为 c
+        val survived = cleaned.remainingGroups.single()
+        assertEquals("g2", survived.id)
+        assertEquals(listOf("c", "d"), survived.members.map { member -> member.uri })
+        assertEquals("c", survived.keepUri)
+        assertFalse(survived.userOverride)
+
+        // 继续整理回 Results：g2 的 deleteUris 只剩 d，b 不会被渲染/二次删除
+        vm.continueWithRemaining()
+        val results = vm.uiState.value as DedupUiState.Results
+        assertEquals(DedupLevel.VISUAL, results.selectedTab)
+        assertEquals(listOf("d"), results.groups.single().deleteUris)
+    }
+
+    @Test
+    fun `smartSelectAll only applies to selected tab`() = runTest {
+        val exact = group(
+            "g1", DedupLevel.EXACT,
+            listOf(member("a", captureDate = 1L), member("b", captureDate = 2L)),
+        )
+        val visual = group(
+            "g2", DedupLevel.VISUAL,
+            listOf(member("c", captureDate = 3L), member("d", captureDate = 4L)),
+        )
+        val scanner = FakeScanner(events = listOf(DedupScanEvent.Done(listOf(exact, visual))))
+        val vm = viewModel(scanner, scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
+
+        vm.startScan(DedupScanConfig())
+        settle()
+        // 两组都手动改选过（BEST_QUALITY 默认 keep 为 captureDate 最新者 b/d）
+        vm.setKeep("g1", "a")
+        vm.setKeep("g2", "c")
+
+        // 当前 Tab = EXACT：只有 g1 被清 override 重算
+        vm.smartSelectAll()
+        var state = vm.uiState.value as DedupUiState.Results
+        val exactGroup = state.groups.first { grp -> grp.id == "g1" }
+        assertFalse(exactGroup.userOverride)
+        assertEquals("b", exactGroup.keepUri)
+        val visualGroup = state.groups.first { grp -> grp.id == "g2" }
+        assertTrue(visualGroup.userOverride)
+        assertEquals("c", visualGroup.keepUri)
+
+        // 切到 VISUAL Tab 再全选：g2 被重算，g1 不再被回滚
+        vm.selectTab(DedupLevel.VISUAL)
+        vm.smartSelectAll()
+        state = vm.uiState.value as DedupUiState.Results
+        val visualGroup2 = state.groups.first { grp -> grp.id == "g2" }
+        assertFalse(visualGroup2.userOverride)
+        assertEquals("d", visualGroup2.keepUri)
+        assertEquals("b", state.groups.first { grp -> grp.id == "g1" }.keepUri)
     }
 
     @Test
