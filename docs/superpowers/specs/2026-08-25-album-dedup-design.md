@@ -35,7 +35,7 @@
 | L3 | 场景相似 | 连拍、同场景不同构图的多张 | pHash 宽松 + 拍摄时间窗口（≤ 10s 连拍优先成组）+（后续）embedding 聚类 | ⬜ 关 |
 
 - 尺度在扫描前由用户勾选（`dedup/overview` 屏），L3 默认关闭并标注「误报较多，需逐组确认」。
-- 三级结果在结果页分 Tab 展示，删除策略不同：L1 可放心批量，L2 默认批量但逐组可改，L3 必须逐组确认（无「智能全选」）。
+- 三级结果在结果页分 Tab 展示，删除策略不同：L1 可放心批量，L2 默认批量但逐组可改，L3 必须逐组确认（无「智能全选」）。批量操作自 2026-08-26 起按当前 Tab 细分（见 §12）。
 
 ### 压缩/微调版本的关联建模
 
@@ -83,7 +83,7 @@ L2 组内按「版本链」标注每张图的身份 badge：
 Gallery 设置入口（现有行，升级文案）
   └─ dedup/overview      尺度选择 + 保留规则入口 + 上次摘要 + 开始扫描
        └─ dedup/scanning   渐进扫描：进度 + 实时发现流 + 暂停/后台
-            └─ dedup/results  三 Tab 结果页 + 智能全选(L1/L2) + 底部 CTA
+            └─ dedup/results  三 Tab 结果页 + 全选本类(L1/L2 Tab) + 底部 CTA（跟随当前 Tab，§12）
                  ├─ dedup/group_detail  组内对比改选（版本链 badge + 单选保留）
                  ├─ dedup/keep_rules    保留规则底部弹层
                  └─ dedup/cleaned       完成页 + 回收站撤销
@@ -190,3 +190,19 @@ Gallery 设置入口（现有行，升级文案）
 | `gallery_settings`（更名） | Gallery Scan | 相册扫描 | 相簿掃描 |
 | `gallery_cleanup`（新增） | Gallery Cleanup | 相册整理 | 相簿整理 |
 | `avatar_capture_hint`（新增） | Take a selfie for avatar | 拍摄头像 | 拍攝頭像 |
+
+## §12 结果页按类型细分处理（2026-08-26）
+
+结果页批量操作从全局口径改为**当前 Tab 口径**，用户逐类型处理；不再只有全局删除。
+
+- **底部 CTA 跟随 Tab**：只删除当前 Tab 内 batchEligible 组的待删项，文案「删除本类 N 张 · 释放 X」（`dedup_delete_cta_scoped`）；Hero 统计区保持全局口径（全部类型合计可释放）。
+- **全选 chip 跟随 Tab**：「智能全选」更名「全选本类」（`dedup_smart_select_tab`），只对当前 Tab 的 autoPreselected 组清 override 并重算默认勾选；L3 场景相似 Tab 不展示该 chip。
+- **L3 无批量入口（沿用 §4 安全约束）**：SCENE Tab 底部 CTA 由提示文案代替（`dedup_scene_batch_hint`：场景相似需逐组确认 · 不参与批量删除）。
+- **口径收口**：`DedupViewModel.tabBatchUris(state)` = `batchDeleteUris(groups.filter level == selectedTab)`，底部 CTA 计数、`deleteSelected()` 及其 IPC 窗口一致性复查共用；授权 IPC 窗口内切 Tab 会因选择集不一致安全放弃该次授权。
+- **删除后继续整理**：`DedupUiState.Cleaned` 增加 `remainingGroups`（本次未涉及的组：其他 Tab + 未预选组）。非空时完成页主操作为「继续整理 · 还剩 N 组」（`dedup_continue_remaining`，`continueWithRemaining()` → Results 剩余组并切到还有组的第一个 Tab），「完成」降为次操作；为空时维持原完成页布局。
+- **三语 key 变更**：删 `dedup_smart_select_all`、`dedup_delete_cta`；增 `dedup_smart_select_tab`、`dedup_delete_cta_scoped`、`dedup_scene_batch_hint`、`dedup_continue_remaining`。
+
+### 12.1 验收标准（追加）
+
+- AC-8：结果页底部 CTA 与全选 chip 仅作用于当前 Tab；切 Tab 后计数/文案随之变化；SCENE Tab 无批量入口（提示代替）。
+- AC-9：按类型删除授权完成后，若还有其他组，完成页可「继续整理」回到结果页且剩余组完整（含其他 Tab 的 userOverride 不丢失）。

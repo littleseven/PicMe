@@ -52,6 +52,8 @@ sealed interface DedupUiState {
         val deletedCount: Int,
         val reclaimedBytes: Long,
         val trashedUris: List<String>,
+        /** 按类型细分删除后未被清理的组（其他 Tab/未预选组），「继续整理」回 Results 用。 */
+        val remainingGroups: List<DedupGroup> = emptyList(),
     ) : DedupUiState
 }
 
@@ -191,14 +193,14 @@ class DedupViewModel(
     }
 
     /**
-     * 仅 autoPreselected 的 EXACT/VISUAL 组清 userOverride 并按当前 policy 重算；
-     * SCENE 组与未预选组（spec §10.3：VISUAL 截图/文档）保留原状不勾选。
+     * 仅当前 Tab 内 autoPreselected 的组清 userOverride 并按当前 policy 重算（按类型细分：
+     * 全选只作用于 selectedTab；SCENE 组本就不预选，天然不受影响）；未预选组保留原状不勾选。
      */
     fun smartSelectAll() {
         val state = _uiState.value as? DedupUiState.Results ?: return
         _uiState.value = state.copy(
             groups = state.groups.map { group ->
-                if (!group.autoPreselected) {
+                if (!group.autoPreselected || group.level != state.selectedTab) {
                     group
                 } else {
                     resortGroup(group.copy(userOverride = false), state.policy)
@@ -247,13 +249,20 @@ class DedupViewModel(
             .sumOf { member -> member.sizeBytes }
 
     /**
-     * 聚合批量删除候选 uri（SCENE 组除外，见 [batchDeleteUris]）。API 30+ 发回收站
+     * 当前 Tab 的批量删除候选 uri（按类型细分处理：仅 selectedTab 级别内的 batchEligible
+     * 组参与）。结果页底部 CTA 与 [deleteSelected] 删除流共用此口径。
+     */
+    fun tabBatchUris(state: DedupUiState.Results): List<String> =
+        batchDeleteUris(state.groups.filter { group -> group.level == state.selectedTab })
+
+    /**
+     * 删除当前 Tab 的批量候选（见 [tabBatchUris]）。API 30+ 发回收站
      * 授权（[pendingTrash]，UI 启动 IntentSender 后回调 [onTrashResult]）；API < 30
      * 走 [legacyDeleter] 旧删除流，状态保持 Results 由旧流自行管理。
      */
     fun deleteSelected() {
         val state = _uiState.value as? DedupUiState.Results ?: return
-        val uris = batchDeleteUris(state.groups)
+        val uris = tabBatchUris(state)
         if (uris.isEmpty()) return
         Logger.d(TAG, "deleteSelected: ${uris.size} uris")
         if (trashManager.isSupported) {
@@ -264,14 +273,14 @@ class DedupViewModel(
                         .onFailure { error -> Logger.w(TAG, "buildTrashIntent failed", error) }
                         .getOrNull()
                 }
-                // IPC 窗口内选择集可能已变（setKeep 改选/双击）：复查仍为 Results、
-                // 无在途授权且选择集一致才发授权，避免弹窗覆盖 stale uris
+                // IPC 窗口内选择集可能已变（setKeep 改选/切 Tab/双击）：复查仍为 Results、
+                // 无在途授权且当前 Tab 选择集一致才发授权，避免弹窗覆盖 stale uris
                 val current = _uiState.value as? DedupUiState.Results
                 if (
                     sender != null &&
                     current != null &&
                     _pendingTrash.value == null &&
-                    batchDeleteUris(current.groups) == uris
+                    tabBatchUris(current) == uris
                 ) {
                     _pendingTrash.value = PendingTrash(uris, sender)
                 }
@@ -298,10 +307,18 @@ class DedupViewModel(
                 return@launch
             }
             val deleted = pending.uris.toSet()
+            // 本次删干净的组（batchEligible 且 deleteUris 全部入回收站）移出结果；
+            // 其他 Tab 与未预选组保留给「继续整理」
+            val remainingGroups = state.groups.filterNot { group ->
+                group.batchEligible &&
+                    group.deleteUris.isNotEmpty() &&
+                    group.deleteUris.all { uri -> uri in deleted }
+            }
             _uiState.value = DedupUiState.Cleaned(
                 deletedCount = deleted.size,
                 reclaimedBytes = batchReclaimBytes(state.groups, pending.uris),
                 trashedUris = pending.uris,
+                remainingGroups = remainingGroups,
             )
         }
     }
@@ -317,6 +334,20 @@ class DedupViewModel(
         if (_pendingRestore.value == null) return
         _pendingRestore.value = null
         if (ok) _uiState.value = DedupUiState.Config()
+    }
+
+    /** Cleaned → Results（「继续整理」）：带剩余组回去，切到还有组的第一个 Tab。 */
+    fun continueWithRemaining() {
+        val state = _uiState.value as? DedupUiState.Cleaned ?: return
+        if (state.remainingGroups.isEmpty()) return
+        val firstTab = DedupLevel.entries.firstOrNull { level ->
+            state.remainingGroups.any { group -> group.level == level }
+        } ?: DedupLevel.EXACT
+        _uiState.value = DedupUiState.Results(
+            groups = state.remainingGroups,
+            selectedTab = firstTab,
+            policy = _policy.value,
+        )
     }
 
     /** Cleaned → Config（「完成」按钮）。 */

@@ -383,7 +383,8 @@
     <string name="dedup_run_background">Run in background</string>
     <string name="dedup_hero_reclaim">Free up %1$s</string>
     <string name="dedup_hero_groups">%1$d duplicate groups</string>
-    <string name="dedup_smart_select_all">Smart select</string>
+    <!-- 全选仅作用于当前 Tab（按类型细分处理）；L3 场景相似 Tab 不展示此 chip -->
+    <string name="dedup_smart_select_tab">Select this type</string>
     <!-- 结果页级别 tab 短标签（下划线 TabRow 按内容宽度排布，必须短；Config 页尺度卡片用 dedup_scale_* 长文案） -->
     <string name="dedup_level_exact">Exact</string>
     <string name="dedup_level_visual">Visual</string>
@@ -404,7 +405,10 @@
     <string name="dedup_hint_portrait">Portrait group · kept the best face quality; tap to change</string>
     <string name="dedup_hint_screenshot">Similar screenshots are easily misjudged · not pre-selected, confirm per group</string>
     <string name="dedup_hint_document">Only exact duplicate documents are batched · review similar versions per group</string>
-    <string name="dedup_delete_cta">Delete %1$d · Free %2$s</string>
+    <!-- 删除 CTA 仅作用于当前 Tab（按类型细分处理） -->
+    <string name="dedup_delete_cta_scoped">Delete %1$d in this category · Free %2$s</string>
+    <!-- L3 场景相似 Tab 的底部提示：不参与批量删除（spec §4 安全约束） -->
+    <string name="dedup_scene_batch_hint">Similar scenes need per-group review · no bulk delete</string>
     <string name="dedup_recycle_caption">Moved to trash · restorable within 30 days</string>
     <string name="dedup_detail_title">Choose what to keep</string>
     <string name="dedup_keep_this">Keep this one</string>
@@ -421,6 +425,8 @@
     <string name="dedup_recycle_bin">Trash</string>
     <string name="dedup_auto_clear">Auto-cleared after 30 days</string>
     <string name="dedup_undo_all">Undo all</string>
+    <!-- 按类型删除后还有其他组时的主操作：回结果页继续整理 -->
+    <string name="dedup_continue_remaining">Continue · %1$d groups left</string>
     <string name="dedup_view_recycle">View trash</string>
     <string name="dedup_no_groups">No duplicates found</string>
     <string name="dedup_progress_percent">%1$d%%</string>

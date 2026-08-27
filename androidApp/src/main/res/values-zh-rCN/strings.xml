@@ -367,7 +367,8 @@
     <string name="dedup_run_background">转后台运行</string>
     <string name="dedup_hero_reclaim">可释放 %1$s</string>
     <string name="dedup_hero_groups">%1$d 组重复照片</string>
-    <string name="dedup_smart_select_all">智能全选</string>
+    <!-- 全选仅作用于当前 Tab（按类型细分处理）；L3 场景相似 Tab 不展示此 chip -->
+    <string name="dedup_smart_select_tab">全选本类</string>
     <!-- 结果页级别 tab 短标签（下划线 TabRow 按内容宽度排布；Config 页尺度卡片用 dedup_scale_*） -->
     <string name="dedup_level_exact">完全重复</string>
     <string name="dedup_level_visual">视觉重复</string>
@@ -388,7 +389,10 @@
     <string name="dedup_hint_portrait">人像组 · 已优先保留人脸质量最佳，可改选</string>
     <string name="dedup_hint_screenshot">截图相似易误判 · 本组未预选，请逐组确认</string>
     <string name="dedup_hint_document">文档仅完全重复可批量 · 相似版本请逐组确认</string>
-    <string name="dedup_delete_cta">删除 %1$d 张 · 释放 %2$s</string>
+    <!-- 删除 CTA 仅作用于当前 Tab（按类型细分处理） -->
+    <string name="dedup_delete_cta_scoped">删除本类 %1$d 张 · 释放 %2$s</string>
+    <!-- L3 场景相似 Tab 的底部提示：不参与批量删除（spec §4 安全约束） -->
+    <string name="dedup_scene_batch_hint">场景相似需逐组确认 · 不参与批量删除</string>
     <string name="dedup_recycle_caption">移入回收站 · 30 天内可恢复</string>
     <string name="dedup_detail_title">选择保留</string>
     <string name="dedup_keep_this">保留这张</string>
@@ -405,6 +409,8 @@
     <string name="dedup_recycle_bin">回收站</string>
     <string name="dedup_auto_clear">30 天后自动清除</string>
     <string name="dedup_undo_all">全部撤销</string>
+    <!-- 按类型删除后还有其他组时的主操作：回结果页继续整理 -->
+    <string name="dedup_continue_remaining">继续整理 · 还剩 %1$d 组</string>
     <string name="dedup_view_recycle">查看回收站</string>
     <string name="dedup_no_groups">没有发现重复照片</string>
     <string name="dedup_progress_percent">%1$d%%</string>
