@@ -17,8 +17,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -77,7 +75,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -87,15 +84,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -105,7 +98,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -113,7 +105,6 @@ import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
-import coil.compose.AsyncImage
 import com.mamba.picme.R
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.agent.core.model.context.MediaType
@@ -132,7 +123,6 @@ import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.math.abs
 
 private const val TAG = "Gallery"
 
@@ -386,81 +376,7 @@ fun MediaPager(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun ZoomableImage(
-    uri: String,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit,
-    onZoomStateChanged: (Float) -> Unit
-) {
-    var scale by remember(uri) { mutableStateOf(1f) }
-    var offset by remember(uri) { mutableStateOf(Offset.Zero) }
-    var containerSize by remember(uri) { mutableStateOf(IntSize.Zero) }
-
-    fun clampOffset(nextOffset: Offset, nextScale: Float): Offset {
-        if (nextScale <= 1f || containerSize.width == 0 || containerSize.height == 0) {
-            return Offset.Zero
-        }
-        val maxX = (containerSize.width * (nextScale - 1f)) / 2f
-        val maxY = (containerSize.height * (nextScale - 1f)) / 2f
-        return Offset(
-            x = nextOffset.x.coerceIn(-maxX, maxX),
-            y = nextOffset.y.coerceIn(-maxY, maxY)
-        )
-    }
-
-    SideEffect {
-        onZoomStateChanged(scale)
-    }
-
-    val isZoomed = scale > 1.02f
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .onSizeChanged { size ->
-                containerSize = size
-                offset = clampOffset(offset, scale)
-            }
-            .then(
-                if (isZoomed) {
-                    Modifier.pointerInput(uri) {
-                        detectTransformGestures { _, pan, zoom, _ ->
-                            val nextScale = (scale * zoom).coerceIn(1f, 4f)
-                            val nextOffset = clampOffset(offset + pan, nextScale)
-                            scale = nextScale
-                            offset = if (abs(nextScale - 1f) < 0.01f) {
-                                Offset.Zero
-                            } else {
-                                nextOffset
-                            }
-                        }
-                    }
-                } else {
-                    Modifier
-                }
-            )
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick
-            )
-    ) {
-        AsyncImage(
-            model = uri,
-            contentDescription = null,
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                    translationX = offset.x
-                    translationY = offset.y
-                },
-            contentScale = ContentScale.Fit
-        )
-    }
-}
+// ZoomableImage 已抽出至本包 ZoomableImage.kt（相册查看器与去重对比预览共享）
 
 @Composable
 private fun OcrResultOverlay(
@@ -1256,7 +1172,16 @@ private fun PhotoInfoDialog(
 
                 // 基本信息
                 InfoRow(stringResource(R.string.media_info_file_name), asset.fileName)
-                InfoRow(stringResource(R.string.media_info_type), stringResource(if (asset.type == MediaType.PHOTO) R.string.media_type_photo else R.string.media_type_video))
+                InfoRow(
+                    stringResource(R.string.media_info_type),
+                    stringResource(
+                        if (asset.type == MediaType.PHOTO) {
+                            R.string.media_type_photo
+                        } else {
+                            R.string.media_type_video
+                        }
+                    )
+                )
                 InfoRow(stringResource(R.string.media_info_capture_date), dateStr)
                 if (asset.duration != null && asset.duration!! > 0) {
                     InfoRow(stringResource(R.string.media_info_duration), stringResource(R.string.media_info_duration_seconds, asset.duration!! / 1000))

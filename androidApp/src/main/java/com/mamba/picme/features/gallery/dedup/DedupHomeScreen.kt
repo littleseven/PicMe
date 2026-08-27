@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -92,6 +93,7 @@ fun DedupHomeRoute(
     val snackbarHostState = remember { SnackbarHostState() }
     var showKeepRules by remember { mutableStateOf(false) }
     var detailGroupId by remember { mutableStateOf<String?>(null) }
+    var previewIndex by remember { mutableStateOf<Int?>(null) }
 
     // 部分拒绝一次性提示（B5）：VM 置位 → 消费 → 弹 snackbar
     val partialTrashMessage = stringResource(R.string.dedup_partial_trash_notice)
@@ -200,7 +202,24 @@ fun DedupHomeRoute(
             groupId = groupId,
             viewModel = viewModel,
             onDismiss = { detailGroupId = null },
+            onPreview = { index -> previewIndex = index },
         )
+    }
+    // 全屏对比预览覆盖层：晚于半屏组合置顶；组经 getGroup 随 uiState 重组实时取，
+    // 预览中「保留这张」改选后保留徽标即时刷新
+    previewIndex?.let { index ->
+        detailGroupId?.let { groupId ->
+            val previewGroup = viewModel.getGroup(groupId)
+            if (previewGroup != null) {
+                DedupGroupPreviewOverlay(
+                    group = previewGroup,
+                    initialIndex = index,
+                    editable = uiState is DedupUiState.Results,
+                    onKeep = { uri -> viewModel.setKeep(groupId, uri) },
+                    onDismiss = { previewIndex = null },
+                )
+            }
+        }
     }
 }
 
@@ -506,56 +525,80 @@ private fun DedupScanningContent(
             ) { group ->
                 DedupScanningGroupRow(
                     group = group,
-                    onClick = { onOpenGroupDetail(group.id) }
+                    onClick = { onOpenGroupDetail(group.id) },
+                    // 新组前插时平滑落位，避免整列瞬移跳闪
+                    modifier = Modifier.animateItem()
                 )
             }
         }
     }
 }
 
-/** 扫描中实时发现组（紧凑版：前 2 张缩略 + 级别 badge + meta + chevron，只展示不改选）。 */
+/**
+ * 扫描中实时发现组：header（级别 badge + meta + chevron）+ 两张正方形大图预览。
+ * 高度即最终态（与组详情/结果卡同量级），消除「紧凑小行 → 大卡」的高度跳变；
+ * 双图权重等分保证任意组高度恒定，插入动画期间布局稳定。
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DedupScanningGroupRow(
     group: DedupGroup,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Card(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer
         )
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            group.members.take(2).forEach { member ->
-                DedupThumb(
-                    uri = member.uri,
-                    isKept = member.uri == group.keepUri,
-                    role = member.role,
-                    modifier = Modifier.size(48.dp)
-                )
-            }
-            Column(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 LevelBadge(level = group.level)
                 Text(
                     text = dedupGroupMetaText(group),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Icon(
+                    Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Icon(
-                Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                group.members.take(2).forEach { member ->
+                    DedupThumb(
+                        uri = member.uri,
+                        isKept = member.uri == group.keepUri,
+                        role = member.role,
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(1f)
+                    )
+                }
+                // 单成员兜底：占位保持双格几何，组间高度一致
+                if (group.members.size < 2) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
         }
     }
 }
@@ -714,7 +757,9 @@ private fun DedupResultsContent(
                     DedupGroupCard(
                         group = group,
                         policy = state.policy,
-                        onOpenDetail = { onOpenGroupDetail(group.id) }
+                        onOpenDetail = { onOpenGroupDetail(group.id) },
+                        // tab 切换过滤时组卡平滑重排
+                        modifier = Modifier.animateItem()
                     )
                 }
             }

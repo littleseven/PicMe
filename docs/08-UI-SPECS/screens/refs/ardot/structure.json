@@ -2,7 +2,7 @@
   "file": {
     "id": "715061534788814",
     "name": "polang-ui-spec",
-    "url": "cocraft://localhost/file/715061534788814?node_id=189%3A1"
+    "url": "cocraft://localhost/file/715061534788814?node_id=189%3A96"
   },
   "pages": [
     {
@@ -52570,100 +52570,6 @@
                       {
                         "children": [
                           {
-                            "children": [],
-                            "clipsContent": true,
-                            "cornerRadius": 8,
-                            "fills": [
-                              {
-                                "blendMode": "NORMAL",
-                                "filters": {
-                                  "contrast": 0,
-                                  "exposure": 0,
-                                  "highlights": 0,
-                                  "saturation": 0,
-                                  "shadows": 0,
-                                  "temperature": 0,
-                                  "tint": 0
-                                },
-                                "imageHash": "bf121fe1f004519323c38b3cceed2785928c3d46",
-                                "imageTransform": [
-                                  [
-                                    1,
-                                    0,
-                                    0
-                                  ],
-                                  [
-                                    0,
-                                    1,
-                                    0
-                                  ]
-                                ],
-                                "opacity": 1,
-                                "rotation": 0,
-                                "scaleMode": "FILL",
-                                "scalingFactor": 1,
-                                "type": "IMAGE",
-                                "visible": true
-                              }
-                            ],
-                            "gap": 0,
-                            "height": 48,
-                            "id": "189:69",
-                            "layout": "none",
-                            "name": "thumb_a",
-                            "type": "FRAME",
-                            "width": 48,
-                            "x": 10,
-                            "y": 10
-                          },
-                          {
-                            "children": [],
-                            "clipsContent": true,
-                            "cornerRadius": 8,
-                            "fills": [
-                              {
-                                "blendMode": "NORMAL",
-                                "filters": {
-                                  "contrast": 0,
-                                  "exposure": 0,
-                                  "highlights": 0,
-                                  "saturation": 0,
-                                  "shadows": 0,
-                                  "temperature": 0,
-                                  "tint": 0
-                                },
-                                "imageHash": "bf121fe1f004519323c38b3cceed2785928c3d46",
-                                "imageTransform": [
-                                  [
-                                    1,
-                                    0,
-                                    0
-                                  ],
-                                  [
-                                    0,
-                                    1,
-                                    0
-                                  ]
-                                ],
-                                "opacity": 1,
-                                "rotation": 0,
-                                "scaleMode": "FILL",
-                                "scalingFactor": 1,
-                                "type": "IMAGE",
-                                "visible": true
-                              }
-                            ],
-                            "gap": 0,
-                            "height": 48,
-                            "id": "189:70",
-                            "layout": "none",
-                            "name": "thumb_b",
-                            "type": "FRAME",
-                            "width": 48,
-                            "x": 68,
-                            "y": 10
-                          },
-                          {
                             "children": [
                               {
                                 "children": [
@@ -52720,7 +52626,7 @@
                                 "type": "FRAME",
                                 "width": "hug_contents",
                                 "x": 0,
-                                "y": 0
+                                "y": 2
                               },
                               {
                                 "characters": "$230:48",
@@ -52741,17 +52647,40 @@
                                 "textAlignHorizontal": "LEFT",
                                 "textAlignVertical": "TOP",
                                 "type": "TEXT",
+                                "width": "fill_container",
+                                "x": 54,
+                                "y": 3.5
+                              },
+                              {
+                                "characters": "›",
+                                "fills": [
+                                  "$2:151"
+                                ],
+                                "fontName": {
+                                  "family": "Sarasa Gothic SC",
+                                  "style": "Regular"
+                                },
+                                "fontSize": 18,
+                                "height": "hug_contents",
+                                "id": "189:75",
+                                "lineHeight": {
+                                  "unit": "AUTO"
+                                },
+                                "name": "chevron",
+                                "textAlignHorizontal": "LEFT",
+                                "textAlignVertical": "TOP",
+                                "type": "TEXT",
                                 "width": "hug_contents",
-                                "x": 0,
-                                "y": 22
+                                "x": 331,
+                                "y": 0
                               }
                             ],
                             "clipsContent": true,
-                            "gap": 4,
+                            "gap": 8,
                             "height": "hug_contents",
-                            "id": "189:71",
-                            "layout": "vertical",
-                            "name": "mid",
+                            "id": "230:71",
+                            "layout": "horizontal",
+                            "name": "header_row",
                             "padding": {
                               "bottom": 0,
                               "left": 0,
@@ -52760,31 +52689,122 @@
                             },
                             "type": "FRAME",
                             "width": "fill_container",
-                            "x": 126,
-                            "y": 15.5
+                            "x": 12,
+                            "y": 12
                           },
                           {
-                            "characters": "›",
-                            "fills": [
-                              "$2:151"
+                            "children": [
+                              {
+                                "children": [],
+                                "clipsContent": true,
+                                "cornerRadius": 8,
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "filters": {
+                                      "contrast": 0,
+                                      "exposure": 0,
+                                      "highlights": 0,
+                                      "saturation": 0,
+                                      "shadows": 0,
+                                      "temperature": 0,
+                                      "tint": 0
+                                    },
+                                    "imageHash": "bf121fe1f004519323c38b3cceed2785928c3d46",
+                                    "imageTransform": [
+                                      [
+                                        1,
+                                        0,
+                                        0
+                                      ],
+                                      [
+                                        0,
+                                        1,
+                                        0
+                                      ]
+                                    ],
+                                    "opacity": 1,
+                                    "rotation": 0,
+                                    "scaleMode": "FILL",
+                                    "scalingFactor": 1,
+                                    "type": "IMAGE",
+                                    "visible": true
+                                  }
+                                ],
+                                "gap": 0,
+                                "height": 164,
+                                "id": "189:69",
+                                "layout": "none",
+                                "name": "thumb_a",
+                                "type": "FRAME",
+                                "width": 164,
+                                "x": 0,
+                                "y": 0
+                              },
+                              {
+                                "children": [],
+                                "clipsContent": true,
+                                "cornerRadius": 8,
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "filters": {
+                                      "contrast": 0,
+                                      "exposure": 0,
+                                      "highlights": 0,
+                                      "saturation": 0,
+                                      "shadows": 0,
+                                      "temperature": 0,
+                                      "tint": 0
+                                    },
+                                    "imageHash": "bf121fe1f004519323c38b3cceed2785928c3d46",
+                                    "imageTransform": [
+                                      [
+                                        1,
+                                        0,
+                                        0
+                                      ],
+                                      [
+                                        0,
+                                        1,
+                                        0
+                                      ]
+                                    ],
+                                    "opacity": 1,
+                                    "rotation": 0,
+                                    "scaleMode": "FILL",
+                                    "scalingFactor": 1,
+                                    "type": "IMAGE",
+                                    "visible": true
+                                  }
+                                ],
+                                "gap": 0,
+                                "height": 164,
+                                "id": "189:70",
+                                "layout": "none",
+                                "name": "thumb_b",
+                                "type": "FRAME",
+                                "width": 164,
+                                "x": 172,
+                                "y": 0
+                              }
                             ],
-                            "fontName": {
-                              "family": "Sarasa Gothic SC",
-                              "style": "Regular"
-                            },
-                            "fontSize": 18,
+                            "clipsContent": true,
+                            "gap": 8,
                             "height": "hug_contents",
-                            "id": "189:75",
-                            "lineHeight": {
-                              "unit": "AUTO"
+                            "id": "230:72",
+                            "layout": "horizontal",
+                            "name": "thumbs_row",
+                            "padding": {
+                              "bottom": 0,
+                              "left": 0,
+                              "right": 0,
+                              "top": 0
                             },
-                            "name": "chevron",
-                            "textAlignHorizontal": "LEFT",
-                            "textAlignVertical": "TOP",
-                            "type": "TEXT",
-                            "width": "hug_contents",
-                            "x": 345,
-                            "y": 23
+                            "type": "FRAME",
+                            "width": "fill_container",
+                            "x": 12,
+                            "y": 44
                           }
                         ],
                         "clipsContent": true,
@@ -52795,115 +52815,21 @@
                         "gap": 10,
                         "height": "hug_contents",
                         "id": "189:68",
-                        "layout": "horizontal",
+                        "layout": "vertical",
                         "name": "found_card_visual",
                         "padding": {
-                          "bottom": 10,
-                          "left": 10,
-                          "right": 10,
-                          "top": 10
+                          "bottom": 12,
+                          "left": 12,
+                          "right": 12,
+                          "top": 12
                         },
                         "type": "FRAME",
-                        "width": "fill_container",
+                        "width": 361,
                         "x": 16,
                         "y": 159
                       },
                       {
                         "children": [
-                          {
-                            "children": [],
-                            "clipsContent": true,
-                            "cornerRadius": 8,
-                            "fills": [
-                              {
-                                "blendMode": "NORMAL",
-                                "filters": {
-                                  "contrast": 0,
-                                  "exposure": 0,
-                                  "highlights": 0,
-                                  "saturation": 0,
-                                  "shadows": 0,
-                                  "temperature": 0,
-                                  "tint": 0
-                                },
-                                "imageHash": "d944f104570afce5c77455901281073ee3205abc",
-                                "imageTransform": [
-                                  [
-                                    1,
-                                    0,
-                                    0
-                                  ],
-                                  [
-                                    0,
-                                    1,
-                                    0
-                                  ]
-                                ],
-                                "opacity": 1,
-                                "rotation": 0,
-                                "scaleMode": "FILL",
-                                "scalingFactor": 1,
-                                "type": "IMAGE",
-                                "visible": true
-                              }
-                            ],
-                            "gap": 0,
-                            "height": 48,
-                            "id": "189:77",
-                            "layout": "none",
-                            "name": "thumb_a",
-                            "type": "FRAME",
-                            "width": 48,
-                            "x": 10,
-                            "y": 10
-                          },
-                          {
-                            "children": [],
-                            "clipsContent": true,
-                            "cornerRadius": 8,
-                            "fills": [
-                              {
-                                "blendMode": "NORMAL",
-                                "filters": {
-                                  "contrast": 0,
-                                  "exposure": 0,
-                                  "highlights": 0,
-                                  "saturation": 0,
-                                  "shadows": 0,
-                                  "temperature": 0,
-                                  "tint": 0
-                                },
-                                "imageHash": "d944f104570afce5c77455901281073ee3205abc",
-                                "imageTransform": [
-                                  [
-                                    1,
-                                    0,
-                                    0
-                                  ],
-                                  [
-                                    0,
-                                    1,
-                                    0
-                                  ]
-                                ],
-                                "opacity": 1,
-                                "rotation": 0,
-                                "scaleMode": "FILL",
-                                "scalingFactor": 1,
-                                "type": "IMAGE",
-                                "visible": true
-                              }
-                            ],
-                            "gap": 0,
-                            "height": 48,
-                            "id": "189:78",
-                            "layout": "none",
-                            "name": "thumb_b",
-                            "type": "FRAME",
-                            "width": 48,
-                            "x": 68,
-                            "y": 10
-                          },
                           {
                             "children": [
                               {
@@ -52971,7 +52897,7 @@
                                 "type": "FRAME",
                                 "width": "hug_contents",
                                 "x": 0,
-                                "y": 0
+                                "y": 2
                               },
                               {
                                 "characters": "$230:49",
@@ -52992,17 +52918,40 @@
                                 "textAlignHorizontal": "LEFT",
                                 "textAlignVertical": "TOP",
                                 "type": "TEXT",
+                                "width": "fill_container",
+                                "x": 51,
+                                "y": 3.5
+                              },
+                              {
+                                "characters": "›",
+                                "fills": [
+                                  "$2:151"
+                                ],
+                                "fontName": {
+                                  "family": "Sarasa Gothic SC",
+                                  "style": "Regular"
+                                },
+                                "fontSize": 18,
+                                "height": "hug_contents",
+                                "id": "189:83",
+                                "lineHeight": {
+                                  "unit": "AUTO"
+                                },
+                                "name": "chevron",
+                                "textAlignHorizontal": "LEFT",
+                                "textAlignVertical": "TOP",
+                                "type": "TEXT",
                                 "width": "hug_contents",
-                                "x": 0,
-                                "y": 22
+                                "x": 331,
+                                "y": 0
                               }
                             ],
                             "clipsContent": true,
-                            "gap": 4,
+                            "gap": 8,
                             "height": "hug_contents",
-                            "id": "189:79",
-                            "layout": "vertical",
-                            "name": "mid",
+                            "id": "230:73",
+                            "layout": "horizontal",
+                            "name": "header_row",
                             "padding": {
                               "bottom": 0,
                               "left": 0,
@@ -53011,31 +52960,122 @@
                             },
                             "type": "FRAME",
                             "width": "fill_container",
-                            "x": 126,
-                            "y": 15.5
+                            "x": 12,
+                            "y": 12
                           },
                           {
-                            "characters": "›",
-                            "fills": [
-                              "$2:151"
+                            "children": [
+                              {
+                                "children": [],
+                                "clipsContent": true,
+                                "cornerRadius": 8,
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "filters": {
+                                      "contrast": 0,
+                                      "exposure": 0,
+                                      "highlights": 0,
+                                      "saturation": 0,
+                                      "shadows": 0,
+                                      "temperature": 0,
+                                      "tint": 0
+                                    },
+                                    "imageHash": "d944f104570afce5c77455901281073ee3205abc",
+                                    "imageTransform": [
+                                      [
+                                        1,
+                                        0,
+                                        0
+                                      ],
+                                      [
+                                        0,
+                                        1,
+                                        0
+                                      ]
+                                    ],
+                                    "opacity": 1,
+                                    "rotation": 0,
+                                    "scaleMode": "FILL",
+                                    "scalingFactor": 1,
+                                    "type": "IMAGE",
+                                    "visible": true
+                                  }
+                                ],
+                                "gap": 0,
+                                "height": 164,
+                                "id": "189:77",
+                                "layout": "none",
+                                "name": "thumb_a",
+                                "type": "FRAME",
+                                "width": 164,
+                                "x": 0,
+                                "y": 0
+                              },
+                              {
+                                "children": [],
+                                "clipsContent": true,
+                                "cornerRadius": 8,
+                                "fills": [
+                                  {
+                                    "blendMode": "NORMAL",
+                                    "filters": {
+                                      "contrast": 0,
+                                      "exposure": 0,
+                                      "highlights": 0,
+                                      "saturation": 0,
+                                      "shadows": 0,
+                                      "temperature": 0,
+                                      "tint": 0
+                                    },
+                                    "imageHash": "d944f104570afce5c77455901281073ee3205abc",
+                                    "imageTransform": [
+                                      [
+                                        1,
+                                        0,
+                                        0
+                                      ],
+                                      [
+                                        0,
+                                        1,
+                                        0
+                                      ]
+                                    ],
+                                    "opacity": 1,
+                                    "rotation": 0,
+                                    "scaleMode": "FILL",
+                                    "scalingFactor": 1,
+                                    "type": "IMAGE",
+                                    "visible": true
+                                  }
+                                ],
+                                "gap": 0,
+                                "height": 164,
+                                "id": "189:78",
+                                "layout": "none",
+                                "name": "thumb_b",
+                                "type": "FRAME",
+                                "width": 164,
+                                "x": 172,
+                                "y": 0
+                              }
                             ],
-                            "fontName": {
-                              "family": "Sarasa Gothic SC",
-                              "style": "Regular"
-                            },
-                            "fontSize": 18,
+                            "clipsContent": true,
+                            "gap": 8,
                             "height": "hug_contents",
-                            "id": "189:83",
-                            "lineHeight": {
-                              "unit": "AUTO"
+                            "id": "230:74",
+                            "layout": "horizontal",
+                            "name": "thumbs_row",
+                            "padding": {
+                              "bottom": 0,
+                              "left": 0,
+                              "right": 0,
+                              "top": 0
                             },
-                            "name": "chevron",
-                            "textAlignHorizontal": "LEFT",
-                            "textAlignVertical": "TOP",
-                            "type": "TEXT",
-                            "width": "hug_contents",
-                            "x": 345,
-                            "y": 23
+                            "type": "FRAME",
+                            "width": "fill_container",
+                            "x": 12,
+                            "y": 44
                           }
                         ],
                         "clipsContent": true,
@@ -53046,18 +53086,18 @@
                         "gap": 10,
                         "height": "hug_contents",
                         "id": "189:76",
-                        "layout": "horizontal",
+                        "layout": "vertical",
                         "name": "found_card_exact",
                         "padding": {
-                          "bottom": 10,
-                          "left": 10,
-                          "right": 10,
-                          "top": 10
+                          "bottom": 12,
+                          "left": 12,
+                          "right": 12,
+                          "top": 12
                         },
                         "type": "FRAME",
-                        "width": "fill_container",
+                        "width": 361,
                         "x": 16,
-                        "y": 243
+                        "y": 395
                       },
                       {
                         "children": [],
@@ -53070,7 +53110,7 @@
                         "type": "FRAME",
                         "width": 1,
                         "x": 16,
-                        "y": 327
+                        "y": 631
                       },
                       {
                         "children": [

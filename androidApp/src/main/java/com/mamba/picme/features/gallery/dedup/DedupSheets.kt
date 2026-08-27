@@ -48,6 +48,7 @@ private val HintOrange = Color(0xFFFF9800)
  * 组详情弹层：标题 + 组 meta + 成员两列对比（缩略图 + 大小/时间 + 「保留这张」radio）
  * + EDITED 提示条 + 确认按钮。组数据经 uiState 重组实时取，setKeep 后立即刷新。
  * Scanning 态为只读预览（setKeep 仅 Results 生效）：隐藏 radio 与底部 CTA，不假装可交互。
+ * 点缩略图经 [onPreview]（成员下标）进全屏对比预览，比较后再改选。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,6 +56,7 @@ fun DedupGroupDetailSheet(
     groupId: String,
     viewModel: DedupViewModel,
     onDismiss: () -> Unit,
+    onPreview: (Int) -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val group = remember(uiState) { viewModel.getGroup(groupId) }
@@ -69,6 +71,7 @@ fun DedupGroupDetailSheet(
                 group = group,
                 editable = editable,
                 onKeep = { uri -> viewModel.setKeep(groupId, uri) },
+                onPreview = onPreview,
                 onConfirm = onDismiss,
             )
         }
@@ -80,6 +83,7 @@ private fun DedupGroupDetailContent(
     group: DedupGroup,
     editable: Boolean,
     onKeep: (String) -> Unit,
+    onPreview: (Int) -> Unit,
     onConfirm: () -> Unit,
 ) {
     Column(
@@ -120,17 +124,18 @@ private fun DedupGroupDetailContent(
             )
         }
 
-        group.members.chunked(2).forEach { pair ->
+        group.members.chunked(2).forEachIndexed { chunkIndex, pair ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                pair.forEach { member ->
+                pair.forEachIndexed { indexInPair, member ->
                     DedupMemberColumn(
                         member = member,
                         isKept = member.uri == group.keepUri,
                         editable = editable,
                         onKeep = onKeep,
+                        onPreview = { onPreview(chunkIndex * 2 + indexInPair) },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -162,13 +167,15 @@ private fun DedupGroupDetailContent(
     }
 }
 
-/** 成员对比列：大图 + 大小/时间行 + 「保留这张」radio；点击任意处即改选保留项。只读态无 radio、不可点击。 */
+/** 成员对比列：大图 + 大小/时间行 + 「保留这张」radio；点击任意处即改选保留项，
+ *  点缩略图本身则进全屏对比预览（比较后再决策）。只读态无 radio、不可改选但可预览。 */
 @Composable
 private fun DedupMemberColumn(
     member: DedupMember,
     isKept: Boolean,
     editable: Boolean,
     onKeep: (String) -> Unit,
+    onPreview: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val dateFormat = remember { DateFormat.getDateInstance(DateFormat.MEDIUM) }
@@ -184,7 +191,8 @@ private fun DedupMemberColumn(
             role = member.role,
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(1f)
+                .aspectRatio(1f),
+            onClick = onPreview
         )
         // DedupMember 无分辨率字段（仅 pixelArea）：统一显示大小 + 本地化日期
         Text(
