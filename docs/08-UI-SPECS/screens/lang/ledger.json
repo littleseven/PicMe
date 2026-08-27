@@ -1917,6 +1917,454 @@
    "en": "Multimodal · Mature and stable",
    "status": "created",
    "ardotId": "185:32"
+  },
+  "apply": {
+   "zh": "应用",
+   "en": "Apply",
+   "status": "created",
+   "ardotId": "230:1"
+  },
+  "dedup.auto.clear": {
+   "zh": "30 天后自动清除",
+   "en": "Auto-cleared after 30 days",
+   "status": "created",
+   "ardotId": "230:2"
+  },
+  "dedup.confirm.keep": {
+   "zh": "保留所选 · 删除其余 2 张",
+   "en": "Keep selected · delete other 2",
+   "status": "created",
+   "ardotId": "230:3"
+  },
+  "dedup.detail.title": {
+   "zh": "选择保留",
+   "en": "Choose what to keep",
+   "status": "created",
+   "ardotId": "230:4"
+  },
+  "dedup.estimate.label": {
+   "zh": "预计可释放空间",
+   "en": "Estimated reclaimable",
+   "status": "created",
+   "ardotId": "230:5"
+  },
+  "dedup.hint.edited": {
+   "zh": "该组含编辑版本，已按规则保留「已编辑版」",
+   "en": "Edited version detected; kept by rule",
+   "status": "created",
+   "ardotId": "230:6"
+  },
+  "dedup.hint.portrait": {
+   "zh": "人像组 · 已优先保留人脸质量最佳，可改选",
+   "en": "Portrait group · kept the best face quality; tap to change",
+   "status": "created",
+   "ardotId": "230:7"
+  },
+  "dedup.hint.screenshot": {
+   "zh": "截图相似易误判 · 本组未预选，请逐组确认",
+   "en": "Similar screenshots are easily misjudged · not pre-selected, confirm per group",
+   "status": "created",
+   "ardotId": "230:8"
+  },
+  "dedup.keep.badge": {
+   "zh": "保留",
+   "en": "Keep",
+   "status": "created",
+   "ardotId": "230:9"
+  },
+  "dedup.keep.rule": {
+   "zh": "保留规则",
+   "en": "Keep rule",
+   "status": "created",
+   "ardotId": "230:10"
+  },
+  "dedup.keep.this": {
+   "zh": "保留这张",
+   "en": "Keep this one",
+   "status": "created",
+   "ardotId": "230:11"
+  },
+  "dedup.level.exact": {
+   "zh": "完全重复",
+   "en": "Exact",
+   "status": "created",
+   "ardotId": "230:12"
+  },
+  "dedup.level.scene": {
+   "zh": "场景相似",
+   "en": "Scene",
+   "status": "created",
+   "ardotId": "230:13"
+  },
+  "dedup.level.visual": {
+   "zh": "视觉重复",
+   "en": "Visual",
+   "status": "created",
+   "ardotId": "230:14"
+  },
+  "dedup.policy.edited": {
+   "zh": "保留已编辑版",
+   "en": "Keep edited version",
+   "status": "created",
+   "ardotId": "230:15"
+  },
+  "dedup.policy.edited.desc": {
+   "zh": "你手动调整过的版本优先",
+   "en": "Versions you adjusted take priority",
+   "status": "created",
+   "ardotId": "230:16"
+  },
+  "dedup.policy.latest": {
+   "zh": "保留最新",
+   "en": "Keep latest",
+   "status": "created",
+   "ardotId": "230:17"
+  },
+  "dedup.policy.latest.desc": {
+   "zh": "最近保存的优先",
+   "en": "Most recently saved first",
+   "status": "created",
+   "ardotId": "230:18"
+  },
+  "dedup.policy.original": {
+   "zh": "保留原图",
+   "en": "Keep original",
+   "status": "created",
+   "ardotId": "230:19"
+  },
+  "dedup.policy.original.desc": {
+   "zh": "压缩或编辑版本让位于原始文件",
+   "en": "Compressed or edited versions yield to the original",
+   "status": "created",
+   "ardotId": "230:20"
+  },
+  "dedup.policy.quality": {
+   "zh": "保留最高画质",
+   "en": "Keep best quality",
+   "status": "created",
+   "ardotId": "230:21"
+  },
+  "dedup.policy.quality.desc": {
+   "zh": "分辨率高、文件大的优先",
+   "en": "Higher resolution and larger file first",
+   "status": "created",
+   "ardotId": "230:22"
+  },
+  "dedup.privacy.caption": {
+   "zh": "扫描全程在设备端完成，照片不会上传",
+   "en": "Scan runs entirely on-device; photos never leave it",
+   "status": "created",
+   "ardotId": "230:23"
+  },
+  "dedup.recycle.bin": {
+   "zh": "回收站",
+   "en": "Trash",
+   "status": "created",
+   "ardotId": "230:24"
+  },
+  "dedup.recycle.caption": {
+   "zh": "移入回收站 · 30 天内可恢复",
+   "en": "Moved to trash · restorable within 30 days",
+   "status": "created",
+   "ardotId": "230:25"
+  },
+  "dedup.rules.note": {
+   "zh": "规则只决定每组的默认勾选，随时可以逐组手动改选",
+   "en": "The rule only sets the default pick; you can change any group manually",
+   "status": "created",
+   "ardotId": "230:26"
+  },
+  "dedup.run.background": {
+   "zh": "转后台运行",
+   "en": "Run in background",
+   "status": "created",
+   "ardotId": "230:27"
+  },
+  "dedup.scale.exact": {
+   "zh": "完全重复",
+   "en": "Exact duplicates",
+   "status": "created",
+   "ardotId": "230:28"
+  },
+  "dedup.scale.exact.desc": {
+   "zh": "字节完全相同的副本，最稳妥",
+   "en": "Byte-identical copies, safest",
+   "status": "created",
+   "ardotId": "230:29"
+  },
+  "dedup.scale.scene": {
+   "zh": "场景相似",
+   "en": "Similar scenes",
+   "status": "created",
+   "ardotId": "230:30"
+  },
+  "dedup.scale.scene.desc": {
+   "zh": "连拍与同场景照片，误报较多需逐组确认",
+   "en": "Burst shots and same-scene photos, review per group",
+   "status": "created",
+   "ardotId": "230:31"
+  },
+  "dedup.scale.section": {
+   "zh": "扫描范围（重复的尺度）",
+   "en": "Scan scope (levels of duplication)",
+   "status": "created",
+   "ardotId": "230:32"
+  },
+  "dedup.scale.visual": {
+   "zh": "视觉重复",
+   "en": "Visual duplicates",
+   "status": "created",
+   "ardotId": "230:33"
+  },
+  "dedup.scale.visual.desc": {
+   "zh": "同一照片的压缩、缩放与微调版本",
+   "en": "Compressed, resized or edited versions of the same photo",
+   "status": "created",
+   "ardotId": "230:34"
+  },
+  "dedup.scanning.title": {
+   "zh": "正在扫描",
+   "en": "Scanning",
+   "status": "created",
+   "ardotId": "230:35"
+  },
+  "dedup.slot.cleaned.sub": {
+   "zh": "释放 1.1 GB · 照片已移入回收站",
+   "en": "Freed 1.1 GB · photos moved to trash",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:36"
+  },
+  "dedup.slot.cleaned.title": {
+   "zh": "已清理 38 张",
+   "en": "Cleaned 38 photos",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:37"
+  },
+  "dedup.slot.continue.left": {
+   "zh": "继续整理 · 还剩 22 组",
+   "en": "Keep going · 22 groups left",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:38"
+  },
+  "dedup.slot.delete.cta": {
+   "zh": "删除本类 24 张 · 释放 640 MB",
+   "en": "Delete 24 in this category · Free 640 MB",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:39"
+  },
+  "dedup.slot.group.meta1": {
+   "zh": "3 张 · 可省 8.4 MB",
+   "en": "3 photos · 8.4 MB reclaimable",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:40"
+  },
+  "dedup.slot.group.meta2": {
+   "zh": "2 张 · 可省 12.6 MB",
+   "en": "2 photos · 12.6 MB reclaimable",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:41"
+  },
+  "dedup.slot.group.similar": {
+   "zh": "2 张 · 相似度较高",
+   "en": "2 photos · highly similar",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:42"
+  },
+  "dedup.slot.group.summary": {
+   "zh": "3 张 · 保留 1 张，删除 2 张",
+   "en": "3 photos · keep 1, delete 2",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:43"
+  },
+  "dedup.slot.hero.groups": {
+   "zh": "46 组重复照片",
+   "en": "46 duplicate groups",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:44"
+  },
+  "dedup.slot.hero.reclaim": {
+   "zh": "可释放 1.2 GB",
+   "en": "Free up 1.2 GB",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:45"
+  },
+  "dedup.slot.last.scan": {
+   "zh": "上次扫描：3 天前 · 发现 46 组重复",
+   "en": "Last scan: 3 days ago · 46 groups found",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:46"
+  },
+  "dedup.slot.live.found": {
+   "zh": "实时发现 · 已找到 12 组",
+   "en": "Found 12 groups so far",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:47"
+  },
+  "dedup.slot.live.item1": {
+   "zh": "3 张 · 可省 8.4 MB · 刚刚发现",
+   "en": "3 photos · 8.4 MB · just now",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:48"
+  },
+  "dedup.slot.live.item2": {
+   "zh": "2 张 · 可省 5.1 MB · 2 分钟前",
+   "en": "2 photos · 5.1 MB · 2 min ago",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:49"
+  },
+  "dedup.slot.manual.mark": {
+   "zh": "已改选",
+   "en": "Manual",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:50"
+  },
+  "dedup.slot.member.compressed": {
+   "zh": "已压缩 · 3MP · 0.9 MB",
+   "en": "Compressed · 3MP · 0.9 MB",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:51"
+  },
+  "dedup.slot.member.edited": {
+   "zh": "已编辑 · 调色微调",
+   "en": "Edited · Color tweak",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:52"
+  },
+  "dedup.slot.member.original": {
+   "zh": "原图 · 12MP · 4.2 MB",
+   "en": "Original · 12MP · 4.2 MB",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:53"
+  },
+  "dedup.slot.member.saved": {
+   "zh": "08-22 09:15 保存",
+   "en": "Saved 08-22 09:15",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:54"
+  },
+  "dedup.slot.member.taken": {
+   "zh": "08-20 14:32 拍摄",
+   "en": "Taken 08-20 14:32",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:55"
+  },
+  "dedup.slot.phase": {
+   "zh": "阶段 2/3 · 视觉重复",
+   "en": "Phase 2/3 · Visual",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:56"
+  },
+  "dedup.slot.policy.quality.rec": {
+   "zh": "保留最高画质（推荐）",
+   "en": "Keep best quality (recommended)",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:57"
+  },
+  "dedup.slot.results.title": {
+   "zh": "清理重复照片",
+   "en": "Duplicate Cleanup",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:58"
+  },
+  "dedup.slot.rule.hint": {
+   "zh": "按「保留最高画质」默认勾选 · 点组可改选",
+   "en": "Default by \"Keep best quality\" · tap group to change",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:59"
+  },
+  "dedup.slot.scan.progress": {
+   "zh": "已扫描 6,120 / 9,832 张 · 约 480 张/分钟",
+   "en": "Scanned 6,120 / 9,832 · ~480/min",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:60"
+  },
+  "dedup.slot.section.exact": {
+   "zh": "完全重复",
+   "en": "EXACT",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:61"
+  },
+  "dedup.slot.section.visual": {
+   "zh": "视觉重复",
+   "en": "VISUAL",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:62"
+  },
+  "dedup.slot.select.type": {
+   "zh": "全选本类",
+   "en": "Select this type",
+   "status": "created",
+   "key": "slot",
+   "ardotId": "230:63"
+  },
+  "dedup.start.scan": {
+   "zh": "开始扫描",
+   "en": "Start scan",
+   "status": "created",
+   "ardotId": "230:64"
+  },
+  "dedup.title": {
+   "zh": "重复照片清理",
+   "en": "Duplicate cleanup",
+   "status": "created",
+   "ardotId": "230:65"
+  },
+  "dedup.type.portrait": {
+   "zh": "人像",
+   "en": "Portrait",
+   "status": "created",
+   "ardotId": "230:66"
+  },
+  "dedup.type.screenshot": {
+   "zh": "截图",
+   "en": "Screenshot",
+   "status": "created",
+   "ardotId": "230:67"
+  },
+  "dedup.undo.all": {
+   "zh": "全部撤销",
+   "en": "Undo all",
+   "status": "created",
+   "ardotId": "230:68"
+  },
+  "dedup.view.recycle": {
+   "zh": "查看回收站",
+   "en": "View trash",
+   "status": "created",
+   "ardotId": "230:69"
+  },
+  "pause": {
+   "zh": "暂停",
+   "en": "Pause",
+   "status": "created",
+   "ardotId": "230:70"
   }
  }
 }

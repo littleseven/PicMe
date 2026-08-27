@@ -1,0 +1,100 @@
+frame,node_id,name,zh,en,source,var,action,note,text,id
+dedup/group_detail,189:152,title,选择保留,Choose what to keep,matched,dedup.detail.title,bind,,选择保留,189:152
+dedup/group_detail,189:153,rule_link,保留规则,Keep rule,matched,dedup.keep.rule,bind,"multi:dedup_keep_rule,dedup_rules_title",保留规则,189:153
+dedup/group_detail,189:157,label,视觉重复,Visual,matched,dedup.level.visual,bind,ctx:chip→level,视觉重复,189:157
+dedup/group_detail,189:158,meta,3 张 · 保留 1 张，删除 2 张,"3 photos · keep 1, delete 2",manual-fixed,dedup.slot.group.summary,bind,slot,3 张 · 保留 1 张，删除 2 张,189:158
+dedup/group_detail,189:163,label,保留,Keep,matched,dedup.keep.badge,bind,,保留,189:163
+dedup/group_detail,189:165,label,已编辑 · 调色微调,Edited · Color tweak,manual-fixed,dedup.slot.member.edited,bind,slot,已编辑 · 调色微调,189:165
+dedup/group_detail,189:166,info1,4032 × 3024 · 3.8 MB,4032 × 3024 · 3.8 MB,literal,,skip,data,4032 × 3024 · 3.8 MB,189:166
+dedup/group_detail,189:167,info2,08-22 09:15 保存,Saved 08-22 09:15,manual-fixed,dedup.slot.member.saved,bind,slot,08-22 09:15 保存,189:167
+dedup/group_detail,189:171,label,保留这张,Keep this one,matched,dedup.keep.this,bind,,保留这张,189:171
+dedup/group_detail,189:175,label,原图,Original,matched,filter.none,bind,"multi:filter_none,style_filter_none,dedup_role_original",原图,189:175
+dedup/group_detail,189:176,info1,4032 × 3024 · 4.2 MB,4032 × 3024 · 4.2 MB,literal,,skip,data,4032 × 3024 · 4.2 MB,189:176
+dedup/group_detail,189:177,info2,08-20 14:32 拍摄,Taken 08-20 14:32,manual-fixed,dedup.slot.member.taken,bind,slot,08-20 14:32 拍摄,189:177
+dedup/group_detail,189:180,label,保留这张,Keep this one,matched,dedup.keep.this,bind,,保留这张,189:180
+dedup/group_detail,189:182,text,该组含编辑版本，已按规则保留「已编辑版」,Edited version detected; kept by rule,matched,dedup.hint.edited,bind,,该组含编辑版本，已按规则保留「已编辑版」,189:182
+dedup/group_detail,189:185,label,保留所选 · 删除其余 2 张,Keep selected · delete other 2,manual-fixed,dedup.confirm.keep,bind,fill:dedup_confirm_keep,保留所选 · 删除其余 2 张,189:185
+dedup/keep_rules,189:191,title,保留规则,Keep rule,matched,dedup.keep.rule,bind,"multi:dedup_keep_rule,dedup_rules_title",保留规则,189:191
+dedup/keep_rules,189:196,title,保留最高画质（推荐）,Keep best quality (recommended),manual-fixed,dedup.slot.policy.quality.rec,bind,slot,保留最高画质（推荐）,189:196
+dedup/keep_rules,189:197,desc,分辨率高、文件大的优先,Higher resolution and larger file first,matched,dedup.policy.quality.desc,bind,,分辨率高、文件大的优先,189:197
+dedup/keep_rules,189:201,title,保留原图,Keep original,matched,dedup.policy.original,bind,,保留原图,189:201
+dedup/keep_rules,189:202,desc,压缩或编辑版本让位于原始文件,Compressed or edited versions yield to the original,matched,dedup.policy.original.desc,bind,,压缩或编辑版本让位于原始文件,189:202
+dedup/keep_rules,189:206,title,保留已编辑版,Keep edited version,matched,dedup.policy.edited,bind,,保留已编辑版,189:206
+dedup/keep_rules,189:207,desc,你手动调整过的版本优先,Versions you adjusted take priority,matched,dedup.policy.edited.desc,bind,,你手动调整过的版本优先,189:207
+dedup/keep_rules,189:211,title,保留最新,Keep latest,matched,dedup.policy.latest,bind,,保留最新,189:211
+dedup/keep_rules,189:212,desc,最近保存的优先,Most recently saved first,matched,dedup.policy.latest.desc,bind,,最近保存的优先,189:212
+dedup/keep_rules,189:213,note,规则只决定每组的默认勾选，随时可以逐组手动改选,The rule only sets the default pick; you can change any group manually,matched,dedup.rules.note,bind,,规则只决定每组的默认勾选，随时可以逐组手动改选,189:213
+dedup/keep_rules,189:215,label,应用,Apply,matched,apply,bind,"multi:apply,ai_optimize_apply,dedup_apply,ai_chat_apply,chat_result_app_fallback",应用,189:215
+dedup/overview,189:6,title,重复照片清理,Duplicate cleanup,matched,dedup.title,bind,,重复照片清理,189:6
+dedup/overview,189:10,label,预计可释放空间,Estimated reclaimable,matched,dedup.estimate.label,bind,,预计可释放空间,189:10
+dedup/overview,189:11,number,1.2 GB,1.2 GB,literal,,skip,data,1.2 GB,189:11
+dedup/overview,189:12,caption,上次扫描：3 天前 · 发现 46 组重复,Last scan: 3 days ago · 46 groups found,manual-fixed,dedup.slot.last.scan,bind,fill:dedup_last_scan,上次扫描：3 天前 · 发现 46 组重复,189:12
+dedup/overview,189:13,sec_scale,扫描范围（重复的尺度）,Scan scope (levels of duplication),matched,dedup.scale.section,bind,,扫描范围（重复的尺度）,189:13
+dedup/overview,189:19,title,完全重复,Exact duplicates,matched,dedup.scale.exact,bind,"multi:dedup_scale_exact,dedup_level_exact",完全重复,189:19
+dedup/overview,189:20,desc,字节完全相同的副本，最稳妥,"Byte-identical copies, safest",matched,dedup.scale.exact.desc,bind,,字节完全相同的副本，最稳妥,189:20
+dedup/overview,189:27,title,视觉重复,Visual duplicates,matched,dedup.scale.visual,bind,"multi:dedup_scale_visual,dedup_level_visual",视觉重复,189:27
+dedup/overview,189:28,desc,同一照片的压缩、缩放与微调版本,"Compressed, resized or edited versions of the same photo",matched,dedup.scale.visual.desc,bind,,同一照片的压缩、缩放与微调版本,189:28
+dedup/overview,189:35,title,场景相似,Similar scenes,matched,dedup.scale.scene,bind,"multi:dedup_scale_scene,dedup_level_scene",场景相似,189:35
+dedup/overview,189:36,desc,连拍与同场景照片，误报较多需逐组确认,"Burst shots and same-scene photos, review per group",matched,dedup.scale.scene.desc,bind,,连拍与同场景照片，误报较多需逐组确认,189:36
+dedup/overview,189:41,title,保留规则,Keep rule,matched,dedup.keep.rule,bind,"multi:dedup_keep_rule,dedup_rules_title",保留规则,189:41
+dedup/overview,189:43,value,保留最高画质,Keep best quality,matched,dedup.policy.quality,bind,,保留最高画质,189:43
+dedup/overview,189:44,chevron,›,›,literal,,skip,data,›,189:44
+dedup/overview,189:46,label,开始扫描,Start scan,matched,dedup.start.scan,bind,"multi:dedup_start_scan,start_scan",开始扫描,189:46
+dedup/overview,189:47,privacy_caption,扫描全程在设备端完成，照片不会上传,Scan runs entirely on-device; photos never leave it,matched,dedup.privacy.caption,bind,,扫描全程在设备端完成，照片不会上传,189:47
+dedup/cleaned,189:220,title,已清理 38 张,Cleaned 38 photos,manual-fixed,dedup.slot.cleaned.title,bind,fill:dedup_cleaned_title,已清理 38 张,189:220
+dedup/cleaned,189:221,subtitle,释放 1.1 GB · 照片已移入回收站,Freed 1.1 GB · photos moved to trash,manual-fixed,dedup.slot.cleaned.sub,bind,fill:dedup_cleaned_sub,释放 1.1 GB · 照片已移入回收站,189:221
+dedup/cleaned,189:225,title,回收站,Trash,matched,dedup.recycle.bin,bind,,回收站,189:225
+dedup/cleaned,189:226,sub,30 天后自动清除,Auto-cleared after 30 days,matched,dedup.auto.clear,bind,,30 天后自动清除,189:226
+dedup/cleaned,189:232,label,+35,+35,literal,,skip,data,+35,189:232
+dedup/cleaned,189:235,label,全部撤销,Undo all,matched,dedup.undo.all,bind,,全部撤销,189:235
+dedup/cleaned,227:2,label,继续整理 · 还剩 22 组,Keep going · 22 groups left,manual-fixed,dedup.slot.continue.left,bind,slot,继续整理 · 还剩 22 组,227:2
+dedup/cleaned,189:239,label,完成,Done,matched,done,bind,"multi:done,tag_scan_state_completed",完成,189:239
+dedup/cleaned,189:241,label,查看回收站,View trash,matched,dedup.view.recycle,bind,,查看回收站,189:241
+dedup/scanning,189:52,title,正在扫描,Scanning,matched,dedup.scanning.title,bind,,正在扫描,189:52
+dedup/scanning,189:53,cancel,取消,Cancel,matched,cancel,bind,"multi:cancel,ai_chat_cancel,report_issue_cancel",取消,189:53
+dedup/scanning,189:58,label,阶段 2/3 · 视觉重复,Phase 2/3 · Visual,manual-fixed,dedup.slot.phase,bind,fill:dedup_phase_format,阶段 2/3 · 视觉重复,189:58
+dedup/scanning,189:59,percent,62%,62%,literal,,skip,data,62%,189:59
+dedup/scanning,189:62,progress_text,"已扫描 6,120 / 9,832 张 · 约 480 张/分钟","Scanned 6,120 / 9,832 · ~480/min",manual-fixed,dedup.slot.scan.progress,bind,slot,"已扫描 6,120 / 9,832 张 · 约 480 张/分钟",189:62
+dedup/scanning,189:67,sec_found,实时发现 · 已找到 12 组,Found 12 groups so far,manual-fixed,dedup.slot.live.found,bind,fill:dedup_live_found,实时发现 · 已找到 12 组,189:67
+dedup/scanning,189:73,label,视觉重复,Visual,matched,dedup.level.visual,bind,ctx:chip→level,视觉重复,189:73
+dedup/scanning,189:74,meta,3 张 · 可省 8.4 MB · 刚刚发现,3 photos · 8.4 MB · just now,manual-fixed,dedup.slot.live.item1,bind,slot,3 张 · 可省 8.4 MB · 刚刚发现,189:74
+dedup/scanning,189:75,chevron,›,›,literal,,skip,data,›,189:75
+dedup/scanning,189:81,label,完全重复,Exact,matched,dedup.level.exact,bind,ctx:chip→level,完全重复,189:81
+dedup/scanning,189:82,meta,2 张 · 可省 5.1 MB · 2 分钟前,2 photos · 5.1 MB · 2 min ago,manual-fixed,dedup.slot.live.item2,bind,slot,2 张 · 可省 5.1 MB · 2 分钟前,189:82
+dedup/scanning,189:83,chevron,›,›,literal,,skip,data,›,189:83
+dedup/scanning,189:87,label,暂停,Pause,matched,pause,bind,"multi:pause,dedup_pause,pause_download",暂停,189:87
+dedup/scanning,189:89,label,转后台运行,Run in background,matched,dedup.run.background,bind,,转后台运行,189:89
+dedup/results,189:94,title,清理重复照片,Duplicate Cleanup,manual-fixed,dedup.slot.results.title,bind,results_en,清理重复照片,189:94
+dedup/results,192:66,hero_value,可释放 1.2 GB,Free up 1.2 GB,manual-fixed,dedup.slot.hero.reclaim,bind,fill:dedup_hero_reclaim,可释放 1.2 GB,192:66
+dedup/results,189:98,summary,46 组重复照片,46 duplicate groups,manual-fixed,dedup.slot.hero.groups,bind,fill:dedup_hero_groups,46 组重复照片,189:98
+dedup/results,189:100,label,全选本类,Select this type,manual-fixed,dedup.slot.select.type,bind,results_en,全选本类,189:100
+dedup/results,189:103,label,完全重复,Exact,matched,dedup.level.exact,bind,ctx:tab→level,完全重复,189:103
+dedup/results,192:1,count,18,18,literal,,skip,data,18,192:1
+dedup/results,189:105,label,视觉重复,Visual,matched,dedup.level.visual,bind,ctx:tab→level,视觉重复,189:105
+dedup/results,192:2,count,21,21,literal,,skip,data,21,192:2
+dedup/results,189:107,label,场景相似,Scene,matched,dedup.level.scene,bind,ctx:tab→level,场景相似,189:107
+dedup/results,192:3,count,7,7,literal,,skip,data,7,192:3
+dedup/results,189:111,label,完全重复,EXACT,matched,dedup.slot.section.exact,bind,ctx:section-hdr uppercase(results_en),完全重复,189:111
+dedup/results,192:84,label,人像,Portrait,matched,dedup.type.portrait,bind,ctx:避免复用 portrait(PORTRAIT),人像,192:84
+dedup/results,189:112,meta,3 张 · 可省 8.4 MB,3 photos · 8.4 MB reclaimable,manual-fixed,dedup.slot.group.meta1,bind,fill:dedup_group_meta,3 张 · 可省 8.4 MB,189:112
+dedup/results,189:113,chevron,›,›,literal,,skip,data,›,189:113
+dedup/results,189:117,label,保留,Keep,matched,dedup.keep.badge,bind,,保留,189:117
+dedup/results,189:124,footer,按「保留最高画质」默认勾选 · 点组可改选,"Default by ""Keep best quality"" · tap group to change",manual-fixed,dedup.slot.rule.hint,bind,fill:dedup_rule_hint_default,按「保留最高画质」默认勾选 · 点组可改选,189:124
+dedup/results,189:128,label,视觉重复,VISUAL,matched,dedup.slot.section.visual,bind,ctx:section-hdr uppercase(results_en),视觉重复,189:128
+dedup/results,192:86,label,人像,Portrait,matched,dedup.type.portrait,bind,ctx:避免复用 portrait(PORTRAIT),人像,192:86
+dedup/results,189:129,meta,2 张 · 可省 12.6 MB,2 photos · 12.6 MB reclaimable,manual-fixed,dedup.slot.group.meta2,bind,fill:dedup_group_meta,2 张 · 可省 12.6 MB,189:129
+dedup/results,189:130,manual_mark,已改选,Manual,manual-fixed,dedup.slot.manual.mark,bind,results_en,已改选,189:130
+dedup/results,189:131,chevron,›,›,literal,,skip,data,›,189:131
+dedup/results,189:135,label,保留,Keep,matched,dedup.keep.badge,bind,,保留,189:135
+dedup/results,189:137,label,原图 · 12MP · 4.2 MB,Original · 12MP · 4.2 MB,manual-fixed,dedup.slot.member.original,bind,results_en,原图 · 12MP · 4.2 MB,189:137
+dedup/results,189:142,label,已压缩 · 3MP · 0.9 MB,Compressed · 3MP · 0.9 MB,manual-fixed,dedup.slot.member.compressed,bind,results_en,已压缩 · 3MP · 0.9 MB,189:142
+dedup/results,189:143,footer,人像组 · 已优先保留人脸质量最佳，可改选,Portrait group · kept the best face quality; tap to change,matched,dedup.hint.portrait,bind,,人像组 · 已优先保留人脸质量最佳，可改选,189:143
+dedup/results,192:98,label,视觉重复,VISUAL,matched,dedup.slot.section.visual,bind,ctx:section-hdr uppercase(results_en),视觉重复,192:98
+dedup/results,192:99,label,截图,Screenshot,matched,dedup.type.screenshot,bind,"multi:dedup_type_screenshot,screenshot",截图,192:99
+dedup/results,192:93,meta,2 张 · 相似度较高,2 photos · highly similar,manual-fixed,dedup.slot.group.similar,bind,results_en,2 张 · 相似度较高,192:93
+dedup/results,192:95,chevron,›,›,literal,,skip,data,›,192:95
+dedup/results,192:105,label,1080×2400 · 312 KB,1080×2400 · 312 KB,literal,,skip,data,1080×2400 · 312 KB,192:105
+dedup/results,192:107,label,1080×2400 · 298 KB,1080×2400 · 298 KB,literal,,skip,data,1080×2400 · 298 KB,192:107
+dedup/results,192:90,footer,截图相似易误判 · 本组未预选，请逐组确认,"Similar screenshots are easily misjudged · not pre-selected, confirm per group",matched,dedup.hint.screenshot,bind,,截图相似易误判 · 本组未预选，请逐组确认,192:90
+dedup/results,189:146,label,删除本类 24 张 · 释放 640 MB,Delete 24 in this category · Free 640 MB,manual-fixed,dedup.slot.delete.cta,bind,results_en,删除本类 24 张 · 释放 640 MB,189:146
+dedup/results,189:147,caption,移入回收站 · 30 天内可恢复,Moved to trash · restorable within 30 days,matched,dedup.recycle.caption,bind,,移入回收站 · 30 天内可恢复,189:147

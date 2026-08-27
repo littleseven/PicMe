@@ -26,6 +26,10 @@ PAGES = {
   'people':   ['people/grid','people/detail'],
   'gallery_en': ['gallery/tag_control_v2','gallery/tag_stage_sheet'],
   'chat_en':  ['chat/empty-v2-guest'],
+  # 2026-08-27 Dedup 新页补绑：仅 6 规范帧；results_en 为物理英文副本帧（旧 workaround，
+  # 绑定完成后删除，遵循「零物理重复帧」约定），不参与对齐。
+  'dedup':    ['dedup/overview','dedup/scanning','dedup/results',
+               'dedup/group_detail','dedup/keep_rules','dedup/cleaned'],
 }
 
 def strings(fname):

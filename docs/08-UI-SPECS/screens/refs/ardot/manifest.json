@@ -1,11 +1,11 @@
 {
   "endpoint": "http://127.0.0.1:50501/api/v1/mcp",
-  "exportedAt": "2026-08-23T18:39:56+08:00",
+  "exportedAt": "2026-08-27T11:54:22+08:00",
   "file": {
     "id": "715061534788814",
     "name": "polang-ui-spec",
     "permission": "readwrite",
-    "url": "cocraft://localhost/file/715061534788814?node_id=152%3A1"
+    "url": "cocraft://localhost/file/715061534788814?node_id=189%3A1"
   },
   "note": "云端画布为编辑工作区；本目录快照由 export-ardot-snapshot.py 生成（多页聚合，2026-08-16 起），重跑覆盖。变量 SSOT=shared/src/commonMain/resources/design-tokens.json，不在本快照内。",
   "pages": [
@@ -111,6 +111,11 @@
           "id": "182:63",
           "name": "gallery/viewer-bottombar-preview",
           "png": "gallery-viewer-bottombar-preview.png"
+        },
+        {
+          "id": "192:140",
+          "name": "annotation_nav_change",
+          "png": "annotation_nav_change.png"
         }
       ],
       "id": "103:1",
@@ -411,8 +416,44 @@
       ],
       "id": "171:1",
       "name": "People"
+    },
+    {
+      "frames": [
+        {
+          "id": "189:2",
+          "name": "dedup/overview",
+          "png": "dedup-overview.png"
+        },
+        {
+          "id": "189:48",
+          "name": "dedup/scanning",
+          "png": "dedup-scanning.png"
+        },
+        {
+          "id": "189:90",
+          "name": "dedup/results",
+          "png": "dedup-results.png"
+        },
+        {
+          "id": "189:148",
+          "name": "dedup/group_detail",
+          "png": "dedup-group_detail.png"
+        },
+        {
+          "id": "189:186",
+          "name": "dedup/keep_rules",
+          "png": "dedup-keep_rules.png"
+        },
+        {
+          "id": "189:216",
+          "name": "dedup/cleaned",
+          "png": "dedup-cleaned.png"
+        }
+      ],
+      "id": "189:1",
+      "name": "Dedup"
     }
   ],
   "scale": 1,
-  "structureSha256": "867df5ba40ee9520744b482afab43e84d63c2cc6e482ab641e1395d5277fb9d9"
+  "structureSha256": "bae8cd1cb953b3f7f86584cef4253dfcfca3e6344134ff31baac031888d5486f"
 }
