@@ -149,10 +149,10 @@ fun DedupHomeRoute(
                     onRunBackground = onNavigateBack,
                 )
                 is DedupUiState.Results -> {
-                    // 底部 CTA 与 VM 删除流同一口径（tabBatchUris）：仅当前 Tab 的
-                    // batchEligible 组参与批量删除（spec §4，SCENE 由底部提示代替 CTA）
+                    // 底部 CTA 与 VM 删除流同一口径（tabBatchUris，spec §12）：仅当前 Tab 的
+                    // batchEligible 组参与批量删除（SCENE 由底部提示代替 CTA）
+                    val batchUris = viewModel.tabBatchUris(state)
                     val tabGroups = state.groups.filter { group -> group.level == state.selectedTab }
-                    val batchUris = viewModel.batchDeleteUris(tabGroups)
                     DedupResultsBottomBar(
                         isSceneTab = state.selectedTab == DedupLevel.SCENE,
                         deleteCount = batchUris.size,
@@ -615,14 +615,15 @@ private fun DedupResultsContent(
     onSelectTab: (DedupLevel) -> Unit,
     onOpenGroupDetail: (String) -> Unit,
 ) {
-    // Hero 数字与底部 CTA 同口径（spec §4/§10.5）：SCENE 组与未预选组不参与批量操作，不计入「可释放」
+    // Hero 为全局口径：全部 batchEligible 组合计（SCENE/未预选组不计入「可释放」）；
+    // 底部 CTA 与全选 chip 为当前 Tab 口径（tabBatchUris，spec §12）
     val batchGroups = state.groups.filter { group -> group.batchEligible }
     val totalReclaim = batchGroups.sumOf { group -> group.reclaimBytes }
     val filteredGroups = state.groups.filter { group -> group.level == state.selectedTab }
     val selectedTabIndex = DedupLevel.entries.indexOf(state.selectedTab)
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Hero 统计区：左侧大字「可释放 X」+ 副文「N 组重复照片」；右侧「智能全选」chip 单行不折
+        // Hero 统计区：左侧大字「可释放 X」+ 副文「N 组重复照片」；右侧「全选本类」chip 单行不折
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -792,10 +793,16 @@ private fun DedupResultsBottomBar(
     deleteBytes: Long,
     onDelete: () -> Unit,
 ) {
-    if (isSceneTab) {
-        // L3 场景相似不参与任何批量操作（spec §4 安全约束）：提示代替 CTA
+    // L3 场景相似不参与任何批量操作（spec §4 安全约束）、当前 Tab 无 batchEligible
+    // 待删项（如全是未预选截图组）时：提示代替 CTA，不显示「删除本类 0 张」禁用按钮
+    val hintRes = when {
+        isSceneTab -> R.string.dedup_scene_batch_hint
+        deleteCount == 0 -> R.string.dedup_tab_batch_empty
+        else -> null
+    }
+    if (hintRes != null) {
         Text(
-            text = stringResource(R.string.dedup_scene_batch_hint),
+            text = stringResource(hintRes),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

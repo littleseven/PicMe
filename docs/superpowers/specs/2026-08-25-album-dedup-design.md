@@ -195,11 +195,13 @@ Gallery 设置入口（现有行，升级文案）
 
 结果页批量操作从全局口径改为**当前 Tab 口径**，用户逐类型处理；不再只有全局删除。
 
-- **底部 CTA 跟随 Tab**：只删除当前 Tab 内 batchEligible 组的待删项，文案「删除本类 N 张 · 释放 X」（`dedup_delete_cta_scoped`）；Hero 统计区保持全局口径（全部类型合计可释放）。
+- **底部 CTA 跟随 Tab**：只删除当前 Tab 内 batchEligible 组的待删项，文案「删除本类 N 张 · 释放 X」（`dedup_delete_cta_scoped`）；当前 Tab 无可批量删除项（如全是未预选截图组）时 CTA 由提示代替（`dedup_tab_batch_empty`）；Hero 统计区保持全局口径（全部类型合计可释放）。
 - **全选 chip 跟随 Tab**：「智能全选」更名「全选本类」（`dedup_smart_select_tab`），只对当前 Tab 的 autoPreselected 组清 override 并重算默认勾选；L3 场景相似 Tab 不展示该 chip。
 - **L3 无批量入口（沿用 §4 安全约束）**：SCENE Tab 底部 CTA 由提示文案代替（`dedup_scene_batch_hint`：场景相似需逐组确认 · 不参与批量删除）。
 - **口径收口**：`DedupViewModel.tabBatchUris(state)` = `batchDeleteUris(groups.filter level == selectedTab)`，底部 CTA 计数、`deleteSelected()` 及其 IPC 窗口一致性复查共用；授权 IPC 窗口内切 Tab 会因选择集不一致安全放弃该次授权。
 - **删除后继续整理**：`DedupUiState.Cleaned` 增加 `remainingGroups`（本次未涉及的组：其他 Tab + 未预选组）。非空时完成页主操作为「继续整理 · 还剩 N 组」（`dedup_continue_remaining`，`continueWithRemaining()` → Results 剩余组并切到还有组的第一个 Tab），「完成」降为次操作；为空时维持原完成页布局。
+- **跨级重叠组防过度清空**：构建 `remainingGroups` 时逐组剔除已入回收站的成员——keepUri 被删的组按当前 policy 重算保留项（override 随改选对象消失而失效），存活成员不足 2 的组直接移出；杜绝快照回灌后把某组最后一张也送进回收站。
+- **已知限制**：「继续整理」回 Results 后，完成页的「全部撤销」入口随之关闭，本批已删项只能去系统回收站恢复（30 天内）。
 - **三语 key 变更**：删 `dedup_smart_select_all`、`dedup_delete_cta`；增 `dedup_smart_select_tab`、`dedup_delete_cta_scoped`、`dedup_scene_batch_hint`、`dedup_continue_remaining`。
 
 ### 12.1 验收标准（追加）

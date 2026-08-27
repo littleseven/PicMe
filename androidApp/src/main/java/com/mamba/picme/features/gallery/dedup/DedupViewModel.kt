@@ -308,11 +308,27 @@ class DedupViewModel(
             }
             val deleted = pending.uris.toSet()
             // 本次删干净的组（batchEligible 且 deleteUris 全部入回收站）移出结果；
-            // 其他 Tab 与未预选组保留给「继续整理」
-            val remainingGroups = state.groups.filterNot { group ->
-                group.batchEligible &&
+            // 跨级重叠组先把已删成员从快照剔除：keepUri 被删的按当前 policy 重算保留项
+            // （手动改选的对象已消失，override 一并失效），存活成员不足 2 的组不再成组，
+            // 杜绝「快照回灌 Results 后把某组最后一张也送进回收站」
+            val remainingGroups = state.groups.mapNotNull { group ->
+                if (
+                    group.batchEligible &&
                     group.deleteUris.isNotEmpty() &&
                     group.deleteUris.all { uri -> uri in deleted }
+                ) {
+                    null
+                } else {
+                    val alive = group.members.filter { member -> member.uri !in deleted }
+                    when {
+                        alive.size < 2 -> null
+                        group.keepUri in deleted -> {
+                            val sorted = KeepPolicyEngine.recommend(state.policy, alive)
+                            group.copy(members = sorted, keepUri = sorted.first().uri, userOverride = false)
+                        }
+                        else -> if (alive.size == group.members.size) group else group.copy(members = alive)
+                    }
+                }
             }
             _uiState.value = DedupUiState.Cleaned(
                 deletedCount = deleted.size,

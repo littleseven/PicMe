@@ -393,6 +393,8 @@
     <string name="dedup_delete_cta_scoped">删除本类 %1$d 张 · 释放 %2$s</string>
     <!-- L3 场景相似 Tab 的底部提示：不参与批量删除（spec §4 安全约束） -->
     <string name="dedup_scene_batch_hint">场景相似需逐组确认 · 不参与批量删除</string>
+    <!-- 当前 Tab 无可批量删除项时的底部提示（如全是未预选截图组） -->
+    <string name="dedup_tab_batch_empty">本类暂无可批量删除的项</string>
     <string name="dedup_recycle_caption">移入回收站 · 30 天内可恢复</string>
     <string name="dedup_detail_title">选择保留</string>
     <string name="dedup_keep_this">保留这张</string>
