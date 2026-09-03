@@ -26,7 +26,7 @@ for agents_file in $(find androidApp engines runtime-core -name "AGENTS.md"); do
     fi
 done
 
-# 3. 检查 I18N 三语资源同步
+# 3. 检查 I18N 五语资源同步
 echo "✅ 检查国际化资源同步..."
 python3 scripts/check_i18n_sync.py
 

@@ -22,7 +22,7 @@ doc-sync-guardian/
 └── scripts/
     ├── check-doc-consistency.sh      # 文档一致性检查脚本
     ├── sync-doc-template.py          # 文档同步更新模板生成器
-    ├── check-i18n-sync.py            # I18N 三语资源同步检查
+    ├── check-i18n-sync.py            # I18N 五语资源同步检查
     └── generate-audit-report.py      # 综合审计报告生成器
 ```
 
@@ -94,7 +94,7 @@ python3 skills/doc-sync-guardian/scripts/sync-doc-template.py \
 ```bash
 # 在 CR 检查清单中添加
 - [ ] 运行文档一致性检查
-- [ ] 确认 I18N 三语资源同步
+- [ ] 确认 I18N 五语资源同步
 - [ ] 验证技术决策已记录
 
 # 执行检查
@@ -178,7 +178,7 @@ python3 skills/doc-sync-guardian/scripts/sync-doc-template.py \
 
 ### 3. check-i18n-sync.py
 
-**功能**: 检查三语资源（values / values-zh-rCN / values-zh-rTW）同步情况
+**功能**: 检查五语资源（values / values-zh-rCN / values-zh-rTW / values-es / values-fr）同步情况
 
 **检查项**:
 - 缺失的字符串键
@@ -217,7 +217,7 @@ python3 skills/doc-sync-guardian/scripts/sync-doc-template.py \
 ## 🔍 审计范围
 ## 📋 执行检查
   ### 1. 文档一致性检查
-  ### 2. I18N 三语资源同步检查
+  ### 2. I18N 五语资源同步检查
 ## 📈 总体评估
   ### 关键指标
   ### 优先级建议
@@ -229,7 +229,7 @@ python3 skills/doc-sync-guardian/scripts/sync-doc-template.py \
 | 指标 | 含义 | 目标值 |
 |------|------|--------|
 | 文档引用链完整性 | PRODUCT.md → FEATURES.md → AGENTS.md 是否有断裂 | 100% |
-| I18N 同步率 | 三语资源键数量一致性 | 100% |
+| I18N 同步率 | 五语资源键数量一致性 | 100% |
 | 模块规范符合率 | AGENTS.md 第 5 章完整率 | 100% |
 | 链接有效性 | Markdown 链接无悬空引用 | 100% |
 
@@ -290,7 +290,7 @@ echo "🔍 检查文档一致性..."
 - [ ] 已更新 FEATURES.md（如有交互流程变更）
 - [ ] 已更新模块 AGENTS.md（如有技术实现变更）
 - [ ] 已运行文档一致性检查并通过
-- [ ] 已同步 I18N 三语资源
+- [ ] 已同步 I18N 五语资源
 ```
 
 ---

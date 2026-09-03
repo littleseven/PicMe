@@ -61,8 +61,8 @@ main_menu:
     content:
       title: "Language"                                # 语言
       font: { size: 14, weight: medium }
-      options: [english, chinese_simplified, chinese_traditional]
-      default: system                                  # 实际显示三语选项
+      options: [english, chinese_simplified, chinese_traditional, spanish, french]
+      default: system                                  # 实际显示六选项：system 默认 / English / 中文 / 繁體中文 / Español / Français
 
   # ④ 分类网格（2 列卡片）
   category_grid:
@@ -124,7 +124,7 @@ ai_agent:
             persistence:
               android: "DataStore assistant_persona (enum name)"
               ios: "@AppStorage(\"assistant_persona\")"
-            effect: "chat system prompt 尾段注入性格段（三语按界面语言选段），下一条消息生效；default 不注入"
+            effect: "chat system prompt 尾段注入性格段（五语按界面语言选段），下一条消息生效；default 不注入"
             desc_per_option: true       # 选中项下方显示一句话描述
 
     - title: "Voice Control"            # 语音控制（2026-08-19：语音全面默认关闭，本组为唯一开启入口）
@@ -446,7 +446,7 @@ ios_scope:
     - "Data & Privacy（隐私政策文本页）"
     - "About（版本号 + GitHub 链接）"
     - "主题切换（system/light/dark → colorScheme）"
-    - "语言切换（english/中文/繁體 → bundle locale）"
+    - "语言切换（english/中文/繁體/Español/Français → bundle locale）"
 
   placeholder_show_coming_soon:
     - "AI Memory（Phase 6.3 后续）"

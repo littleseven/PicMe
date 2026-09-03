@@ -1330,6 +1330,8 @@ private fun PhotoInfoDialog(
 private fun Locale.toAppLanguage(): AppLanguage = when (this.language) {
     "en" -> AppLanguage.ENGLISH
     "zh" -> if (this.country == "TW" || this.country == "HK") AppLanguage.TRADITIONAL_CHINESE else AppLanguage.CHINESE
+    "es" -> AppLanguage.SPANISH
+    "fr" -> AppLanguage.FRENCH
     else -> AppLanguage.CHINESE
 }
 

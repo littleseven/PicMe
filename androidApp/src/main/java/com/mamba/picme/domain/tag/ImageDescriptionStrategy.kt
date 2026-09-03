@@ -29,7 +29,8 @@ object ImageDescriptionStrategyResolver {
     private const val QWEN_USER_EN = "Describe this image"
 
     fun resolve(modelKey: String, lang: AppLanguage): ImageDescriptionStrategy {
-        val isZh = lang != AppLanguage.ENGLISH
+        // 西语/法语无独立打标 prompt，回退英文
+        val isZh = lang != AppLanguage.ENGLISH && lang != AppLanguage.SPANISH && lang != AppLanguage.FRENCH
         return if (modelKey == TaggerModelSelector.defaultKey) {
             // Florence-2：走 caption，不用提示词；中文 UI 需翻译。
             ImageDescriptionStrategy(

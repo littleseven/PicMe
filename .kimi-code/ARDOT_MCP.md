@@ -37,7 +37,7 @@
 - 使用 Material3 组件
 - 颜色、间距、字号与 Design Token 对齐
 - 图片占位使用 Coil AsyncImage
-- 字符串提取到 strings.xml 三语文件
+- 字符串提取到 strings.xml 五语文件
 ```
 
 ### 3. 生成 iOS SwiftUI 代码
@@ -48,7 +48,7 @@
 - 使用 SwiftUI 原生布局
 - 颜色从 Assets 或 Color extension 引用
 - 字体使用 .system 规范尺寸
-- 文本同步到 Localizable.xcstrings 三语
+- 文本同步到 Localizable.xcstrings 五语
 ```
 
 ### 4. 设计审查

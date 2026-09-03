@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-I18N 三语资源同步检查工具
-检查 values、values-zh-rCN、values-zh-rTW 中的字符串资源是否一致
+I18N 五语资源同步检查工具
+检查 values、values-zh-rCN、values-zh-rTW、values-es、values-fr 中的字符串资源是否一致
 """
 
 import xml.etree.ElementTree as ET
@@ -30,13 +30,15 @@ def parse_strings_file(file_path: Path) -> dict[str, str]:
 
 
 def check_i18n_sync(project_root: Path) -> dict:
-    """检查三语资源同步情况"""
+    """检查五语资源同步情况"""
     
-    # 定义三个语言的目录
+    # 定义五个语言的目录
     locales = {
         'en': project_root / 'androidApp/src/main/res/values/strings.xml',
         'zh-CN': project_root / 'androidApp/src/main/res/values-zh-rCN/strings.xml',
         'zh-TW': project_root / 'androidApp/src/main/res/values-zh-rTW/strings.xml',
+        'es': project_root / 'androidApp/src/main/res/values-es/strings.xml',
+        'fr': project_root / 'androidApp/src/main/res/values-fr/strings.xml',
     }
     
     # 解析所有语言文件
@@ -69,10 +71,10 @@ def check_i18n_sync(project_root: Path) -> dict:
             if locale not in present_locales:
                 missing_in_locale[locale].append(key)
         
-        # 检查值不一致（仅当所有语言都存在时）
+        # 检查各语言值完全相同（疑似未翻译；仅当所有语言都存在时）
         if len(present_locales) == len(locales):
             values = list(present_locales.values())
-            if len(set(values)) > 1:
+            if len(set(values)) == 1:
                 inconsistent_values.append((key, present_locales))
     
     return {
@@ -89,7 +91,7 @@ def check_i18n_sync(project_root: Path) -> dict:
 def generate_report(analysis: dict) -> str:
     """生成检查报告"""
     
-    report = f"""# 🌍 I18N 三语资源同步检查报告
+    report = f"""# 🌍 I18N 五语资源同步检查报告
 
 **检查时间**: {Path.cwd()}  
 **总字符串数**: {analysis['total_keys']}  
@@ -118,11 +120,11 @@ def generate_report(analysis: dict) -> str:
     else:
         report += "## ✅ 无缺失字符串\n\n"
     
-    # 不一致项
+    # 疑似未翻译项（各语言值完全相同）
     if analysis['inconsistent']:
-        report += f"## ⚠️  值不一致的字符串 ({len(analysis['inconsistent'])} 个)\n\n"
-        report += "> 注意：不同语言的翻译不同是正常的，这里仅用于审查\n\n"
-        
+        report += f"## ⚠️  各语言值完全相同的字符串 ({len(analysis['inconsistent'])} 个)\n\n"
+        report += "> 注意：各语言值完全相同疑似未翻译的直接复制（品牌名/纯数字/纯符号等可豁免），仅用于审查\n\n"
+
         for key, values in analysis['inconsistent'][:10]:  # 只显示前 10 个
             report += f"### `{key}`\n\n"
             for locale, value in values.items():
@@ -130,11 +132,11 @@ def generate_report(analysis: dict) -> str:
                 display_value = value[:50] + '...' if len(value) > 50 else value
                 report += f"- **{locale}**: `{display_value}`\n"
             report += "\n"
-        
+
         if len(analysis['inconsistent']) > 10:
-            report += f"\n... 还有 {len(analysis['inconsistent']) - 10} 个不一致项\n"
+            report += f"\n... 还有 {len(analysis['inconsistent']) - 10} 个疑似未翻译项\n"
     else:
-        report += "## ✅ 无值不一致问题\n\n"
+        report += "## ✅ 无疑似未翻译（各语言值全同）问题\n\n"
     
     # 建议
     report += "## 📝 修复建议\n\n"
@@ -144,11 +146,11 @@ def generate_report(analysis: dict) -> str:
         report += "2. **使用占位符**: 如果某些语言不需要特定字符串，考虑使用通用文案\n\n"
     
     if analysis['inconsistent']:
-        report += "3. **审查不一致项**: 确认是否为合理的翻译差异\n"
+        report += "3. **审查全同项**: 确认是否为漏翻的直接复制（品牌名/纯数字等可豁免）\n"
         report += "4. **统一术语**: 确保关键术语在各语言中表达一致\n\n"
     
     if not has_missing and not analysis['inconsistent']:
-        report += "✅ 三语资源完全同步，无需修复！\n\n"
+        report += "✅ 五语资源完全同步，无需修复！\n\n"
     
     report += "---\n\n"
     report += "**检查工具**: `skills/doc-sync-guardian/scripts/check-i18n-sync.py`\n"
@@ -161,7 +163,7 @@ def main():
     script_dir = Path(__file__).parent
     project_root = script_dir.parent.parent.parent
     
-    print("🌍 开始 I18N 三语资源同步检查...")
+    print("🌍 开始 I18N 五语资源同步检查...")
     print(f"📁 项目根目录: {project_root}")
     print()
     

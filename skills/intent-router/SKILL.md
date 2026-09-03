@@ -141,7 +141,7 @@ tags:
 |------|------|------|--------|
 | `[PRIVACY]` | Privacy | 隐私至上 | 人脸/OCR/分类必须本地处理，禁止网络权限 |
 | `[PERF]` | Performance | 极致性能 | 交互 < 100ms，快门 < 50ms，GPU 处理 < 300ms |
-| `[I18N]` | Internationalization | 多语言同步 | EN/CN/TW 三语言同步，禁止硬编码 |
+| `[I18N]` | Internationalization | 多语言同步 | EN/CN/TW/ES/FR 五语言同步，禁止硬编码 |
 
 ## 上下文自动加载规则
 

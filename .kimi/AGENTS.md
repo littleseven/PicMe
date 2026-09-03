@@ -9,7 +9,7 @@
 - **类型**: Android + iOS 跨平台应用（Kotlin/Jetpack Compose + Swift/SwiftUI，KMP 共享 core；详见 `docs/superpowers/specs/2026-08-08-ios-app-skeleton-design.md`）
 - **包名**: com.mamba.picme
 - **架构**: Clean Architecture + MVVM
-- **关键约束**: 100% 本地 AI 处理、交互反馈 < 100ms、三语言 I18N（EN/CN/TW）
+- **关键约束**: 100% 本地 AI 处理、交互反馈 < 100ms、五语言 I18N（EN/CN/TW/ES/FR）
 
 ## 启动上下文（Startup Context）
 
@@ -38,11 +38,13 @@
 - Android 使用 `adb logcat -s "PoLang:*"` 查看运行时日志；iOS 真机用 DebugOverlay 状态画屏
 
 ### 多语言同步（I18N）
-- 新增或修改用户可见字符串时，必须同步更新以下三个语言集：
+- 新增或修改用户可见字符串时，必须同步更新以下五个语言集：
   - Android `androidApp/src/main/res/values/strings.xml`（英文/默认）
   - Android `androidApp/src/main/res/values-zh-rCN/strings.xml`（简体中文）
   - Android `androidApp/src/main/res/values-zh-rTW/strings.xml`（繁体中文）
-  - iOS `iosApp/PoLang/Localizable.xcstrings`（String Catalog，en / zh-Hans / zh-Hant 三语）
+  - Android `androidApp/src/main/res/values-es/strings.xml`（西班牙语）
+  - Android `androidApp/src/main/res/values-fr/strings.xml`（法语）
+  - iOS `iosApp/PoLang/Localizable.xcstrings`（String Catalog，en / zh-Hans / zh-Hant / es / fr 五语）
 - 双端同义键语义对齐（S5 双端体验一致），详见 `/i18n-validator` 与 `/ios-i18n-validator`
 
 ### 日志规范

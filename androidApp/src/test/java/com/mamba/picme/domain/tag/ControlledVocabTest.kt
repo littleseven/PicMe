@@ -90,4 +90,21 @@ class ControlledVocabTest {
         assertEquals(listOf("男性", "白天", "性感"), vocab.tagCandidates(AppLanguage.CHINESE))
         assertEquals(listOf("male", "daytime", "sexy"), vocab.tagCandidates(AppLanguage.ENGLISH))
     }
+
+    @Test
+    fun `西法语言候选回退英文词表`() {
+        val vocab = ControlledVocab(
+            scene = listOf("室内"),
+            sceneEn = listOf("indoor"),
+            objects = listOf("猫"),
+            objectsEn = listOf("cat"),
+            people = listOf("男性"),
+            peopleEn = listOf("male")
+        )
+
+        assertEquals(listOf("indoor"), vocab.sceneCandidates(AppLanguage.SPANISH))
+        assertEquals(listOf("indoor"), vocab.sceneCandidates(AppLanguage.FRENCH))
+        assertEquals(listOf("cat"), vocab.objectCandidates(AppLanguage.SPANISH))
+        assertEquals(listOf("male"), vocab.tagCandidates(AppLanguage.FRENCH))
+    }
 }

@@ -122,8 +122,9 @@ class MobileClipTagClassifier(
     /**
      * 对单张图像进行分类（按当前目标语言返回对应语言标签）
      *
-     * @param lang 目标语言，仅支持 [AppLanguage.CHINESE] 和 [AppLanguage.ENGLISH]
-     * @return MobileClipTags，失败或非中英语言返回 null
+     * @param lang 目标语言，文本嵌入仅有中文/英文两套；[AppLanguage.SPANISH] /
+     *   [AppLanguage.FRENCH] 回退英文嵌入，其余非中英语言返回 null
+     * @return MobileClipTags，失败或不支持的语言返回 null
      */
     fun classify(bitmap: Bitmap, lang: AppLanguage): MobileClipTags? {
         if (!isReady) {
@@ -131,7 +132,12 @@ class MobileClipTagClassifier(
             return null
         }
 
-        if (lang != AppLanguage.CHINESE && lang != AppLanguage.ENGLISH) {
+        // 西语/法语无独立文本嵌入，回退英文
+        val effectiveLang = when (lang) {
+            AppLanguage.SPANISH, AppLanguage.FRENCH -> AppLanguage.ENGLISH
+            else -> lang
+        }
+        if (effectiveLang != AppLanguage.CHINESE && effectiveLang != AppLanguage.ENGLISH) {
             Log.w(TAG, "Unsupported language for MobileCLIP classification: $lang")
             return null
         }
@@ -141,12 +147,12 @@ class MobileClipTagClassifier(
             return null
         }
 
-        val embeddings = if (lang == AppLanguage.ENGLISH) textEmbeddingsEn else textEmbeddingsZh
-        val blocked = if (lang == AppLanguage.ENGLISH) vocab.blockedTagsEn else vocab.blockedTags
+        val embeddings = if (effectiveLang == AppLanguage.ENGLISH) textEmbeddingsEn else textEmbeddingsZh
+        val blocked = if (effectiveLang == AppLanguage.ENGLISH) vocab.blockedTagsEn else vocab.blockedTags
 
-        val sceneResults = topK(SCENE_TOP_K, SCENE_THRESHOLD, vocab.sceneCandidates(lang), imageEmbedding, embeddings, blocked)
-        val objectResults = topK(OBJECT_TOP_K, OBJECT_THRESHOLD, vocab.objectCandidates(lang), imageEmbedding, embeddings, blocked)
-        val tagResults = topK(TAG_TOP_K, TAG_THRESHOLD, vocab.tagCandidates(lang), imageEmbedding, embeddings, blocked)
+        val sceneResults = topK(SCENE_TOP_K, SCENE_THRESHOLD, vocab.sceneCandidates(effectiveLang), imageEmbedding, embeddings, blocked)
+        val objectResults = topK(OBJECT_TOP_K, OBJECT_THRESHOLD, vocab.objectCandidates(effectiveLang), imageEmbedding, embeddings, blocked)
+        val tagResults = topK(TAG_TOP_K, TAG_THRESHOLD, vocab.tagCandidates(effectiveLang), imageEmbedding, embeddings, blocked)
 
         val scene = sceneResults.firstOrNull()?.first ?: ""
         val sceneScore = sceneResults.firstOrNull()?.second ?: 0f

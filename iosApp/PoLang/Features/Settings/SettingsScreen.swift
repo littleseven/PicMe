@@ -141,10 +141,12 @@ struct SettingsScreen: View {
             Text(L("Language"))
                 .font(.system(size: 14, weight: .medium))
 
-            HStack(spacing: 8) {
+            FlowLayout(spacing: 8) {
                 filterChip("english", label: "English", isSelected: settings.appLanguage == "english")
                 filterChip("chinese_simplified", label: "中文", isSelected: settings.appLanguage == "chinese_simplified")
                 filterChip("chinese_traditional", label: "繁體中文", isSelected: settings.appLanguage == "chinese_traditional")
+                filterChip("spanish", label: "Español", isSelected: settings.appLanguage == "spanish")
+                filterChip("french", label: "Français", isSelected: settings.appLanguage == "french")
             }
         }
         .padding(16)

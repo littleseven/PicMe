@@ -168,12 +168,12 @@ CameraX → SurfaceTexture → OpenGL ES Shader → SurfaceView
 
 ### I18N (Mandatory)
 - **Never hardcode user-facing strings** in UI code.
-- When adding or refactoring features, **must sync all supported languages**: `values/strings.xml` (EN/default), `values-zh-rCN/strings.xml` (Simplified Chinese), `values-zh-rTW/strings.xml` (Traditional Chinese).
+- When adding or refactoring features, **must sync all supported languages**: `values/strings.xml` (EN/default), `values-zh-rCN/strings.xml` (Simplified Chinese), `values-zh-rTW/strings.xml` (Traditional Chinese), `values-es/strings.xml` (Spanish), `values-fr/strings.xml` (French).
 
 ### Global Red Lines
 - **`[PRIVACY]`**: **禁止向远程大模型/推理服务器上传用户图片/视频文件**；人脸检测/OCR/分类/打标等媒体处理必须 100% 端侧。文本、元数据、相册摘要等非媒体数据可走远程推理（chat 默认远程）。飞书/Telegram 等用户自配置通道回传媒体给用户本人不属红线。> 原「Cloud inference is strictly prohibited」红线已于 2026-07-28 决策1 放宽（见 ADR-008）。
 - **`[PERF]`**: Interaction feedback < 100 ms; shutter capture latency < 50 ms.
-- **`[I18N]`**: All user-visible text must be extracted and synchronized across the three language sets above.
+- **`[I18N]`**: All user-visible text must be extracted and synchronized across the five language sets above.
 
 ## Quality Toolchain
 

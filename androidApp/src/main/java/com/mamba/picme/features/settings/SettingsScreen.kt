@@ -1365,7 +1365,9 @@ private fun SettingsMainMenu(
                 AppLanguage.SYSTEM to stringResource(R.string.system_default),
                 AppLanguage.ENGLISH to "English",
                 AppLanguage.CHINESE to "中文",
-                AppLanguage.TRADITIONAL_CHINESE to "繁體中文"
+                AppLanguage.TRADITIONAL_CHINESE to "繁體中文",
+                AppLanguage.SPANISH to "Español",
+                AppLanguage.FRENCH to "Français"
             ),
             isSelected = { it == appLanguage },
             onSelected = { language -> onAppLanguageSelected(language as AppLanguage) },
@@ -1394,6 +1396,8 @@ private fun languageLabel(language: AppLanguage): String = when (language) {
     AppLanguage.ENGLISH -> "English"
     AppLanguage.CHINESE -> "中文"
     AppLanguage.TRADITIONAL_CHINESE -> "繁體中文"
+    AppLanguage.SPANISH -> "Español"
+    AppLanguage.FRENCH -> "Français"
 }
 
 /** 列表行值列的弹层选择器（主题/语言/档位/打标/语音共用）：底部弹层，单选即生效。

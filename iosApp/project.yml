@@ -4,6 +4,7 @@ options:
   deploymentTarget:
     iOS: "16.0"
   developmentLanguage: en
+  knownRegions: ["Base", "en", "zh-Hans", "zh-Hant", "es", "fr"]
   createIntermediateGroups: true
 
 targets:

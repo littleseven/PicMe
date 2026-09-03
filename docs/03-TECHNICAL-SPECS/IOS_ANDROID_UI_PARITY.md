@@ -183,15 +183,15 @@ Ardot/Figma 画布为 token **可视化预览层**（非 SSOT），由 `sync-ard
 
 ### 4.4 RTL 与本地化
 
-> 本项目当前三语（en / zh-CN / zh-TW），均为 LTR 语言。RTL 预留扩展点，暂不实现。([Bitrise i18n 指南](https://bitrise.com/blog/post/introduction-to-app-localization-in-ios-and-android))
+> 本项目当前五语（en / zh-CN / zh-TW / es / fr），均为 LTR 语言。RTL 预留扩展点，暂不实现。([Bitrise i18n 指南](https://bitrise.com/blog/post/introduction-to-app-localization-in-ios-and-android))
 
 | 维度 | 规则 | 当前状态 |
 |------|------|---------|
-| **字符串** | 🔴 禁止硬编码用户可见文案——必须走 `strings.xml`（Android）/ `Localizable.strings`（iOS）；三语同步（[I18N] 红线） | ✅ 已落地 |
-| **RTL 布局** | 🟡 预留：布局用 `start/end` 而非 `left/right`（Android）/ `.leading/.trailing`（iOS） | 🟡 Compose 已用 `start/end`；iOS 待 Phase 6.x 验证（Phase 5 已发，三语均 LTR，RTL 暂不实现） |
+| **字符串** | 🔴 禁止硬编码用户可见文案——必须走 `strings.xml`（Android）/ `Localizable.strings`（iOS）；五语同步（[I18N] 红线） | ✅ 已落地 |
+| **RTL 布局** | 🟡 预留：布局用 `start/end` 而非 `left/right`（Android）/ `.leading/.trailing`（iOS） | 🟡 Compose 已用 `start/end`；iOS 待 Phase 6.x 验证（Phase 5 已发，五语均 LTR，RTL 暂不实现） |
 | **日期/数字** | 🟡 双端用平台 locale 格式化器（`DateTimeFormatter` / `java.time.format.DateTimeFormatter`），不手动拼接 | ✅ 已落地 |
-| **复数** | 🟡 使用平台复数资源（Android plurals.xml / iOS stringsdict 或 String Catalog） | 🟡 暂未使用，当前三语无复数差异 |
-| **字符长度** | 🟡 德语/俄语等翻译后文案可能膨胀 30%+，布局需弹性（不裁断、不溢出） | 🟡 当前三语长度接近，暂无问题 |
+| **复数** | 🟡 使用平台复数资源（Android plurals.xml / iOS stringsdict 或 String Catalog） | 🟡 暂未使用，当前五语无复数差异 |
+| **字符长度** | 🟡 德语/俄语等翻译后文案可能膨胀 30%+，布局需弹性（不裁断、不溢出） | 🟡 当前五语长度接近，暂无问题 |
 
 ### 4.5 软键盘适配
 

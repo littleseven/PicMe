@@ -66,6 +66,8 @@ settings/dialog_language,111:283,lbl,系统默认,System Default,matched,system.
 settings/dialog_language,111:285,lbl,English,English,literal,,skip,language-self-name,English,111:285
 settings/dialog_language,111:287,lbl,中文,,manual,,skip,language-self-name,中文,111:287
 settings/dialog_language,111:291,lbl,繁體中文,,manual,,skip,language-self-name,繁體中文,111:291
+settings/dialog_language,111:292,lbl,Español,,manual,,skip,language-self-name,Español,111:292
+settings/dialog_language,111:294,lbl,Français,,manual,,skip,language-self-name,Français,111:294
 settings/dialog_language,111:293,lbl,取消,Cancel,matched,cancel,bind,multi resolved=cancel; 复用 ledger 既有变量,取消,111:293
 settings/dialog_stage,111:296,title,ROI 检测,ROI Detection,matched,stage.roi.title,bind,,ROI 检测,111:296
 settings/dialog_stage,111:297,lbl_model,模型,Model,matched,model.type,bind,multi resolved=model_type (StageConfigDialog SettingsScreen.kt:1696),模型,111:297

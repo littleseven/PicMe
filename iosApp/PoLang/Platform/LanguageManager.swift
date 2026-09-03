@@ -31,6 +31,8 @@ final class LanguageManager: ObservableObject {
         case "english": langCode = "en"
         case "chinese_simplified": langCode = "zh-Hans"
         case "chinese_traditional": langCode = "zh-Hant"
+        case "spanish": langCode = "es"
+        case "french": langCode = "fr"
         default:
             // 跟随系统：用系统首选语言
             bundle = .main

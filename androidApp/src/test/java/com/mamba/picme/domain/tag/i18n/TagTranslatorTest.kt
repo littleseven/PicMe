@@ -189,4 +189,32 @@ class TagTranslatorTest {
 
         assertEquals(listOf("cat", "dog"), result)
     }
+
+    // ── 西/法语回退英文资源（2026-09 五语支持）─────────────
+
+    @Test
+    fun `display 在西语和法语界面回退英文翻译`() {
+        val vocab = BilingualVocab(
+            zhToEn = mapOf("猫" to "cat"),
+            enToZh = emptyMap(),
+            enSynonyms = emptyMap()
+        )
+        val translator = TagTranslator(vocab)
+
+        assertEquals("cat", translator.display("猫", AppLanguage.SPANISH))
+        assertEquals("cat", translator.display("猫", AppLanguage.FRENCH))
+    }
+
+    @Test
+    fun `expandForSearch 西法语言走英文扩展分支`() {
+        val vocab = BilingualVocab(
+            zhToEn = mapOf("团队" to "Team"),
+            enToZh = mapOf("team" to "团队"),
+            enSynonyms = emptyMap()
+        )
+        val translator = TagTranslator(vocab)
+
+        assertEquals(setOf("team", "团队"), translator.expandForSearch("Team", AppLanguage.SPANISH))
+        assertEquals(setOf("team", "团队"), translator.expandForSearch("Team", AppLanguage.FRENCH))
+    }
 }

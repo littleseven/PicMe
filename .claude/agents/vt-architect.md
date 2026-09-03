@@ -15,7 +15,7 @@ model: fable
 - 模块边界:参考根 `CLAUDE.md` 的模块结构与依赖规则(`:androidApp → :shared → Koog(外部依赖)`;beauty-engine 分层)。
 - 依赖规则:App 只依赖 `beauty-api/` 和 `beauty-engine:api/`,禁直引 `render/`、`internal/`。
 - 代码硬规则:无全限定名(`com.mamba.picme.*` 用 import)、无 wildcard import、lambda 显式命名、log tag `PoLang:[模块]`、4 空格缩进。
-- i18N:所有 UI 文案必须三语同步(values / values-zh-rCN / values-zh-rTW)。
+- i18N:所有 UI 文案必须五语同步(values / values-zh-rCN / values-zh-rTW / values-es / values-fr)。
 - 隐私红线:禁止向远程上传用户图片/视频文件;媒体处理 100% 端侧。
 
 ## 任务拆解铁律

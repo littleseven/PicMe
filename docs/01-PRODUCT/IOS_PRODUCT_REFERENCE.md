@@ -1230,9 +1230,9 @@ SettingsScreen (MAIN)
 
 **防护机制**：① 防回归守卫 `RemoteInferenceNoMediaUploadGuardTest`（静态扫描远程推理源码，断言无媒体上传符号）；② iOS 组合根注入 `IosUnavailableImageInferenceEngine`（stub，`imageInference` 返回空串），确保 chat 链路无多模态上传；③ 多模态看图对话未来若要做必须改走端侧 VLM，不可把图喂给远程模型。
 
-### 3.5 i18n 三语规范
+### 3.5 i18n 五语规范
 
-**Android 三语结构（代码核验）**：
+**Android 五语结构（代码核验）**：
 
 | 资源限定符 | key 数 | 角色 |
 |---|---|---|
@@ -1240,10 +1240,14 @@ SettingsScreen (MAIN)
 | `values-zh-rCN/` | 981 | 简体中文（与 EN 完全对齐） |
 | `values-zh-rTW/` | 963 | 繁体中文（缺 18 key，未完全对齐） |
 | `values-zh/` | 679 | **遗留通用 zh 目录**（7 成覆盖，陈旧冗余，建议清理） |
+| `values-es/` | 1410 | 西班牙语（2026-09 新增，与 EN 全量对齐） |
+| `values-fr/` | 1410 | 法语（2026-09 新增，与 EN 全量对齐） |
 
-**命名约定**：实际为 **snake_case 小写**（非小驼峰），形如 `tag_scan_control`、`gallery_people_entry`。运行时语言切换（`attachBaseContext` + `setLocale`，EN / 简中 / 繁中 / 跟随系统，切换触发 `recreate()`）。
+> **2026-09 更新**：es / fr 已于 2026-09 补齐（Android 1410 键全量、iOS 全量键），上表 981/963/679 为当时核验的历史快照。
 
-**iOS 对齐现状**：`Localizable.xcstrings` **main = 417 key**（vs Android 981，覆盖仍不足，持续补）；三语 `en`/`zh-Hans`/`zh-Hant` 均就绪（zh-Hant 于 2026-08-10 补齐，commit `4de9221b`/`da2b78ae`）；xcstrings 以英文文案为 key（非 snake_case id），双端键对齐需建立映射。`iOS 缺口`（key 覆盖率）。
+**命名约定**：实际为 **snake_case 小写**（非小驼峰），形如 `tag_scan_control`、`gallery_people_entry`。运行时语言切换（`attachBaseContext` + `setLocale`，EN / 简中 / 繁中 / ES / FR / 跟随系统，切换触发 `recreate()`）。
+
+**iOS 对齐现状**：`Localizable.xcstrings` **main = 417 key**（vs Android 981，覆盖仍不足，持续补）；五语 `en`/`zh-Hans`/`zh-Hant`/`es`/`fr` 均就绪（zh-Hant 于 2026-08-10 补齐，commit `4de9221b`/`da2b78ae`；es/fr 于 2026-09 补齐全量键）；xcstrings 以英文文案为 key（非 snake_case id），双端键对齐需建立映射。`iOS 缺口`（key 覆盖率）。
 
 ### 3.6 设计系统
 

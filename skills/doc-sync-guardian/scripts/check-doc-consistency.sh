@@ -80,11 +80,11 @@ else
 fi
 
 ###############################################################################
-# 检查 3: I18N 三语资源同步
+# 检查 3: I18N 五语资源同步
 ###############################################################################
 echo -e "${YELLOW}[3/5] 检查国际化资源同步...${NC}"
 
-VALUES_DIRS=("values" "values-zh-rCN" "values-zh-rTW")
+VALUES_DIRS=("values" "values-zh-rCN" "values-zh-rTW" "values-es" "values-fr")
 MISSING_STRINGS=()
 
 for dir in "${VALUES_DIRS[@]}"; do
@@ -95,7 +95,7 @@ for dir in "${VALUES_DIRS[@]}"; do
 done
 
 if [ ${#MISSING_STRINGS[@]} -eq 0 ]; then
-    PASS_ITEMS+=("三语资源文件齐全 (values, values-zh-rCN, values-zh-rTW)")
+    PASS_ITEMS+=("五语资源文件齐全 (values, values-zh-rCN, values-zh-rTW, values-es, values-fr)")
     ((PASS_COUNT++))
 else
     for missing in "${MISSING_STRINGS[@]}"; do

@@ -4,10 +4,11 @@ import SharedKit
 // MARK: - 关系选项桥接（:shared `PersonRelationSupport` → Swift 友好结构）
 
 /// 当前 App 语言代码（与 LanguageManager 对齐："跟随系统"时取系统首选）。
+/// 谓词标签仅有 zh/en/ja 三套，西语/法语回退 en。
 enum PersonLanguage {
     static func code() -> String {
         switch LanguageManager.shared.currentLanguage {
-        case "english": return "en"
+        case "english", "spanish", "french": return "en"
         case "chinese_simplified", "chinese_traditional": return "zh"
         default:
             let pref = Locale.preferredLanguages.first ?? "en"

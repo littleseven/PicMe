@@ -20,7 +20,7 @@ tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 - **只读，只报告不修**（无 Edit/Write 工具）。修复交回主循环。
 - 对齐项目既有审计清单（与 cr-agent 一致）：
   - 隐式 `it` 参数必须显式命名；通配符 `*` 导入禁止。
-  - 三语 `strings.xml` 同步（EN / zh-rCN / zh-rTW），禁止硬编码用户可见串。
+  - 五语 `strings.xml` 同步（EN / zh-rCN / zh-rTW / es / fr），禁止硬编码用户可见串。
   - 日志 tag 遵循 `PoLang:[Module]` 格式。
   - 魔法值（未命名的硬编码数字 / 字符串）。
   - 分层纯净度：domain 纯 Kotlin 无 Android 依赖；data 无 UI 逻辑；UI 状态用 sealed class 建模。

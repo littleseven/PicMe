@@ -11,7 +11,7 @@ import com.mamba.picme.domain.model.AppLanguage
  * 先行落地供助手性格段选语言（2026-08-22-assistant-persona-design.md）；
  * 「回复语言跟随界面语言」规则段复用本枚举（2026-08-22-chat-reply-language-design.md）。
  */
-enum class ReplyLanguage { SIMPLIFIED_CHINESE, TRADITIONAL_CHINESE, ENGLISH }
+enum class ReplyLanguage { SIMPLIFIED_CHINESE, TRADITIONAL_CHINESE, ENGLISH, SPANISH, FRENCH }
 
 /**
  * 把 App 界面语言设置解析为具体回复语言。
@@ -25,12 +25,16 @@ fun AppLanguage.toReplyLanguage(systemLocaleTag: String): ReplyLanguage = when (
     AppLanguage.ENGLISH -> ReplyLanguage.ENGLISH
     AppLanguage.CHINESE -> ReplyLanguage.SIMPLIFIED_CHINESE
     AppLanguage.TRADITIONAL_CHINESE -> ReplyLanguage.TRADITIONAL_CHINESE
+    AppLanguage.SPANISH -> ReplyLanguage.SPANISH
+    AppLanguage.FRENCH -> ReplyLanguage.FRENCH
     AppLanguage.SYSTEM -> resolveSystemReplyLanguage(systemLocaleTag)
 }
 
 private fun resolveSystemReplyLanguage(localeTag: String): ReplyLanguage {
     // 先归一为 BCP-47 形态：iOS Locale.identifier 用下划线分隔（如 zh_TW、zh_Hant）
     val tag = localeTag.replace('_', '-').lowercase()
+    if (tag == "es" || tag.startsWith("es-")) return ReplyLanguage.SPANISH
+    if (tag == "fr" || tag.startsWith("fr-")) return ReplyLanguage.FRENCH
     // yue（粤语）按中文同规则解析：iOS 粤语系统语言下 UI 回退繁中，chat 回复语言须与之一致
     val isChinese = tag == "zh" || tag.startsWith("zh-") || tag == "yue" || tag.startsWith("yue-")
     if (!isChinese) return ReplyLanguage.ENGLISH
@@ -46,7 +50,7 @@ private fun resolveSystemReplyLanguage(localeTag: String): ReplyLanguage {
 /**
  * 追加到 chat system prompt 最末尾的语言规则段（RemoteChatEngine.buildPromptSuffix 拼装）。
  * 规则文本本身用目标语言书写（自我强化），并显式对抗全中文 base prompt 与中文工具输出的引力。
- * 三语文本集中此处，双端共用，防漂移。
+ * 五语文本集中此处，双端共用，防漂移。
  */
 internal fun replyLanguageRuleSegment(language: ReplyLanguage): String = when (language) {
     ReplyLanguage.ENGLISH ->
@@ -55,4 +59,8 @@ internal fun replyLanguageRuleSegment(language: ReplyLanguage): String = when (l
         "App 界面语言为简体中文。请始终用简体中文回复用户，无论本提示词、工具描述或工具返回内容使用何种语言。工具返回内容可能是英文或其他语言——请用简体中文总结转述。"
     ReplyLanguage.TRADITIONAL_CHINESE ->
         "App 介面語言為繁體中文。請始終用繁體中文回覆使用者，無論本提示詞、工具描述或工具回傳內容使用何種語言。工具回傳內容可能是英文或其他語言——請用繁體中文總結轉述。"
+    ReplyLanguage.SPANISH ->
+        "El idioma de la interfaz de la app es español. Responde siempre al usuario en español, independientemente del idioma de este prompt, de las descripciones de las herramientas o de sus salidas. Los resultados de las herramientas pueden estar en chino o en inglés — resúmelos y preséntalos en español."
+    ReplyLanguage.FRENCH ->
+        "La langue de l'interface de l'app est le français. Réponds toujours à l'utilisateur en français, quelle que soit la langue de ce prompt, des descriptions des outils ou de leurs sorties. Les résultats des outils peuvent être en chinois ou en anglais — résume-les et présente-les en français."
 }

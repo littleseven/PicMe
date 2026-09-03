@@ -16,12 +16,16 @@ class DefaultTagPromptProvider : TagPromptProvider {
 
     override fun systemPromptForActivityAndSummary(lang: AppLanguage): String = ""
 
+    // 打标 prompt 仅有中/英两套；西语/法语回退英文
+    private fun useEnglish(lang: AppLanguage): Boolean =
+        lang == AppLanguage.ENGLISH || lang == AppLanguage.SPANISH || lang == AppLanguage.FRENCH
+
     override fun userPromptForActivityAndSummary(
         lang: AppLanguage,
         faceCount: Int,
         isGroupPhoto: Boolean
     ): String {
-        return if (lang == AppLanguage.ENGLISH) {
+        return if (useEnglish(lang)) {
             "Output only a JSON object with activity and summary: {\"activity\":\"...\",\"summary\":\"...\"}"
         } else {
             "只输出一个 JSON 对象，包含 activity 和 summary：{\"activity\":\"...\",\"summary\":\"...\"}"
@@ -29,7 +33,7 @@ class DefaultTagPromptProvider : TagPromptProvider {
     }
 
     override fun userPrompt(lang: AppLanguage, faceCount: Int, isGroupPhoto: Boolean): String {
-        val faceHint = if (lang == AppLanguage.ENGLISH) {
+        val faceHint = if (useEnglish(lang)) {
             when {
                 faceCount <= 0 -> "No face detected."
                 isGroupPhoto -> "Group photo of $faceCount people."
@@ -45,7 +49,7 @@ class DefaultTagPromptProvider : TagPromptProvider {
             }
         }
 
-        return if (lang == AppLanguage.ENGLISH) {
+        return if (useEnglish(lang)) {
             buildString {
                 appendLine("Describe this photo using only the JSON format below.")
                 appendLine(faceHint)

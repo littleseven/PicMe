@@ -266,7 +266,7 @@ struct MediaPagerView: View {
                     .lineLimit(1)
             }
             // EN "ID Photo" 等长文案：宽度不再锁死 48（minWidth 保触控目标），完整显示（2026-08-23）
-            .frame(minWidth: 48, height: 48)
+            .frame(minWidth: 48, minHeight: 48, maxHeight: 48)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

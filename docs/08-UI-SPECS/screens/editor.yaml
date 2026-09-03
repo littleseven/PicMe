@@ -441,16 +441,16 @@ platform_differences:
       manifest: 本轮仅新增 photo library 写权限（若有）；无新数据收集
       play_data_safety: 编辑为本地处理，不上传（与既有声明一致）
     ios:
-      purpose_string: NSPhotoLibraryAddUsageDescription = 「用于保存编辑后的图片到相册」（三语）
+      purpose_string: NSPhotoLibraryAddUsageDescription = 「用于保存编辑后的图片到相册」（五语）
       privacy_manifest: PrivacyInfo.xcprivacy —— 本地处理，无 tracking，无上传；编辑结果仅写本地相册
       privacy_label: Photos and Videos – Add Only（仅添加，不读取全库；读取走系统 Picker）
   red_line_check:
     PRIVACY: ✅ 所有编辑（裁剪/调节/滤镜/标记/抽卡候选渲染与 NIMA 评分）100% 端侧 Core Graphics/CoreImage/ONNX Runtime；图片文件绝不上传远程
     PERF: ✅ 预览重渲染 debounce 200ms + 后台线程；交互反馈 < 100ms；抽卡预算 512px 解码<150ms + 渲染×4<1.2s + NIMA×5<500ms
-    I18N: ✅ 全部文案经 xcstrings 三语（见 §16/§17）
+    I18N: ✅ 全部文案经 xcstrings 五语（见 §16/§17）
 
 # ============================================================================
-# 16. i18n 键表（xcstrings 三语同步；en/zh-Hans/zh-Hant）
+# 16. i18n 键表（xcstrings 五语同步；en/zh-Hans/zh-Hant/es/fr）
 # ============================================================================
 # 简繁含用词差异（重置/重設、构图、色调/色溫 等），照抄 Android values-zh-rCN / values-zh-rTW
 i18n_keys:

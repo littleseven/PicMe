@@ -131,7 +131,7 @@ docs/superpowers/
 | `doc-sync-guardian` | 三层文档体系一致性检查 |
 | `egl-state-machine` | EGL 上下文与离屏渲染状态机规范 |
 | `error-healer` | Kotlin/Gradle 错误分类与自愈 |
-| `i18n-validator` | 国际化资源检查与三语同步验证 |
+| `i18n-validator` | 国际化资源检查与五语同步验证 |
 | `image-quality-checker` | 截屏图片质量分析 |
 | `intent-router` | 自然语言需求解析与上下文加载 |
 | `ios-follow` | Android 完成后 iOS 一键对等跟随（spec/tokens/平台差异台账契约化 + 双端验收） |

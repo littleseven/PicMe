@@ -158,7 +158,7 @@ def generate_update_draft(analysis: dict, commit_hash: str) -> str:
 **Section 4: 检查清单**
 - [ ] 新功能是否有完整的异常处理？
 - [ ] 性能指标是否满足 PRODUCT.md 要求？
-- [ ] I18N 三语资源是否同步更新？
+- [ ] I18N 五语资源是否同步更新？
 
 """
         
@@ -200,7 +200,7 @@ def generate_update_draft(analysis: dict, commit_hash: str) -> str:
 - [ ] 三层文档术语保持一致
 - [ ] 所有 markdown 链接有效
 - [ ] 代码示例可以正常编译
-- [ ] I18N 文案同步三语资源
+- [ ] I18N 文案同步五语资源
 - [ ] 性能指标有对应的监控日志
 - [ ] 废弃内容已标记或删除
 

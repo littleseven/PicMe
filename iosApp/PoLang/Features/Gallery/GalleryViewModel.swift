@@ -140,16 +140,17 @@ final class GalleryViewModel: ObservableObject {
         return DayGroup(id: title, items: searchResults)
     }
 
-    /// 搜索语言（契约：引擎词表/停用词按 zh/en 二分）。
-    /// 对齐 Android 语义：显式英文 → "en"，其余默认 "zh"；跟随系统时按系统语言判 en/zh。
+    /// 搜索语言（契约：引擎词表/停用词按 zh/en 二分；西语/法语回退 en）。
+    /// 对齐 Android 语义：显式英文/西语/法语 → "en"，显式中文 → "zh"；跟随系统时按系统语言判 en/zh。
     private static func currentLang() -> String {
         switch LanguageManager.shared.currentLanguage {
-        case "english":
+        case "english", "spanish", "french":
             return "en"
         case "chinese_simplified", "chinese_traditional":
             return "zh"
         default:
-            return Locale.current.language.languageCode?.identifier == "en" ? "en" : "zh"
+            let code = Locale.current.language.languageCode?.identifier
+            return (code == "en" || code == "es" || code == "fr") ? "en" : "zh"
         }
     }
 

@@ -262,7 +262,7 @@ SearchTopBar(
   - 预览图按最长边 2048px 降采样解码
   - 所有处理在 `Dispatchers.Default` / `Dispatchers.IO` 执行
   - `sourceBitmap` 在 ViewModel `onCleared()` 时回收
-- **I18N**: 编辑器内所有标签、内容描述、错误提示均已提取到 `strings.xml`，同步覆盖英文 / 简体中文 / 繁体中文
+- **I18N**: 编辑器内所有标签、内容描述、错误提示均已提取到 `strings.xml`，同步覆盖英文 / 简体中文 / 繁体中文 / 西班牙语 / 法语
 
 **代码示例**:
 ```kotlin
@@ -339,7 +339,7 @@ override fun onCleared() {
 - **Regenerate 区块**：类别/时间范围 chips + 「Overwrite existing」开关（关 = 仅补齐缺失），替代旧「模式: X」单选
 - 已删除：Pipeline overview 卡、StatsCard 底部阶段进度条、行内增量/全量按钮
 - **视觉规格对齐 Ardot 稿 `gallery/tag_control_v2` / `gallery/tag_stage_sheet`**：卡片=surfaceContainer r16、瓦片/轨道/Cancel=surfaceVariant、弹层/确认框=surfaceContainerHighest、描边=outlineVariant、强调=primary（#8FD6C6）、渐变按钮/大数字=ChatBubbleTokens 品牌渐变；Stats 瓦片无图标（数值 17sp + 标签 11sp）、覆盖环为实色 primary 弧；弹层选项卡带单选圈（推荐项选中态，点卡片直接执行）+ 通栏 Cancel；自定义 44×26 TagSwitch 与 h28 chip（选中=primary 14% 底+描边）
-- 文案规范：按钮/标题一律短文案（Faces、Scan new、Rescan all、Regenerate），三语（EN/zh-CN/zh-TW）键同步，新增键以 `tag_section_*` / `tag_stage_*` / `tag_scan_*` / `tag_overwrite_*` 前缀
+- 文案规范：按钮/标题一律短文案（Faces、Scan new、Rescan all、Regenerate），五语（EN/zh-CN/zh-TW/ES/FR）键同步，新增键以 `tag_section_*` / `tag_stage_*` / `tag_scan_*` / `tag_overwrite_*` 前缀
 
 **代码示例**:
 ```kotlin
@@ -379,7 +379,7 @@ context.startForegroundService(
 - **选择模式下**通过 `stateDescription` 暴露选中状态
   - 已选中: `R.string.media_state_selected`
   - 未选中: `R.string.media_state_unselected`
-- **多语言**: 类型与状态文案必须提取到 `strings.xml`（已支持 zh / zh-rCN / zh-rTW / en）
+- **多语言**: 类型与状态文案必须提取到 `strings.xml`（已支持 zh / zh-rCN / zh-rTW / en / es / fr）
 
 **验证方式**:
 ```bash

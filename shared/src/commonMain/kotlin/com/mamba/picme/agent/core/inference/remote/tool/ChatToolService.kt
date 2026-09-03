@@ -335,9 +335,9 @@ class ChatToolService private constructor() : TraceIdAware {
     ): String = dispatchCommand(AgentCommand.ChangeTheme(theme = theme))
 
     @Tool(customName = "change_language")
-    @LLMDescription("切换语言。language: zh/en。")
+    @LLMDescription("切换语言。language: zh/zh-tw/en/es/fr/system。")
     suspend fun changeLanguage(
-        @LLMDescription("zh 或 en") language: String
+        @LLMDescription("zh/zh-tw/en/es/fr/system") language: String
     ): String = dispatchCommand(AgentCommand.ChangeLanguage(language = language))
 
     @Tool(customName = "toggle_setting")

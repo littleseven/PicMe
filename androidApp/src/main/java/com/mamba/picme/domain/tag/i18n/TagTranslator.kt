@@ -37,7 +37,10 @@ class TagTranslator(
      * @return 翻译后的标签；未命中词表时回退原中文
      */
     fun display(chineseTag: String, lang: AppLanguage): String {
-        if (lang != AppLanguage.ENGLISH) return chineseTag
+        // 西语/法语无独立标签词表，展示回退英文
+        if (lang != AppLanguage.ENGLISH && lang != AppLanguage.SPANISH && lang != AppLanguage.FRENCH) {
+            return chineseTag
+        }
         return vocab.zhToEn[chineseTag] ?: chineseTag
     }
 
@@ -62,8 +65,8 @@ class TagTranslator(
 
         val result = linkedSetOf(normalized)
 
-        if (uiLang == AppLanguage.ENGLISH) {
-            // 英文标准词 -> 中文 canonical
+        if (uiLang == AppLanguage.ENGLISH || uiLang == AppLanguage.SPANISH || uiLang == AppLanguage.FRENCH) {
+            // 英文标准词 -> 中文 canonical（西语/法语无独立词表，回退英文同义词链）
             vocab.enToZh[normalized]?.let { result += it }
             // 英文同义词 -> 英文标准词 -> 中文 canonical
             vocab.enSynonyms[normalized]?.let { standardEn ->

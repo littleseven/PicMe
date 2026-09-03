@@ -184,6 +184,8 @@ class ChatViewModel(
             AppLanguage.ENGLISH -> Locale.ENGLISH
             AppLanguage.CHINESE -> Locale.SIMPLIFIED_CHINESE
             AppLanguage.TRADITIONAL_CHINESE -> Locale.TRADITIONAL_CHINESE
+            AppLanguage.SPANISH -> Locale("es")
+            AppLanguage.FRENCH -> Locale.FRENCH
             AppLanguage.SYSTEM -> Locale.getDefault() // 不可达（上方已 return），when 穷尽所需
         }
         val config = Configuration(context.resources.configuration)

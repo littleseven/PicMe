@@ -117,7 +117,7 @@ const results = await pipeline(
       let review = { verdict: 'reject', issues: [] }
       for (let round = 1; round <= MAX_REVIEW_ROUNDS; round++) {
         review = await agent(
-          `审查以下开发产出是否守项目硬规则(无FQN/无wildcard import/lambda显式命名/log tag/缩进/i18N三语/模块边界/隐私红线/范围)。输出 JSON。\n任务 ${task.id}:${task.description}\n改动范围:${task.scope}\n开发产出:\n${currentDev}`,
+          `审查以下开发产出是否守项目硬规则(无FQN/无wildcard import/lambda显式命名/log tag/缩进/i18N五语/模块边界/隐私红线/范围)。输出 JSON。\n任务 ${task.id}:${task.description}\n改动范围:${task.scope}\n开发产出:\n${currentDev}`,
           { label: `Review:${task.id}#r${round}`, phase: '实现', schema: REVIEW_SCHEMA, agentType: 'vt-reviewer' }
         )
         if (review.verdict === 'pass') {

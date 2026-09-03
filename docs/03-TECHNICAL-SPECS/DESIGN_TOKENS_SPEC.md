@@ -168,7 +168,7 @@ photo-info tag chip `primary@0.2`/corner6/12sp/White/8h-4v；section header 14sp
 - [ ] 动效用 `AppMotion`，禁线性
 - [ ] 字体用 `AppTypography` role
 - [ ] （可选）改完色值/尺寸后跑 Ardot 同步：`python3 scripts/sync-ardot-variables.py`（push；画布精修后 `--pull` 回流、`--check` 漂移门禁，语义见 §9；前置：Ardot 桌面端已开云端文档 `polang-ui-spec`；变量集 `PoLang Tokens`，Dark/Light 双模式）；`capture_screenshot` 留档；画布结构变更另跑 `python3 scripts/export-ardot-snapshot.py` 快照入库
-- [ ] 用户可见文本三语同步（Android `values`/`values-zh-rCN`/`values-zh-rTW`；iOS `Localizable`/`*.xcstrings`，注意 iOS 当前缺 zh-Hant）
+- [ ] 用户可见文本五语同步（Android `values`/`values-zh-rCN`/`values-zh-rTW`/`values-es`/`values-fr`；iOS `Localizable`/`*.xcstrings`）
 
 ---
 

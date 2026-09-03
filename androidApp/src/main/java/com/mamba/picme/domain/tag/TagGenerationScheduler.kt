@@ -1099,7 +1099,7 @@ class TagGenerationScheduler(
      * 按双字段规范持久化统一标签（[enJson] 为英文原语 JSON）：
      * labelsEn=英文原语；labelsZh=由 [LabelSinicizer] 离线汉化派生；labels 作 labelsZh 别名。
      *
-     * @return 与当前 UI 语言匹配的 JSON（英文 UI→enJson，其余→zhJson），供调用方即时展示
+     * @return 与当前 UI 语言匹配的 JSON（英文/西语/法语 UI→enJson，其余→zhJson），供调用方即时展示
      */
     private suspend fun persistUnifiedTags(mediaId: Long, enJson: String): String {
         val zhJson = unifiedTagToJson(labelSinicizer.sinicize(jsonToUnifiedTag(enJson)))
@@ -1107,7 +1107,10 @@ class TagGenerationScheduler(
         dao.updateLabelsEn(mediaId, enJson)
         dao.updateLabelsZh(mediaId, zhJson)
         dao.updateLabels(mediaId, zhJson)
-        return if (userSettingsRepository.getAppLanguageBlocking() == AppLanguage.ENGLISH) enJson else zhJson
+        return when (userSettingsRepository.getAppLanguageBlocking()) {
+            AppLanguage.ENGLISH, AppLanguage.SPANISH, AppLanguage.FRENCH -> enJson
+            else -> zhJson
+        }
     }
 
     private suspend fun ensureModelLoaded(): Boolean {

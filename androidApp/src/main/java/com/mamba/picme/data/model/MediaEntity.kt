@@ -59,9 +59,12 @@ data class MediaEntity(
     val lastTagScanPasses: String? = null
 ) {
     /**
-     * 按 UI 语言取对应标签 JSON：英文 UI→[labelsEn]，其余→[labelsZh]；
+     * 按 UI 语言取对应标签 JSON：英文/西语/法语 UI→[labelsEn]，其余→[labelsZh]；
      * 目标字段为空（老数据未回填）时回退 [labels]。供展示/搜索读取。
      */
     fun labelsForLanguage(lang: AppLanguage): String? =
-        if (lang == AppLanguage.ENGLISH) labelsEn ?: labels else labelsZh ?: labels
+        when (lang) {
+            AppLanguage.ENGLISH, AppLanguage.SPANISH, AppLanguage.FRENCH -> labelsEn ?: labels
+            else -> labelsZh ?: labels
+        }
 }

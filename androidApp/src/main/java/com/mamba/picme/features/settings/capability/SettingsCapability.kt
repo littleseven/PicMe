@@ -23,7 +23,7 @@ import java.lang.ref.WeakReference
  *
  * 支持命令：
  * - change_theme: 切换主题（light/dark/system）
- * - change_language: 切换语言（zh/en）
+ * - change_language: 切换语言（zh/zh-tw/en/es/fr/system）
  * - download_model: 下载模型
  * - switch_face_engine: 切换人脸检测引擎
  * - toggle_setting: 开关设置项
@@ -90,7 +90,7 @@ class SettingsCapability : BaseCapability() {
 
     override fun getCommandDescription(command: String): String = when (command) {
         "change_theme" -> "切换主题模式，参数：theme (light/dark/system)"
-        "change_language" -> "切换应用语言，参数：language (zh/en)"
+        "change_language" -> "切换应用语言，参数：language (zh/zh-tw/en/es/fr/system)"
         "download_model" -> "下载AI模型，参数：model_id"
         "switch_face_engine" -> "切换人脸检测引擎，参数：engine (mediapipe/mnn/custom)"
         "toggle_setting" -> "开关设置项，参数：key, enabled (true/false)"
@@ -168,14 +168,17 @@ class SettingsCapability : BaseCapability() {
     ): Result<AgentAction> {
         val language = when (command.language.lowercase()) {
             "zh", "中文", "简体中文", "cn" -> AppLanguage.CHINESE
+            "zh-tw", "zh-hant", "繁体中文", "繁體中文", "tw" -> AppLanguage.TRADITIONAL_CHINESE
             "en", "英文", "英语", "english" -> AppLanguage.ENGLISH
+            "es", "西班牙语", "西班牙語", "spanish", "español", "espanol" -> AppLanguage.SPANISH
+            "fr", "法语", "法語", "french", "français", "francais" -> AppLanguage.FRENCH
             "system", "系统默认" -> AppLanguage.SYSTEM
             else -> {
                 return Result.success(
                     AgentAction.Error(
                         commandId = command.commandId,
                         errorCode = AgentErrorCode.INVALID_PARAMS,
-                        message = "不支持的语言: ${command.language}，支持 zh/en/system"
+                        message = "不支持的语言: ${command.language}，支持 zh/zh-tw/en/es/fr/system"
                     )
                 )
             }

@@ -41,4 +41,4 @@
 - **Phase 1-5 ✅**；**Phase 6 = 主战场**（功能对齐与发布准备）。
 - **TAG**：3-Pass 全通并合入 main ✅（`b78d7081`）；🔴 **聚类质量阻塞**（MNN3.5 Apple bug 致聚类塌陷，分支 `feat/ios-106-to-5-embedding` 修复中）；MetalGuardian/后台 ❌。
 - **相机对齐 ✅**（已合并 main）；**Chat 6.2 ✅**；**设置 6.3 🔄**（剩合规/隐私政策/账号）；**server 6.4 ✅**。
-- **代码** ~12800 行 Swift；**i18n** main 417 key × 三语。
+- **代码** ~12800 行 Swift；**i18n** main 全量键 × 五语（en / zh-Hans / zh-Hant / es / fr）。

@@ -327,7 +327,7 @@ framing_math:
     frame_radius_to_source: "半径仅按宽度轴缩放（屏幕上圆形笔刷）"
 
 # ============================================================================
-# 11. 字符串表（三语全量；iOS 键名=Android 键名，下划线风格）
+# 11. 字符串表（五语全量；表列基准 en/zh-CN/zh-TW，es/fr 同键同步；iOS 键名=Android 键名，下划线风格）
 # ============================================================================
 strings:
   #            key                          en                              zh-CN                  zh-TW
@@ -403,7 +403,7 @@ ios_impl_map:
   top_bar: "Features/Gallery/Components/AppTopBar + AppTopBarAction（48/17Medium 对齐）"
   tokens: "IdPhotoTokens（DesignTokens.swift 已生成）+ Spacing/AppRadius/AppColorScheme.dark"
   save: "PhotoSaver.saveToLibrary(UIImage)（JPEG 0.95，传 UIImage 保 EXIF 方向先例）"
-  i18n: "Localizable.xcstrings 三语（en/zh-Hans/zh-Hant），键名=§11 下划线键"
+  i18n: "Localizable.xcstrings 五语（en/zh-Hans/zh-Hant/es/fr），键名=§11 下划线键"
   tests: "纯逻辑域（framing_math/edge_adjust/compose/stroke replay/specs 表）移植 Android JVM 测试语义 → PoLangTests"
 
 # ============================================================================
@@ -414,5 +414,5 @@ hard_rules:
   - "预览框渲染禁止子视图 scale 组合（§2.1 render_contract）"
   - "抠图 100% 端侧（[PRIVACY]）；模型缺失走下载中心，不做远程兜底"
   - "所有新尺寸/颜色引用 IdPhotoTokens / 既有 token；禁止内联 hex/dp"
-  - "全部用户可见文案走 xcstrings 三语（§11 全量键表）"
+  - "全部用户可见文案走 xcstrings 五语（§11 全量键表）"
   - "shared 模块零改动（本功能无 KMP 参与契约）"

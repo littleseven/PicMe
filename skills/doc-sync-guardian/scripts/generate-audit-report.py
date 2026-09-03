@@ -40,7 +40,7 @@ def main():
 ## 🔍 审计范围
 
 - ✅ 三层文档一致性 (PRODUCT.md → FEATURES.md → AGENTS.md)
-- ✅ I18N 三语资源同步
+- ✅ I18N 五语资源同步
 - ✅ 技术专项文档完整性
 - ✅ 模块 AGENTS.md 规范符合性
 
@@ -75,7 +75,7 @@ def main():
     else:
         report += "⚠️  检查脚本不存在\n\n"
     
-    report += "### 2. I18N 三语资源同步检查\n\n"
+    report += "### 2. I18N 五语资源同步检查\n\n"
     
     # 执行 I18N 检查
     i18n_script = script_dir / "check-i18n-sync.py"
@@ -100,7 +100,7 @@ def main():
 | 检查项 | 状态 | 说明 |
 |--------|------|------|
 | 文档引用链 | 🟡 待检查 | PRODUCT.md → FEATURES.md → AGENTS.md |
-| I18N 同步 | 🟡 待检查 | values / values-zh-rCN / values-zh-rTW |
+| I18N 同步 | 🟡 待检查 | values / values-zh-rCN / values-zh-rTW / values-es / values-fr |
 | 模块规范 | 🟡 待检查 | 所有 AGENTS.md 第 5 章完整性 |
 | 链接有效性 | 🟡 待检查 | Markdown 链接无悬空引用 |
 

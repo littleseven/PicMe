@@ -693,6 +693,8 @@ class MainActivity : ComponentActivity() {
             AppLanguage.ENGLISH -> Locale.ENGLISH
             AppLanguage.CHINESE -> Locale.SIMPLIFIED_CHINESE
             AppLanguage.TRADITIONAL_CHINESE -> Locale.TRADITIONAL_CHINESE
+            AppLanguage.SPANISH -> Locale("es")
+            AppLanguage.FRENCH -> Locale.FRENCH
             AppLanguage.SYSTEM -> Locale.getDefault()
         }
     }

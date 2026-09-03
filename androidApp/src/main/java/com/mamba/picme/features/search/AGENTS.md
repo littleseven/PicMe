@@ -95,14 +95,14 @@ SearchTestScreen
 - **构建隔离**: 测试页入口必须通过 `BuildConfig.DEBUG` 条件编译，Release 包不可见。
 - **线程管理**: 搜索执行在 `Dispatchers.Default`/`Dispatchers.IO`，UI 仅展示。
 - **日志脱敏**: 不得在日志中输出用户隐私信息。
-- **I18N**: 所有 UI 文案必须提取到 `strings.xml` 并三语同步。
+- **I18N**: 所有 UI 文案必须提取到 `strings.xml` 并五语同步。
 - **资源释放**: ViewModel 不直接持有 `SemanticSearchEngine` 生命周期，由 `AppContainer` 管理。
 
 ## 4. 常见陷阱检查清单 (Checklist)
 
 - [ ] 搜索测试页入口是否通过 `BuildConfig.DEBUG` 隔离？
 - [ ] 是否修改了 `MediaSearchEngine.search()` 的签名？（禁止）
-- [ ] 新增字符串是否已三语同步？
+- [ ] 新增字符串是否已五语同步？
 - [ ] 日志缓冲区是否设置了上限？（200 条）
 - [ ] 结果缩略图是否使用 Coil 加载？
 - [ ] 搜索执行是否在后台线程？

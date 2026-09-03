@@ -421,9 +421,9 @@ object QueryParser {
     fun extractKeywords(query: String, lang: AppLanguage = AppLanguage.CHINESE): List<String> {
         var text = removeTimeWords(query)
 
-        // 根据当前语言移除停用词
+        // 根据当前语言移除停用词（西语/法语回退英文停用词表）
         val stopWords = when (lang) {
-            AppLanguage.ENGLISH -> ENGLISH_STOP_WORDS
+            AppLanguage.ENGLISH, AppLanguage.SPANISH, AppLanguage.FRENCH -> ENGLISH_STOP_WORDS
             else -> CHINESE_STOP_WORDS
         }
         for (word in stopWords) {

@@ -66,7 +66,7 @@
 | `/metal-render-expert` | Metal/MSL 渲染诊断（黑屏/shader）+ GLSL→MSL 翻译 |
 | `/mnn-ios-integration` | MNN.framework iOS 构建/embed + 人脸检测推理 |
 | `/kmp-ios-interop` | Kotlin/Native↔Swift 互操作（signal 6/Flow/XCFramework） |
-| `/ios-i18n-validator` | iOS 三语（xcstrings）同步 + 双端键对齐 |
+| `/ios-i18n-validator` | iOS 五语（xcstrings）同步 + 双端键对齐 |
 
 > Phase 5 iOS 应用骨架配套 skill（对标 Android 侧 av-gl-expert / compose-ui-expert / mnn-integration 等，106pt 坐标体系双端同源）；skills 均已落地，设计稿已随交付清理。
 

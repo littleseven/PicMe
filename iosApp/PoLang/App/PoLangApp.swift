@@ -44,6 +44,8 @@ final class AppSettings: ObservableObject {
         case "english": return Locale(identifier: "en")
         case "chinese_simplified": return Locale(identifier: "zh-Hans")
         case "chinese_traditional": return Locale(identifier: "zh-Hant")
+        case "spanish": return Locale(identifier: "es")
+        case "french": return Locale(identifier: "fr")
         default: return Locale.current
         }
     }

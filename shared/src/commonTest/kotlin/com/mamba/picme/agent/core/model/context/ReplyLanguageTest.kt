@@ -11,6 +11,8 @@ class ReplyLanguageTest {
         assertEquals(ReplyLanguage.ENGLISH, AppLanguage.ENGLISH.toReplyLanguage("zh-CN"))
         assertEquals(ReplyLanguage.SIMPLIFIED_CHINESE, AppLanguage.CHINESE.toReplyLanguage("en-US"))
         assertEquals(ReplyLanguage.TRADITIONAL_CHINESE, AppLanguage.TRADITIONAL_CHINESE.toReplyLanguage("en-US"))
+        assertEquals(ReplyLanguage.SPANISH, AppLanguage.SPANISH.toReplyLanguage("en-US"))
+        assertEquals(ReplyLanguage.FRENCH, AppLanguage.FRENCH.toReplyLanguage("zh-CN"))
     }
 
     @Test
@@ -28,10 +30,22 @@ class ReplyLanguageTest {
     }
 
     @Test
+    fun `system resolves spanish and french locales`() {
+        assertEquals(ReplyLanguage.SPANISH, AppLanguage.SYSTEM.toReplyLanguage("es-ES"))
+        assertEquals(ReplyLanguage.SPANISH, AppLanguage.SYSTEM.toReplyLanguage("es-MX"))
+        assertEquals(ReplyLanguage.SPANISH, AppLanguage.SYSTEM.toReplyLanguage("es"))
+        assertEquals(ReplyLanguage.FRENCH, AppLanguage.SYSTEM.toReplyLanguage("fr-FR"))
+        assertEquals(ReplyLanguage.FRENCH, AppLanguage.SYSTEM.toReplyLanguage("fr-CA"))
+        assertEquals(ReplyLanguage.FRENCH, AppLanguage.SYSTEM.toReplyLanguage("fr"))
+    }
+
+    @Test
     fun `system falls back to english for non chinese locales`() {
         assertEquals(ReplyLanguage.ENGLISH, AppLanguage.SYSTEM.toReplyLanguage("en-US"))
         assertEquals(ReplyLanguage.ENGLISH, AppLanguage.SYSTEM.toReplyLanguage("ja-JP"))
-        assertEquals(ReplyLanguage.ENGLISH, AppLanguage.SYSTEM.toReplyLanguage("fr-FR"))
+        assertEquals(ReplyLanguage.ENGLISH, AppLanguage.SYSTEM.toReplyLanguage("de-DE"))
+        // "es*"/"fr*" 但非 "es-"/"fr-" 的畸形 tag → 英文（与 "zhcn" 对称，锁定子标签边界）
+        assertEquals(ReplyLanguage.ENGLISH, AppLanguage.SYSTEM.toReplyLanguage("esES"))
     }
 
     @Test

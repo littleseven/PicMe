@@ -358,7 +358,7 @@ grid_page:
   # ── 10. 搜索无结果态 ──
   # 🔴 gap #42：搜索结果为空时必须显示提示。
   # ⚠️ Android 现网为空态文案 Kotlin 硬编码中文（技术债，contracts.md §14 R7）；
-  # iOS 必须走 xcstrings 三语，key=gallery_search_no_result_with_query。
+  # iOS 必须走 xcstrings 五语，key=gallery_search_no_result_with_query。
 
   search_no_result:
     visible_when: search_active_and_result_empty

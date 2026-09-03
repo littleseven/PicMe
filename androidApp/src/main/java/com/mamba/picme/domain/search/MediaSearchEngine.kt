@@ -542,7 +542,8 @@ class MediaSearchEngine(
      * LLM 结构化查询模板
      */
     fun buildLlmSearchPrompt(query: String, lang: AppLanguage = AppLanguage.CHINESE): String {
-        return if (lang == AppLanguage.ENGLISH) {
+        // 西语/法语无独立查询模板，回退英文
+        return if (lang == AppLanguage.ENGLISH || lang == AppLanguage.SPANISH || lang == AppLanguage.FRENCH) {
             buildEnglishLlmSearchPrompt(query)
         } else {
             buildChineseLlmSearchPrompt(query)

@@ -6,6 +6,8 @@ final class LanguageSwitchTest: XCTestCase {
     func testLprojBundlesExist() {
         XCTAssertNotNil(Bundle.main.path(forResource: "en", ofType: "lproj"))
         XCTAssertNotNil(Bundle.main.path(forResource: "zh-Hans", ofType: "lproj"))
+        XCTAssertNotNil(Bundle.main.path(forResource: "es", ofType: "lproj"))
+        XCTAssertNotNil(Bundle.main.path(forResource: "fr", ofType: "lproj"))
     }
 
     func testTranslateChinese() {
@@ -42,5 +44,13 @@ final class LanguageSwitchTest: XCTestCase {
         lm.currentLanguage = "system"
         // 不应该 crash
         let _ = L("Settings")
+    }
+
+    func testTranslateSpanishAndFrench() {
+        let lm = LanguageManager.shared
+        lm.currentLanguage = "spanish"
+        XCTAssertEqual(L("Settings"), "Ajustes")
+        lm.currentLanguage = "french"
+        XCTAssertEqual(L("Settings"), "Réglages")
     }
 }

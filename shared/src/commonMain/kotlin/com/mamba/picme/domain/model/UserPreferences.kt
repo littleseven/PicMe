@@ -19,7 +19,7 @@ enum class ThemeMode {
  * 应用语言（领域模型）
  */
 enum class AppLanguage {
-    SYSTEM, ENGLISH, CHINESE, TRADITIONAL_CHINESE
+    SYSTEM, ENGLISH, CHINESE, TRADITIONAL_CHINESE, SPANISH, FRENCH
 }
 
 /**

@@ -51,7 +51,7 @@ PM ──PRD──▶ Architect ──任务清单──▶ Designer ──DESIG
 
 1. **所有角色实际都跑主会话模型(当前 glm-5.2)**。`model: fable` frontmatter 在本环境是**空操作**——子代理恒继承主会话模型,无法靠换模型分强弱档。角色差异**完全靠 system prompt**(职责/输出格式/审查清单)实现。
 2. **自定义 agent 不热加载**(见上"必须开新会话")。
-3. **Reviewer/QA 的硬规则**绑定 PoLang 项目(无 FQN、无 wildcard import、lambda 显式命名、log tag、i18N 三语、隐私红线、模块边界)。若把这套团队搬到别的项目,需改 `vt-reviewer.md` / `vt-dev.md` 的规则段。
+3. **Reviewer/QA 的硬规则**绑定 PoLang 项目(无 FQN、无 wildcard import、lambda 显式命名、log tag、i18N 五语、隐私红线、模块边界)。若把这套团队搬到别的项目,需改 `vt-reviewer.md` / `vt-dev.md` 的规则段。
 
 ## 接到"长时自主运行"(跑一晚上)
 

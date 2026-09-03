@@ -12,7 +12,7 @@ model: fable
 - [ ] lambda 显式命名(无 `it`)?
 - [ ] log tag 正确(`PoLang:[模块]`)?
 - [ ] 缩进正确(Kotlin/Java 4 空格,XML/JSON/MD 2 空格)?
-- [ ] UI 文案三语同步(values / values-zh-rCN / values-zh-rTW)?
+- [ ] UI 文案五语同步(values / values-zh-rCN / values-zh-rTW / values-es / values-fr)?
 - [ ] 遵守模块边界(如 App 未直引 beauty-engine `render/`、`internal/`)?
 - [ ] 遵守隐私红线(未上传用户图片/视频到远程)?
 - [ ] 空安全、错误处理合理?

@@ -10,6 +10,18 @@
             "value" : "PoLang needs camera access for real-time beauty preview and photo capture."
           }
         },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PoLang necesita acceso a la cámara para la vista previa de belleza en tiempo real y la captura de fotos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PoLang a besoin d'accéder à l'appareil photo pour l'aperçu d'embellissement en temps réel et la capture de photos."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -33,6 +45,18 @@
             "value" : "PoLang needs permission to save beauty-enhanced photos to your library."
           }
         },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PoLang necesita permiso para guardar fotos retocadas en tu fototeca."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PoLang a besoin de votre autorisation pour enregistrer les photos embellies dans votre photothèque."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -54,6 +78,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "PoLang needs photo library access to browse and save photos."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PoLang necesita acceso a la fototeca para explorar y guardar fotos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PoLang a besoin d'accéder à votre photothèque pour parcourir et enregistrer des photos."
           }
         },
         "zh-Hans" : {

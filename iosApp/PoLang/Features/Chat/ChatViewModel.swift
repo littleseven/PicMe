@@ -196,6 +196,8 @@ final class ChatViewModel: ObservableObject {
         case "english": return "ENGLISH"
         case "chinese_simplified": return "SIMPLIFIED_CHINESE"
         case "chinese_traditional": return "TRADITIONAL_CHINESE"
+        case "spanish": return "SPANISH"
+        case "french": return "FRENCH"
         default:
             // 加固：iOS Locale.preferredLanguages 可能产出下划线形式（如 "zh_Hant_TW"），
             // 先统一替换成连字符再做 contains("-hant") 等判断，保证两种形态都正确分流；
@@ -203,6 +205,8 @@ final class ChatViewModel: ObservableObject {
             let tag = (Locale.preferredLanguages.first ?? "en")
                 .lowercased()
                 .replacingOccurrences(of: "_", with: "-")
+            if tag == "es" || tag.hasPrefix("es-") { return "SPANISH" }
+            if tag == "fr" || tag.hasPrefix("fr-") { return "FRENCH" }
             guard tag == "zh" || tag.hasPrefix("zh-") ||
                     tag == "yue" || tag.hasPrefix("yue-") else { return "ENGLISH" }
             return (tag.contains("-hant") || tag.contains("-tw") ||

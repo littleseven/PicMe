@@ -1,13 +1,13 @@
 # I18N 验证专家 (Internationalization Validator)
 
-> **定位**：确保所有用户可见文案同步覆盖 EN / zh-CN / zh-TW，禁止硬编码。
+> **定位**：确保所有用户可见文案同步覆盖 EN / zh-CN / zh-TW / ES / FR，禁止硬编码。
 > **触发时机**：新增功能、修改文案、PR 审查、QA 验收时。
 
 ---
 
 ## 核心原则
 
-1. **三语同步**：新增文案必须同时更新 `values`、`values-zh-rCN`、`values-zh-rTW`
+1. **五语同步**：新增文案必须同时更新 `values`、`values-zh-rCN`、`values-zh-rTW`、`values-es`、`values-fr`
 2. **禁止硬编码**：Kotlin/Java 源码中禁止出现用户可见的字符串字面量
 3. **命名规范**：字符串资源 ID 采用小驼峰 `[feature]_[description]`
 4. **占位符标准**：使用 Android 标准占位符，确保各语言语义通顺
@@ -29,15 +29,15 @@ grep -rn "\"[a-zA-Z\u4e00-\u9fa5]\{3,\}\"" androidApp/src/main/java/com/mamba/pi
 
 **判定标准**：用户可见的文案（非日志、非调试）必须走 `stringResource()` 或 `getString()`
 
-### Step 2: 三语资源完整性
+### Step 2: 五语资源完整性
 
 ```bash
-# 对比三语言资源文件
+# 对比五语言资源文件
 python3 scripts/check_i18n_sync.py
 ```
 
 **检查项**：
-- [ ] `values/strings.xml` 中的每个 key 在 `values-zh-rCN` 和 `values-zh-rTW` 中存在
+- [ ] `values/strings.xml` 中的每个 key 在 `values-zh-rCN`、`values-zh-rTW`、`values-es` 和 `values-fr` 中存在
 - [ ] 无重复 key
 - [ ] 无空值
 - [ ] 占位符数量一致（`%1$s`、`%2$d`）
@@ -103,7 +103,7 @@ python3 scripts/check_i18n_sync.py
 - [PRODUCT.md](PRODUCT.md) — I18N 规范定义
 - [compose-ui-expert](/compose-ui-expert) — UI 文案硬编码检查
 - [doc-sync-guardian](/doc-sync-guardian) — 文档一致性同步
-- [ios-i18n-validator](/ios-i18n-validator) — iOS xcstrings 三语对标（双端键对齐）
+- [ios-i18n-validator](/ios-i18n-validator) — iOS xcstrings 五语对标（双端键对齐）
 
 ## 版本历史
 

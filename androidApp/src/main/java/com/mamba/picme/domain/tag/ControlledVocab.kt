@@ -88,31 +88,31 @@ data class ControlledVocab(
 
     /**
      * 语言感知的 MobileCLIP scene 候选。
-     * 仅支持中文/英文；其他语言返回空列表，调用方应回退到 Qwen。
+     * 中文/英文各有独立词表；西语/法语回退英文词表；其他语言返回空列表，调用方应回退到 Qwen。
      */
     fun sceneCandidates(lang: AppLanguage): List<String> = when (lang) {
         AppLanguage.CHINESE -> scene
-        AppLanguage.ENGLISH -> sceneEn
+        AppLanguage.ENGLISH, AppLanguage.SPANISH, AppLanguage.FRENCH -> sceneEn
         else -> emptyList()
     }
 
     /**
      * 语言感知的 MobileCLIP objects 候选。
-     * 仅支持中文/英文；其他语言返回空列表，调用方应回退到 Qwen。
+     * 中文/英文各有独立词表；西语/法语回退英文词表；其他语言返回空列表，调用方应回退到 Qwen。
      */
     fun objectCandidates(lang: AppLanguage): List<String> = when (lang) {
         AppLanguage.CHINESE -> objects
-        AppLanguage.ENGLISH -> objectsEn
+        AppLanguage.ENGLISH, AppLanguage.SPANISH, AppLanguage.FRENCH -> objectsEn
         else -> emptyList()
     }
 
     /**
      * 语言感知的 MobileCLIP tags 候选。
-     * 仅支持中文/英文；其他语言返回空列表，调用方应回退到 Qwen。
+     * 中文/英文各有独立词表；西语/法语回退英文词表；其他语言返回空列表，调用方应回退到 Qwen。
      */
     fun tagCandidates(lang: AppLanguage): List<String> = when (lang) {
         AppLanguage.CHINESE -> tagCandidates
-        AppLanguage.ENGLISH -> tagCandidatesEn
+        AppLanguage.ENGLISH, AppLanguage.SPANISH, AppLanguage.FRENCH -> tagCandidatesEn
         else -> emptyList()
     }
 
@@ -121,7 +121,7 @@ data class ControlledVocab(
      */
     fun isBlocked(label: String, lang: AppLanguage): Boolean = when (lang) {
         AppLanguage.CHINESE -> label in blockedTags
-        AppLanguage.ENGLISH -> label in blockedTagsEn
+        AppLanguage.ENGLISH, AppLanguage.SPANISH, AppLanguage.FRENCH -> label in blockedTagsEn
         else -> false
     }
 

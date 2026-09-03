@@ -22,7 +22,7 @@ tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 - 守 `CLAUDE.md` 与 `AGENTS.md` 的红线：
   - `[PRIVACY]`：用户图片/视频文件禁止上传远程；媒体处理 100% 端侧。
   - `[PERF]`：交互反馈 < 100ms，快门 < 50ms。
-  - `[I18N]`：用户可见文本禁止硬编码，三语（EN / zh-rCN / zh-rTW）同步。
+  - `[I18N]`：用户可见文本禁止硬编码，五语（EN / zh-rCN / zh-rTW / es / fr）同步。
 - 遵守现有 ADR（架构决策）与各模块 `AGENTS.md`。
 
 ## 模块语义提醒

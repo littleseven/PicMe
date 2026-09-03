@@ -222,7 +222,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 ### 4.2 I18N（强制）
 
 - 禁止硬编码用户可见字符串
-- 所有字符串资源在 `values/strings.xml`（EN）、`values-zh-rCN/strings.xml`（简中）、`values-zh-rTW/strings.xml`（繁中）三语同步
+- 所有字符串资源在 `values/strings.xml`（EN）、`values-zh-rCN/strings.xml`（简中）、`values-zh-rTW/strings.xml`（繁中）、`values-es/strings.xml`（西语）、`values-fr/strings.xml`（法语）五语同步
 
 ### 4.3 红线（不可突破）
 
@@ -230,7 +230,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 |------|----------|
 | `[PRIVACY]` 禁止向远程大模型上传图片/视频文件（媒体处理端侧；文本/元数据可远程；自配 IM 通道回传除外，ADR-008） | 网络抓包（远程推理请求体无图片/视频）、权限清单扫描 |
 | `[PERF]` 交互 < 100ms，快门 < 50ms | 性能测试 |
-| `[I18N]` 三语同步，禁止硬编码 | 资源文件检查 |
+| `[I18N]` 五语同步（EN/zh-CN/zh-TW/ES/FR），禁止硬编码 | 资源文件检查 |
 | `[AGENT-FIRST]` 遵循 Agent First 原则（显式、枚举、自描述） | CR 审查 |
 
 ---
@@ -258,7 +258,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 - [ ] 新增 Feature 页面已注册到 `Screen.kt` 和 `MainActivity.kt` NavHost
 - [ ] 新增数据表已更新 `AppDatabase.kt` + DAO + 版本迁移
 - [ ] 新增依赖已通过 `libs.versions.toml` 管理
-- [ ] UI 字符串已三语同步
+- [ ] UI 字符串已五语同步
 - [ ] 日志标签遵循 `PoLang:[FeatureName]` 格式
 - [ ] 不跨层引用：features 不直接引用 data 实现类
 - [ ] 跨模块调用使用接口（`beauty-api` 等公开 API）
