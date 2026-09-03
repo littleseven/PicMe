@@ -88,7 +88,8 @@ ktlint {
 //   本地：export POLANG_PLAY_SERVICE_ACCOUNT_JSON=/path/to/service-account.json（文件路径）
 //   CI：  export ANDROID_PUBLISHER_CREDENTIALS='<json 全文>'（GPP 内置读取，不落盘）
 play {
-    System.getenv("POLANG_PLAY_SERVICE_ACCOUNT_JSON")
+    System
+        .getenv("POLANG_PLAY_SERVICE_ACCOUNT_JSON")
         ?.takeIf { it.isNotBlank() }
         ?.let { serviceAccountCredentials.set(file(it)) }
     // 默认发 internal 轨道；可用 -PplayTrack=production 或任务 CLI --track 覆盖

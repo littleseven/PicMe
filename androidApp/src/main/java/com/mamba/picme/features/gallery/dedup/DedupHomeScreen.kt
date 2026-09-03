@@ -293,6 +293,9 @@ private fun DedupConfigContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
+            // Config 态无 bottomBar（Scaffold Unit）：滚动内容自行让出底部虚拟导航栏，
+            // 否则滚到底时「开始扫描/隐私说明」被三键导航遮挡（同 6d483d9e2 的口径）
+            .navigationBarsPadding()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
