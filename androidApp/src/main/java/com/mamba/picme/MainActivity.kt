@@ -5,13 +5,16 @@ package com.mamba.picme
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
+import android.graphics.Color
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -40,6 +43,7 @@ import androidx.navigation.navOptions
 import com.mamba.picme.core.designsystem.PoLangTheme
 import com.mamba.picme.data.preferences.UserPreferencesRepository
 import com.mamba.picme.domain.model.AppLanguage
+import com.mamba.picme.domain.model.ThemeMode
 import com.mamba.picme.features.common.avatar.AvatarCaptureController
 import com.mamba.picme.features.common.avatar.AvatarCaptureOrigin
 import com.mamba.picme.features.common.avatar.AvatarCaptureTarget
@@ -144,6 +148,28 @@ class MainActivity : ComponentActivity() {
 
             val themeMode by settingsViewModel.themeMode.collectAsState()
             val appLanguage by settingsViewModel.appLanguage.collectAsState()
+
+            // 系统栏（状态栏 + 底部虚拟导航键）跟随**应用内**主题而非系统主题：
+            // onCreate 里的无参 enableEdgeToEdge() 只认系统暗色——「应用强制深色 + 系统浅色」
+            // 时虚拟键保持深色图标，叠在深色底栏上几乎不可见（浅色反向同理）。scrims 沿用
+            // androidx 默认值（<29 半透明深色兜底），仅改暗色判定来源。
+            val appDarkTheme = when (themeMode) {
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
+            LaunchedEffect(appDarkTheme) {
+                enableEdgeToEdge(
+                    statusBarStyle = SystemBarStyle.auto(
+                        Color.TRANSPARENT,
+                        Color.argb(0x66, 0x1b, 0x1b, 0x1b),
+                    ) { appDarkTheme },
+                    navigationBarStyle = SystemBarStyle.auto(
+                        Color.TRANSPARENT,
+                        Color.argb(0x66, 0x1b, 0x1b, 0x1b),
+                    ) { appDarkTheme },
+                )
+            }
 
             LaunchedEffect(appLanguage) {
                 if (currentLanguage != null && currentLanguage != appLanguage) {
