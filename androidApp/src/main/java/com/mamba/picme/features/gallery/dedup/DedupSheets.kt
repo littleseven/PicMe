@@ -195,27 +195,29 @@ private fun DedupGroupDetailContent(
         }
 
         }
-        // 只读态（Scanning）无底部 CTA：留出导航栏边距即可
-        if (!editable) Spacer(modifier = Modifier.navigationBarsPadding().height(8.dp))
-    }
-    // 底部固定 CTA（不随内容滚动；对齐设计稿 group_detail 底部按钮位）
-    if (editable) {
-        Button(
-            onClick = onConfirm,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-                .navigationBarsPadding()
-        ) {
-            // 未预选且未改选组 deleteUris 为空：按钮不显示「删除其余 0 张」，
-            // 改为「确认本组选择」中性文案（spec §10.4 逐组确认语义）
-            Text(
-                if (group.deleteUris.isEmpty()) {
-                    stringResource(R.string.dedup_confirm_selection)
-                } else {
-                    stringResource(R.string.dedup_confirm_keep, group.deleteUris.size)
-                }
-            )
+        // 底部固定 CTA（不随内容滚动；对齐设计稿 group_detail 底部按钮位）
+        // 必须在外层 Column 内：fillMaxSize Column 之外的兄弟节点会被挤出屏幕（导航栏遮挡错觉）
+        if (editable) {
+            Button(
+                onClick = onConfirm,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .navigationBarsPadding()
+            ) {
+                // 未预选且未改选组 deleteUris 为空：按钮不显示「删除其余 0 张」，
+                // 改为「确认本组选择」中性文案（spec §10.4 逐组确认语义）
+                Text(
+                    if (group.deleteUris.isEmpty()) {
+                        stringResource(R.string.dedup_confirm_selection)
+                    } else {
+                        stringResource(R.string.dedup_confirm_keep, group.deleteUris.size)
+                    }
+                )
+            }
+        } else {
+            // 只读态（Scanning）无底部 CTA：留出导航栏边距即可
+            Spacer(modifier = Modifier.navigationBarsPadding().height(8.dp))
         }
     }
 }
