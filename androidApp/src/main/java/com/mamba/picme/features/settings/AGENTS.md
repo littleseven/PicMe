@@ -101,7 +101,7 @@
 ### 2.6 模型管理（2026-05 新增，2026-06 按服务功能重分类）
 
 **统一模型中心**
-- **入口**：`ModelCenterScreen`（composable 定义于 `LlmModelManagerScreen.kt`），从设置页「模型中心」网格卡进入
+- **入口**：`ModelCenterScreen`（composable 定义于 `LlmModelManagerScreen.kt`），从设置主菜单「AI 与系统」组「模型中心」列表行进入（2026-08-26 列表式改版后为列表行，非网格卡）
 - **顶部分类（按 PoLang 服务功能划分）**：
   - **必须**：核心运行必须模型，提供一键下载缺失模型队列
   - **相册打标**：MobileCLIP、OPUS-MT 等语义标签/搜索模型
@@ -159,7 +159,7 @@
 
 ### 2.7.1 AI 记忆（管理页，2026-07 新增）
 
-- **入口**：设置页「AI 助手」卡片「AI 记忆」项（`SettingsClickableRow`），导航到 `Screen.MemoryFacts.route = "memory_facts"`（`MainActivity` 注册，参照 DataPrivacyScreen 二级页模式）
+- **入口**：设置主菜单「功能」组「AI 记忆」列表行（2026-08-26 列表式改版；原「AI 助手」卡片已移除），导航到 `Screen.MemoryFacts.route = "memory_facts"`（`MainActivity` 注册，参照 DataPrivacyScreen 二级页模式）
 - **页面**：`MemoryFactsScreen` + `MemoryFactsViewModel`（工厂手动 DI，注入 `AppContainer.memoryRepository` + `personRepository`）
 - **功能**（双 section）：
   - **人物关系区**（上）：`PersonRepository.observeRelationsToSelf()` Flow 驱动，每行"X 是我的 Y"（谓词标签复用 `features/common/personRelationLabelRes` 资源映射）+ 单条删除（`removeRelationById`）；纠错走重新声明，不做编辑

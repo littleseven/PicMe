@@ -12,7 +12,7 @@
 > **最后更新**: 2026-08-26  
 > **维护者**: 项目开发者
 
-**模块定位**: 应用默认首页，提供智能聚类相册浏览、媒体查看器、批量操作功能；支持端侧自然语言搜索；右下角 plus 菜单聚合 Chat / Camera / Settings / Model Center 四个二级页入口，语音 Agent 面板提供自然语言交互入口。「相册整理」（去重 2.0）为主页面 Pager 页 1（相册页左滑即达），另有悬浮底部 Tab 第一项 + 设置主菜单一级入口（2026-08-26 二轮升级）。
+**模块定位**: 应用默认首页，提供智能聚类相册浏览、媒体查看器、批量操作功能；支持端侧自然语言搜索；语音 Agent 面板提供自然语言交互入口。二级能力入口：悬浮底部 Tab（相册整理/聊天/打标/人物，切主页面 Pager 页）+ 顶栏（模型中心/设置）+ 相册页左滑（相册整理）。「相册整理」（去重 2.0）为主页面 Pager 页 1（相册页左滑即达），另有悬浮底部 Tab 第一项 + 设置主菜单一级入口（2026-08-26 二轮升级）；相机已路由化，无常驻入口。
 
 **主要维护者**: 项目开发者
 
@@ -147,7 +147,7 @@ private fun shareMediaAssets(context: Context, assets: List<MediaAsset>) {
 - **内容类型差异化（spec §10，`DedupContentType`）**: 取数阶段零额外推理识别 SCREENSHOT（MediaStore `RELATIVE_PATH` 含 Screenshots，API 29+；API 24-28 无该列，以 `DATA` 列路径兜底，截图识别退化基本消除）/ DOCUMENT（ocrText 文字密度 = 字符数/像素面积 > 20 字符/MP，WIDTH/HEIGHT 自 API 16 可用、全版本入 projection，列缺失/脏值退回 >200 字符绝对兜底；或 labels 命中 document/receipt/text 类关键词——英文整词匹配（容忍复数后缀）避免 context/texture 误伤，中文子串，`detectContentType` 纯函数）/ PORTRAIT（hasFace 或 faceQualityScore 非空）/ GENERAL 兜底，优先级 SCREENSHOT > DOCUMENT > PORTRAIT > GENERAL；VISUAL 聚类按 contentType 分桶（跨桶不成组），截图桶用收紧阈值 `screenshotVisualThreshold`(=3)；人像组保留排序前置 faceQualityScore（null 排最后）；`DedupGroup.autoPreselected`（EXACT→true、VISUAL 截图/文档→false、SCENE→false）为 false 时 deleteUris/reclaimBytes 为空、不进批量 CTA（口径收口 `DedupGroup.batchEligible`），详情改选（userOverride）后正常派生参与删除；组卡片有中性描边内容类型 badge（GENERAL 不显示）与类型差异化 footer 文案；未预选未改选组 UI 不显示「0 张/0 B」——meta 行改显示按 keepUri 派生的预计可释放量（`potentialReclaimBytes`，「预计」措辞），详情确认按钮改「确认本组选择」中性文案
 - **状态机（`DedupViewModel`，Agent First sealed 枚举）**: `Config` → `Scanning`（渐进 `GroupFound`，含 paused）→ `Results`（按 DedupLevel 分 tab + policy 切换）→（系统授权）→ `Cleaned`（可 undo/done 回 Config）；保留策略 `_policy` 为 VM 级 StateFlow，Config 规则行与 Results 共用；扫描 `Done` 时按当前 policy 对全部组 `resortGroup` 重算默认勾选（扫描器固定按 BEST_QUALITY 建组）。**SCENE 组不参与批量删除**（spec §4 安全约束）：`batchDeleteUris`/`batchReclaimBytes` 派生值统一 `filter batchEligible`（SCENE 组与未预选未改选组均不参与），VM 删除流与结果页底部 CTA 同一口径
 - **回收站（`DedupTrashManager`）**: API 30+ 走 `MediaStore.createTrashRequest` 移入系统回收站（Cleaned 态可 undo 恢复）；`buildTrashIntent` 经 ioDispatcher + runCatching 保护，失败记日志保持 Results 态；部分拒绝（授权后仍有残留 uri）置位 `partialTrashNotice` 一次性事件槽位，UI 弹 snackbar 提示；API < 30 无回收站授权接口，由 UI 层注入 `legacyDeleter` 回调兜底走 `MediaViewModel.deleteMediaByIds` 旧删除授权流。**已知限制：API ≤ 29 删除授权链路当前为降级路径（legacyDeleter），API 29 上授权弹窗可能无人拉起，待修**
-- **UI 组件清单（`features/gallery/dedup/`）**: `DedupHomeScreen`（页面 + Route）、`DedupSheets`（规则/组详情弹层）、`DedupComponents`（组卡片/缩略图等）、`DedupMediaSource`（扫描输入供数，`MediaType.PHOTO` 元数据 + modifiedAt）
+- **UI 组件清单（`features/gallery/dedup/`）**: `DedupHomeScreen`（页面 + Route）、`DedupSheets`（`DedupGroupDetailPage` 全屏组详情页 + 组内全屏对比预览 + `KeepRulesSheet` 保留规则底部弹层——组详情 2026-08-27 起由半屏弹层改全屏页）、`DedupComponents`（组卡片/缩略图等）、`DedupMediaSource`（扫描输入供数，`MediaType.PHOTO` 元数据 + modifiedAt）
 
 **代码示例**:
 ```kotlin
@@ -213,23 +213,23 @@ SearchTopBar(
 ### 2.6 首页导航与底部悬浮 Tab
 
 **首页定位**:
-- `GalleryScreen` 是 `MainActivity` NavHost 的 `startDestination`
-- 系统返回键在相册无内部状态（无选择/Pager）时退出应用
+- `GalleryScreen` 由 `Screen.Main`（`MainPagerHost` Pager 容器，NavHost `startDestination`）承载为主页面页 0
+- 系统返回键在相册无内部状态（无选择/Pager）时退出应用；主页面其他页按返回键切回相册页（`MainPagerHost` BackHandler）
 
 **底部悬浮 Tab**:
 - 使用共享组件 `FloatingBottomTab`（`features/common/components/FloatingBottomTab.kt`）
 - 位置：底部居中，底部 padding 16.dp，悬浮于媒体网格之上
 - 入口项（从左到右）：相册整理（BurstMode，切到 Pager 页 1）、Chat、Tag 打标控制、人物（AccountCircle）
 - 每项仅显示图标，无文字标签
-- 点击直接导航到对应二级页
+- 点击经 `switchMainPage` 瞬时切主页面 Pager 页（无滑动动画）
 
 **设置入口**:
 - 统一放在 `GalleryTopBar` 动作区最右侧
 - 点击跳转 `SettingsScreen`
 
 **模型中心入口**:
-- 底部 Tab 第三个图标（SmartToy）可直接进入
-- 同时从 Gallery 顶部栏进入 Settings 后，在 AI 助手卡片第一项「Model Center」也可进入
+- `GalleryTopBar` 动作区 CloudDownload 图标直接进入
+- 设置主菜单「AI 与系统」组「模型中心」列表行也可进入
 
 **语音 Agent 面板**:
 - 位置：右下角，底部 padding 84.dp，位于底部 Tab 上方
@@ -481,7 +481,7 @@ adb shell am broadcast -a com.mamba.picme.TEST_COMMAND --es action cancel_tag_sc
 - ✅ 智能聚类 → GetGroupedMediaUseCase 支持 6 种分组模式
 - ✅ 流体动效 → HorizontalPager + ZoomableImage 手势联动
 - ✅ 批量操作 → mutableStateListOf 支持连续批选与全选；搜索结果支持相同操作
-- ✅ 独立图片编辑器 → 非破坏性配方编辑，裁剪/调节/美颜三语本地化，保存为新副本并持久化配方
+- ✅ 独立图片编辑器 → 非破坏性配方编辑，裁剪/调节/美颜五语本地化，保存为新副本并持久化配方
 - ✅ OCR 本地识别 → ML Kit 离线引擎，ViewModel 生命周期管理
 - ✅ TAG 生成控制 → 3-Pass 队列 + 类别/时间范围精细控制 + OpenCL 超时降级
 - ✅ 自然语言搜索 → `MediaSearchEngine` + `SemanticSearchEngine` 本地召回；结果网格支持长按批量选择

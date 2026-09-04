@@ -1,8 +1,8 @@
 # 相册去重 2.0 产品与设计规范
 
-> **版本**：1.1（提案）
-> **日期**：2026-08-25（v1.1：2026-08-26 新增 §10 内容类型差异化策略）
-> **状态**：v1.0 已落地 Android V1；§10 待评审
+> **版本**：1.2
+> **日期**：2026-08-25（v1.1：2026-08-26 新增 §10 内容类型差异化策略；v1.2：2026-09-04 状态与实现校准）
+> **状态**：全量已落地 Android（含 §10 内容类型差异化、§11 入口与导航、§12 按 Tab 细分批量）；两处 v1.0 目标未落地，见 §5.4/§5.5 校准注记；iOS 对等跟随中（AC-5）
 > **设计稿**：Ardot 文件 `Dedup` 页（6 屏流程稿 + 内容类型 badge 变体）
 > **现状 SSOT**：`androidApp/.../features/gallery/AGENTS.md` §2.4、`domain/dedup/`
 
@@ -68,19 +68,19 @@ L2 组内按「版本链」标注每张图的身份 badge：
 1. **分批枚举**：MediaStore 按 500 张一批取出，逐批处理。
 2. **阶段推进**：L1（MD5，快）→ L2（pHash，慢）→ L3（若开启）。顶部进度条显示「阶段 2/3 · 已扫描 6,120 / 9,832」。
 3. **流式上屏**：每凑齐一组立即插入「实时发现」列表（带平滑动效，2026-08-27 落地），用户**扫描中即可点进组处理**。「实时发现」卡片为**双大图预览布局**（header：级别 badge + meta + chevron；正文：两张等分正方形缩略图）——卡片高度即最终态、任意组恒定，与组详情/结果卡同量级，消除「紧凑小行 → 大卡」的高度跳变与插入跳闪。
-4. **控制**：暂停 / 继续 / 取消 / 转后台（前台 Service + 通知，复用 `TagGenerationService` 模式）。
-5. **断点与缓存**：pHash/MD5 结果持久化到 Room（`media_id + modified_at` 失效判断），二次扫描只算增量；扫描结果组持久化，进程重启不丢。
+4. **控制**：暂停 / 继续 / 取消（均已落地）。~~转后台（前台 Service + 通知，复用 `TagGenerationService` 模式）~~ **未落地**：`domain/dedup` 无 Service，退后台扫描随 Activity 级 ViewModel 中止（2026-09-04 校准）。
+5. **断点与缓存**：pHash/MD5 结果持久化到 Room（`media_id + modified_at` 失效判断，`dedup_hash` 缓存表，db v21），二次扫描只算增量。~~扫描结果组持久化，进程重启不丢~~ **未落地**：结果组为 `DedupViewModel` Activity 级内存态，进程重启需重扫（哈希缓存使重扫成本低，2026-09-04 校准）。
 
 ## 6. 删除与回收站
 
-- 删除统一走**应用内回收站**：MediaStore `IS_TRASHED`（API 30+）或应用私有回收目录（API ≤ 29），30 天后自动彻底清除。
+- 删除走**系统回收站**：MediaStore `IS_TRASHED`（API 30+，`DedupTrashManager`），30 天内可恢复、之后由系统彻底清除；API ≤ 29 无系统回收站，由 `legacyDeleter` 走旧删除授权流（无 30 天兜底，2026-09-04 校准）。
 - 删除确认页明确列出「保留 X 张 / 删除 Y 张 · 释放 Z MB」，授权失败**不**从结果列表移除该组（修复现状 bug）。
 - 清理完成页给出总量反馈与「撤销 / 查看回收站」入口。
 
 ## 7. 信息架构与 UI 流程
 
 ```
-Gallery 设置入口（现有行，升级文案）
+一级入口（2026-08-26 升级，见 §11.1：设置主菜单「相册整理」行 / 相册悬浮 Tab 首项 / 相册页左滑 → 主页面 Pager 页 1；以下 dedup/* 为该页内部四态流程，非 NavHost 路由）
   └─ dedup/overview      尺度选择 + 保留规则入口 + 上次摘要 + 开始扫描
        └─ dedup/scanning   渐进扫描：进度 + 实时发现流 + 暂停/后台
             └─ dedup/results  三 Tab 结果页 + 全选本类(L1/L2 Tab) + 底部 CTA（跟随当前 Tab，§12）
@@ -93,17 +93,17 @@ Gallery 设置入口（现有行，升级文案）
 
 ## 8. 技术要点（落实现状差距）
 
-- `DuplicateGroup` 扩展：`level: DedupLevel`、`members: List<DedupMember>`（含 `versionRole: ORIGINAL/COMPRESSED/EDITED`、`keepSelected: Boolean`、`userOverride: Boolean`）。
+- 去重域模型独立为 `domain/dedup/DedupModels.kt`：`DedupGroup`（`level: DedupLevel`、`members: List<DedupMember>`，含 `versionRole: ORIGINAL/COMPRESSED/EDITED`、`keepSelected: Boolean`、`userOverride: Boolean`）；旧共享 `DuplicateGroup` 已随去重 2.0 删除。
 - `PerceptualHash.SIMILAR_HAMMING_THRESHOLD` 常量化改为扫描参数（保守 5 / 宽松 8）。
 - 扫描器改 `Flow<DedupScanEvent>`（Progress / GroupFound / PhaseChanged / Done），ViewModel 独立为 `DedupViewModel`（脱离共享 `MediaViewModel`）。
 - 修复：预览文件名解析（`content://` → `DISPLAY_NAME` 查询）、LazyColumn 稳定 key、授权失败不移除组、组 id 稳定化（聚类成员排序后 hash）。
-- 全部端侧，遵守 [PRIVACY] 红线；三语文案同步，遵守 [I18N]。
+- 全部端侧，遵守 [PRIVACY] 红线；五语文案同步（EN/zh-CN/zh-TW/ES/FR），遵守 [I18N]。
 
 ## 9. 验收标准
 
 - AC-1：三级尺度可勾选，L3 默认关闭且结果页无批量操作。
 - AC-2：四种保留规则切换后默认勾选即时重算；手动改选不被覆盖。
-- AC-3：9,000 张相册扫描中每组发现 ≤ 1s 内上屏；可暂停/取消/后台；杀进程后结果仍在。
+- AC-3：9,000 张相册扫描中每组发现 ≤ 1s 内上屏；可暂停/取消（已落地）；~~可后台；杀进程后结果仍在~~（未落地，见 §5.4/§5.5 校准注记）。
 - AC-4：删除进回收站，30 天可恢复；授权失败组保留在列表。
 - AC-5：iOS 端按本 spec 对等跟随（走 ios-follow 管线）。
 
@@ -161,7 +161,7 @@ Gallery 设置入口（现有行，升级文案）
 ### 10.6 验收标准（追加）
 
 - AC-6：截图 VISUAL 组默认不预选且不计入批量 CTA；人像组默认保留项为人脸质量分最高者；TAG 未覆盖照片全部归入 GENERAL 且行为与 v1.0 一致。
-- AC-7：内容类型 badge 与策略文案三语同步；类型识别不产生额外扫描耗时（取数阶段顺带判定）。
+- AC-7：内容类型 badge 与策略文案五语同步（EN/zh-CN/zh-TW/ES/FR）；类型识别不产生额外扫描耗时（取数阶段顺带判定）。
 
 ## §11 入口与导航（2026-08-26）
 
@@ -180,17 +180,17 @@ Gallery 设置入口（现有行，升级文案）
 - **入口**：人物编辑页 `AvatarHeader` 相机角标（头像本体点击仍开封面选择 Sheet）；设置账号 Hero 卡头像新增相机角标。
 - **相机路由化（2026-08-26 二轮）**：相机从主页面 Pager 页 0 移出，改为 NavHost 全屏路由 `Screen.Camera`（MainActivity 注册 destination），**唯一用户入口为头像拍摄**；Agent 指令 `navigate_to(camera)` 链路保留，`NavigationCapability` 对 CAMERA 改为 navigate 相机路由（不登记 avatar pending）。相机会话门控由 Pager `isActivePage` 改为路由生命周期驱动（`backStackEntry.lifecycle.currentStateFlow ≥ RESUMED` 激活，弹栈/退后台即解绑释放，语义等价）；相机权限申请 UI 内聚在 `CameraScreen` 内，路由进入同样触发。
 - **会话控制**：`features/common/avatar/AvatarCaptureController`（进程内单例 StateFlow，与 `RemotePhotoTracker` 同风格）登记 `PendingAvatarCapture(target=Person(personId)|Self, origin=PEOPLE_PAGE|GALLERY_PAGE|SETTINGS_PAGE)`；调用方 `begin()` 后 `navigate(Screen.Camera)`。
-- **相机头像态**（`CameraScreen/CameraContent`）：检测 pending → 记忆水合后默认切前置（`FEATURE_CAMERA_FRONT` 缺失静默保持后置）→ 顶部胶囊提示（`avatar_capture_hint`：Take a selfie for avatar / 拍摄头像 / 拍攝頭像）；离开相机路由视为取消（`DisposableEffect` onDispose 清 pending + 恢复进入前镜头）。
+- **相机头像态**（`CameraScreen/CameraContent`）：检测 pending → 记忆水合后默认切前置（`FEATURE_CAMERA_FRONT` 缺失静默保持后置）→ 顶部胶囊提示（`avatar_capture_hint`：Capture avatar / 拍摄头像 / 拍攝頭像 / Capturar avatar / Capturer l'avatar）；离开相机路由视为取消（`DisposableEffect` onDispose 清 pending + 恢复进入前镜头）。
 - **落库设封面**：`handleCaptureClick` 新增 `onPhotoCompleted` 钩子 → `AvatarCaptureFinisher` 以快门时间戳为下界轮询 Room 最新媒体（兜底策略：拍照回调不透出 mediaId 且 `insertMedia` 异步入库，注释已写明取舍）→ 复用 `PersonRepository.updateCover`；Self 目标经 `getSelfPerson()` 解析，未标记「我」则跳过（记日志）。
 - **返回**：完成/失败后清 pending 并 `popBackStack` 回来源页（来源页均在返回栈上——Settings 为 NavHost 页，人物编辑为 Pager 内 People/Gallery 页且 pagerState 提升在 Activity 层，弹栈后自然落回；origin 仅作诊断记录，不再驱动返回导航）。
 
-### 11.3 三语 key 清单
+### 11.3 五语 key 清单
 
-| key | EN | zh-CN | zh-TW |
-|---|---|---|---|
-| `gallery_settings`（更名） | Gallery Scan | 相册扫描 | 相簿掃描 |
-| `gallery_cleanup`（新增） | Gallery Cleanup | 相册整理 | 相簿整理 |
-| `avatar_capture_hint`（新增） | Take a selfie for avatar | 拍摄头像 | 拍攝頭像 |
+| key | EN | zh-CN | zh-TW | ES | FR |
+|---|---|---|---|---|---|
+| `gallery_settings`（更名） | Gallery Scan | 相册扫描 | 相簿掃描 | Escaneo de galería | Analyse de la galerie |
+| `gallery_cleanup`（新增） | Gallery Cleanup | 相册整理 | 相簿整理 | Limpieza de galería | Nettoyage de la galerie |
+| `avatar_capture_hint`（新增） | Capture avatar | 拍摄头像 | 拍攝頭像 | Capturar avatar | Capturer l'avatar |
 
 ## §12 结果页按类型细分处理（2026-08-26）
 
@@ -203,7 +203,7 @@ Gallery 设置入口（现有行，升级文案）
 - **删除后继续整理**：`DedupUiState.Cleaned` 增加 `remainingGroups`（本次未涉及的组：其他 Tab + 未预选组）。非空时完成页主操作为「继续整理 · 还剩 N 组」（`dedup_continue_remaining`，`continueWithRemaining()` → Results 剩余组并切到还有组的第一个 Tab），「完成」降为次操作；为空时维持原完成页布局。
 - **跨级重叠组防过度清空**：构建 `remainingGroups` 时逐组剔除已入回收站的成员——keepUri 被删的组按当前 policy 重算保留项（override 随改选对象消失而失效），存活成员不足 2 的组直接移出；杜绝快照回灌后把某组最后一张也送进回收站。
 - **已知限制**：「继续整理」回 Results 后，完成页的「全部撤销」入口随之关闭，本批已删项只能去系统回收站恢复（30 天内）。
-- **三语 key 变更**：删 `dedup_smart_select_all`、`dedup_delete_cta`；增 `dedup_smart_select_tab`、`dedup_delete_cta_scoped`、`dedup_scene_batch_hint`、`dedup_continue_remaining`。
+- **五语 key 变更**：删 `dedup_smart_select_all`、`dedup_delete_cta`；增 `dedup_smart_select_tab`、`dedup_delete_cta_scoped`、`dedup_scene_batch_hint`、`dedup_continue_remaining`。
 
 ### 12.1 验收标准（追加）
 

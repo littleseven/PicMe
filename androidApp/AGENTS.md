@@ -53,14 +53,14 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | `Camera` | `camera` | 相机全屏页（2026-08-26 路由化）— 拍照、美颜预览、语音控制；仅头像拍摄与 Agent `navigate_to(camera)` 进入，会话按路由生命周期（≥RESUMED）门控 |
 | `PhotoEditor` | `photo_editor/{sourceUri}?recipeUri={recipeUri}&autoOptimize={autoOptimize}` | 图片编辑器 — 从相册 MediaPager 进入；`recipeUri` 重新编辑已保存副本，`autoOptimize` 进入时自动触发 AI 一键优化 |
 | `IDPhoto` | `id_photo/{sourceUri}` | 证件照制作 |
-| `Settings` | `settings` | 设置 — 主菜单，展示 6 个分类入口 |
-| `SettingsCategory` | `settings/{category}` | 设置二级分类页 — `personalization`、`ai_agent`、`gallery`、`camera`、`system`、`developer`（2026-08-16 `camera_beauty` 更名 `camera`，承载相机状态记忆与重置） |
+| `Settings` | `settings` | 设置 — 主菜单（2026-08-26 列表式改版：账号 Hero 卡 + 个性化/功能/AI 与系统/其他四组列表行） |
+| `SettingsCategory` | `settings/{category}` | 设置二级分类页 — 路由段为枚举名小写：`account`、`gallery`（dormant）、`camera`、`system`、`remote_model`、`local_model`、`sandbox`、`developer`（2026-08-16 `camera_beauty` 更名 `camera`，承载相机状态记忆与重置） |
 | `AddRemoteProvider` | `settings/add_remote_provider` | 添加远程模型 — 供应商列表页（精确路由，优先于 `settings/{category}` 占位匹配；2026-08-21 替代原 AddProviderModelDialog 弹窗） |
 | `ProviderConfig` | `settings/provider_config/{providerId}` | 供应商配置页 — API Key + 模型单选 + 自定义模型 ID；`providerId=custom` 为自定义供应商形态（含 Base URL）；保存后确定性弹回远程模型列表 |
 | `ModelCenter` | `model_center/{categoryTag}` | 模型中心 — 按服务功能分类管理本地模型 |
 | `TagControl` | `tag_control` | TAG 生成控制 — 3-Pass 进度、按类别/时间范围重新生成 |
 | `TagViewer` | `tag_viewer` | 标签查看页 |
-| `MemoryFacts` | `memory_facts` | 设置子页 — AI 记忆（人物关系区 + 事实记忆区的查看/编辑/删除/清空），从 Settings「AI 助手」卡片进入 |
+| `MemoryFacts` | `memory_facts` | 设置子页 — AI 记忆（人物关系区 + 事实记忆区的查看/编辑/删除/清空），从设置主菜单「功能」组「AI 记忆」列表行进入 |
 | `DataPrivacy` | `data_privacy` | 数据隐私说明页 |
 | `CommunicationChannel` | `communication_channel` | 通信通道设置页 |
 | `Debug` | `debug` | 开发工具 — 日志、截图、样本数据生成 |
@@ -72,6 +72,8 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 > Chat/Gallery/Dedup/People 为 `Main` 内部 Pager 页，不单独注册 destination；相机为 NavHost 全屏路由（`camera`）；完整路由定义以 `navigation/Screen.kt` 为准。
 
 > **2026-06 产品重心转移**：Gallery 为默认首页，Camera/Chat/ModelCenter 作为纯图标入口从 Gallery 底部悬浮 Tab 进入，Settings 从顶部栏进入；设置页已拆分为 6 个二级分类页，主菜单保持一屏可见；Model Center 内置于 Settings 的 AI 助手卡片第一项，分类按服务功能（必须/聊天/相册打标/美颜相机）重排，聊天分类聚合文字与语音模型，并提供必须模型一键下载；重复照片管理已升级为设置主菜单「相册整理」一级入口与主页面 Pager 页 1（2026-08-26，原「Settings 相册功能卡片」入口废弃）；Camera 页已移除设置入口。
+>
+> **2026-08-26 二次调整（对上段的修正）**：相机自悬浮 Tab 移出、路由化（见上「2026-08-26 相机路由化」），悬浮 Tab 首项改为相册整理；设置主菜单改列表式分组，「AI 助手卡片」移除——Model Center 为「AI 与系统」组列表行，AI 记忆为「功能」组列表行。
 > - **16 KB 适配**：MediaPipe tasks-vision 升级至 0.10.26，sherpa-onnx 升级至 1.13.3（内置 ONNX Runtime 1.24.3），`onnxruntime-android` 同步升级至 1.24.3，上述 native lib 均已 16 KB 对齐，满足 Google Play Android 15+ 要求。详见 `PRODUCT.md`。
 
 ### 1.3 关键入口文件

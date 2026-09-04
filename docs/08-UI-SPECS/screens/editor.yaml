@@ -168,7 +168,7 @@ bottom_bar:
       - { tab: MARKUP, label_key: editor_tab_markup, zh: 标记 }
     chip_style:                    # chip 节点（Ardot editor/tabbar-en-preview 方案A 定稿）
       height: 36
-      width: hug_contents          # 自适应文本宽度（EN/zh/zh-TW 三语单行放下）
+      width: hug_contents          # 自适应文本宽度（五语单行放下；ES/FR 文案更长，为最宽约束）
       horizontal_padding: 8        # M3 FilterChip 16 → 8（FilterChip 无法调内距，故自定义 chip）
       corner_radius: 8
       selected: primaryContainer 系（仅底色区分选中，无 ✓ 图标）

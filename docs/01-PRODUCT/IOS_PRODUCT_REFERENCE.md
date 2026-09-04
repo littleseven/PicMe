@@ -59,8 +59,8 @@ PoLang（破浪相册）是一个 **Agent 驱动的智能相册**实验场，核
 
 - **相册为默认首页**：`MainActivity` NavHost `startDestination = Screen.Main.route`，主页面 `HorizontalPager` 的 `initialPage = MAIN_PAGE_GALLERY`。应用启动直达相册。✅
 - **AI 对话为核心助手能力**：聊天为主页面 Pager 第 3 页（`MAIN_PAGE_CHAT=2`），经远程 OpenAI 兼容 tool_calls 编排。✅
-- **相机为辅助**：相机为 Pager 第 1 页（`MAIN_PAGE_CAMERA=0`），仅当前页激活时才绑定相机/加载语音与本地模型（`MainPagerHost` `isActivePage` 门控）。✅
-- **底部悬浮 Tab 聚合**相机/聊天/打标/人物入口，设置位于相册顶部栏。✅
+- **相机为辅助**：相机已路由化为 NavHost 全屏页 `Screen.Camera`（2026-08-26 移出 Pager），唯一用户入口为头像拍摄（人物编辑页 / 设置账号 Hero 卡相机角标）；相机会话按路由生命周期门控（`backStackEntry.lifecycle ≥ RESUMED` 激活，弹栈即释放）。✅
+- **底部悬浮 Tab 聚合**相册整理/聊天/打标/人物入口（首项为相册整理去重 2.0，Pager 页 1），设置位于相册顶部栏。✅
 - **三大技术轴同库**：① On-device Agent Runtime + 本地/远程推理；② 智能相册与图片编辑；③ 自研 OpenGL ES + EGL 美颜/滤镜引擎 + 自建 Ktor 网关。
 - **隐私优先**：用户图片/视频**文件**不上传远程推理服务器；人脸检测/OCR/分类/打标等媒体处理 100% 端侧；文本/元数据/相册摘要可走远程（chat 默认远程）。详见 §3.4。
 
@@ -72,12 +72,12 @@ PoLang（破浪相册）是一个 **Agent 驱动的智能相册**实验场，核
 
 | 页索引 | 常量 | 页面 | 屏幕组件 |
 |---|---|---|---|
-| 0 | `MAIN_PAGE_CAMERA` | 相机 | `CameraScreen` |
-| 1 | `MAIN_PAGE_GALLERY` | 相册（默认首页） | `GalleryScreen` |
+| 0 | `MAIN_PAGE_GALLERY` | 相册（默认首页） | `GalleryScreen` |
+| 1 | `MAIN_PAGE_DEDUP` | 相册整理（去重 2.0） | `DedupHomeScreen` |
 | 2 | `MAIN_PAGE_CHAT` | 聊天 | `ChatScreen` |
 | 3 | `MAIN_PAGE_PEOPLE` | 人物 | `PersonScreen` |
 
-证据：`features/main/MainPagerHost.kt:29-33`（常量）、`:91-156`（页面分发）。
+证据：`features/main/MainPagerHost.kt:29-34`（常量）、`:91-156`（页面分发）。相机已移出 Pager，为 NavHost 全屏路由 `Screen.Camera`（2026-08-26）。
 
 **关键行为（代码核验）**：
 
@@ -85,7 +85,7 @@ PoLang（破浪相册）是一个 **Agent 驱动的智能相册**实验场，核
 - **底部 Tab 切页为瞬时跳转**（无横滑动画）：`switchMainPage` 用 `pagerState.scrollToPage(index)`（非 `animateScrollToPage`）。✅
 - **返回键语义**：非相册页按返回回到相册页。✅
 - **局部禁用外层滑动**：相册（详情/多选）与聊天（全屏预览）经 `onHorizontalSwipeEnabledChange` 上报禁用 Pager 滑动。✅
-- **场景管理**：跟随 `pagerState.settledPage` 同步 `SceneManager`（CAMERA/GALLERY/CHAT），人物页沿用进入前场景。✅
+- **场景管理**：跟随 `pagerState.settledPage` 同步 `SceneManager`（GALLERY——相册与相册整理共用 / CHAT），人物页沿用进入前场景；CAMERA 场景由相机路由进入/离开时自管理（`CameraScreen`）。✅
 
 **导航拓扑（ASCII）**：
 
@@ -99,21 +99,21 @@ PoLang（破浪相册）是一个 **Agent 驱动的智能相册**实验场，核
    │ HorizontalPager ×4  │              │ Settings │ModelCenter│PhotoEditor│ IDPhoto │
    │ (beyondViewport=3)  │              │ /{cat}   │ /{tag}   │ /{uri}   │ /{uri}  │
    │                     │              │          │          │?recipe   │         │
-   │ [0]Camera [1]Gallery│              │ DataPriv │TagControl│ &autoOpt │ Debug   │
-   │      ▲    ▲  [2]Chat│              │MemFacts  │TagViewer │          │ JsBridge*│
-   │      │    │  [3]People│            │CommChan  │DedupHome │          │SearchTest*│
-   │      │    │     │    │             │People(切页)│        │          │LlmLog   │
-   │      │    └────initialPage=1(相册) │          │          │          │Sent.Piece*│
+   │ [0]Gallery [1]Dedup │              │ DataPriv │TagControl│ &autoOpt │ Debug   │
+   │      ▲    ▲  [2]Chat│              │MemFacts  │TagViewer │ Camera   │ JsBridge*│
+   │      │    │  [3]People│            │CommChan  │          │(全屏路由) │SearchTest*│
+   │      │    │     │    │             │          │          │          │LlmLog   │
+   │      │    └────initialPage=0(相册) │          │          │          │Sent.Piece*│
    │      └──────────┘                  └──────────┴──────────┴──────────┴─────────┘
    │   FloatingBottomTab(相册首页底部，多选时隐藏)
-   │   [Camera] [Chat] [Tag] [People]   ← 4 项，无 Gallery（本身即首页）
+   │   [整理] [Chat] [Tag] [People]   ← 4 项，无 Gallery（本身即首页）；相机已路由化无常驻入口
    │
    └─ 顶部栏最右：Settings 入口
 ```
 
 `*` 仅 DEBUG 构建。
 
-> **iOS 落点**：`MainTabView.swift` + `FloatingBottomTab.swift` 已实现悬浮 Tab + 相册默认首页，4 Tab 顺序与图标语义一致（camera/chat/tag/person，Material Icons）。**iOS 主页面为 ZStack + 条件渲染，已有 swipe 切页手势**（`MainTabView.swift:78-88` `simultaneousGesture`，水平主导滑动切页），但**非真正跟手 drag-tracking Pager**——无页面常驻、无物理吸附。`iOS 待对齐`：跟手 drag-tracking + 4 页常驻。
+> **iOS 落点**：`MainTabView.swift` + `FloatingBottomTab.swift` 已实现悬浮 Tab + 相册默认首页（camera/chat/tag/person，Material Icons）；**Android 首 Tab 已由相机改为相册整理**（2026-08-26，相机路由化），Tab 顺序不再一致，iOS 待对齐。iOS 主页面为 `TabView(.page)` 跟手 Pager（`e8582301` 已对齐），待对齐项：首 Tab 语义 + 相册整理页本身（iOS 缺口）。
 
 ### 1.3 功能能力地图
 
@@ -121,8 +121,8 @@ PoLang（破浪相册）是一个 **Agent 驱动的智能相册**实验场，核
 
 | 功能域 | 功能项 | Android | iOS 状态 | shared 契约 | 详见 |
 |---|---|---|---|---|---|
-| **导航/骨架** | 相册默认首页 + 4 页 Pager（相机/相册/聊天/人物） | ✅ | iOS 已有（默认页）；待对齐（跟手 Pager） | — | §1.2 |
-| 导航/骨架 | 悬浮底部 Tab（相机/聊天/打标/人物，纯图标无文字） | ✅ | iOS 已有 | — | §1.2 |
+| **导航/骨架** | 相册默认首页 + 4 页 Pager（相册/相册整理/聊天/人物） | ✅ | iOS 已有（默认页 + 跟手 Pager）；待对齐（首 Tab 为相机、缺相册整理页） | — | §1.2 |
+| 导航/骨架 | 悬浮底部 Tab（相册整理/聊天/打标/人物，纯图标无文字） | ✅ | iOS 待对齐（首 Tab 仍为相机） | — | §1.2 |
 | 导航/骨架 | 设置入口（相册顶部栏最右） | ✅ | iOS 已有 | — | §1.2 / §2.9 |
 | 导航/骨架 | 二级页导航（Settings/ModelCenter/PhotoEditor/IDPhoto/Debug…） | ✅ | iOS 部分（Settings/ModelCenter 已实现；PhotoEditor/IDPhoto/Tag 等缺口） | `NavigationCapability` | §3.1 |
 | **相册/浏览** | 等比方块网格（Adaptive 110dp）+ 人脸感知对齐 | ✅ | iOS 已有（`GalleryGridView`） | `MediaAsset` | §2.1 |
@@ -174,7 +174,7 @@ PoLang（破浪相册）是一个 **Agent 驱动的智能相册**实验场，核
 | 相机 | 人脸十字星对焦（时序显隐） | ✅ | iOS 待对齐 | — | §2.8 |
 | 相机 | 场景识别（NIGHT/MOON，**手动**非自动） | ✅ | iOS 待对齐 | — | §2.8 |
 | 相机 | 语音入口（默认隐藏 + Push-to-Talk/WakeWord） | ✅ | iOS 缺口 | — | §2.8 |
-| **设置/账号** | 设置主页（Hero 账号卡 + 主题/语言 + 10 网格 + 7 子页） | ✅ | iOS 已有（骨架） | — | §2.9 |
+| **设置/账号** | 设置主页（Hero 账号卡 + 列表式分组：个性化/功能/AI 与系统/其他） | ✅ | iOS 已有（骨架） | — | §2.9 |
 | 设置/账号 | 模型中心（Chip Pager + 下载/进度/删除 + 16 模型） | ✅ | iOS 已有（骨架） | `RemoteModelConfigs` | §2.9 |
 | 设置/账号 | 远程推理额度展示（quota，默认 100） | ✅ | iOS 缺口 | — | §2.9 |
 | 设置/账号 | 邮箱验证码登录 / Guest（deviceId） | ✅ | iOS 缺口（仅占位） | — | §2.9 |
@@ -193,15 +193,15 @@ PoLang（破浪相册）是一个 **Agent 驱动的智能相册**实验场，核
 
 ### 1. 功能定位
 
-相册是核心产品场景与应用默认首页。用户在此浏览、搜索、管理照片，并经悬浮底部 Tab 进入相机/聊天/打标/人物。媒体源为 Android `MediaStore`（全量查询→Room 同步，仅插新不覆盖 TAG 字段）。
+相册是核心产品场景与应用默认首页。用户在此浏览、搜索、管理照片，并经悬浮底部 Tab 进入相册整理/聊天/打标/人物。媒体源为 Android `MediaStore`（全量查询→Room 同步，仅插新不覆盖 TAG 字段）。
 
 > **iOS 落点**：Phase 5 已建 `GalleryGridView` / `AlbumListView` / `MediaPagerView` / `GalleryPermissionStore`（PhotoKit，含 limited 四态）。媒体源为 `PHFetchResult`，无需手动 sync 本地 DB（即时查询），但需处理 limited 下增量重查。
 
 ### 2. 入口与导航
 
 - **默认首页**：应用启动即进入相册。
-- **主页面横滑**：相机/相册/聊天/人物 4 页由外层 `HorizontalPager` 承载，线性顺序无循环；照片详情/多选态禁用外层横滑（`GalleryScreen.kt:250-252`）。
-- **悬浮底部 Tab**（仅网格态显示，详情打开时隐藏）：相机 / 聊天 / 打标控制 / 人物（`GalleryScreen.kt:842-870`）。
+- **主页面横滑**：相册/相册整理/聊天/人物 4 页由外层 `HorizontalPager` 承载，线性顺序无循环；照片详情/多选态禁用外层横滑（`GalleryScreen.kt:250-252`）。
+- **悬浮底部 Tab**（仅网格态显示，详情打开时隐藏）：相册整理 / 聊天 / 打标控制 / 人物（`GalleryScreen.kt:845-878`）。
 - **顶栏入口**（非选择态）：模型中心 / 开始·暂停扫描 / 搜索 / 分组菜单 / 设置（`GalleryTopBar.kt:96-114`）。
 
 ### 3. 功能项清单
@@ -220,7 +220,7 @@ PoLang（破浪相册）是一个 **Agent 驱动的智能相册**实验场，核
 | 图像理解浮层 | ✅ | `VisionResultOverlay`，Markdown 渲染 + 复制/分享。 |
 | **多选模式** | 🔄 | 长按进入；支持**拖拽选择**（滑过批量勾选/取消）。批量操作仅：**全选/反选**、**删除**、**分享**。**无** 收藏、移动至相册、批量美颜。 |
 | 自定义相册 | ❌ | 完全不存在（无相册表、无创建/命名/封面/增删/智能相册）。 |
-| **重复/相似照片清理（去重 2.0）** | ✅ | `DedupHomeRoute` 为**主页面 Pager 页 1**（2026-08-26 自 `dedup_home` 路由迁入 Pager，路由已删），入口：设置主菜单「相册整理」一级入口 / 相册页悬浮底部 Tab 首项 / 相册页左滑。端侧三级尺度（完全重复/视觉相似/同一场景）流式扫描（边扫边出结果），保留规则四策略（首选项 KEEP_HIGHEST_QUALITY 与弹层 KEEP_USER_EDITED 分离），API 30+ 删入系统回收站（30 天兜底、可 undo）。仅照片，不含视频。旧 `DuplicateManagerRoute` 已随 Task 11 下线。 |
+| **重复/相似照片清理（去重 2.0）** | ✅ | `DedupHomeRoute` 为**主页面 Pager 页 1**（2026-08-26 自 `dedup_home` 路由迁入 Pager，路由已删），入口：设置主菜单「相册整理」一级入口 / 相册页悬浮底部 Tab 首项 / 相册页左滑。端侧三级尺度（完全重复/视觉相似/同一场景）流式扫描（边扫边出结果），保留规则四策略（`KeepPolicy`：BEST_QUALITY/ORIGINAL/EDITED/LATEST），API 30+ 删入系统回收站（30 天兜底、可 undo）。仅照片，不含视频。旧 `DuplicateManagerRoute` 已随 Task 11 下线。 |
 | 存储管理（总数/空间/回收站/大文件） | ❌ | 除重复检测外均未实现；无 30 天恢复、无大文件扫描、无空间统计。 |
 | **备份与恢复** | ✅ | `BackupRestoreActivity`，SAF JSON 导出/导入。格式 **v5**，18 个数据段。 |
 
@@ -776,7 +776,7 @@ OFF 模式直接返回「AI Agent 已关闭」，不发远程调用。
 
 ### 2. 入口与导航
 
-- **人物页**：主页 `HorizontalPager` 第 4 页（相机/相册/聊天/**人物**），横滑或点底部图标瞬时跳转。
+- **人物页**：主页 `HorizontalPager` 第 4 页（相册/相册整理/聊天/**人物**），横滑或点底部图标瞬时跳转。
 - **事实记忆页**：设置页 `MemoryFactsScreen`（查看/删除/清空事实）。
 - **聊天触发**：Chat 场景声明关系（「小宝是我女儿」→ `remember_person_relation`）或记忆事实（「帮我记住…」→ `remember_fact`）。
 
@@ -951,8 +951,8 @@ OFF 模式直接返回「AI Agent 已关闭」，不发远程调用。
 
 ### 2. 入口与导航
 
-- 相机是主页 4 页之一（`MAIN_PAGE_CAMERA=0`），由 `HorizontalPager` 承载，可全屏横滑跟手切换；底部悬浮 Tab 点击瞬时跳转。
-- 相机门控：仅当前页为相机页时才绑定相机/加载语音与本地模型（`isActivePage`）。
+- 相机为 NavHost 全屏路由 `Screen.Camera`（2026-08-26 起移出主页面 Pager），**唯一用户入口为头像拍摄**（人物编辑页 / 设置账号 Hero 卡相机角标，`AvatarCaptureController` 登记 pending）；Agent 指令 `navigate_to(camera)` 链路保留。
+- 相机门控：由路由生命周期驱动（`backStackEntry.lifecycle.currentStateFlow ≥ RESUMED` 激活绑定，弹栈/退后台即解绑释放）。
 
 ### 3. 功能项清单
 
@@ -1009,7 +1009,7 @@ OFF 模式直接返回「AI Agent 已关闭」，不发远程调用。
 ### 4. 核心状态与流程
 
 ```
-相册首页(默认) → 底部 Tab/横滑 → 相机页 (isActivePage 绑定)
+头像拍摄入口(人物编辑页/设置 Hero 卡) 或 Agent navigate_to(camera) → 相机路由 (生命周期 ≥ RESUMED 绑定)
   │  beautySettings = BeautySettings(enabled=false) ← 全 0、人脸检测关闭、SKIPPED
   ├─ 调任一美颜参数 → resolveNextBeautySettings → enabled=true (hasAnyEffect) → 人脸检测启动/实时预览 <100ms
   ├─ 选色调/风格 → 互斥清空对方
@@ -1045,15 +1045,15 @@ Phase 5.4 已落地：AVFoundation + Metal 4-pass（yuv→smoothing→lut→beau
 
 ### 1. 功能定位
 
-设置页是全局二级页，入口为主页右上角设置图标，路由到 `SettingsScreen`（`SettingsCategory` 枚举驱动九子页切换：MAIN/ACCOUNT/GALLERY/CAMERA/SYSTEM/REMOTE_MODEL/LOCAL_MODEL/SANDBOX/DEVELOPER；2026-08-16 `CAMERA_BEAUTY` 更名 `CAMERA`，承载相机状态记忆与重置）。设置主页 = 账号置顶 Hero 卡 + 主题/语言快选卡 + 2 列功能网格（10 项 + 解锁后的开发者选项）。模型中心、数据与隐私、通信通道、AI 记忆均为独立子页/独立 Activity。
+设置页是全局二级页，入口为主页右上角设置图标，路由到 `SettingsScreen`（`SettingsCategory` 枚举驱动九子页切换：MAIN/ACCOUNT/GALLERY/CAMERA/SYSTEM/REMOTE_MODEL/LOCAL_MODEL/SANDBOX/DEVELOPER；2026-08-16 `CAMERA_BEAUTY` 更名 `CAMERA`，承载相机状态记忆与重置）。设置主页为**列表式分组布局**（2026-08-26 由 2 列网格改版）：账号 Hero 卡（置顶，含头像拍摄角标）+ 个性化（主题/语言）/ 功能（人物/AI 记忆/相册扫描/相册整理/相机）/ AI 与系统（模型中心/远程模型/本地模型/通信通道/沙盒与权限）/ 其他（数据与隐私/开发者选项）四组列表行。模型中心、数据与隐私、通信通道、AI 记忆均为独立子页/独立 Activity。
 
 > **iOS 落点**：🔄 `SettingsScreen.swift` + `SettingsSubPages.swift` + `ModelCenterView.swift` + `ModelDownloadCenterView.swift` + `ModelConfigStore.swift` 骨架已有（Phase 5/6.3）；账号邮箱验证登录、server quota 接入尚未落地。
 
 ### 2. 入口与导航
 
-设置主页网格（2 列 chunked，baseItems 10 项）：① AI 记忆 → ② 人物 → ③ 通信通道 → ④ 相册功能 → ⑤ 远程模型 → ⑥ 本地模型 → ⑦ 模型中心 → ⑧ 沙盒与权限 → ⑨ 数据与隐私 → ⑩ 相机；开发者选项为解锁后附加项（`developerOptionsUnlocked`）。顶部账号 Hero 卡 + 主题/语言快选卡。
+设置主页为列表式分组（`SettingsListSection` + `SettingsListRow`，2026-08-26 由 2 列网格改版）：顶部账号 Hero 卡（含头像拍摄角标）→ 「个性化」组（主题 / 语言，右值=当前选中，点击弹窗切换）→ 「功能」组（人物 / AI 记忆 / 相册扫描 / 相册整理 / 相机）→ 「AI 与系统」组（模型中心 / 远程模型 / 本地模型 / 通信通道 / 沙盒与权限）→ 「其他」组（数据与隐私 / 开发者选项，后者为解锁后附加项 `developerOptionsUnlocked`）。
 
-> **漂移**：**模型中心是独立网格卡**；相似/大文件去重已升级为设置主菜单「相册整理」一级入口（同时是主页面 Pager 页 1，2026-08-26；原「相册功能」子页分类已不可达（dormant），其 `manage_duplicates` 行与 key 仍保留在休眠代码中待清理）；**无「关于」卡片**（无版本号展示，`BuildConfig` 仅 DEBUG 判定）；备份与恢复已并入「数据与隐私」页，非独立网格项；**无「AI 助手」网格项**（远程/本地模型配置已拆为一级入口）。
+> **漂移**：模型中心为「AI 与系统」组列表行；相似/大文件去重已升级为设置主菜单「相册整理」一级入口（同时是主页面 Pager 页 1，2026-08-26；原「相册功能」子页分类已不可达（dormant），其 `manage_duplicates` 行与 key 仍保留在休眠代码中待清理）；**无「关于」卡片**（无版本号展示，`BuildConfig` 仅 DEBUG 判定）；备份与恢复已并入「数据与隐私」页，非独立网格项；**无「AI 助手」卡片**（远程/本地模型配置已拆为「AI 与系统」组列表行）。
 
 ### 3. 功能项清单
 
@@ -1084,23 +1084,27 @@ Phase 5.4 已落地：AVFoundation + Metal 4-pass（yuv→smoothing→lut→beau
 ### 4. 核心状态与流程：设置导航树
 
 ```
-SettingsScreen (MAIN)
-├── [Hero] 账号卡 ──────────► ACCOUNT (EmailCodeAuthForm / QuotaDisplay)
-├── [快选] 主题 / 语言
-└── [Grid 2 列]
-    ├── AI 记忆 ──────────► MemoryFactsScreen (memory_facts CRUD)
-    ├── 人物 ─────────────► People (人物/关系图谱)
-    ├── 通信通道 ─────────► CommunicationChannelScreen (飞书/Telegram/NONE)
-    ├── 相册功能 ─────────► GALLERY (TAG 控制/查看器/打标模型选择/GPU 加速；去重已升为下方一级入口)
-    ├── 相册整理 ─────────► Dedup（去重 2.0；主页面 Pager 页 1，2026-08-26 升级，非 NavHost 路由）
-    ├── 远程模型 ─────────► REMOTE_MODEL (远程模型配置/Agent 模式)
-    ├── 本地模型 ─────────► LOCAL_MODEL (人脸检测引擎等本地模型配置)
-    ├── 模型中心 ─────────► ModelCenterScreen (Pager: must-have/recommended/photo-tagging/beauty-camera/chat)
-    ├── 沙盒与权限 ───────► SANDBOX (设备访问[含语音入口开关]/JS 沙盒权限)
+SettingsScreen (MAIN，列表式分组，2026-08-26 改版)
+├── [Hero] 账号卡（含头像拍摄角标）─► ACCOUNT (EmailCodeAuthForm / QuotaDisplay)
+├── [个性化] 主题 / 语言（右值=当前选中，弹窗切换）
+├── [功能]
+│   ├── 人物 ─────────────► People (切主页面 Pager 页 3；人物/关系图谱)
+│   ├── AI 记忆 ──────────► MemoryFactsScreen (memory_facts CRUD)
+│   ├── 相册扫描 ─────────► TagControl (TAG 控制/查看器/打标模型选择/GPU 加速)
+│   ├── 相册整理 ─────────► Dedup（去重 2.0；切主页面 Pager 页 1，2026-08-26 升级，非 NavHost 路由）
+│   └── 相机 ─────────────► CAMERA (相机状态记忆与重置[二次确认]；2026-08-16 由 CAMERA_BEAUTY 更名)
+├── [AI 与系统]
+│   ├── 模型中心 ─────────► ModelCenterScreen (Pager: must-have/recommended/photo-tagging/beauty-camera/chat)
+│   ├── 远程模型 ─────────► REMOTE_MODEL (远程模型配置/Agent 模式)
+│   ├── 本地模型 ─────────► LOCAL_MODEL (人脸检测引擎等本地模型配置)
+│   ├── 通信通道 ─────────► CommunicationChannelScreen (飞书/Telegram/NONE)
+│   └── 沙盒与权限 ───────► SANDBOX (设备访问[含语音入口开关]/JS 沙盒权限)
+└── [其他]
     ├── 数据与隐私 ───────► DataPrivacyScreen (纯说明 + 隐私政策链接 + 备份与恢复)
-    ├── 相机 ─────────────► CAMERA (相机状态记忆与重置[二次确认]；2026-08-16 由 CAMERA_BEAUTY 更名)
     └── 开发者选项 ───────► DEVELOPER (解锁后附加；调试浮层/诊断[LLM日志]/测试工具[debug]/日志模块配置)
 ```
+
+> 原 GALLERY 分类子页（相册功能：TAG 控制/查看器/打标模型/GPU 加速 + `manage_duplicates` 行）已 dormant 不可达，其能力由「功能」组的 相册扫描/相册整理 一级行承载。
 
 ### 5. 关键 UX 规则
 
@@ -1232,22 +1236,21 @@ SettingsScreen (MAIN)
 
 ### 3.5 i18n 五语规范
 
-**Android 五语结构（代码核验）**：
+**Android 五语结构（2026-09-04 核验）**：
 
 | 资源限定符 | key 数 | 角色 |
 |---|---|---|
-| `values/`（默认=EN） | 981 | 英文基准 |
-| `values-zh-rCN/` | 981 | 简体中文（与 EN 完全对齐） |
-| `values-zh-rTW/` | 963 | 繁体中文（缺 18 key，未完全对齐） |
-| `values-zh/` | 679 | **遗留通用 zh 目录**（7 成覆盖，陈旧冗余，建议清理） |
-| `values-es/` | 1410 | 西班牙语（2026-09 新增，与 EN 全量对齐） |
-| `values-fr/` | 1410 | 法语（2026-09 新增，与 EN 全量对齐） |
+| `values/`（默认=EN） | 1410 | 英文基准 |
+| `values-zh-rCN/` | 1410 | 简体中文（与 EN 完全对齐） |
+| `values-zh-rTW/` | 1410 | 繁体中文（与 EN 完全对齐） |
+| `values-es/` | 1410 | 西班牙语（2026-09 新增，全量对齐） |
+| `values-fr/` | 1410 | 法语（2026-09 新增，全量对齐） |
 
-> **2026-09 更新**：es / fr 已于 2026-09 补齐（Android 1410 键全量、iOS 全量键），上表 981/963/679 为当时核验的历史快照。
+> 遗留 `values-zh/` 目录已删除（2026-09 前为 679 key 陈旧冗余）；五语各 1410 键全量对齐。
 
 **命名约定**：实际为 **snake_case 小写**（非小驼峰），形如 `tag_scan_control`、`gallery_people_entry`。运行时语言切换（`attachBaseContext` + `setLocale`，EN / 简中 / 繁中 / ES / FR / 跟随系统，切换触发 `recreate()`）。
 
-**iOS 对齐现状**：`Localizable.xcstrings` **main = 417 key**（vs Android 981，覆盖仍不足，持续补）；五语 `en`/`zh-Hans`/`zh-Hant`/`es`/`fr` 均就绪（zh-Hant 于 2026-08-10 补齐，commit `4de9221b`/`da2b78ae`；es/fr 于 2026-09 补齐全量键）；xcstrings 以英文文案为 key（非 snake_case id），双端键对齐需建立映射。`iOS 缺口`（key 覆盖率）。
+**iOS 对齐现状**：`Localizable.xcstrings` **main = 673 key**（vs Android 1410，覆盖仍不足，持续补）；五语 `en`/`zh-Hans`/`zh-Hant`/`es`/`fr` 均就绪（zh-Hant 于 2026-08-10 补齐，commit `4de9221b`/`da2b78ae`；es/fr 于 2026-09 补齐全量键）；xcstrings 以英文文案为 key（非 snake_case id），双端键对齐需建立映射。`iOS 缺口`（key 覆盖率）。
 
 ### 3.6 设计系统
 
@@ -1305,7 +1308,7 @@ SettingsScreen (MAIN)
 |------|------|----------|
 | ~~跟手横滑 Pager + 4 页常驻~~ | ✅ 已对齐（`e8582301`，`TabView(.page)` 跟手物理吸附 + 4 页常驻） | — |
 | chat 富消息类型 | 流式文本经 `onText` 逐字吐已 live；`success`/`error` 工具确认仍缺；富消息（图片/图表/表格/代码）需重构 `ChatMessage` | 重构消息模型 + 补确认反馈 |
-| iOS i18n | xcstrings 417 key（vs 981，覆盖仍不足）；三语就绪（zh-Hant 已补） | 扩 key 集 |
+| iOS i18n | xcstrings 673 key（vs Android 1410，覆盖仍不足）；五语就绪（es/fr 已补） | 扩 key 集 |
 | Telegram 通信通道 | 飞书未接入 | 用户自配置 IM，非推理上传 |
 
 ### 4.3 缺口（Phase 6+，需新建）
@@ -1346,9 +1349,9 @@ SettingsScreen (MAIN)
 |---|----------|----------|--------|
 | N1 | （任务前提）设计系统 HyperOS 风格 `#00E5FF`/`#FF4081`/`#121212` | 主题色板 = Material 3 紫色基线（`#6750A4`/`#D0BCFF`）+ 动态取色；`#00E5FF`/`#FF4081` 仅为功能色；暗色背景 `#1C1B1F`（非 `#121212`） | 高 |
 | N2 | i18n 命名「`[feature]_[desc]` 小驼峰」 | 实际 snake_case 小写（`tag_scan_control`） | 低 |
-| N3 | CLAUDE.md「三语：values/values-zh-rCN/values-zh-rTW」 | 额外存在 `values-zh/`（679 key，陈旧冗余） | 中 |
-| N4 | 繁中对齐 | values-zh-rTW 仅 963 key（差 18），未完全对齐 | 中 |
-| N5 | iOS 三语双端对齐 | iOS xcstrings 417 key（vs 981）+ 三语就绪（zh-Hant 2026-08-10 补齐）；~~仅 en/zh-Hans 无 zh-Hant~~（已修正） | 中（降级：仅余 key 覆盖缺口） |
+| N3 | ~~CLAUDE.md「三语：values/values-zh-rCN/values-zh-rTW」~~ | ✅ 已闭环：CLAUDE.md 已改五语清单；`values-zh/` 已删除 | — |
+| N4 | ~~繁中对齐~~ | ✅ 已闭环：五语各 1410 key 完全对齐 | — |
+| N5 | ~~iOS 三语双端对齐~~ | iOS xcstrings 673 key（vs Android 1410）+ 五语就绪（zh-Hant 2026-08-10、es/fr 2026-09 补齐） | 中（降级：仅余 key 覆盖缺口） |
 | N6 | NFR 含 LLM 首 token<2s、命令<3s、包体积<150MB | NFR_SPEC.md 无此三项 | 中 |
 
 **相册与浏览（02）**
@@ -1439,7 +1442,7 @@ SettingsScreen (MAIN)
 | # | 文档声称 | 代码实际 | 严重度 |
 |---|----------|----------|--------|
 | SE1 | 主页含「关于」卡片 + 版本号 | 无「关于」卡片（`BuildConfig` 仅 DEBUG 判定） | 中 |
-| SE2 | 模型中心是「AI 助手卡片第一项」 | 独立网格卡 | 中 |
+| SE2 | ~~模型中心是「AI 助手卡片第一项」~~ | ✅ 已闭环：「AI 助手」卡片已移除；模型中心为主菜单「AI 与系统」组列表行（2026-08-26 列表式改版） | — |
 | SE3 | 相似/大文件去重在主页网格独立卡 | 设置主菜单「相册整理」一级入口 + 主页面 Pager 页 1（2026-08-26 升级） | 低 |
 | SE4 | DataPrivacyScreen 含「隐私开关」/「云端 AI 优化开关」 | **纯说明页**，无开关；全代码库无 cloud_optimize 字符串 | 高 |
 | SE5 | `AiAgentMode.LOCAL` 在 UI 展示 | 仅 REMOTE 可选（端侧文本 LLM 已移除），枚举保留作离线兜底 | 低 |

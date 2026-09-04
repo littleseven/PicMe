@@ -6,7 +6,7 @@
 > - 顶层治理规则（角色协作、全局红线、文档流程）以根目录 `AGENTS.md` 为准。
 > - 禁止将模块级实现细节回填到顶层 `AGENTS.md`；跨模块或专项技术内容应下沉到对应模块文档或 `docs/*_TECH_SPEC.md`。
 
-**模块定位**: 二级页，相册内的 AI 助手能力入口，从相册首页底部 Tab 或 plus 菜单进入；仅远程模型（端侧文本 LLM 已移除），支持对话持久化
+**模块定位**: 主页面 Pager 页 2，相册内的 AI 助手能力入口，从相册悬浮底部 Tab「聊天」或全屏横滑进入；仅远程模型（端侧文本 LLM 已移除），支持对话持久化
 
 **主要维护者**: 项目开发者
 
@@ -127,6 +127,8 @@ data class ChatMessageEntity(
 | PlanPreview | `plan_preview` | JSON: `{content, plan}` |
 
 ## 5. 快捷入口实现 (QuickActionBar)
+
+> **⚠️ 设计稿，未落地**：Chat 页暂不提供底部快捷入口（见 §2 注）。以下伪码仅为方案示例；其中 `Screen.Editor`/`Screen.Gallery` 路由不存在（编辑器实际为 `Screen.PhotoEditor`，相册为主页面 Pager 页 0 非路由），落地时需按现行路由表修正。
 
 ### 5.1 入口定义
 

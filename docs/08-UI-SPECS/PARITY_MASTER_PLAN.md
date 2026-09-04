@@ -55,18 +55,20 @@
 
 **载体**：`docs/08-UI-SPECS/screens/*.yaml`。
 
-### 4.1 当前覆盖（2026-08-16）
+### 4.1 当前覆盖（2026-09-04 行数核验）
 
 | Spec | 行数 | 状态 |
 |------|------|------|
-| `camera.yaml` | 1343 | ✅ 完整（gap analysis 全部 P0/P1/P2；Arbot 系统相机风格优化已随 `80776e0a4` 同步） |
-| `gallery-grid.yaml` | 983 | ✅ 完整 |
-| `chat.yaml` | 621 | ✅ 已建 |
-| `editor.yaml` | 473 | ✅ 已建 |
-| `settings.yaml` | 390 | ✅ 已建 |
+| `camera.yaml` | 1170 | ✅ 完整（gap analysis 全部 P0/P1/P2；2026-08-26 相机路由化/头像拍摄链路已同步） |
+| `gallery-grid.yaml` | 981 | ✅ 完整（相册整理一级入口/悬浮 Tab 已同步） |
+| `chat.yaml` | 771 | ✅ 已建 |
+| `editor.yaml` | 646 | ✅ 已建 |
+| `settings.yaml` | 507 | ✅ 已建（2026-08-26 列表式主菜单改版已同步） |
 | `model-download-center.yaml` | 390 | ✅ 已建 |
-| `person.yaml` | 319 | ✅ 已建 |
+| `person.yaml` | 386 | ✅ 已建 |
 | `idphoto.yaml` | 418 | ✅ 已建（2026-08-16 /ios-follow idphoto 反向提取；含 FUSION 抠图管线/构图数学/修补契约全量） |
+| `tag-control.yaml` | 152 | ✅ 已建 |
+| `topbar.yaml` | 106 | ✅ 已建 |
 | `tag(photo-info)` / `memory` | — | ❌ 按需待建（对应屏启动 iOS 对齐时先补 spec） |
 
 ### 4.2 Spec 质量标准
