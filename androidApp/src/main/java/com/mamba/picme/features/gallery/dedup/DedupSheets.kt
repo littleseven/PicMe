@@ -196,7 +196,8 @@ private fun DedupGroupDetailContent(
 
         }
         // 底部固定 CTA（不随内容滚动；对齐设计稿 group_detail 底部按钮位）
-        // 必须在外层 Column 内：fillMaxSize Column 之外的兄弟节点会被挤出屏幕（导航栏遮挡错觉）
+        // 必须在外层 Column 内：fillMaxSize Column 之外的兄弟节点在剩余空间为 0 下测量，
+        // 塌缩为零高度不可见（表象类似被底部导航栏遮挡）
         if (editable) {
             Button(
                 onClick = onConfirm,
