@@ -172,7 +172,7 @@
 **目标**：解决设置页内容过多、单屏无法看完的问题，主菜单一屏可见，功能分组进入二级页。
 
 **分类枚举**：`SettingsCategory`（2026-08-16 现状，九分类）
-- `MAIN` — 设置主菜单：账号 Hero 卡 + 主题/语言快选卡 + 2 列分类卡片网格（baseItems 10 项）
+- `MAIN` — 设置主菜单（2026-08-26 起为列表式分组布局，设计稿 settings/main_list：账号 Hero 卡 + 个性化（主题/语言，右值弹层单选）+ 功能（人物/AI 记忆/相册扫描/相册整理/相机）+ AI 与系统（模型中心/远程模型/本地模型/通信通道/沙盒与权限）+ 其他（数据与隐私/开发者选项）+ 版本页脚；原 2 列分类卡片网格已废弃）
 - `ACCOUNT` — 账号（邮箱验证登录 / 额度卡）
 
 > **账户头像跟随"我"标记（2026-08-18 新增）**：主菜单 Hero 卡头像（`SettingsAccountHeroCard`）与账号页头部头像（`SettingsServerAuth.AccountAvatar`）共用 `PersonRepository.observeSelfAvatar()` 数据源——人物页标记「这是我」后，头像实时切换为该人物封面人脸（`faceAwareVerticalAlignment` 裁剪防砍头）；未标记/无封面/封面媒体已删时回退默认 Person 图标。数据链路：`PersonDao.observeSelfPerson()`（Room Flow，is_self/封面变更自动重发）→ 封面 mediaId 解析 uri + faceFocusY。**头像右下角相机角标（2026-08-26 新增）**：点击经 `AvatarCaptureController.begin(Self, SETTINGS_PAGE)` + `navigate(Screen.Camera)` 进相机路由拍「我」的头像，落库后由 `AvatarCaptureFinisher` 复用 `PersonRepository.updateCover` 链路设封面，完成/取消 `popBackStack` 回本页（详见 `docs/superpowers/specs/2026-08-25-album-dedup-design.md` §11.2）。

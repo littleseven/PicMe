@@ -223,7 +223,9 @@ person_detail:
               ring: "2dp colorScheme.background 描边"
               bg: "colorScheme.primary"
               icon: { material: photo_camera(16dp), sf: "camera.fill", tint: "colorScheme.onPrimary" }
-              click: "showCoverPicker=true"
+              # 2026-08-26 起角标不再打开封面选择 Sheet：登记 AvatarCaptureController.begin(Person(personId), PEOPLE_PAGE)
+              # 后 navigate(Screen.Camera) 进相机路由拍封面，落库后自动设为该人物封面（dedup 设计规范 §11.2）
+              click: "avatar_capture(target=Person(personId), origin=PEOPLE_PAGE) → navigate(Screen.Camera)"
 
       # ── B. 姓名（常开编辑态，保存时提交）──
       - id: name_field

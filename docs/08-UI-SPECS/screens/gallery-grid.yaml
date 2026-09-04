@@ -454,23 +454,26 @@ grid_page:
       shadow_elevation: 6                   # dp，投影深度
 
     items:
-      - id: camera_tab
-        material_icon: camera_alt
-        sf_symbol: "camera.fill"
+      # 2026-08-26：首项由相机改为相册整理（去重 2.0）——相机自主页面 Pager 移出、
+      # 路由化（无常驻入口），相册整理升为主页面 Pager 页 1，瞬时切相邻页。
+      # 详见 docs/superpowers/specs/2026-08-25-album-dedup-design.md §11.1
+      - id: cleanup_tab
+        material_icon: burst_mode
+        sf_symbol: "square.stack.3d.up.fill"
         size: icon.lg                       # 24dp
-        behavior: navigate_to_camera
+        behavior: switch_main_page_dedup    # switchMainPage(MAIN_PAGE_DEDUP)，切 Pager 页 1
       - id: chat_tab
-        material_icon: chat
+        material_icon: chat_bubble
         sf_symbol: "message.fill"
         size: icon.lg
         behavior: navigate_to_chat
       - id: tag_tab
-        material_icon: label
+        material_icon: sell
         sf_symbol: "tag.fill"
         size: icon.lg
         behavior: navigate_to_tag_management
       - id: people_tab
-        material_icon: people
+        material_icon: account_circle
         sf_symbol: "person.2.fill"
         size: icon.lg
         behavior: navigate_to_people

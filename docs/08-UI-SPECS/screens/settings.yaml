@@ -20,7 +20,7 @@ root:
 # 2. 主菜单（SettingsMainMenu）
 # ============================================================================
 main_menu:
-  # ① 账号英雄卡片（顶部全宽）
+  # ① 账号英雄卡片（顶部全宽置顶行，反映登录态）
   account_hero_card:
     type: card
     shape: { corner_radius: 16 }
@@ -28,10 +28,14 @@ main_menu:
     padding: 16
     content:
       avatar:
-        icon: person
         size: 48
-        background: "primaryContainer"
-        tint: "onPrimaryContainer"
+        # 头像跟随人物页「这是我」标记：有封面时显示本人人脸（faceAware 裁剪防砍头），
+        # 未标记/无封面/封面已删时回退默认 person 图标（PersonRepository.observeSelfAvatar）
+        fallback: { icon: person, background: "primaryContainer", tint: "onPrimaryContainer" }
+        badge:                                    # 2026-08-26 新增：右下相机角标
+          icon: { material: photo_camera, sf: "camera.fill" }
+          align: bottom_end
+          click: "avatar_capture(target=Self, origin=SETTINGS_PAGE) → navigate(Screen.Camera)"  # 拍「我」头像并设封面，详见 dedup 设计规范 §11.2
       info:
         logged_in:
           email_font: { size: 16, weight: medium }   # titleMedium
@@ -41,52 +45,39 @@ main_menu:
           desc: "Sign in for more quota and features"  # 注册账号享受更多额度与功能
       click: navigate_account
 
-  # ② 主题模式卡片
-  theme_card:
-    type: card
-    background: "surfaceContainerHighest"
-    content:
-      title: "Theme"                                   # 主题模式
-      font: { size: 14, weight: medium }              # titleSmall
-      options: [system, light, dark]                   # 3 FilterChips
-      default: system
-      chip_style:
-        selected: "primary bg, onPrimary text"
-        unselected: "surfaceVariant bg, onSurface text"
+  # ②~⑤ 列表式分组（SettingsListSection + SettingsListRow）
+  # 2026-08-26 设计稿 settings/main_list 落地：替代原「主题/语言快选卡 + 2 列分类卡片网格」，
+  # 行 = 圆形彩色图标块 + 标题 + 可选右值（当前选中），组间分隔线 SettingsListDivider。
+  list_sections:
+    - id: personalization                          # 个性化
+      rows:
+        - { id: theme,    icon: dark_mode, icon_block: vibrantOrange, title: "Theme",    value: current_selection, click: theme_choice_dialog }     # 主题模式：弹层单选 system/light/dark
+        - { id: language, icon: language,  icon_block: vibrantBlue,   title: "Language", value: current_selection, click: language_choice_dialog }  # 语言：弹层单选 system/English/中文/繁體中文/Español/Français
+    - id: features                                 # 功能
+      rows:
+        - { id: people,          icon: account_circle, icon_block: vibrantGreen,     title: "People",          target: people }
+        - { id: ai_memory,       icon: psychology,     icon_block: primaryContainer, title: "AI Memory",       target: memory_facts }
+        # 相册扫描：原 Gallery 行 2026-08-26 更名（gallery_settings key，与 TagControl 页标题同源）
+        - { id: gallery_scan,    icon: photo_library,  icon_block: vibrantOrange,    title: "Gallery Scan",    target: gallery }
+        # 相册整理（去重 2.0）一级入口：2026-08-26 新增，切主页面 Pager 页 1（dedup 设计规范 §11.1）
+        - { id: gallery_cleanup, icon: burst_mode,     icon_block: vibrantPurple,    title: "Gallery Cleanup", target: gallery_cleanup }
+        - { id: camera,          icon: camera_alt,     icon_block: vibrantPink,      title: "Camera",          target: camera }
+    - id: ai_system                                # AI 与系统
+      rows:
+        - { id: model_center,  icon: cloud_download, icon_block: vibrantGreen,     title: "Model Center",           target: model_center }
+        - { id: remote_models, icon: cloud,          icon_block: status_info,      title: "Remote Models",          target: remote_models }   # 原 API Models 卡
+        - { id: local_models,  icon: memory,         icon_block: vibrantPink,      title: "Local Models",           target: local_models }
+        - { id: channels,      icon: forum,          icon_block: vibrantOrange,    title: "Communication Channel",  target: channels }
+        - { id: sandbox,       icon: verified_user,  icon_block: primaryContainer, title: "Sandbox & Permissions",  target: sandbox }
+    - id: others                                   # 其他
+      rows:
+        - { id: data_privacy, icon: privacy_tip, icon_block: vibrantBlue,  title: "Data & privacy",     target: data_privacy }
+        - { id: developer,    icon: terminal,    icon_block: warningAmber, title: "Developer Options",  target: developer, visible_when: developer_options_unlocked }
 
-  # ③ 语言卡片
-  language_card:
-    type: card
-    background: "surfaceContainerHighest"
-    content:
-      title: "Language"                                # 语言
-      font: { size: 14, weight: medium }
-      options: [english, chinese_simplified, chinese_traditional, spanish, french]
-      default: system                                  # 实际显示六选项：system 默认 / English / 中文 / 繁體中文 / Español / Français
-
-  # ④ 分类网格（2 列卡片）
-  category_grid:
-    columns: 2
-    spacing: 10
-    card_style:
-      background: "surfaceContainerHighest"
-      shape: { corner_radius: 12 }
-      padding: 14
-      icon: { size: 28, tint: "primary" }
-      title: { font: { size: 14, weight: medium } }  # titleSmall
-      desc: { font: { size: 12 }, color: "onSurfaceVariant", max_lines: 2 }
-
-    cards:
-      - { icon: smart_toy, title: "AI Assistant", desc: "Remote model, voice control", target: ai_agent }
-      - { icon: psychology, title: "AI Memory", desc: "View and manage remembered facts", target: memory_facts }
-      - { icon: account_circle, title: "People", desc: "Face clusters and relationships", target: people }
-      - { icon: forum, title: "Channels", desc: "Feishu, Telegram remote control", target: channels }
-      - { icon: photo_library, title: "Gallery", desc: "Tags, duplicates, search engine", target: gallery }
-      - { icon: camera_alt, title: "Camera", desc: "State memory and reset", target: camera }
-      - { icon: cloud_download, title: "Model Center", desc: "Download AI models", target: model_center }
-      - { icon: api_key, title: "API Models", desc: "Remote LLM configuration", target: api_models }
-      - { icon: privacy_tip, title: "Data & Privacy", desc: "Privacy policy and data control", target: data_privacy }
-      - { icon: info, title: "About", desc: "Version and open source info", target: about }
+  # ⑥ 版本页脚（原 About 卡收敛为页脚）
+  version_footer:
+    text: version_info
+    hidden_interaction: "连点 7 次解锁开发者选项"
 
 # ============================================================================
 # 3. AI Assistant 分类页（ai_agent）
