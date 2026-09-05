@@ -128,6 +128,10 @@ fun DedupHomeRoute(
         }
     }
 
+    // 单根 Box 包裹整页：HorizontalPager 会把 page 的多个根节点沿主轴顺序平铺
+    // （MeasuredPage 按 child 宽度累加 offset），详情页/预览层若作为 Scaffold 的兄弟
+    // 根节点会被排到屏外不可见（点击「没反应」的表象）；Gallery/Person 页同为 Box 单根模式
+    Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -217,7 +221,7 @@ fun DedupHomeRoute(
             onOpenKeepRules = { showKeepRules = true },
         )
     }
-    // 全屏对比预览覆盖层：晚于半屏组合置顶；组经 getGroup 随 uiState 重组实时取，
+    // 全屏对比预览覆盖层：晚于详情页组合置顶；组经 getGroup 随 uiState 重组实时取，
     // 预览中「保留这张」改选后保留徽标即时刷新
     previewIndex?.let { index ->
         detailGroupId?.let { groupId ->
@@ -232,6 +236,7 @@ fun DedupHomeRoute(
                 )
             }
         }
+    }
     }
 }
 

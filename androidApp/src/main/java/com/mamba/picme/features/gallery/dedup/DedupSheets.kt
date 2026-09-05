@@ -56,8 +56,9 @@ private val HintOrange = Color(0xFFFF9800)
 /**
  * 组详情全屏页（2026-08-27 由底部半屏弹层改全屏，对齐 Ardot dedup/group_detail 整屏帧）：
  * 顶栏（返回 + 标题 + 保留规则入口）+ 组 meta + 成员两列对比（缩略图 + 大小/时间 +
- * 「保留这张」radio）+ EDITED 提示条 + 底部固定确认按钮。组数据经 uiState 重组实时取，
- * setKeep 后立即刷新。Scanning 态为只读（setKeep 仅 Results 生效）：隐藏 radio 与 CTA，
+ * 「保留这张」radio）+ EDITED 提示条 + 底部固定确认按钮。点「保留这张」改选后立即收起
+ * 回结果列表（2026-09-05 交互修正，组卡片「已手动选择」即时反馈），不再停留待二次确认。
+ * Scanning 态为只读（setKeep 仅 Results 生效）：隐藏 radio 与 CTA，
  * 不假装可交互。点缩略图经 [onPreview]（成员下标）进全屏对比预览，比较后再改选。
  */
 @Composable
@@ -91,9 +92,19 @@ fun DedupGroupDetailPage(
                 DedupGroupDetailContent(
                     group = group,
                     editable = editable,
-                    onKeep = { uri -> viewModel.setKeep(groupId, uri) },
+                    // 改选保留项后直接收起详情页回结果列表（一次点选完成改选，
+                    // 组卡片「已手动选择」即时反馈）；删除仍由详情 CTA / 底部批量 CTA 承担
+                    onKeep = { uri ->
+                        viewModel.setKeep(groupId, uri)
+                        onDismiss()
+                    },
                     onPreview = onPreview,
-                    onConfirm = onDismiss,
+                    // 「保留所选 · 删除其余 N 张」逐组立即删除（deleteUris 为空时 no-op，
+                    // 仅确认选择）；先起删除流再收详情页，授权弹窗落在结果页之上
+                    onConfirm = {
+                        viewModel.deleteGroup(groupId)
+                        onDismiss()
+                    },
                 )
             }
         }

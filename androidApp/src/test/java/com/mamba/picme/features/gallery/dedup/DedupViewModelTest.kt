@@ -553,6 +553,132 @@ class DedupViewModelTest {
     }
 
     @Test
+    fun `deleteGroup confirmed removes the group and stays in Results`() = runTest {
+        // 每组首张文件更大：Done 按 BEST_QUALITY 重算后排序恒等，deleteUris 为各组第二张
+        val g1 = group(
+            "g1", DedupLevel.EXACT,
+            listOf(member("a", sizeBytes = 3_000L), member("b", sizeBytes = 2_000L)),
+        )
+        val g2 = group(
+            "g2", DedupLevel.EXACT,
+            listOf(member("c", sizeBytes = 4_000L), member("d", sizeBytes = 3_000L)),
+        )
+        val scanner = FakeScanner(events = listOf(DedupScanEvent.Done(listOf(g1, g2))))
+        val trash = fakeTrashManager(supported = true)
+        val vm = viewModel(scanner, trash, scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
+
+        vm.startScan(DedupScanConfig())
+        settle()
+
+        vm.deleteGroup("g1")
+        settle()
+
+        val pending = vm.pendingTrash.value
+        assertNotNull(pending)
+        // groupId 标记逐组删除，uris 只含本组待删项
+        assertEquals("g1", pending?.groupId)
+        assertEquals(listOf("b"), pending?.uris)
+        assertTrue(vm.uiState.value is DedupUiState.Results)
+
+        vm.onTrashResult(ok = true)
+        settle()
+
+        // 逐组删除确认后留在 Results 原地刷新：g1 消失，g2 不动，不进 Cleaned 完成页
+        val state = vm.uiState.value as DedupUiState.Results
+        assertEquals(listOf("g2"), state.groups.map { group -> group.id })
+        assertEquals(DedupLevel.EXACT, state.selectedTab)
+        assertNull(vm.pendingTrash.value)
+    }
+
+    @Test
+    fun `deleteGroup refusal keeps Results with groups intact`() = runTest {
+        val g = group("g1", DedupLevel.EXACT, listOf(member("a", sizeBytes = 3_000L), member("b", sizeBytes = 2_000L)))
+        val scanner = FakeScanner(events = listOf(DedupScanEvent.Done(listOf(g))))
+        val trash = fakeTrashManager(supported = true)
+        val vm = viewModel(scanner, trash, scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
+
+        vm.startScan(DedupScanConfig())
+        settle()
+        vm.deleteGroup("g1")
+        settle()
+        vm.onTrashResult(ok = false)
+
+        assertNull(vm.pendingTrash.value)
+        val state = vm.uiState.value as DedupUiState.Results
+        assertEquals(listOf(g), state.groups)
+    }
+
+    @Test
+    fun `deleteGroup on non-preselected group without override is a no-op`() = runTest {
+        // 未预选截图组（未改选）deleteUris 为空：按钮仅「确认本组选择」，不发起删除
+        val screenshotVisual = group(
+            "g1", DedupLevel.VISUAL,
+            listOf(
+                member("s1", sizeBytes = 3_000L, contentType = DedupContentType.SCREENSHOT),
+                member("s2", sizeBytes = 2_000L, contentType = DedupContentType.SCREENSHOT),
+            ),
+            autoPreselected = false,
+        )
+        val scanner = FakeScanner(events = listOf(DedupScanEvent.Done(listOf(screenshotVisual))))
+        val trash = fakeTrashManager(supported = true)
+        val vm = viewModel(scanner, trash, scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
+
+        vm.startScan(DedupScanConfig())
+        settle()
+        vm.deleteGroup("g1")
+        settle()
+
+        assertNull(vm.pendingTrash.value)
+        assertTrue(vm.uiState.value is DedupUiState.Results)
+    }
+
+    @Test
+    fun `deleteGroup is the per-group delete path for SCENE groups after user picks keep`() = runTest {
+        // spec §4：SCENE 不参与批量删除，组详情逐组确认（改选）后由 deleteGroup 删除
+        val scene = group(
+            "g1", DedupLevel.SCENE,
+            listOf(member("e", sizeBytes = 6_000L), member("f", sizeBytes = 5_000L)),
+        )
+        val scanner = FakeScanner(events = listOf(DedupScanEvent.Done(listOf(scene))))
+        val trash = fakeTrashManager(supported = true)
+        val vm = viewModel(scanner, trash, scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
+
+        vm.startScan(DedupScanConfig())
+        settle()
+        vm.setKeep("g1", "e") // 详情页改选 = 逐组确认
+        vm.deleteGroup("g1")
+        settle()
+
+        assertEquals(listOf("f"), vm.pendingTrash.value?.uris)
+
+        vm.onTrashResult(ok = true)
+        settle()
+
+        // 组存活成员不足 2：整组移出，Results 为空
+        val state = vm.uiState.value as DedupUiState.Results
+        assertTrue(state.groups.isEmpty())
+    }
+
+    @Test
+    fun `deleteGroup abandons authorization when group selection changed during IPC window`() = runTest {
+        val g = group("g1", DedupLevel.EXACT, listOf(member("a", sizeBytes = 3_000L), member("b", sizeBytes = 2_000L)))
+        val scanner = FakeScanner(events = listOf(DedupScanEvent.Done(listOf(g))))
+        val trash = fakeTrashManager(supported = true)
+        val vm = viewModel(scanner, trash, scope = backgroundScope, ioDispatcher = StandardTestDispatcher(testScheduler))
+
+        vm.startScan(DedupScanConfig())
+        settle()
+        vm.deleteGroup("g1")
+        // buildTrashIntent 的 IPC 窗口内改选保留项：该组选择集与发起时不一致
+        vm.setKeep("g1", "b")
+        settle()
+
+        // 安全放弃：不发授权、不动任何照片，停留 Results
+        assertNull(vm.pendingTrash.value)
+        assertTrue(vm.uiState.value is DedupUiState.Results)
+    }
+
+    @Test
     fun `smartSelectAll only applies to selected tab`() = runTest {
         val exact = group(
             "g1", DedupLevel.EXACT,

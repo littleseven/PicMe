@@ -58,7 +58,12 @@ sealed interface DedupUiState {
 }
 
 /** 待 UI 发起的系统授权请求（回收站删除/恢复同款：uris + IntentSender）。 */
-data class PendingTrash(val uris: List<String>, val intentSender: IntentSender)
+data class PendingTrash(
+    val uris: List<String>,
+    val intentSender: IntentSender,
+    /** 非空 = 组详情「保留所选·删除其余」发起的逐组删除（确认后留在 Results 原地刷新）；null = 结果页底部 CTA 的按 Tab 批量删除（确认后进 Cleaned 完成页）。 */
+    val groupId: String? = null,
+)
 
 class DedupViewModel(
     private val mediaSource: DedupMediaSource,
@@ -291,8 +296,46 @@ class DedupViewModel(
     }
 
     /**
+     * 组详情页「保留所选 · 删除其余 N 张」：逐组立即删除（spec §4 逐组确认语义，L3 场景相似
+     * 的唯一删除通路）。与 [deleteSelected] 共用回收站授权流，但 [PendingTrash.groupId]
+     * 标记为逐组删除——确认后留在 Results 原地刷新（该组消失/跨级重叠组瘦身），不进完成页。
+     * deleteUris 为空（未预选且未改选）时 no-op，按钮仅承担「确认本组选择」。
+     */
+    fun deleteGroup(groupId: String) {
+        val state = _uiState.value as? DedupUiState.Results ?: return
+        val group = state.groups.firstOrNull { item -> item.id == groupId } ?: return
+        val uris = group.deleteUris
+        if (uris.isEmpty()) return
+        Logger.d(TAG, "deleteGroup: $groupId, ${uris.size} uris")
+        if (trashManager.isSupported) {
+            scope.launch {
+                val sender = withContext(ioDispatcher) {
+                    runCatching { trashManager.buildTrashIntent(uris) }
+                        .onFailure { error -> Logger.w(TAG, "buildTrashIntent failed", error) }
+                        .getOrNull()
+                }
+                // IPC 窗口内组可能已改选：复查仍为 Results、无在途授权且该组选择集一致才发授权
+                val current = (_uiState.value as? DedupUiState.Results)
+                    ?.groups?.firstOrNull { item -> item.id == groupId }
+                if (
+                    sender != null &&
+                    current != null &&
+                    _pendingTrash.value == null &&
+                    current.deleteUris == uris
+                ) {
+                    _pendingTrash.value = PendingTrash(uris, sender, groupId)
+                }
+            }
+        } else {
+            legacyDeleter?.invoke(uris)
+        }
+    }
+
+    /**
      * 回收站授权结果。拒绝 → 整批留在 Results 不动；确认 → 复查仍存在的 uri（部分拒绝
-     * V1 简化：有残留则整批不动，并置位 [partialTrashNotice] 提示用户），全部消失才统计进 Cleaned。
+     * V1 简化：有残留则整批不动，并置位 [partialTrashNotice] 提示用户）。
+     * 批量（groupId=null）→ 全部消失才统计进 Cleaned；逐组（groupId 非空）→ 留在 Results
+     * 原地刷新（授权弹窗下详情页已收起，用户期望回到结果页看到该组消失）。
      */
     fun onTrashResult(ok: Boolean) {
         val pending = _pendingTrash.value ?: return
@@ -307,37 +350,50 @@ class DedupViewModel(
                 return@launch
             }
             val deleted = pending.uris.toSet()
-            // 本次删干净的组（batchEligible 且 deleteUris 全部入回收站）移出结果；
-            // 跨级重叠组先把已删成员从快照剔除：keepUri 被删的按当前 policy 重算保留项
-            // （手动改选的对象已消失，override 一并失效），存活成员不足 2 的组不再成组，
-            // 杜绝「快照回灌 Results 后把某组最后一张也送进回收站」
-            val remainingGroups = state.groups.mapNotNull { group ->
-                if (
-                    group.batchEligible &&
-                    group.deleteUris.isNotEmpty() &&
-                    group.deleteUris.all { uri -> uri in deleted }
-                ) {
-                    null
-                } else {
-                    val alive = group.members.filter { member -> member.uri !in deleted }
-                    when {
-                        alive.size < 2 -> null
-                        group.keepUri in deleted -> {
-                            val sorted = KeepPolicyEngine.recommend(state.policy, alive)
-                            group.copy(members = sorted, keepUri = sorted.first().uri, userOverride = false)
-                        }
-                        else -> if (alive.size == group.members.size) group else group.copy(members = alive)
-                    }
-                }
+            val remainingGroups = computeRemainingGroups(state, deleted)
+            if (pending.groupId != null) {
+                // 逐组删除：原地刷新 Results，保留当前 Tab 与保留策略
+                _uiState.value = state.copy(groups = remainingGroups)
+            } else {
+                _uiState.value = DedupUiState.Cleaned(
+                    deletedCount = deleted.size,
+                    reclaimedBytes = batchReclaimBytes(state.groups, pending.uris),
+                    trashedUris = pending.uris,
+                    remainingGroups = remainingGroups,
+                )
             }
-            _uiState.value = DedupUiState.Cleaned(
-                deletedCount = deleted.size,
-                reclaimedBytes = batchReclaimBytes(state.groups, pending.uris),
-                trashedUris = pending.uris,
-                remainingGroups = remainingGroups,
-            )
         }
     }
+
+    /**
+     * 删除后存活组计算（批量/逐组共用）：本次删干净的组（batchEligible 且 deleteUris 全部
+     * 入回收站）移出结果；跨级重叠组先把已删成员从快照剔除：keepUri 被删的按当前 policy
+     * 重算保留项（手动改选的对象已消失，override 一并失效），存活成员不足 2 的组不再成组，
+     * 杜绝「快照回灌 Results 后把某组最后一张也送进回收站」。
+     */
+    private fun computeRemainingGroups(
+        state: DedupUiState.Results,
+        deleted: Set<String>,
+    ): List<DedupGroup> =
+        state.groups.mapNotNull { group ->
+            if (
+                group.batchEligible &&
+                group.deleteUris.isNotEmpty() &&
+                group.deleteUris.all { uri -> uri in deleted }
+            ) {
+                null
+            } else {
+                val alive = group.members.filter { member -> member.uri !in deleted }
+                when {
+                    alive.size < 2 -> null
+                    group.keepUri in deleted -> {
+                        val sorted = KeepPolicyEngine.recommend(state.policy, alive)
+                        group.copy(members = sorted, keepUri = sorted.first().uri, userOverride = false)
+                    }
+                    else -> if (alive.size == group.members.size) group else group.copy(members = alive)
+                }
+            }
+        }
 
     /** Cleaned 状态下发起恢复授权（[pendingRestore]，UI 回调 [onRestoreResult]）。 */
     fun undoTrash() {
@@ -377,6 +433,6 @@ class DedupViewModel(
     }
 
     private companion object {
-        const val TAG = "PoLang:Dedup"
+        const val TAG = "Dedup"
     }
 }
