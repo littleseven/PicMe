@@ -3,21 +3,23 @@
 # ============================================================================
 # 基准端：Android features/gallery/components/TagGenerationControlScreen.kt
 #        （提交 9fca3ce9e v2 重写，1193 行）
-# 视觉定稿：Ardot `gallery/tag_control_v2` / `gallery/tag_stage_sheet`
-#        （docs/08-UI-SPECS/screens/refs/ardot/，快照 2026-08-22T23:34）
+# 视觉定稿：Ardot `gallery/tag_control` / `gallery/tag_stage_sheet`
+#        （原帧名 tag_control_v2，2026-09-05 随 v1 帧 gallery/settings 删除更名；
+#         docs/08-UI-SPECS/screens/refs/ardot/，快照 2026-08-22T23:34）
 # 用途：iOS TagScanScreen/TagScanComponents 重写的唯一输入，不读 Android 源码
 # 值引用：colorScheme.* / ChatBubbleTokens.brandGradient；本页为 v2 新增的
 #        强调色字面量在本文内联（暂不入 design-tokens.json，后续可归一化）
 # 数据/执行链：iOS TagScanOrchestrator 等既有 Platform/Tag/* 不动——v2 是纯控制页 UI 重设计
-# i18n：键前缀 tag_section_* / tag_stage_* / tag_scan_* / tag_overwrite_*（iOS 侧由 scan_* 收敛至 tag_*）
+# i18n：键前缀 tag_section_* / tag_stage_* / tag_scan_* / tag_overwrite_* /
+#        tag_gen_use_opencl_*（iOS 侧由 scan_* 收敛至 tag_*）
 
-tag_control_v2:
+tag_control:
   type: full_screen
   background: "colorScheme.background"
   layout: vscroll                                  # 页面 pad 16/8/28，区块间 16dp，区块卡=surfaceContainer r16
   entry_points:
     - gallery_settings_entry                       # 相册设置页入口（既有）
-  sections_order: [library, scan, stages, regenerate]
+  sections_order: [library, scan, stages, regenerate, tag_accel]
 
   # ── 区块 1：Library（Stats 置顶）──
   library:
@@ -113,11 +115,38 @@ tag_control_v2:
       background: "brandGradient"
     removed: "tag_regenerate_mode / tag_mode_full_regenerate / tag_mode_fill_missing 单选（v2 删）"
 
+  # ── 区块 5：TAG 打标 GPU 加速（页尾单行卡，2026-09-05 收口新增）──
+  # 收口自：原 GallerySettingsHeader（页头注入）+ Settings 休眠 GALLERY 分类副本；
+  # 二者及其 12 个字符串键已删除，本卡为 tagGenerationUseOpencl 唯一 UI 入口。
+  tag_accel:
+    card: { background: surfaceContainer, corner_radius: 16 }
+    row: { height: auto, pad: "12h/10v", gap: 12, icon_to_text: 12 }   # 设计稿 gallery/tag_control CardTagAccel
+    icon_block:
+      size: 28
+      corner_radius: 7
+      bg: "#FFB020 @ 12%"                          # 复用 status_orange 字面量
+      glyph: "Icons.Rounded.Speed 18dp，tint #FFB020"
+    texts:
+      title: { key: "tag_gen_use_opencl_title", size: 15 }
+      subtitle: { key: "tag_gen_use_opencl_subtitle", size: 11, color: onSurfaceVariant }
+    segmented:                                     # CPU|GPU 二段，选中=GPU（默认开）
+      track: { bg: surfaceVariant, corner_radius: 14, pad: 3, gap: 4 }
+      option_unselected: { size: 11, weight: normal, color: onSurfaceVariant }   # 平文本
+      option_selected:                             # 胶囊
+        bg: "primary @ 14%"
+        corner_radius: 11
+        pad: "10h/4v"
+        font: { size: 11, weight: semibold, color: primary }
+      option_keys: "device_preference_force_cpu / device_preference_force_gpu（CPU / GPU，勿用 OpenCL (GPU) 长标签——压窄文本列致标题词内断行）"
+    a11y: "点击选项即切换 tagGenerationUseOpencl（false=CPU / true=GPU），无确认弹层"
+
   # ── 删除清单（v1 → v2）──
   removed_components:
     - "Pipeline overview 卡（tag_pipeline_overview）"
     - "StatsCard 底部阶段进度条"
     - "行内增量/全量按钮（tag_action_incremental / tag_action_full）"
+    - "2026-09-05：GallerySettingsHeader 页头注入（GPU 加速收口至 tag_accel 卡）"
+    - "2026-09-05：Settings 休眠 GALLERY 分类整块 + SettingsCategory.GALLERY 枚举（12 个字符串键随删）"
 
   # ── 视觉令牌映射（AGENTS.md 块 + ardot 帧）──
   token_mapping:

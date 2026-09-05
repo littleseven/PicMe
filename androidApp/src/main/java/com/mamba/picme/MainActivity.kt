@@ -63,7 +63,6 @@ import com.mamba.picme.features.gallery.dedup.DedupViewModel
 import com.mamba.picme.features.translation.SentencePieceTestScreen
 import com.mamba.picme.features.tagviewer.TagViewerTestScreen
 import com.mamba.picme.features.settings.DataPrivacyScreen
-import com.mamba.picme.features.settings.GallerySettingsHeader
 import com.mamba.picme.features.settings.AddRemoteProviderScreen
 import com.mamba.picme.features.settings.ProviderConfigScreen
 import com.mamba.picme.features.settings.MemoryFactsScreen
@@ -377,6 +376,7 @@ class MainActivity : ComponentActivity() {
                                         SceneManager.getInstance().leaveScene(SceneManager.Scene.GALLERY)
                                     }
                                 }
+                                val useOpencl by settingsViewModel.tagGenerationUseOpencl.collectAsState()
                                 TagGenerationControlScreen(
                                     onNavigateBack = { navController.popBackStack() },
                                     onNavigateToTagViewer = {
@@ -385,12 +385,9 @@ class MainActivity : ComponentActivity() {
                                             navOptions { launchSingleTop = true }
                                         )
                                     },
-                                    header = {
-                                        val useOpencl by settingsViewModel.tagGenerationUseOpencl.collectAsState()
-                                        GallerySettingsHeader(
-                                            useOpencl = useOpencl,
-                                            onUseOpenclChange = { settingsViewModel.setTagGenerationUseOpencl(it) }
-                                        )
+                                    useOpencl = useOpencl,
+                                    onUseOpenclChange = { enabled ->
+                                        settingsViewModel.setTagGenerationUseOpencl(enabled)
                                     }
                                 )
                             }

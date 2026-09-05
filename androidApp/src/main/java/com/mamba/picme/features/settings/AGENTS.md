@@ -150,11 +150,11 @@
   - 进入后为 Config 页：勾选三级尺度（精确/视觉/相似场景）与保留规则后手动启动扫描，渐进式流出结果
   - 清理走系统回收站（API 30+ `createTrashRequest`，可撤销恢复；低版本兜底旧删除授权流）
   - 通过系统返回键或顶部返回按钮退出，切回相册页（Pager 页 0，不弹栈）
-- **TagControl 页头部**（`GallerySettingsHeader`）：仅保留 TAG 生成 OpenCL 加速开关；「管理重复照片」行已于 2026-08-26 升级为上述一级入口并自此移除（`manage_duplicates` key 保留，仅剩休眠 GALLERY 二级页引用）
+- **TAG 打标 GPU 加速卡**（`TagAccelCard`，2026-09-05）：扫描页页尾单行卡（icon + 标题/副标题 + CPU|GPU 分段控件，视觉稿 `gallery/tag_control` CardTagAccel）；原 `GallerySettingsHeader` 页头注入与休眠 GALLERY 分类副本已删除，本卡为 `tagGenerationUseOpencl` 唯一 UI 入口（键 `tag_gen_use_opencl_title/subtitle` + `device_preference_force_cpu/gpu`）
 
 **实现约定**：
 - 相册功能入口对所有构建类型可见（非 Debug 限定）
-- Debug 构建额外显示「相册调试功能」区域（图片下载页、搜索测试、OpenCL 后端切换）
+- Debug 构建额外显示「相册调试功能」区域（图片下载页、搜索测试）
 - 图标统一使用 `SettingsListRow` 的图标块 + 右侧箭头，保持可点击心智
 
 ### 2.7.1 AI 记忆（管理页，2026-07 新增）
@@ -171,12 +171,11 @@
 
 **目标**：解决设置页内容过多、单屏无法看完的问题，主菜单一屏可见，功能分组进入二级页。
 
-**分类枚举**：`SettingsCategory`（2026-08-16 现状，九分类）
+**分类枚举**：`SettingsCategory`（2026-09-05 现状，八分类；GALLERY 已随休眠块删除）
 - `MAIN` — 设置主菜单（2026-08-26 起为列表式分组布局，设计稿 settings/main_list：账号 Hero 卡 + 个性化（主题/语言，右值弹层单选）+ 功能（人物/AI 记忆/相册扫描/相册整理/相机）+ AI 与系统（模型中心/远程模型/本地模型/通信通道/沙盒与权限）+ 其他（数据与隐私/开发者选项）+ 版本页脚；原 2 列分类卡片网格已废弃）
 - `ACCOUNT` — 账号（邮箱验证登录 / 额度卡）
 
 > **账户头像跟随"我"标记（2026-08-18 新增）**：主菜单 Hero 卡头像（`SettingsAccountHeroCard`）与账号页头部头像（`SettingsServerAuth.AccountAvatar`）共用 `PersonRepository.observeSelfAvatar()` 数据源——人物页标记「这是我」后，头像实时切换为该人物封面人脸（`faceAwareVerticalAlignment` 裁剪防砍头）；未标记/无封面/封面媒体已删时回退默认 Person 图标。数据链路：`PersonDao.observeSelfPerson()`（Room Flow，is_self/封面变更自动重发）→ 封面 mediaId 解析 uri + faceFocusY。**头像右下角相机角标（2026-08-26 新增）**：点击经 `AvatarCaptureController.begin(Self, SETTINGS_PAGE)` + `navigate(Screen.Camera)` 进相机路由拍「我」的头像，落库后由 `AvatarCaptureFinisher` 复用 `PersonRepository.updateCover` 链路设封面，完成/取消 `popBackStack` 回本页（详见 `docs/superpowers/specs/2026-08-25-album-dedup-design.md` §11.2）。
-- `GALLERY` — 相册功能：TAG 生成控制、标签查看、重复照片管理、打标模型选择、GPU 加速
 - `CAMERA` — 相机状态记忆与重置（重置入口 2026-08-16 自相机页迁入，带 AlertDialog 二次确认）
 - `SYSTEM` — 悬浮窗 AI 聊天气泡、电池优化与 MIUI 权限
 - `REMOTE_MODEL` — 远程模型配置、Agent 模式（用户侧一级入口）

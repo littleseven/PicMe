@@ -299,11 +299,9 @@
     <string name="ocr_share">Compartir</string>
     <string name="ocr_copy">Copiar</string>
     <!-- Gallery Features -->
-    <string name="gallery_features">Etiquetado de galería</string>
     <string name="gallery_settings">Escaneo de galería</string>
     <string name="gallery_cleanup">Limpieza de galería</string>
     <string name="avatar_capture_hint">Capturar avatar</string>
-    <string name="gallery_features_desc">Escaneo de etiquetas, agrupación de rostros y gestión de descargas de modelos.</string>
     <string name="people_title">Personas</string>
     <string name="people_filter_show_all">Mostrar todas las personas</string>
     <string name="people_filter_hide_singletons">Ocultar grupos sin nombre de un solo rostro</string>
@@ -336,8 +334,6 @@
     <string name="person_set_cover_hint">Toca para establecer la portada</string>
     <string name="people_empty">No se encontraron personas</string>
     <!-- Duplicate Management（设置入口文案；清理页 UI 键见 Dedup 2.0 区块） -->
-    <string name="manage_duplicates">Gestionar duplicados</string>
-    <string name="duplicate_manager_desc">Encuentra y elimina fotos duplicadas o similares para liberar espacio.</string>
     <!-- Dedup 2.0 -->
     <string name="dedup_title">Limpieza de duplicados</string>
     <string name="dedup_estimate_label">Espacio recuperable estimado</string>
@@ -490,14 +486,8 @@
     <string name="ai_agent_privacy_level">Nivel de privacidad</string>
     <string name="ai_agent_privacy_strict">Estricto (solo local)</string>
     <string name="ai_agent_privacy_permissive">Permisivo (permitir remoto)</string>
-    <string name="ai_agent_local_backend">Backend de LLM local</string>
-    <string name="ai_agent_local_backend_cpu">CPU</string>
-    <string name="ai_agent_local_backend_opencl">OpenCL (GPU)</string>
-    <string name="ai_agent_local_backend_desc">Elige el backend del dispositivo para la inferencia local del LLM. OpenCL requiere compatibilidad del dispositivo y puede ser menos estable en algunos modelos.</string>
     <string name="tag_gen_use_opencl_title">Aceleración GPU para generar etiquetas</string>
-    <string name="tag_gen_use_opencl_desc">Usa la GPU para acelerar el etiquetado por lotes de imágenes. Puede congelar algunos dispositivos por problemas del controlador de OpenCL en la inferencia multimodal; desactiva esta opción si el Pass 3 se queda colgado.</string>
-    <string name="tag_control_title">Control de generación de etiquetas</string>
-    <string name="tag_control_subtitle">Regeneración por categoría / rango de tiempo / completa o incremental</string>
+    <string name="tag_gen_use_opencl_subtitle">Acelera el etiquetado; desactívalo si se bloquea</string>
     <string name="remote_models">Modelos remotos</string>
     <string name="model_in_use">En uso</string>
     <string name="remote_model_configured">Configurado</string>
@@ -885,7 +875,6 @@
     <string name="gallery_permission_system">Permiso de galería (sistema)</string>
     <string name="permission_system_subtitle">Abre los ajustes del sistema para gestionar los permisos.</string>
     <string name="permission_system_value">Ajustes del sistema</string>
-    <string name="gallery_advanced">Avanzado</string>
     <string name="gallery_debug_features">Funciones de depuración de la galería</string>
     <string name="gallery_debug_features_desc">Herramientas de prueba y conmutadores de modo de backend para el etiquetado de la galería.</string>
     <string name="debug_image_download">Depuración de descarga de imágenes</string>

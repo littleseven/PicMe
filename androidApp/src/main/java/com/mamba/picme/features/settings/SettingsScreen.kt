@@ -144,7 +144,6 @@ import kotlinx.coroutines.delay
 enum class SettingsCategory {
     MAIN,           // 设置主菜单
     ACCOUNT,        // 账号
-    GALLERY,        // 相册功能
     CAMERA,         // 相机（状态记忆与重置）
     SYSTEM,         // 系统与权限
     REMOTE_MODEL,   // 远程模型（用户侧一级入口）
@@ -209,7 +208,6 @@ fun SettingsScreen(
     val jsEngineEnabled by viewModel.jsEngineEnabled.collectAsState()
     val agentCameraAccessEnabled by viewModel.agentCameraAccessEnabled.collectAsState()
     val agentGalleryAccessEnabled by viewModel.agentGalleryAccessEnabled.collectAsState()
-    val tagGenerationUseOpencl by viewModel.tagGenerationUseOpencl.collectAsState()
     val taggerModelKey by viewModel.taggerModelKey.collectAsState()
     val voiceCommandMode by viewModel.voiceCommandMode.collectAsState()
     val voiceEntryEnabled by viewModel.voiceEntryEnabled.collectAsState()
@@ -328,8 +326,6 @@ fun SettingsScreen(
             onAgentCameraAccessChange = { viewModel.setAgentCameraAccessEnabled(it) },
             agentGalleryAccessEnabled = agentGalleryAccessEnabled,
             onAgentGalleryAccessChange = { viewModel.setAgentGalleryAccessEnabled(it) },
-            tagGenerationUseOpencl = tagGenerationUseOpencl,
-            onTagGenerationUseOpenclChange = { viewModel.setTagGenerationUseOpencl(it) },
             taggerModelKey = taggerModelKey,
             onTaggerModelKeyChange = { viewModel.setTaggerModelKey(it) },
             voiceCommandMode = voiceCommandMode,
@@ -403,8 +399,6 @@ private fun SettingsContent(
     onAgentCameraAccessChange: (Boolean) -> Unit,
     agentGalleryAccessEnabled: Boolean,
     onAgentGalleryAccessChange: (Boolean) -> Unit,
-    tagGenerationUseOpencl: Boolean,
-    onTagGenerationUseOpenclChange: (Boolean) -> Unit,
     taggerModelKey: String,
     onTaggerModelKeyChange: (String) -> Unit,
     voiceCommandMode: VoiceCommandMode,
@@ -460,7 +454,6 @@ private fun SettingsContent(
     val titleRes = when (category) {
         SettingsCategory.MAIN -> R.string.settings
         SettingsCategory.ACCOUNT -> R.string.account
-        SettingsCategory.GALLERY -> R.string.gallery_features
         SettingsCategory.CAMERA -> R.string.camera_settings
         SettingsCategory.SYSTEM -> R.string.system_and_permissions
         SettingsCategory.REMOTE_MODEL -> R.string.remote_models
@@ -820,53 +813,10 @@ private fun SettingsContent(
                 }
             }
 
-            // ── 3. 相册功能（已废弃·dormant）─────────────────────
-            // 相册设置已改为直接进入 TagGenerationControlScreen（扫描控制台为主体，
-            // 顶部注入 GallerySettingsHeader：标签查看/重复图/OpenCL）。此 GALLERY
-            // 分类不再被网格导航触达，保留仅供后续清理；勿在此新增内容。
-            if (category == SettingsCategory.GALLERY) {
-                SettingsSection(
-                    title = stringResource(R.string.gallery_features),
-                    description = stringResource(R.string.gallery_features_desc)
-                ) {
-                    SettingsClickableRow(
-                        title = stringResource(R.string.tag_control_title),
-                        subtitle = stringResource(R.string.tag_control_subtitle),
-                        leadingIcon = Icons.AutoMirrored.Rounded.Label,
-                        onClick = onNavigateToTagControl
-                    )
-                    SettingsClickableRow(
-                        title = stringResource(R.string.tag_viewer_title),
-                        subtitle = stringResource(R.string.tag_viewer_open_entry),
-                        leadingIcon = Icons.Rounded.Search,
-                        onClick = onNavigateToTagViewer
-                    )
-                    SettingsClickableRow(
-                        title = stringResource(R.string.manage_duplicates),
-                        subtitle = stringResource(R.string.duplicate_manager_desc),
-                        leadingIcon = Icons.Rounded.PhotoLibrary,
-                        onClick = onNavigateToDedupHome
-                    )
-                    // 打标模型选择（Florence-2/Qwen3-VL）已收口至「开发者选项」
-                }
-
-                // TAG 生成 GPU 加速是真实性能配置（非调试项），作为相册常规配置项展示
-                SettingsSection(
-                    title = stringResource(R.string.gallery_advanced)
-                ) {
-                    OpenClBackendSelection(
-                        useOpencl = tagGenerationUseOpencl,
-                        onToggle = onTagGenerationUseOpenclChange,
-                        title = stringResource(R.string.tag_gen_use_opencl_title)
-                    )
-                    Text(
-                        text = stringResource(R.string.tag_gen_use_opencl_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
-                    )
-                }
-            }
+            // ── 3. 相册功能 ─────────────────────────────────────
+            // 休眠 GALLERY 分类已于 2026-09-05 整块删除（死代码清理）：
+            // TAG 控制/标签查看/重复图入口由主菜单与扫描页承担，
+            // TAG 生成 GPU 加速收口至 TagGenerationControlScreen 页尾单行卡。
 
             // ── 相机（状态记忆与重置；2026-08-16 相机页改版后重置入口迁入此处）──
             if (category == SettingsCategory.CAMERA) {
@@ -1615,67 +1565,6 @@ private fun SettingsVersionFooter(onUnlock: () -> Unit) {
 }
 
 /**
- * 「相册扫描」页头部（注入 TagGenerationControlScreen 顶部）：TAG 生成 OpenCL 加速。
- * 取消原 GALLERY 二级页 → TAG生成 的中间跳转，这些条目平铺到扫描控制台页顶部。
- * 「管理重复照片」已于 2026-08-26 升级为设置主菜单「相册整理」一级入口，自本头部移除。
- */
-@Composable
-internal fun GallerySettingsHeader(
-    useOpencl: Boolean,
-    onUseOpenclChange: (Boolean) -> Unit
-) {
-    SettingsSection(
-        title = stringResource(R.string.gallery_features)
-    ) {
-        OpenClBackendSelection(
-            useOpencl = useOpencl,
-            onToggle = onUseOpenclChange,
-            title = stringResource(R.string.tag_gen_use_opencl_title)
-        )
-        Text(
-            text = stringResource(R.string.tag_gen_use_opencl_desc),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
-        )
-    }
-}
-
-
-@Composable
-private fun OpenClBackendSelection(
-    useOpencl: Boolean,
-    onToggle: (Boolean) -> Unit,
-    title: String = stringResource(R.string.ai_agent_local_backend)
-) {
-    val options = listOf(
-        false to stringResource(R.string.ai_agent_local_backend_cpu),
-        true to stringResource(R.string.ai_agent_local_backend_opencl)
-    )
-
-    Text(
-        text = title,
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 12.dp, top = 8.dp, bottom = 0.dp)
-    )
-
-    CompactOptionChips(
-        options = options,
-        currentValue = useOpencl,
-        maxLines = 1,
-        onSelected = onToggle
-    )
-
-    Text(
-        text = stringResource(R.string.ai_agent_local_backend_desc),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
-    )
-}
-
-/**
  * 检测阶段配置弹窗（ROI/关键点行点击）：模型单选 + 设备偏好单选两组。
  * 未下载模型项点击触发下载（下载中禁用），选项即时生效不关弹窗。
  */
@@ -1898,8 +1787,6 @@ fun SettingsScreenPreview() {
             onAgentCameraAccessChange = {},
             agentGalleryAccessEnabled = true,
             onAgentGalleryAccessChange = {},
-            tagGenerationUseOpencl = false,
-            onTagGenerationUseOpenclChange = {},
             taggerModelKey = TaggerModelSelector.AUTO,
             onTaggerModelKeyChange = {},
             voiceCommandMode = VoiceCommandMode.DISABLED,

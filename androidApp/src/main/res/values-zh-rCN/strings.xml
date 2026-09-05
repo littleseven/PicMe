@@ -299,11 +299,9 @@
 <string name="landmark_compatibility">GPUPixel</string>
 
     <!-- Duplicate Management -->
-    <string name="gallery_features">相册打标</string>
     <string name="gallery_settings">相册扫描</string>
     <string name="gallery_cleanup">相册整理</string>
     <string name="avatar_capture_hint">拍摄头像</string>
-    <string name="gallery_features_desc">打标扫描、人脸聚类与模型下载管理。</string>
     <string name="people_title">人物</string>
     <string name="people_filter_show_all">显示全部人物</string>
     <string name="people_filter_hide_singletons">隐藏未命名单人分组</string>
@@ -332,8 +330,6 @@
     <string name="person_photos_section">照片</string>
     <string name="person_set_cover_hint">点击设置封面</string>
     <string name="people_empty">未找到人物</string>
-    <string name="manage_duplicates">管理重复照片</string>
-    <string name="duplicate_manager_desc">查找并删除重复或相似照片，释放存储空间。</string>
 
     <!-- Dedup 2.0 -->
     <string name="dedup_title">重复照片清理</string>
@@ -497,12 +493,8 @@
     <string name="ai_agent_privacy_level">隐私级别</string>
     <string name="ai_agent_privacy_strict">严格（仅本地）</string>
     <string name="ai_agent_privacy_permissive">宽松（允许远程）</string>
-    <string name="ai_agent_local_backend">本地 LLM 后端</string>
-    <string name="ai_agent_local_backend_cpu">CPU</string>
-    <string name="ai_agent_local_backend_opencl">OpenCL（GPU）</string>
-    <string name="ai_agent_local_backend_desc">选择本地 LLM 推理后端。OpenCL 依赖设备支持，部分模型或机型稳定性可能较差。</string>
     <string name="tag_gen_use_opencl_title">TAG 生成 GPU 加速</string>
-    <string name="tag_gen_use_opencl_desc">使用 GPU 加速批量图片标签生成。部分设备 OpenCL 多模态推理可能卡死，如 Pass 3 卡住请关闭此选项。</string>
+    <string name="tag_gen_use_opencl_subtitle">加速标签生成，卡顿时可关闭</string>
     <string name="remote_models">远程模型</string>
     <string name="model_in_use">使用中</string>
     <string name="remote_model_configured">已配置</string>
@@ -783,8 +775,6 @@
     <string name="tag_gen_notification_starting">准备中…</string>
     <string name="tag_gen_notification_idle">等待中</string>
     <string name="tag_gen_notification_channel_desc">显示 TAG 生成进度</string>
-    <string name="tag_control_title">TAG 生成控制</string>
-    <string name="tag_control_subtitle">按类别 / 时间范围 / 全量或增量重新生成</string>
 
     <!-- Accessibility (contentDescription) -->
     <string name="cd_quick_actions">快捷操作</string>
@@ -915,7 +905,6 @@
     <string name="gallery_permission_system">相册权限（系统）</string>
     <string name="permission_system_subtitle">打开系统应用设置管理权限。</string>
     <string name="permission_system_value">系统设置</string>
-    <string name="gallery_advanced">高级</string>
     <string name="gallery_debug_features">相册调试功能</string>
     <string name="gallery_debug_features_desc">相册打标的测试工具与后端模式切换。</string>
     <string name="debug_image_download">图片下载调试</string>

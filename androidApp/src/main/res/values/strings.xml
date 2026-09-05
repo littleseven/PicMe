@@ -310,11 +310,9 @@
     <string name="ocr_copy">Copy</string>
 
     <!-- Gallery Features -->
-    <string name="gallery_features">Gallery Tagging</string>
     <string name="gallery_settings">Gallery Scan</string>
     <string name="gallery_cleanup">Gallery Cleanup</string>
     <string name="avatar_capture_hint">Capture avatar</string>
-    <string name="gallery_features_desc">Tag scanning, face clustering, and model download management.</string>
     <string name="people_title">People</string>
     <string name="people_filter_show_all">Show all people</string>
     <string name="people_filter_hide_singletons">Hide unnamed single-face groups</string>
@@ -348,8 +346,6 @@
     <string name="people_empty">No people found</string>
 
     <!-- Duplicate Management（设置入口文案；清理页 UI 键见 Dedup 2.0 区块） -->
-    <string name="manage_duplicates">Manage Duplicates</string>
-    <string name="duplicate_manager_desc">Find and remove duplicate or similar photos to free up space.</string>
 
     <!-- Dedup 2.0 -->
     <string name="dedup_title">Duplicate cleanup</string>
@@ -508,14 +504,8 @@
     <string name="ai_agent_privacy_level">Privacy Level</string>
     <string name="ai_agent_privacy_strict">Strict (Local Only)</string>
     <string name="ai_agent_privacy_permissive">Permissive (Allow Remote)</string>
-    <string name="ai_agent_local_backend">Local LLM Backend</string>
-    <string name="ai_agent_local_backend_cpu">CPU</string>
-    <string name="ai_agent_local_backend_opencl">OpenCL (GPU)</string>
-    <string name="ai_agent_local_backend_desc">Choose the on-device backend for local LLM inference. OpenCL requires device support and may be less stable on some models.</string>
     <string name="tag_gen_use_opencl_title">TAG Generation GPU Accel</string>
-    <string name="tag_gen_use_opencl_desc">Use GPU to accelerate batch image tagging. May cause freeze on some devices due to OpenCL driver issues in multimodal inference — disable if Pass 3 hangs.</string>
-    <string name="tag_control_title">TAG Generation Control</string>
-    <string name="tag_control_subtitle">Regenerate by category / time range / full or incremental</string>
+    <string name="tag_gen_use_opencl_subtitle">Faster tagging; disable if it hangs</string>
     <string name="remote_models">Remote Models</string>
     <string name="model_in_use">In use</string>
     <string name="remote_model_configured">Configured</string>
@@ -923,7 +913,6 @@
     <string name="gallery_permission_system">Gallery Permission (System)</string>
     <string name="permission_system_subtitle">Open system app settings to manage permissions.</string>
     <string name="permission_system_value">System Settings</string>
-    <string name="gallery_advanced">Advanced</string>
     <string name="gallery_debug_features">Gallery Debug Features</string>
     <string name="gallery_debug_features_desc">Testing tools and backend mode switches for gallery tagging.</string>
     <string name="debug_image_download">Image Download Debug</string>

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.*
@@ -75,7 +76,8 @@ import kotlin.math.roundToInt
 fun TagGenerationControlScreen(
     onNavigateBack: () -> Unit,
     onNavigateToTagViewer: () -> Unit = {},
-    header: @Composable (() -> Unit)? = null
+    useOpencl: Boolean,
+    onUseOpenclChange: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as PoLangApplication
@@ -597,8 +599,11 @@ fun TagGenerationControlScreen(
                 }
             }
 
-            // ── 标签与重复图管理（相册工具）──
-            header?.invoke()
+            // ── TAG 打标 GPU 加速（页尾单行卡，设计稿 gallery/tag_control CardTagAccel）──
+            TagAccelCard(
+                useOpencl = useOpencl,
+                onUseOpenclChange = onUseOpenclChange
+            )
 
             // ── 后台保活缺失项提示(非阻断,点击跳设置) ────────
             BackgroundScanGuardBanner()
@@ -987,6 +992,116 @@ private fun ScanActionCard(
             }
         }
     }
+}
+
+/**
+ * TAG 打标 GPU 加速单行卡（设计稿 gallery/tag_control `CardTagAccel`）：
+ * icon + 标题/单行副标题 + CPU|GPU 分段控件。
+ * 收口自原 GallerySettingsHeader 与休眠 GALLERY 分类，为该开关唯一 UI 入口。
+ */
+@Composable
+private fun TagAccelCard(
+    useOpencl: Boolean,
+    onUseOpenclChange: (Boolean) -> Unit
+) {
+    val accent = Color(0xFFFFB020) // 同 tag-control.yaml status_orange 字面量（icon 块复用）
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(RoundedCornerShape(7.dp))
+                    .background(accent.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Rounded.Speed, null, modifier = Modifier.size(18.dp), tint = accent)
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.tag_gen_use_opencl_title),
+                    fontSize = 15.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = stringResource(R.string.tag_gen_use_opencl_subtitle),
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            TagAccelSegmented(
+                useOpencl = useOpencl,
+                onUseOpenclChange = onUseOpenclChange
+            )
+        }
+    }
+}
+
+/** CPU|GPU 分段控件：surfaceVariant 轨道 + 选中项胶囊（primary 14% 底 + SemiBold），替代原 chips+双说明。 */
+@Composable
+private fun TagAccelSegmented(
+    useOpencl: Boolean,
+    onUseOpenclChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        TagAccelSegmentedOption(
+            label = stringResource(R.string.device_preference_force_cpu),
+            selected = !useOpencl,
+            onClick = { onUseOpenclChange(false) }
+        )
+        TagAccelSegmentedOption(
+            label = stringResource(R.string.device_preference_force_gpu),
+            selected = useOpencl,
+            onClick = { onUseOpenclChange(true) }
+        )
+    }
+}
+
+@Composable
+private fun TagAccelSegmentedOption(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Text(
+        text = label,
+        fontSize = 11.sp,
+        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+        color = if (selected) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        modifier = Modifier
+            .clip(RoundedCornerShape(11.dp))
+            .then(
+                if (selected) {
+                    Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f))
+                } else {
+                    Modifier
+                }
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+    )
 }
 
 /** 阶段行：图标 + 标题/描述 + 进度% + chevron，整行可点弹出操作弹层。 */
