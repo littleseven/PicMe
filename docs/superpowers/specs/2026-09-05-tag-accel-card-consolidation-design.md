@@ -13,7 +13,7 @@
 |---|------|------|
 | 1 | `TagGenerationControlScreen` 底部 `GallerySettingsHeader`(`SettingsScreen.kt:1623`) | 小节标题「相册功能」+「TAG 生成 GPU 加速」label + CPU/OpenCL chips + **两条**说明(`tag_gen_use_opencl_desc` + `ai_agent_local_backend_desc`,后者是本地 LLM 后端遗留文案) |
 | 2 | `SettingsScreen.kt:827-869` 休眠 GALLERY 分类 | 同款整块第二份副本(已不可达死代码,注释自述「保留仅供后续清理」) |
-| 3 | ardot v2 帧 `gallery/tag_control_v2` | 设计稿中无此卡片(代码侧后加),设计↔实现漂移 |
+| 3 | ardot v2 帧 `gallery/tag_control` | 设计稿中无此卡片(代码侧后加),设计↔实现漂移 |
 
 ## 2. 设计决策(用户已确认)
 
@@ -24,12 +24,13 @@
 
 ## 3. ardot 交付(已完成)
 
-- 帧:`gallery/tag_control_v2`(Gallery 页)末尾新增 `CardTagAccel`(node `267:2`):
+- 帧:`gallery/tag_control`(Gallery 页)末尾新增 `CardTagAccel`(node `267:2`):
   - `iconBlock`(28×28 amber 12% + `ic/speed`,自 v1 `rowOpencl` 复制)
   - 标题 15sp = 变量 `tag.gen.use.opencl.title`(复用);副标题 11sp = 新变量 `tag.gen.use.opencl.subtitle`(id `267:1`)
   - `Segmented`($2:150 底、radius 14):`CPU`(平文本)+ `GPU` 选中胶囊(浅青 14% 底、文字 $2:130 SemiBold)
   - 行高自适应 + 垂直居中(副标题换行兜底)
-- v1 帧 `gallery/settings` 整帧删除(2026-09-05 用户确认:与 `tag_control_v2` 同页冲突,结构已被 v2 完全覆盖);`tag_control_v2` 为相册扫描页唯一 SSOT;相关台账行标记 removed,孤儿变量(11 个,含 `ai_agent.local.backend*`、休眠入口文案)随代码阶段字符串清理
+- v1 帧 `gallery/settings` 整帧删除(2026-09-05 用户确认:同页新旧两版冲突,结构已被 v2 完全覆盖);相关台账行标记 removed,孤儿变量(11 个,含 `ai.agent.local.backend*`、休眠入口文案)随代码阶段字符串清理
+- v2 帧更名 `gallery/tag_control_v2` → `gallery/tag_control`(2026-09-05,v1 删除后版本后缀无意义;对齐兄弟帧 `tag_stage_sheet` 与路由 `Screen.TagControl`),为相册扫描页唯一 SSOT;台账 gallery.csv/gallery_en.csv、`scripts/ardot-lang-align.py`、`gallery/AGENTS.md` 同步
 - 语言变量:UI Language 集 359→360;台账 `docs/08-UI-SPECS/screens/lang/`(ledger.json + gallery.csv 4 行)已登记
 - 双语验证:zh/EN 标题、副标题均单行,无词内断行/孤字/裁剪;选中色与页内芯片一致
 

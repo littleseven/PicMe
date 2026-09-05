@@ -1,55 +1,55 @@
 frame,node_id,name,zh,en,source,var,action,note,text,id
-gallery/tag_control_v2_en,171:276,title,相册,Gallery,matched,gallery.settings,bind,"multi:gallery,gallery_settings;ledger 复用 gallery.settings(相册/Gallery)",Gallery,171:276
-gallery/tag_control_v2_en,172:37,secLabelStats,图库,Library,matched,tag.section.library,bind,,Library,172:37
-gallery/tag_control_v2_en,172:47,t,图库统计,Library stats,matched,tag.stats.title,bind,ledger 复用 tag.stats.title,Library stats,172:47
-gallery/tag_control_v2_en,172:49,entry,查看标签,View tags,manual,tag.stats.view.tags,bind,slot 虚构 app 无此键,View tags,172:49
-gallery/tag_control_v2_en,172:63,bigNum,"12,593","12,593",manual,tag.stats.total.value,bind,slot 虚构数字;no-anchor noop,"12,593",172:63
-gallery/tag_control_v2_en,172:64,heroCap,张照片 · 语义索引已覆盖 98%,photos · 98% semantically indexed,manual,tag.stats.total.caption,bind,key stats_hero_caption 具象（photos · %1$d%% semantically indexed/张照片 · 语义索引已覆盖 %1$d%%）,photos · 98% semantically indexed,172:64
-gallery/tag_control_v2_en,172:65,ringPct,98%,98%,manual,tag.stats.indexed.pct,bind,slot 虚构;no-anchor noop,98%,172:65
-gallery/tag_control_v2_en,172:74,v,"3,208","3,208",manual,tag.stats.with.face.value,bind,slot 虚构数字;no-anchor noop,"3,208",172:74
-gallery/tag_control_v2_en,172:75,l,含人脸照片,With faces,matched,tag.stats.with.face,bind,ledger 复用 tag.stats.with.face,With faces,172:75
-gallery/tag_control_v2_en,172:76,v,"3,207","3,207",manual,tag.stats.embeddings.value,bind,slot 虚构数字;no-anchor noop,"3,207",172:76
-gallery/tag_control_v2_en,172:77,l,人脸 Embedding,Face embeddings,matched,tag.stats.embeddings,bind,ledger 复用 tag.stats.embeddings,Face embeddings,172:77
-gallery/tag_control_v2_en,172:78,v,47,47,manual,tag.stats.people.value,bind,slot 虚构数字;no-anchor noop,47,172:78
-gallery/tag_control_v2_en,172:79,l,识别出的人,People found,matched,tag.stats.people,bind,ledger 复用 tag.stats.people,People found,172:79
-gallery/tag_control_v2_en,172:80,v,18,18,manual,tag.stats.named.value,bind,slot 虚构数字;no-anchor noop,18,172:80
-gallery/tag_control_v2_en,172:81,l,已命名人,Named,matched,tag.stats.named,bind,ledger 复用 tag.stats.named,Named,172:81
-gallery/tag_control_v2_en,171:278,secLabelScan,扫描,Scan,matched,tag.section.scan,bind,,Scan,171:278
-gallery/tag_control_v2_en,171:281,t,扫描状态,Scan status,matched,tag.scan.status,bind,ledger 复用 tag.scan.status,Scan status,171:281
-gallery/tag_control_v2_en,171:285,t,已完成,Up to date,matched,tag.scan.up.to.date,bind,ledger 复用 tag.scan.up.to.date,Up to date,171:285
-gallery/tag_control_v2_en,171:288,scanCaption,"已扫描 12,593 项 · 失败 2 项 · 今天 22:40 完成","12,593 items scanned · 2 failed · Finished today 22:40",manual,tag.scan.caption.done,bind,key tag_scan_caption_done(%1$s items scanned · %2$d failed)具象+完成时间尾缀;ledger 姊妹 gallery.stats.scan.caption 为旧版文案,"12,593 items scanned · 2 failed · Finished today 22:40",171:288
-gallery/tag_control_v2_en,171:293,t,扫描新增,Scan new,matched,tag.scan.incremental,bind,,Scan new,171:293
-gallery/tag_control_v2_en,171:297,t,全量重扫,Rescan all,matched,tag.scan.full,bind,ledger 复用 tag.scan.full,Rescan all,171:297
-gallery/tag_control_v2_en,171:299,t,分阶段,Stages,matched,tag.pass.control.title,bind,,Stages,171:299
-gallery/tag_control_v2_en,171:301,hint,点按阶段进行管理,Tap a stage to manage,matched,tag.stages.hint,bind,,Tap a stage to manage,171:301
-gallery/tag_control_v2_en,171:308,t,人脸,Faces,matched,tag.pass.title.face,bind,"multi:tag_pass_title_face,tag_category_face",Faces,171:308
-gallery/tag_control_v2_en,171:309,st,检测人脸 · 构建语义索引,Detect faces · build semantic index,matched,tag.pass.desc.face,bind,,Detect faces · build semantic index,171:309
-gallery/tag_control_v2_en,171:310,pct,98%,98%,manual,tag.pass.face.pct,bind,slot 虚构;no-anchor noop,98%,171:310
-gallery/tag_control_v2_en,171:318,t,人物,People,matched,people.entry,bind,"multi:people_title,people_entry,gallery_people_entry,tag_pass_title_cluster;ledger 复用 people.entry;语义=tag_pass_title_cluster",People,171:318
-gallery/tag_control_v2_en,171:319,st,将人脸聚合为人物,Group faces into people,matched,tag.pass.desc.cluster,bind,,Group faces into people,171:319
-gallery/tag_control_v2_en,171:320,pct,47,47,manual,tag.pass.cluster.pct,bind,slot 虚构;no-anchor noop,47,171:320
-gallery/tag_control_v2_en,171:328,t,内容标签,Content tags,matched,tag.pass.title.content,bind,,Content tags,171:328
-gallery/tag_control_v2_en,171:329,st,场景、活动与物体,"Scenes, activities & objects",matched,tag.pass.desc.content,bind,,"Scenes, activities & objects",171:329
-gallery/tag_control_v2_en,171:330,pct,85%,85%,manual,tag.pass.content.pct,bind,slot 虚构;no-anchor noop,85%,171:330
-gallery/tag_control_v2_en,171:338,t,质量评分,Quality scores,matched,tag.pass.title.aesthetic,bind,,Quality scores,171:338
-gallery/tag_control_v2_en,171:339,st,美学与人脸画质,Aesthetic & face quality,matched,tag.pass.desc.aesthetic,bind,,Aesthetic & face quality,171:339
-gallery/tag_control_v2_en,171:340,pct,76%,76%,manual,tag.pass.aesthetic.pct,bind,slot 虚构;no-anchor noop,76%,171:340
-gallery/tag_control_v2_en,172:1,secLabelRegen,重新生成,Regenerate,matched,tag.fine.control.title,bind,"multi:tag_fine_control_title,tag_regenerate_selected",Regenerate,172:1
-gallery/tag_control_v2_en,172:3,t,类别,Categories,matched,tag.select.categories,bind,,Categories,172:3
-gallery/tag_control_v2_en,172:26,t,人脸,Faces,matched,tag.pass.title.face,bind,"multi:tag_pass_title_face,tag_category_face",Faces,172:26
-gallery/tag_control_v2_en,172:6,t,场景,Scenes,matched,tag.viewer.section.scenes,bind,"multi:tag_viewer_section_scenes,tag_category_scene",Scenes,172:6
-gallery/tag_control_v2_en,172:8,t,活动,Activities,matched,tag.category.activity,bind,,Activities,172:8
-gallery/tag_control_v2_en,172:10,t,物体,Objects,matched,tag.viewer.section.objects,bind,"multi:tag_viewer_section_objects,tag_category_objects",Objects,172:10
-gallery/tag_control_v2_en,172:12,t,标签聚合,Tags,matched,tag.viewer.section.tags.field,bind,"multi:tag_viewer_tab_tags,tag_viewer_section_tags_field,tag_category_tags;ledger 复用（键 tag_viewer_section_tags_field zh=标签 与 ledger 一致；multi 首名 tag_viewer_tab_tags zh=标签聚合 未采用）",Tags,172:12
-gallery/tag_control_v2_en,172:14,t,摘要,Summary,matched,tag.category.summary,bind,,Summary,172:14
-gallery/tag_control_v2_en,172:15,t,时间范围,Time range,matched,tag.time.range,bind,,Time range,172:15
-gallery/tag_control_v2_en,172:18,t,全部,All time,matched,tag.time.range.all,bind,,All time,172:18
-gallery/tag_control_v2_en,172:20,t,最近7天,7 days,matched,tag.time.range.days.7,bind,,7 days,172:20
-gallery/tag_control_v2_en,172:22,t,最近30天,30 days,matched,tag.time.range.days.30,bind,,30 days,172:22
-gallery/tag_control_v2_en,172:24,t,最近90天,90 days,matched,tag.time.range.days.90,bind,,90 days,172:24
-gallery/tag_control_v2_en,172:29,t,覆盖已有结果,Overwrite existing,matched,tag.overwrite.existing,bind,,Overwrite existing,172:29
-gallery/tag_control_v2_en,172:30,st,关闭：仅补齐缺失标签,Off = fill in missing tags only,manual,tag.overwrite.existing.desc,bind,canvas EN 用 = ;key tag_overwrite_existing_desc(Off: …/关闭：仅补齐缺失标签),Off = fill in missing tags only,172:30
-gallery/tag_control_v2_en,172:36,t,重新生成,Regenerate,matched,tag.fine.control.title,bind,"multi:tag_fine_control_title,tag_regenerate_selected",Regenerate,172:36
+gallery/tag_control_en,171:276,title,相册,Gallery,matched,gallery.settings,bind,"multi:gallery,gallery_settings;ledger 复用 gallery.settings(相册/Gallery)",Gallery,171:276
+gallery/tag_control_en,172:37,secLabelStats,图库,Library,matched,tag.section.library,bind,,Library,172:37
+gallery/tag_control_en,172:47,t,图库统计,Library stats,matched,tag.stats.title,bind,ledger 复用 tag.stats.title,Library stats,172:47
+gallery/tag_control_en,172:49,entry,查看标签,View tags,manual,tag.stats.view.tags,bind,slot 虚构 app 无此键,View tags,172:49
+gallery/tag_control_en,172:63,bigNum,"12,593","12,593",manual,tag.stats.total.value,bind,slot 虚构数字;no-anchor noop,"12,593",172:63
+gallery/tag_control_en,172:64,heroCap,张照片 · 语义索引已覆盖 98%,photos · 98% semantically indexed,manual,tag.stats.total.caption,bind,key stats_hero_caption 具象（photos · %1$d%% semantically indexed/张照片 · 语义索引已覆盖 %1$d%%）,photos · 98% semantically indexed,172:64
+gallery/tag_control_en,172:65,ringPct,98%,98%,manual,tag.stats.indexed.pct,bind,slot 虚构;no-anchor noop,98%,172:65
+gallery/tag_control_en,172:74,v,"3,208","3,208",manual,tag.stats.with.face.value,bind,slot 虚构数字;no-anchor noop,"3,208",172:74
+gallery/tag_control_en,172:75,l,含人脸照片,With faces,matched,tag.stats.with.face,bind,ledger 复用 tag.stats.with.face,With faces,172:75
+gallery/tag_control_en,172:76,v,"3,207","3,207",manual,tag.stats.embeddings.value,bind,slot 虚构数字;no-anchor noop,"3,207",172:76
+gallery/tag_control_en,172:77,l,人脸 Embedding,Face embeddings,matched,tag.stats.embeddings,bind,ledger 复用 tag.stats.embeddings,Face embeddings,172:77
+gallery/tag_control_en,172:78,v,47,47,manual,tag.stats.people.value,bind,slot 虚构数字;no-anchor noop,47,172:78
+gallery/tag_control_en,172:79,l,识别出的人,People found,matched,tag.stats.people,bind,ledger 复用 tag.stats.people,People found,172:79
+gallery/tag_control_en,172:80,v,18,18,manual,tag.stats.named.value,bind,slot 虚构数字;no-anchor noop,18,172:80
+gallery/tag_control_en,172:81,l,已命名人,Named,matched,tag.stats.named,bind,ledger 复用 tag.stats.named,Named,172:81
+gallery/tag_control_en,171:278,secLabelScan,扫描,Scan,matched,tag.section.scan,bind,,Scan,171:278
+gallery/tag_control_en,171:281,t,扫描状态,Scan status,matched,tag.scan.status,bind,ledger 复用 tag.scan.status,Scan status,171:281
+gallery/tag_control_en,171:285,t,已完成,Up to date,matched,tag.scan.up.to.date,bind,ledger 复用 tag.scan.up.to.date,Up to date,171:285
+gallery/tag_control_en,171:288,scanCaption,"已扫描 12,593 项 · 失败 2 项 · 今天 22:40 完成","12,593 items scanned · 2 failed · Finished today 22:40",manual,tag.scan.caption.done,bind,key tag_scan_caption_done(%1$s items scanned · %2$d failed)具象+完成时间尾缀;ledger 姊妹 gallery.stats.scan.caption 为旧版文案,"12,593 items scanned · 2 failed · Finished today 22:40",171:288
+gallery/tag_control_en,171:293,t,扫描新增,Scan new,matched,tag.scan.incremental,bind,,Scan new,171:293
+gallery/tag_control_en,171:297,t,全量重扫,Rescan all,matched,tag.scan.full,bind,ledger 复用 tag.scan.full,Rescan all,171:297
+gallery/tag_control_en,171:299,t,分阶段,Stages,matched,tag.pass.control.title,bind,,Stages,171:299
+gallery/tag_control_en,171:301,hint,点按阶段进行管理,Tap a stage to manage,matched,tag.stages.hint,bind,,Tap a stage to manage,171:301
+gallery/tag_control_en,171:308,t,人脸,Faces,matched,tag.pass.title.face,bind,"multi:tag_pass_title_face,tag_category_face",Faces,171:308
+gallery/tag_control_en,171:309,st,检测人脸 · 构建语义索引,Detect faces · build semantic index,matched,tag.pass.desc.face,bind,,Detect faces · build semantic index,171:309
+gallery/tag_control_en,171:310,pct,98%,98%,manual,tag.pass.face.pct,bind,slot 虚构;no-anchor noop,98%,171:310
+gallery/tag_control_en,171:318,t,人物,People,matched,people.entry,bind,"multi:people_title,people_entry,gallery_people_entry,tag_pass_title_cluster;ledger 复用 people.entry;语义=tag_pass_title_cluster",People,171:318
+gallery/tag_control_en,171:319,st,将人脸聚合为人物,Group faces into people,matched,tag.pass.desc.cluster,bind,,Group faces into people,171:319
+gallery/tag_control_en,171:320,pct,47,47,manual,tag.pass.cluster.pct,bind,slot 虚构;no-anchor noop,47,171:320
+gallery/tag_control_en,171:328,t,内容标签,Content tags,matched,tag.pass.title.content,bind,,Content tags,171:328
+gallery/tag_control_en,171:329,st,场景、活动与物体,"Scenes, activities & objects",matched,tag.pass.desc.content,bind,,"Scenes, activities & objects",171:329
+gallery/tag_control_en,171:330,pct,85%,85%,manual,tag.pass.content.pct,bind,slot 虚构;no-anchor noop,85%,171:330
+gallery/tag_control_en,171:338,t,质量评分,Quality scores,matched,tag.pass.title.aesthetic,bind,,Quality scores,171:338
+gallery/tag_control_en,171:339,st,美学与人脸画质,Aesthetic & face quality,matched,tag.pass.desc.aesthetic,bind,,Aesthetic & face quality,171:339
+gallery/tag_control_en,171:340,pct,76%,76%,manual,tag.pass.aesthetic.pct,bind,slot 虚构;no-anchor noop,76%,171:340
+gallery/tag_control_en,172:1,secLabelRegen,重新生成,Regenerate,matched,tag.fine.control.title,bind,"multi:tag_fine_control_title,tag_regenerate_selected",Regenerate,172:1
+gallery/tag_control_en,172:3,t,类别,Categories,matched,tag.select.categories,bind,,Categories,172:3
+gallery/tag_control_en,172:26,t,人脸,Faces,matched,tag.pass.title.face,bind,"multi:tag_pass_title_face,tag_category_face",Faces,172:26
+gallery/tag_control_en,172:6,t,场景,Scenes,matched,tag.viewer.section.scenes,bind,"multi:tag_viewer_section_scenes,tag_category_scene",Scenes,172:6
+gallery/tag_control_en,172:8,t,活动,Activities,matched,tag.category.activity,bind,,Activities,172:8
+gallery/tag_control_en,172:10,t,物体,Objects,matched,tag.viewer.section.objects,bind,"multi:tag_viewer_section_objects,tag_category_objects",Objects,172:10
+gallery/tag_control_en,172:12,t,标签聚合,Tags,matched,tag.viewer.section.tags.field,bind,"multi:tag_viewer_tab_tags,tag_viewer_section_tags_field,tag_category_tags;ledger 复用（键 tag_viewer_section_tags_field zh=标签 与 ledger 一致；multi 首名 tag_viewer_tab_tags zh=标签聚合 未采用）",Tags,172:12
+gallery/tag_control_en,172:14,t,摘要,Summary,matched,tag.category.summary,bind,,Summary,172:14
+gallery/tag_control_en,172:15,t,时间范围,Time range,matched,tag.time.range,bind,,Time range,172:15
+gallery/tag_control_en,172:18,t,全部,All time,matched,tag.time.range.all,bind,,All time,172:18
+gallery/tag_control_en,172:20,t,最近7天,7 days,matched,tag.time.range.days.7,bind,,7 days,172:20
+gallery/tag_control_en,172:22,t,最近30天,30 days,matched,tag.time.range.days.30,bind,,30 days,172:22
+gallery/tag_control_en,172:24,t,最近90天,90 days,matched,tag.time.range.days.90,bind,,90 days,172:24
+gallery/tag_control_en,172:29,t,覆盖已有结果,Overwrite existing,matched,tag.overwrite.existing,bind,,Overwrite existing,172:29
+gallery/tag_control_en,172:30,st,关闭：仅补齐缺失标签,Off = fill in missing tags only,manual,tag.overwrite.existing.desc,bind,canvas EN 用 = ;key tag_overwrite_existing_desc(Off: …/关闭：仅补齐缺失标签),Off = fill in missing tags only,172:30
+gallery/tag_control_en,172:36,t,重新生成,Regenerate,matched,tag.fine.control.title,bind,"multi:tag_fine_control_title,tag_regenerate_selected",Regenerate,172:36
 gallery/tag_stage_sheet_en,172:87,title,内容标签,Content tags,matched,tag.pass.title.content,bind,,Content tags,172:87
 gallery/tag_stage_sheet_en,172:88,desc,选择该阶段要处理的范围,Choose what to reprocess in this stage.,matched,tag.stage.sheet.desc,bind,,Choose what to reprocess in this stage.,172:88
 gallery/tag_stage_sheet_en,172:92,t,仅处理新增,Process new only,matched,tag.stage.action.new,bind,,Process new only,172:92

@@ -24,7 +24,7 @@ PAGES = {
   'editor':   ['editor/current_crop','editor/current_adjust','editor/concept_a_hypic',
                'editor/concept_a_adjust','editor/concept_a_crop','editor/concept_a_beauty'],
   'people':   ['people/grid','people/detail'],
-  'gallery_en': ['gallery/tag_control_v2','gallery/tag_stage_sheet'],
+  'gallery_en': ['gallery/tag_control','gallery/tag_stage_sheet'],
   'chat_en':  ['chat/empty-v2-guest'],
   # 2026-08-27 Dedup 新页补绑：仅 6 规范帧；results_en 为物理英文副本帧（旧 workaround，
   # 绑定完成后删除，遵循「零物理重复帧」约定），不参与对齐。

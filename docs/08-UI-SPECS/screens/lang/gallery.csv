@@ -55,39 +55,39 @@ gallery/sort_menu,107:352,label,全部,All,manual,group.none,bind,manual→key g
 gallery/selection,107:355,title_album,相册,Gallery,matched,gallery.title,bind,"multi:gallery,gallery_settings",相册,107:355
 gallery/selection,107:389,group_title,今天,Today,manual,gallery.today,bind,ledger:gallery.today,今天,107:389
 gallery/selection,107:390,group_count,(6),(6),literal,,skip,data,(6),107:390
-gallery/settings,118:5,title,相册,Gallery,manual,gallery.settings,removed,manual→key gallery_settings(TagControlScreen 顶栏);canvas 相册设置→app 相册; 2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),相册设置,118:5
-gallery/settings,118:7,secLabelA,相册打标,Gallery Tagging,manual,gallery.features,removed,manual→key gallery_features;canvas 相册功能→app 相册打标; 2026-09-05 GPU 卡收口至 tag_control_v2 底部;本节点删除,相册功能,118:7
-gallery/settings,118:14,t,管理重复照片,Manage Duplicates,manual,manage.duplicates,removed,manual→key manage_duplicates;canvas 重复图管理→app 管理重复照片; 2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),重复图管理,118:14
-gallery/settings,118:15,st,查找并删除重复或相似照片，释放存储空间。,Find and remove duplicate or similar photos to free up space.,manual,duplicate.manager.desc,removed,"manual→key duplicate_manager_desc(app 全文,canvas 为缩写); layout-fix: width hug→fill_container (EN 长文折行, 消除 83px 溢出); 2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖)",查找并删除重复相似照片，释放空间,118:15
-gallery/settings,118:23,t,TAG 生成 GPU 加速,TAG Generation GPU Accel,manual,tag.gen.use.opencl.title,removed,"manual→key tag_gen_use_opencl_title;canvas TAG 生成加速→app 全名; layout-fix: width hug→fill_container (EN 长文折行, 消除 11px 溢出); 2026-09-05 GPU 卡收口至 tag_control_v2 底部;本节点删除; 标题变量仍由 v2 帧 267:8 使用",TAG 生成加速,118:23
-gallery/settings,118:24,st,本地 LLM 后端,Local LLM Backend,manual,ai.agent.local.backend,removed,manual→key ai_agent_local_backend(GallerySettingsHeader 实标);canvas 端侧打标推理后端→app 本地 LLM 后端; 2026-09-05 GPU 卡收口至 tag_control_v2 底部;本节点删除; 变量随代码阶段 ai_agent_local_backend* 清理,端侧打标推理后端,118:24
-gallery/settings,118:26,optCpu,CPU,CPU,matched,ai.agent.local.backend.cpu,removed,multi改选:ai_agent_local_backend_cpu=GallerySettings 后端选择器实际键; 2026-09-05 GPU 卡收口至 tag_control_v2 底部;本节点删除; 变量随代码阶段 ai_agent_local_backend* 清理,CPU,118:26
-gallery/settings,118:28,t,OpenCL（GPU）,OpenCL (GPU),manual,ai.agent.local.backend.opencl,removed,"skip→bind:app key ai_agent_local_backend_opencl 含本地化括号,非语言无关; 2026-09-05 GPU 卡收口至 tag_control_v2 底部;本节点删除; 变量随代码阶段 ai_agent_local_backend* 清理",OpenCL,118:28
-gallery/settings,118:29,secLabelB,TAG 扫描控制,TAG Scan Control,manual,tag.scan.control,removed,manual→key tag_scan_control;canvas 扫描控制→app TAG 扫描控制; 2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),扫描控制,118:29
-gallery/settings,118:32,t,扫描状态,Scan status,matched,tag.scan.status,removed,2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),扫描状态,118:32
-gallery/settings,118:36,t,已完成,Up to date,matched,tag.scan.up.to.date,removed,2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),已完成,118:36
-gallery/settings,118:39,scanCaption,"本轮扫描 12,593 张 · 失败 2 张 · 今天 22:40 完成","Last scan: 12,593 photos · 2 failed · finished today at 22:40",manual,gallery.stats.scan.caption,removed,fiction:组合caption→EN译; 2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),"本轮扫描 12,593 张 · 失败 2 张 · 今天 22:40 完成",118:39
-gallery/settings,118:44,t,全量重扫,Rescan all,manual,tag.scan.full,removed,manual→key tag_scan_full;canvas 重新扫描→app 全量重扫; 2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),重新扫描,118:44
-gallery/settings,118:48,t,取消,Cancel,matched,cancel,removed,"multi:cancel,ai_chat_cancel,report_issue_cancel; 2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖)",取消,118:48
-gallery/settings,118:49,secLabelC,图库统计,Library stats,manual,tag.stats.title,removed,manual→key tag_stats_title;canvas 相册统计→app 图库统计; 2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),相册统计,118:49
-gallery/settings,118:52,t,数据库累计统计,All-time database stats,manual,gallery.stats.db.total,removed,fiction:分区标题→EN译; 2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),数据库累计统计,118:52
-gallery/settings,118:54,entry,标签查看,Tag Viewer,matched,tag.viewer.title,removed,2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),标签查看,118:54
-gallery/settings,118:59,bigNum,"12,593","12,593",literal,,removed,data; 2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),"12,593",118:59
-gallery/settings,118:60,heroCap,张照片 · 语义索引已覆盖 98%,photos · 98% semantically indexed,manual,stats.hero.caption,removed,manual→key stats_hero_caption(%1$d=98 实例); 2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),张照片 · 语义索引已覆盖 98%,118:60
-gallery/settings,118:65,ringPct,98%,98%,literal,,removed,data; 2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),98%,118:65
-gallery/settings,118:71,v,"3,208","3,208",literal,,removed,data; 2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),"3,208",118:71
-gallery/settings,118:72,l,含人脸照片,With faces,matched,tag.stats.with.face,removed,2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),含人脸照片,118:72
-gallery/settings,118:77,v,"3,207","3,207",literal,,removed,data; 2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),"3,207",118:77
-gallery/settings,118:78,l,人脸 Embedding,Face embeddings,matched,tag.stats.embeddings,removed,2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),人脸 Embedding,118:78
-gallery/settings,118:84,v,47,47,literal,,removed,data; 2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),47,118:84
-gallery/settings,118:85,l,识别出的人,People found,manual,tag.stats.people,removed,manual→key tag_stats_people;canvas 识别出的人物→app 识别出的人; 2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),识别出的人物,118:85
-gallery/settings,118:90,v,18,18,literal,,removed,data; 2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),18,118:90
-gallery/settings,118:91,l,已命名人,Named,manual,tag.stats.named,removed,manual→key tag_stats_named;canvas 已命名人物→app 已命名人; 2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),已命名人物,118:91
-gallery/settings,118:93,l,人脸检测 · Pass 1,Face detection · Pass 1,manual,gallery.stats.pass.face,removed,fiction:pass 标签→EN译; 2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),人脸检测 · Pass 1,118:93
-gallery/settings,118:95,p,98%,98%,literal,,removed,data; 2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),98%,118:95
-gallery/settings,118:99,l,内容理解 · Pass 3,Content understanding · Pass 3,manual,gallery.stats.pass.content,removed,fiction:pass 标签→EN译; 2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),内容理解 · Pass 3,118:99
-gallery/settings,118:101,p,85%,85%,literal,,removed,data; 2026-09-05 v1 帧整体删除(与 tag_control_v2 冲突;结构已被 v2 覆盖),85%,118:101
-gallery/tag_control_v2,267:8,title,TAG 生成 GPU 加速,TAG Generation GPU Accel,reuse,tag.gen.use.opencl.title,bind,v2 底部新卡 CardTagAccel 标题;复用既有变量,TAG 生成 GPU 加速,267:8
-gallery/tag_control_v2,267:9,subtitle,加速标签生成，卡顿时可关闭,Faster tagging; disable if it hangs,manual,tag.gen.use.opencl.subtitle,bind,新变量(267:1)→app 新 key tag_gen_use_opencl_subtitle;替代原双 desc 冗余,加速标签生成，卡顿时可关闭,267:9
-gallery/tag_control_v2,267:11,optCpu,CPU,CPU,reuse,device.preference.force.cpu,bind,分段控件左项,CPU,267:11
-gallery/tag_control_v2,267:13,t,GPU,GPU,reuse,device.preference.force.gpu,bind,分段控件右项(选中态);弃 OpenCL(GPU) 长标签换取文本列宽(标题/副标题单行),GPU,267:13
+gallery/settings,118:5,title,相册,Gallery,manual,gallery.settings,removed,manual→key gallery_settings(TagControlScreen 顶栏);canvas 相册设置→app 相册; 2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),相册设置,118:5
+gallery/settings,118:7,secLabelA,相册打标,Gallery Tagging,manual,gallery.features,removed,manual→key gallery_features;canvas 相册功能→app 相册打标; 2026-09-05 GPU 卡收口至 tag_control 底部;本节点删除,相册功能,118:7
+gallery/settings,118:14,t,管理重复照片,Manage Duplicates,manual,manage.duplicates,removed,manual→key manage_duplicates;canvas 重复图管理→app 管理重复照片; 2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),重复图管理,118:14
+gallery/settings,118:15,st,查找并删除重复或相似照片，释放存储空间。,Find and remove duplicate or similar photos to free up space.,manual,duplicate.manager.desc,removed,"manual→key duplicate_manager_desc(app 全文,canvas 为缩写); layout-fix: width hug→fill_container (EN 长文折行, 消除 83px 溢出); 2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖)",查找并删除重复相似照片，释放空间,118:15
+gallery/settings,118:23,t,TAG 生成 GPU 加速,TAG Generation GPU Accel,manual,tag.gen.use.opencl.title,removed,"manual→key tag_gen_use_opencl_title;canvas TAG 生成加速→app 全名; layout-fix: width hug→fill_container (EN 长文折行, 消除 11px 溢出); 2026-09-05 GPU 卡收口至 tag_control 底部;本节点删除; 标题变量仍由 v2 帧 267:8 使用",TAG 生成加速,118:23
+gallery/settings,118:24,st,本地 LLM 后端,Local LLM Backend,manual,ai.agent.local.backend,removed,manual→key ai_agent_local_backend(GallerySettingsHeader 实标);canvas 端侧打标推理后端→app 本地 LLM 后端; 2026-09-05 GPU 卡收口至 tag_control 底部;本节点删除; 变量随代码阶段 ai_agent_local_backend* 清理,端侧打标推理后端,118:24
+gallery/settings,118:26,optCpu,CPU,CPU,matched,ai.agent.local.backend.cpu,removed,multi改选:ai_agent_local_backend_cpu=GallerySettings 后端选择器实际键; 2026-09-05 GPU 卡收口至 tag_control 底部;本节点删除; 变量随代码阶段 ai_agent_local_backend* 清理,CPU,118:26
+gallery/settings,118:28,t,OpenCL（GPU）,OpenCL (GPU),manual,ai.agent.local.backend.opencl,removed,"skip→bind:app key ai_agent_local_backend_opencl 含本地化括号,非语言无关; 2026-09-05 GPU 卡收口至 tag_control 底部;本节点删除; 变量随代码阶段 ai_agent_local_backend* 清理",OpenCL,118:28
+gallery/settings,118:29,secLabelB,TAG 扫描控制,TAG Scan Control,manual,tag.scan.control,removed,manual→key tag_scan_control;canvas 扫描控制→app TAG 扫描控制; 2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),扫描控制,118:29
+gallery/settings,118:32,t,扫描状态,Scan status,matched,tag.scan.status,removed,2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),扫描状态,118:32
+gallery/settings,118:36,t,已完成,Up to date,matched,tag.scan.up.to.date,removed,2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),已完成,118:36
+gallery/settings,118:39,scanCaption,"本轮扫描 12,593 张 · 失败 2 张 · 今天 22:40 完成","Last scan: 12,593 photos · 2 failed · finished today at 22:40",manual,gallery.stats.scan.caption,removed,fiction:组合caption→EN译; 2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),"本轮扫描 12,593 张 · 失败 2 张 · 今天 22:40 完成",118:39
+gallery/settings,118:44,t,全量重扫,Rescan all,manual,tag.scan.full,removed,manual→key tag_scan_full;canvas 重新扫描→app 全量重扫; 2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),重新扫描,118:44
+gallery/settings,118:48,t,取消,Cancel,matched,cancel,removed,"multi:cancel,ai_chat_cancel,report_issue_cancel; 2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖)",取消,118:48
+gallery/settings,118:49,secLabelC,图库统计,Library stats,manual,tag.stats.title,removed,manual→key tag_stats_title;canvas 相册统计→app 图库统计; 2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),相册统计,118:49
+gallery/settings,118:52,t,数据库累计统计,All-time database stats,manual,gallery.stats.db.total,removed,fiction:分区标题→EN译; 2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),数据库累计统计,118:52
+gallery/settings,118:54,entry,标签查看,Tag Viewer,matched,tag.viewer.title,removed,2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),标签查看,118:54
+gallery/settings,118:59,bigNum,"12,593","12,593",literal,,removed,data; 2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),"12,593",118:59
+gallery/settings,118:60,heroCap,张照片 · 语义索引已覆盖 98%,photos · 98% semantically indexed,manual,stats.hero.caption,removed,manual→key stats_hero_caption(%1$d=98 实例); 2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),张照片 · 语义索引已覆盖 98%,118:60
+gallery/settings,118:65,ringPct,98%,98%,literal,,removed,data; 2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),98%,118:65
+gallery/settings,118:71,v,"3,208","3,208",literal,,removed,data; 2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),"3,208",118:71
+gallery/settings,118:72,l,含人脸照片,With faces,matched,tag.stats.with.face,removed,2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),含人脸照片,118:72
+gallery/settings,118:77,v,"3,207","3,207",literal,,removed,data; 2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),"3,207",118:77
+gallery/settings,118:78,l,人脸 Embedding,Face embeddings,matched,tag.stats.embeddings,removed,2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),人脸 Embedding,118:78
+gallery/settings,118:84,v,47,47,literal,,removed,data; 2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),47,118:84
+gallery/settings,118:85,l,识别出的人,People found,manual,tag.stats.people,removed,manual→key tag_stats_people;canvas 识别出的人物→app 识别出的人; 2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),识别出的人物,118:85
+gallery/settings,118:90,v,18,18,literal,,removed,data; 2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),18,118:90
+gallery/settings,118:91,l,已命名人,Named,manual,tag.stats.named,removed,manual→key tag_stats_named;canvas 已命名人物→app 已命名人; 2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),已命名人物,118:91
+gallery/settings,118:93,l,人脸检测 · Pass 1,Face detection · Pass 1,manual,gallery.stats.pass.face,removed,fiction:pass 标签→EN译; 2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),人脸检测 · Pass 1,118:93
+gallery/settings,118:95,p,98%,98%,literal,,removed,data; 2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),98%,118:95
+gallery/settings,118:99,l,内容理解 · Pass 3,Content understanding · Pass 3,manual,gallery.stats.pass.content,removed,fiction:pass 标签→EN译; 2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),内容理解 · Pass 3,118:99
+gallery/settings,118:101,p,85%,85%,literal,,removed,data; 2026-09-05 v1 帧整体删除(与 tag_control 冲突;结构已被 v2 覆盖),85%,118:101
+gallery/tag_control,267:8,title,TAG 生成 GPU 加速,TAG Generation GPU Accel,reuse,tag.gen.use.opencl.title,bind,v2 底部新卡 CardTagAccel 标题;复用既有变量,TAG 生成 GPU 加速,267:8
+gallery/tag_control,267:9,subtitle,加速标签生成，卡顿时可关闭,Faster tagging; disable if it hangs,manual,tag.gen.use.opencl.subtitle,bind,新变量(267:1)→app 新 key tag_gen_use_opencl_subtitle;替代原双 desc 冗余,加速标签生成，卡顿时可关闭,267:9
+gallery/tag_control,267:11,optCpu,CPU,CPU,reuse,device.preference.force.cpu,bind,分段控件左项,CPU,267:11
+gallery/tag_control,267:13,t,GPU,GPU,reuse,device.preference.force.gpu,bind,分段控件右项(选中态);弃 OpenCL(GPU) 长标签换取文本列宽(标题/副标题单行),GPU,267:13
