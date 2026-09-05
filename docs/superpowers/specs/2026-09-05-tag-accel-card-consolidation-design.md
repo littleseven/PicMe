@@ -28,7 +28,8 @@
   - `iconBlock`(28×28 amber 12% + `ic/speed`,自 v1 `rowOpencl` 复制)
   - 标题 15sp = 变量 `tag.gen.use.opencl.title`(复用);副标题 11sp = 新变量 `tag.gen.use.opencl.subtitle`(id `267:1`)
   - `Segmented`($2:150 底、radius 14):`CPU`(平文本)+ `GPU` 选中胶囊(浅青 14% 底、文字 $2:130 SemiBold)
-  - 行高自适应 + 垂直居中(副标题换行兜底);v1 帧 `gallery/settings` 保留为历史帧不动
+  - 行高自适应 + 垂直居中(副标题换行兜底)
+- v1 帧 `gallery/settings` 顶部同款 GPU 卡(整节 `CardFeatures` + 小节标签 `secLabelA`)已删除(2026-09-05 用户确认),帧保留其余区块作历史对照;相关台账行标记 removed
 - 语言变量:UI Language 集 359→360;台账 `docs/08-UI-SPECS/screens/lang/`(ledger.json + gallery.csv 4 行)已登记
 - 双语验证:zh/EN 标题、副标题均单行,无词内断行/孤字/裁剪;选中色与页内芯片一致
 
