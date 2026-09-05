@@ -2365,6 +2365,13 @@
    "en": "Pause",
    "status": "created",
    "ardotId": "230:70"
+  },
+  "tag.gen.use.opencl.subtitle": {
+   "zh": "加速标签生成，卡顿时可关闭",
+   "en": "Faster tagging; disable if it hangs",
+   "status": "created",
+   "key": "tag_gen_use_opencl_subtitle",
+   "ardotId": "267:1"
   }
  }
 }
