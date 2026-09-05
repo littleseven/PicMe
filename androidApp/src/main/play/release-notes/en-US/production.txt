@@ -1,1 +1,4 @@
-Optimize the user experience
+- Album cleanup 2.0: duplicates grouped by content type, batch keep/clean, full-screen group review
+- New languages: Spanish & French (5 total)
+- Status bar now follows in-app theme; fixed bottom-bar overlap on gesture navigation
+- Camera routing & avatar capture improvements
